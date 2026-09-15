@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Limkenion</title>
+		<!-- 内联 SVG 图标：省掉一次 /favicon.ico 请求（服务器没有这个文件，会 404）。 -->
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%238e4959'/%3E%3Cpath d='M11 9v14h10' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+		/>
+		<link rel="stylesheet" href="/app.css" />
+		<!--
+			首帧之前就把主题定下来。不这么做的话，浅色系统的用户会先看到一帧深色
+			（html 上的 data-theme="dark"），等 app.js 跑起来才翻过来。
+			theme.js 会再算一次同样的结果，这段只是抢时间，判定规则必须与它保持一致：
+			只看系统偏好，页面不存任何选择。
+		-->
+		<script>
+			(() => {
+				const theme = window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+				document.documentElement.dataset.theme = theme;
+				document.documentElement.style.colorScheme = theme;
+			})();
+		</script>
+	</head>
+	<body>
+		<div class="app">
+			<aside class="sidebar">
+				<header class="sidebar-head">
+					<span class="brand">
+						<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+							<circle cx="16" cy="16" r="16" fill="currentColor" opacity="0.16"></circle>
+							<path
+								d="M11 9v14h10"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							></path>
+						</svg>
+						<span class="brand-name">Limkenion</span>
+					</span>
+					<button id="new-session" class="btn primary small" type="button" title="新建会话；还没有工作目录时会先让你选一个">
+						<!-- 新建会话：加号（与「新建文件夹」的文件夹加号区分开） -->
+						<svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+							<path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+						</svg>
+						新建会话
+					</button>
+				</header>
+
+				<div class="sidebar-label">会话</div>
+				<div id="session-list" class="session-list"></div>
+
+				<footer class="sidebar-foot">
+					<label class="meta-row">
+						<span class="meta-label">模型</span>
+						<select id="model"></select>
+					</label>
+				</footer>
+				<!-- 拖动改侧栏宽度；双击复位。键盘 ←/→ 也能调（见 app.js 的 initSidebarResize） -->
+				<div
+					class="sidebar-resize"
+					role="separator"
+					aria-orientation="vertical"
+					aria-label="调整左侧栏宽度"
+					tabindex="0"
+					title="拖动调整侧栏宽度（双击复位，键盘 ←/→ 也能调）"
+				></div>
+			</aside>
+
+			<main class="main">
+				<div id="transcript" class="transcript">
+					<div class="empty">
+						<p>还没有对话。</p>
+						<p class="hint">在下面输入任务，模型会调用 bash / read / write / edit / grep / glob 六个工具来完成它。</p>
+					</div>
+				</div>
+				<form id="composer" class="composer">
+					<div class="composer-box">
+						<!--
+							输入框正上方的一排「浮标」：跳到最新 / 历史输入 / 上下文压缩。
+							够宽就横着排，窄了自动折成竖排；都右对齐到输入框右边。挂在输入框卡片里侧定位，
+							空的地方不吃点击（见 app.css 里 .composer-badges 的 pointer-events）。
+						-->
+						<div class="composer-badges">
+							<!-- 用户往上翻过之后才出现：点一下回到末尾、恢复自动跟随 -->
+							<button type="button" id="jump-latest" class="transcript-jump" hidden></button>
+							<!-- 「这一轮悄悄做了什么」（上下文压缩、超窗救援）：一枚药丸，多条合成一枚 -->
+							<div id="composer-notices" class="composer-notices" hidden></div>
+						</div>
+						<!-- 裁切框：卡片的圆角、描边、底色都在它身上；两条拖柄也在它里面，好被圆角裁掉 -->
+						<div class="composer-frame">
+							<textarea id="input" rows="3" placeholder="描述你的任务…（Enter 发送，Shift+Enter 换行）"></textarea>
+						<div class="composer-actions">
+							<span id="status" class="status">就绪</span>
+							<button type="button" id="stop" class="btn danger" hidden>停止</button>
+							<button type="submit" id="send" class="btn primary">发送</button>
+						</div>
+						<!-- 左右各一条：拖动改对话区宽度（--content-width）；双击复位成最长，键盘 ←/→ 也能调 -->
+						<div
+							class="composer-resize composer-resize-left"
+							role="separator"
+							aria-orientation="vertical"
+							aria-label="调整对话区宽度（左侧）"
+							tabindex="0"
+							title="拖动调整对话区宽度（双击复位到最长，键盘 ←/→ 也能调）"
+						></div>
+						<div
+							class="composer-resize"
+							role="separator"
+							aria-orientation="vertical"
+							aria-label="调整对话区宽度"
+							tabindex="0"
+							title="拖动调整对话区宽度（双击复位到最长，键盘 ←/→ 也能调）"
+						></div>
+						</div>
+					</div>
+				</form>
+			</main>
+
+			<aside id="preview" class="preview" hidden>
+				<!-- 左边缘的拖柄：拖动改 --lk-preview-width（做法与合成器那两条一致） -->
+				<div
+					class="preview-resize"
+					role="separator"
+					aria-orientation="vertical"
+					aria-label="调整预览宽度"
+					tabindex="0"
+				></div>
+				<header class="preview-head">
+					<span id="preview-path" class="preview-path"></span>
+					<button id="preview-close" class="btn ghost small" type="button" title="关闭预览">关闭</button>
+				</header>
+				<pre id="preview-body" class="preview-body"></pre>
+			</aside>
+		</div>
+
+		<!-- 工作目录选择器：列出子目录，可以逐级进入、直接粘绝对路径，也可以就地新建文件夹。 -->
+		<div id="picker" class="modal" hidden>
+			<div class="modal-box">
+				<header class="modal-head">
+					<span id="picker-title" class="modal-title">选择工作目录</span>
+					<button id="picker-close" class="btn ghost small" type="button">关闭</button>
+				</header>
+				<form id="picker-goto" class="modal-goto">
+					<input id="picker-path" type="text" spellcheck="false" placeholder="直接输入绝对路径后回车" />
+				</form>
+				<form id="picker-create" class="modal-create" hidden>
+					<input id="picker-create-name" type="text" spellcheck="false" placeholder="新文件夹名称，回车创建" />
+					<button type="submit" class="btn primary small">创建</button>
+					<button id="picker-create-cancel" class="btn ghost small" type="button">取消</button>
+				</form>
+				<div id="picker-error" class="modal-error" hidden></div>
+				<div id="picker-list" class="modal-list"></div>
+				<footer class="modal-foot">
+					<span id="picker-hint" class="modal-hint"></span>
+					<button id="picker-new" class="btn ghost small" type="button">
+						<svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+							<path
+								d="M2 5.6a1 1 0 0 1 1-1h3l1.4 1.7h4.6a1 1 0 0 1 1 1v5.1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.5"
+								stroke-linejoin="round"
+							></path>
+							<path d="M10.6 9.4v3.4M8.9 11.1h3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+						</svg>
+						新建文件夹
+					</button>
+					<button id="picker-up" class="btn ghost small" type="button">上一级</button>
+					<button id="picker-confirm" class="btn primary small" type="button">使用此目录</button>
+				</footer>
+			</div>
+		</div>
+		<!-- 接口密钥：只在本地保存，页面只显示打码后的结果。 -->
+		<div id="settings" class="modal" hidden>
+			<div class="modal-box narrow">
+				<header class="modal-head">
+					<span class="modal-title">接口密钥</span>
+					<button id="settings-close" class="btn ghost small" type="button">关闭</button>
+				</header>
+				<div class="modal-body">
+					<p id="settings-note" class="modal-note"></p>
+					<form id="settings-form" class="modal-create">
+						<input
+							id="settings-key"
+							type="password"
+							spellcheck="false"
+							autocomplete="off"
+							placeholder="粘贴 DeepSeek API Key，回车保存"
+						/>
+						<button type="submit" class="btn primary small">保存</button>
+					</form>
+					<div id="settings-status" class="modal-status" hidden></div>
+					<p id="settings-storage" class="modal-tip"></p>
+					<p class="modal-tip">
+						只写在本机 ~/.limkenion/agent/auth.json（权限 0600），保存后下一次生成立即生效，不需要重启。
+						页面拿不到明文，密钥也不会写进会话记录。
+					</p>
+				</div>
+				<footer class="modal-foot">
+					<span class="modal-hint"></span>
+					<button id="settings-clear" class="btn ghost small" type="button">清除本地保存</button>
+				</footer>
+			</div>
+		</div>
+		<script type="module" src="/app.js"></script>
+	</body>
+</html>

@@ -1,0 +1,35 @@
+name: 改动提议
+description: 提出一个改动或新功能
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提议前请先读 [CONTRIBUTING.md](https://github.com/IamCanincan/Limkenion/blob/main/CONTRIBUTING.md)。
+
+        本项目的核心是「最小内核」：新增子系统、插件机制、抽象层，或第二家供应商的适配器，
+        基本不会被接受。请保持简短，一屏放不下就说明太长了。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 想改什么？
+      description: 具体、简洁。
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 为什么
+      description: 它解决什么问题？
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: 怎么做（可选）
+      description: 如果你已经有技术方案，简单说一下。
+    validations:
+      required: false

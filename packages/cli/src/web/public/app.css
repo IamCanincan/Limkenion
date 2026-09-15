@@ -1,0 +1,2312 @@
+/*
+ * Limkenion Web UI 样式。
+ *
+ * 手写 CSS，没有预处理器、没有框架、不引外部字体。颜色全部收在两组自定义属性里：
+ * [data-theme="light"] 与 [data-theme="dark"]，由 theme.js 按浏览器偏好切换，
+ * 其余规则一律只用变量，因此加一套主题只需要再加一组变量。
+ */
+
+/* ---------- 主题变量 ---------- */
+
+/*
+ * Material Design 3（Material You）配色。
+ *
+ * 以粉色为种子色生成，但取的是 MD3 的低饱和角色色：主色是莫兰迪粉 #8e4959，粉色只出现在
+ * 主按钮、选中态与强调文字上，大面积交给 surface 容器色，所以整体比纯粉轻得多。
+ * 变量名沿用界面里已有的角色名，一一对应 MD3 的 color role。
+ */
+:root[data-theme="light"] {
+	/* 主色角色 */
+	--accent: #8e4959;
+	--accent-hover: #7a3c4b;
+	--accent-soft: #ffd9e1;
+	--accent-fill: #ffd9e1;
+	--accent-fill-hover: #ffc7d3;
+	--accent-text: #8e4959;
+	--accent-on-fill: #3b0716;
+	--accent-ring: rgba(142, 73, 89, 0.16);
+
+	/*
+	 * MD3 有三套色相角色（primary / secondary / tertiary），只做一套粉的话整屏就是一个色 ——
+	 * 「不够有层次」就是这么来的。secondary 走淡紫（分组、信息），tertiary 走暖橙（诊断、提示）。
+	 */
+	--secondary: #6b5a86;
+	--secondary-soft: #eadff6;
+	--secondary-text: #5a4a73;
+	--tertiary: #8a5334;
+	--tertiary-soft: #ffdcc6;
+	--tertiary-text: #7a4728;
+
+	/* 表面角色：五档色调，相邻要看得出差别，层次靠它而不是靠重阴影 */
+	--bg: #fdf3f5;
+	--surface: #fdf3f5; /* 页面底色 */
+	--surface-1: #f8e7ee; /* container-low：侧栏 */
+	--surface-2: #f1d7e1; /* container：卡片里的嵌套块、输入框 */
+	--surface-3: #e9c6d5; /* container-high：悬停、内联代码 */
+	--surface-4: #dfb2c6; /* highest：浮层、菜单 */
+	--hover: rgba(34, 25, 27, 0.06);
+	--border: #dfc0cd;
+	--border-strong: #cba3b5;
+
+	--text: #22191b;
+	--text-soft: #524347;
+	--muted: #7a686c;
+
+	--code-bg: #fbeef3;
+	--code-lang-bg: #f3dae4;
+
+	--danger: #ba1a1a;
+	--danger-soft: #ffdad6;
+	--ok: #2e6b4f;
+	--warn: #8a5334;
+
+	/* MD3 抬升：阴影很轻，靠色调分层而不是重阴影 */
+	--shadow-sm: 0 1px 2px rgba(34, 25, 27, 0.08);
+	--shadow-md: 0 2px 8px rgba(34, 25, 27, 0.1);
+	--shadow-lg: 0 8px 28px rgba(34, 25, 27, 0.18);
+	--scroll: #d8c2c6;
+	--scroll-hover: #bfa6ab;
+
+	/* 每一处「抬起来的表面」各占一档，别两两同色（同色就等于没有层次）：
+	   顶栏（比页面抬一层）→ 侧栏 → 面板 → 输入框（最实） */
+	--surface-bar: rgba(251, 238, 243, 0.74);
+	--surface-glass: rgba(248, 231, 238, 0.66);
+	--surface-glass-strong: rgba(241, 215, 225, 0.82);
+	--surface-composer: rgba(233, 198, 213, 0.86);
+
+	/*
+	 * 背景色晕：MD3 Expressive 的表面是「有东西在后面」的，纯平底色上做高斯模糊等于白做
+	 * （模糊一块纯色还是那块纯色）。所以浅色主题给页面铺三层极淡的主色/三色/次色晕，
+	 * 玻璃面板才有东西可糊。深色主题不给（页面保持纯黑，是使用者的明确要求）。
+	 */
+	/*
+	 * 三层都留在「粉—紫」这一族里：橙色（tertiary）与粉、紫叠在一起会调出一块中性灰，
+	 * 在周围的粉色衬托下眼睛会把它读成绿的（实测过）。tertiary 只在品牌渐变与警告色上出现。
+	 */
+	--wash-1: rgba(142, 73, 89, 0.2);
+	--wash-2: rgba(107, 90, 134, 0.14);
+	--wash-3: rgba(142, 73, 89, 0.08);
+}
+
+:root[data-theme="dark"] {
+	--accent: #ffb1c2;
+	--accent-hover: #ffd0da;
+	--accent-soft: #71333f;
+	--accent-fill: #71333f;
+	--accent-fill-hover: #854250;
+	--accent-text: #ffb1c2;
+	--accent-on-fill: #ffd9e1;
+	--accent-ring: rgba(255, 177, 194, 0.2);
+
+	/* 与浅色同一套角色，深色下取亮色作前景、深色作容器 */
+	--secondary: #d3c2f0;
+	--secondary-soft: #473a63;
+	--secondary-text: #d3c2f0;
+	--tertiary: #ffb68f;
+	--tertiary-soft: #5a3925;
+	--tertiary-text: #ffb68f;
+
+	/* 深色页面底色用纯黑：`.main` 是透明的，于是对话区就是这块黑。
+	   `--surface` 不动——它还要给输入框、侧栏底卡、浮层当"抬起一层"的填充，
+	   一起压黑会让那些块只剩 1px 边框，层次（上一轮刚补上的 MD3 分档）就没了。 */
+	--bg: #000000;
+	--surface: #191214;
+	--surface-1: #241b1e; /* container-low：卡片 */
+	--surface-2: #2d2326; /* container：卡片里的嵌套块、输入框 */
+	--surface-3: #372c30; /* container-high：悬停、内联代码 */
+	--surface-4: #4a3c42; /* highest：浮层、菜单 */
+	--hover: rgba(240, 222, 225, 0.07);
+	--border: #56464b;
+	--border-strong: #6a565c;
+
+	--text: #f0dee1;
+	--text-soft: #d8c2c6;
+	--muted: #b0a0a4;
+
+	--code-bg: #1f1719;
+	--code-lang-bg: #2a2124;
+
+	--danger: #ffb4ab;
+	--danger-soft: rgba(255, 180, 171, 0.16);
+	--ok: #7fd4a3;
+	--warn: #ffb68f;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+	--shadow-md: 0 2px 10px rgba(0, 0, 0, 0.5);
+	--shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.65);
+	--scroll: #524347;
+	--scroll-hover: #6b575c;
+
+	/* 与浅色同四档：顶栏 → 侧栏 → 面板 → 输入框，逐层抬起 */
+	--surface-bar: rgba(36, 28, 31, 0.62);
+	--surface-glass: rgba(28, 21, 23, 0.56);
+	--surface-glass-strong: rgba(52, 40, 45, 0.78);
+	--surface-composer: rgba(66, 54, 58, 0.84);
+	/* 深色页面保持纯黑：色晕一律透明（模糊靠内容从玻璃下穿过体现） */
+	--wash-1: transparent;
+	--wash-2: transparent;
+	--wash-3: transparent;
+}
+:root {
+	/*
+	 * 高斯模糊的档位。
+	 *
+	 * MD3 Expressive 的表面是「半透明 + 背后模糊」的，但各层该糊多少不一样：贴着一整屏内容的
+	 * 大面板要糊得多（不然底下的字会透上来干扰阅读），浮层与提示只需要一点点。
+	 * 收成三个档位，别再逐处手写 blur(Npx)：同层级的东西糊得不一样，看起来就是「脏」。
+	 */
+	/*
+	 * 对话内容的宽度：消息、工具卡、确认卡与输入框**共用**这一个值，所以它们天然同轴同宽。
+	 * 直接挂在对话流上的卡片（确认 / 方案）原来没有上限、通栏，看着与输入框错位。
+	 * 可拖（见 app.js 的 initContentResize），双击复位。
+	 */
+	--content-width: 880px;
+	--blur-sm: 12px; /* 提示、内联小块 */
+	--blur-md: 20px; /* 输入框、顶栏 */
+	--blur-lg: 30px; /* 侧栏、面板、浮层、弹窗 */
+	--saturate-glass: 170%; /* 玻璃一律带一点提饱和，纯模糊会发灰 */
+
+	/*
+	 * 排版尺度。
+	 *
+	 * 之前这里散着 11 种字号、7 种圆角、7 种间距，全是逐条手调的——看着「说不上哪里怪」的根源
+	 * 就是它：同一层级的东西在不同地方差 0.3px、差 1px，眼睛能从对齐上感觉到不整齐。
+	 * 收成一份尺度后，改「整体大一点」只需动这里一行。
+	 */
+	--text-xs: 11px; /* 标签、徽标 */
+	--text-sm: 12.5px; /* 次要信息：时间、用量、提示 */
+	--text-base: 13.5px; /* 正文与界面默认字号 */
+	--text-md: 15px; /* 小标题、品牌名 */
+	--text-lg: 17px; /* 空状态标题 */
+	--leading: 1.6;
+	--leading-tight: 1.35;
+
+	--radius-xs: 12px; /* 行内小块、徽标 */
+	--radius-sm: 16px;
+	--radius-md: 24px; /* 卡片、工具卡、会话项 */
+	--radius-lg: 28px; /* 面板、侧栏底部卡 */
+	--radius-xl: 32px; /* 外层悬浮卡片 */
+	--radius-pill: 999px; /* 按钮、输入框 */
+
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
+}
+
+/* ---------- 基础 ---------- */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+[hidden] {
+	display: none !important;
+}
+
+html,
+body {
+	height: 100%;
+}
+
+/*
+ * 界面字体。
+ *
+ * Google Sans Flex 是 Google 开源（SIL OFL 1.1）的可变字体，随包一起提供，因此离线也能用。
+ * 它只有拉丁字形，中文由下面的系统字体接手——这与 Google 自家产品的做法一致。
+ */
+@font-face {
+	font-family: "Google Sans Flex";
+	src: url("/google-sans-flex.woff2") format("woff2");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+body {
+	margin: 0;
+	/*
+	 * 三层色晕铺在页面底色上（`--wash-*` 深色主题里是透明的，于是深色仍是纯黑）。
+	 * 用 `fixed` 让它在滚动/切会话时不动：底下的对话内容从玻璃面板下面穿过时，
+	 * 模糊的才是"位置固定的一层色 + 正在移动的内容"，画面才像一块真的毛玻璃。
+	 */
+	background-color: var(--bg);
+	background-image:
+		radial-gradient(1100px 620px at 8% -8%, var(--wash-1), transparent 60%),
+		radial-gradient(900px 600px at 96% 96%, var(--wash-2), transparent 58%),
+		radial-gradient(720px 460px at 4% 104%, var(--wash-3), transparent 55%);
+	background-attachment: fixed;
+	color: var(--text);
+	font-family: "Google Sans Flex", "Google Sans", "Product Sans", ui-sans-serif, system-ui, -apple-system,
+		"Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
+	font-size: var(--text-md);
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 2px;
+}
+
+a {
+	color: var(--accent-text);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--scroll);
+	border: 2px solid transparent;
+	background-clip: content-box;
+	border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--scroll-hover);
+	background-clip: content-box;
+}
+
+/* ---------- 骨架 ---------- */
+
+.app {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	gap: var(--space-3);
+	height: 100vh;
+	height: 100dvh;
+	/* 窗口四边留一条缝：侧栏与主区域各自成为圆角卡片，而不是被一条通栏直线切开。 */
+	padding: 10px 10px 10px 10px;
+	/*
+	 * 兜底：各横向模块都有自己的 min-width（侧栏 200 / 主干 440 / 预览 320 / 面板 300），
+	 * 加起来还是放不下时**整页横向滚动**，而不是把某一块压扁。
+	 * 平时靠 shell.js 的覆盖层判据避免走到这一步；这一条保证"任何情况下都不会被压扁"。
+	 */
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.sidebar {
+	display: flex;
+	flex-direction: column;
+	/* 宽度归一个 CSS 变量管：右边缘那个拖柄改的就是它（见 app.js 的 initSidebarResize）。
+	   默认 292px，窄屏那条媒体查询给 240px 兜底。min-width 是**压缩下限**：
+	   横向模块被挤到这个宽度以下就没法读了（使用者：「每一个横向拉伸的模块都应有一个压缩限制」）。 */
+	flex: 0 0 var(--lk-sidebar-width, 292px);
+	width: var(--lk-sidebar-width, 292px);
+	min-width: 200px;
+	position: relative;
+	/* 留出内边距，各段才能成为独立圆角卡片：MD3 用「块与块的间隔」代替直的分隔线。
+	   上边留白比别的少 4px：品牌行整体往上提一点（使用者要求）。 */
+	gap: var(--space-2);
+	padding: 8px 12px 12px;
+	background: var(--surface-glass);
+	backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	border: 1px solid var(--border);
+	/* 侧栏是一张圆角卡片：MD3 里块与块的边界靠形状，不靠通栏直线。 */
+	border-radius: var(--radius-xl);
+	box-shadow: var(--shadow-md);
+	/* 裁掉溢出：拖柄整条贴在边上、通高，靠这里把四个圆角裁出来 */
+	overflow: hidden;
+}
+
+/* 收起侧栏（顶栏最左那颗开关）：用 hidden 属性，所以要有这条显式规则——
+   `.sidebar { display: flex }` 的优先级高于浏览器默认的 `[hidden] { display: none }`。 */
+.sidebar[hidden] {
+	display: none;
+}
+
+/*
+ * 侧栏右边缘的拖柄：拖动改 --lk-sidebar-width（见 app.js 的 initSidebarResize）。
+ * 平时完全透明、只占一条 8px 的命中区（不挡内容、不划线）；悬停或拖动时显一条强调色细线。
+ * 不做过渡：本仓库界面不加动画。
+ */
+.sidebar-resize {
+	position: absolute;
+	/* 与卡片**等长**、并且贴在卡片的边上：整条沿着右边那条描边走。
+	   上下各探 1px 是因为绝对定位的包含块在描边内侧（不补就比卡片矮 2px）；
+	   圆角与探出的部分都由外层 overflow: hidden 裁掉。 */
+	top: -1px;
+	right: 0;
+	bottom: -1px;
+	width: 8px;
+	cursor: col-resize;
+	z-index: 3;
+	touch-action: none;
+}
+.sidebar-resize::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 2px;
+	background: transparent;
+}
+.sidebar-resize:hover::after,
+.sidebar-resize:focus-visible::after,
+.sidebar-resize[data-dragging="1"]::after {
+	background: var(--accent);
+}
+/* 很窄的窗口（≤700px）：侧栏本来就只占 240px，再拖只会把对话区挤没 */
+@media (max-width: 700px) {
+	.sidebar-resize {
+		display: none;
+	}
+}
+
+.main {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+	background: transparent;
+}
+
+/* ---------- 按钮 ---------- */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: 8px 14px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-3);
+	color: var(--text);
+	font-size: var(--text-base);
+	font-weight: 500;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), transform var(--motion-fast);
+}
+
+.btn:hover {
+	background: var(--surface-4);
+	border-color: var(--border-strong);
+}
+
+.btn:active {
+	transform: translateY(1px);
+}
+
+.btn:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.btn.primary {
+	background: var(--accent-fill);
+	border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+	color: var(--accent-on-fill);
+	box-shadow: var(--shadow-sm);
+}
+
+.btn.primary:hover {
+	background: var(--accent-fill-hover);
+	border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+	box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.btn.ghost {
+	background: transparent;
+	border-color: transparent;
+	color: var(--muted);
+}
+
+.btn.ghost:hover {
+	background: var(--hover);
+	border-color: transparent;
+	color: var(--text);
+}
+
+.btn.danger {
+	background: var(--danger);
+	border-color: transparent;
+	color: #fff;
+}
+
+.btn.small {
+	padding: 6px 14px;
+	border-radius: var(--radius-pill);
+	font-size: var(--text-sm);
+}
+
+.icon {
+	width: 14px;
+	height: 14px;
+	flex: 0 0 auto;
+}
+
+/* 图标：统一走 icons.js 画出来的线性图标（圆头描边、currentColor）。
+   以前用 ▤ ↺ ⌫ 这类文字符号——来自不同字体，笔重/基线/圆角都对不齐，一排按钮放在一起就参差。 */
+.lk-icon { flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.15em; }
+
+/*
+ * 「有新版本」药丸：右下角，玻璃底、圆头，与其它浮标同一套。
+ * 位置按**同心**算：右下角那张卡片（面板/预览）的右下角圆心在 (右 − 8 − 32, 下 − 8 − 32)，
+ * 药丸右端圆弧的圆心要落在同一点 —— 高度固定 34（帽半径 17），于是内缩 8 + 32 − 17 = 23px。
+ * 写成 calc 是为了以后改 --radius-xl 或卡片外边距时它自己跟上。
+ */
+.build-pill {
+	position: fixed;
+	height: 34px;
+	/* 与右下角卡片的圆角同心：内缩 = "卡片右下角圆心离视口边的距离" − 自身帽半径 17
+	   （那个距离由 shell.js 按卡片实际形态算出，写进 --lk-card-corner-inset） */
+	right: calc(var(--lk-card-corner-inset, 42px) - 17px);
+	bottom: calc(var(--lk-card-corner-inset, 42px) - 17px);
+	z-index: 60;
+	padding: 8px 14px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass-strong);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	box-shadow: var(--shadow-lg);
+	color: var(--accent-text);
+	font: inherit;
+	font-size: var(--text-sm);
+	cursor: pointer;
+}
+.build-pill:hover {
+	background: var(--accent-soft);
+	color: var(--accent-on-fill);
+}
+
+/*
+ * 输入框右下角那颗按钮（发送 / 停止）：高度定死 34（帽半径 17），与卡片右下角同心。
+ * 用 id 选择器是因为 .btn.primary 的尺寸规则比 .composer-actions .btn 更具体，压不过它（实测高 40 → 差 3px）。
+ * 改这个高度就要一起改 .composer-frame 的右/下内边距（14 + 边框 1 + 17 = 32）。
+ */
+#send,
+#stop {
+	height: 34px;
+	/* 状态药丸按内容定宽之后，靠这条把它顶到卡片右边（原来靠 .status 的 flex-grow 撑） */
+	margin-left: auto;
+}
+
+/* ---------- 侧栏头部 ---------- */
+
+.sidebar-head {
+	display: flex;
+	/*
+	 * 这里刻意 **不** 用 align-items: center：一行里有两种几何要求，居中对齐满足不了。
+	 *   - 卡片右上角圆弧的圆心在 (右边 − 32, 上边 + 32)（侧栏圆角 --radius-xl = 32）；
+	 *   - 「+ 新建」是药丸，右端圆弧半径 = 高度 ÷ 2 = 17，要让它**同一个圆心**，
+	 *     按钮就得离上边、右边各 15px（1 描边 + 12 侧栏留白 + 2 这里）；
+	 *   - 而 L 图标要求圆心离上边与左边都是 29px。
+	 * 按钮 34px、图标 24px，两者居中对齐时圆心必然同高，所以改成顶对齐，再给品牌区让 2px。
+	 */
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-3);
+	/* 上 calc(4+2)=6、右 2（让按钮离右边 15px）、下 8、左 4（让 L 圆心离左边 29px） */
+	padding: calc(var(--space-1) + 2px) 2px 8px var(--space-1);
+}
+
+/* 品牌区：图标 + 名字。图标用 currentColor 画，所以这里的 accent 是给它用的（名字自己有颜色） */
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	/* 顶对齐的行里再让 2px：L 图标的圆心因此落在离上边 29px 处（与离左边一致） */
+	margin-top: 2px;
+	min-width: 0;
+	color: var(--accent);
+}
+
+.brand-mark {
+	width: 24px;
+	height: 24px;
+	flex: 0 0 auto;
+	/*
+	 * 图标是 SVG：自带一个 16% 淡色圆盘 + currentColor 描出的 L。**不要**给它加背景或圆角——
+	 * 加一层同色系渐变底会把淡圆盘盖成不透明，L 与底同色就看不见了（真踩过）。
+	 */
+}
+
+.brand-name {
+	color: var(--text);
+	font-size: var(--text-md);
+	font-weight: 650;
+	letter-spacing: -0.01em;
+	/* 侧栏可以被拖窄：窄到 200px 时品牌名要省略号，而不是硬切一半（原来会切出「Limkeni」） */
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.sidebar-label {
+	padding: 4px 8px 0;
+	color: var(--muted);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: 0.1em;
+}
+
+/* ---------- 会话列表 ---------- */
+
+.session-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	/* 滚动区自己也是圆角卡片：滚动条与内容都不会顶到侧栏边缘。 */
+	padding: 4px;
+	border-radius: var(--radius-lg);
+}
+
+.session-item {
+	position: relative;
+	/* 两列：左边文字块（标题 + 次要行），右边操作。行内边距在下面那条规则里 */
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	column-gap: 10px;
+	/* 右 = 上下 = 11px：行尾那颗 ▾（20×20，垂直居中）因此到上/下/右边的距离都是 11px。
+	   左边 28px：会话标题要和工作区名对齐（使用者要求）。实测工作区名在 56（文件夹图标 35 + 图标 15 + 间距 6）；
+	   行的盒子在 27、外加 1px 透明描边，所以内容缩进写 56 − 27 − 1 = 28。
+	   （原来 14px，标题落在 42，比工作区名靠左 14px。右边 30px 曾是给一个悬停删除按钮留位的，
+	   而那个按钮没有代码创建它，已作为死代码删掉。） */
+	padding: 11px 11px 11px 28px;
+	border: 1px solid transparent;
+	border-radius: calc(var(--radius-xl) - var(--space-4) - 1px);
+	cursor: pointer;
+	transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.session-item:hover {
+	background: var(--hover);
+}
+
+.session-item.active {
+	background: var(--accent-soft);
+	border-color: var(--accent-ring);
+}
+
+.session-item.active::before {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 13px;
+	bottom: 13px;
+	width: 3px;
+	border-radius: var(--radius-pill);
+	background: var(--accent);
+}
+
+.session-title > span:not(.dot) {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	word-break: break-word;
+}
+
+.session-time {
+	margin-top: 4px;
+	color: var(--muted);
+	font-size: var(--text-xs);
+}
+
+.session-preview {
+	padding: 14px 12px;
+	color: var(--muted);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+.dot {
+	width: 7px;
+	height: 7px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: var(--accent);
+}
+
+/* ---------- 侧栏底部：模型（工作目录那行已撤掉，目录改在会话行的 ▾ 菜单里选） ---------- */
+
+.sidebar-foot {
+	display: grid;
+	gap: var(--space-3);
+	margin-top: auto;
+	padding: 14px;
+	/* 这里是侧栏最显眼的一处「交接处」：原来是通栏的 1px 直线，现在收成一张圆角卡片。 */
+	border: 1px solid var(--border);
+	border-radius: calc(var(--radius-xl) - var(--space-3) - 1px);
+	background: var(--surface-glass-strong);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+}
+
+.meta-row {
+	display: grid;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.meta-label {
+	color: var(--muted);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+}
+
+#model {
+	width: 100%;
+	/* 侧栏被拖窄时，模型名（DeepSeek V4.1 Flash）会折成两行把控件撑高：改成单行省略 */
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	padding: 9px 34px 9px 16px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background-color: var(--surface-2);
+	/* 原生箭头各平台差别太大，统一换成自绘的。方向朝**上**：这个选择器在侧栏底部，
+	   展开的列表是往上弹的，箭头朝下会跟"点开会往下"的直觉相反（使用者指出）。 */
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 9.5 8 6l3.5 3.5' fill='none' stroke='%237a686c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 9px center;
+	background-size: 15px;
+	-webkit-appearance: none;
+	appearance: none;
+	font-size: var(--text-base);
+	cursor: pointer;
+	transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+#model:hover {
+	border-color: var(--border-strong);
+}
+
+#model:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.path-button {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	min-width: 0;
+	padding: 9px 16px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--text-soft);
+	cursor: pointer;
+	text-align: left;
+	transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
+}
+
+.path-button:hover {
+	border-color: var(--border-strong);
+	background: var(--surface);
+}
+
+.path-button:focus-visible {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.path-button .icon {
+	color: var(--muted);
+}
+
+.path-text {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+/* ---------- 对话区 ---------- */
+
+.transcript {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	/* 顶部留白多一点：消息从下方「长上来」时视觉重心更稳 */
+	padding: 30px 32px 12px;
+	/* 关掉滚动锚定：容器尺寸一变（输入框上方浮标占位、面板开合），浏览器会"帮忙"保持视觉位置，
+	   把我们设的 scrollTop 又顶回去，表现就是"钉不到底、差一截"（踩过）。 */
+	/*
+	 * 只纵向滚：横向滚动条会随内容（长单词、长 JSON、表格）忽隐忽现，
+	 * 看起来就是"底下那条一会有一会没有"（使用者反馈）。真需要横滚的代码块在 .tool-body pre 里自己滚。
+	 */
+	overflow-x: hidden;
+	overflow-anchor: none;
+	/* 两侧对称留出滚动条的位置：否则内容列会被滚动条挤窄 10px，与输入框对不齐 */
+	scrollbar-gutter: stable both-edges;
+	/* 这里刻意**不写** scroll-behavior: smooth：那会让每次自动跟随都变成动画，
+	   与用户正在进行的拖动/滚轮互相抢（表现为「往上拖不动」）。要平滑只在点「跳到最新」时用。 */
+}
+
+.turn {
+	width: 100%;
+	max-width: var(--content-width);
+	margin: 0 auto 22px;
+}
+
+.turn:last-child {
+	margin-bottom: 6px;
+}
+
+.turn.user {
+	display: flex;
+	justify-content: flex-end;
+}
+
+/* 输出（助手回答）：与输入用**副色**区分——同一套色板里的另一支，深浅主题各自换算，
+   所以两侧的对比在明暗两种模式下都成立（使用者：「输入和输出部分颜色也得和旁边做出区分」）。
+   形状与输入气泡镜像：圆角在左下收口。 */
+.turn.assistant .assistant {
+	/* 超长单词（无空格串、长哈希、base64）必须能断行：否则会把对话区撑出一条横向滚动条，
+	   而它随内容变化忽隐忽现，看起来就是"底下那条一会有一会没有"（踩过） */
+	overflow-wrap: anywhere;
+	padding: 12px 18px;
+	border-radius: 20px 20px 20px 6px;
+	background: color-mix(in srgb, var(--secondary) 12%, transparent);
+	color: var(--text);
+}
+/* 流式输出时这个块先于文字存在，别先画一个空盒子 */
+.turn.assistant .assistant:empty {
+	display: none;
+}
+
+.bubble {
+	max-width: 78%;
+	padding: 12px 20px;
+	border-radius: 20px 20px 6px 20px;
+	background: var(--accent-fill);
+	color: var(--accent-on-fill);
+	font-size: var(--text-md);
+	line-height: 1.65;
+	white-space: pre-wrap;
+	word-break: break-word;
+	box-shadow: var(--shadow-sm);
+}
+
+.assistant {
+	font-size: var(--text-md);
+	line-height: var(--leading);
+	color: var(--text);
+}
+
+.assistant > :first-child {
+	margin-top: 0;
+}
+
+.assistant > :last-child {
+	margin-bottom: 0;
+}
+
+.assistant p {
+	margin: 0 0 11px;
+}
+
+.assistant h1,
+.assistant h2,
+.assistant h3,
+.assistant h4,
+.assistant h5,
+.assistant h6 {
+	margin: 20px 0 10px;
+	font-size: var(--text-md);
+	font-weight: 650;
+	line-height: 1.45;
+}
+
+.assistant ul,
+.assistant ol {
+	margin: 0 0 11px;
+	padding-left: 22px;
+}
+
+.assistant li {
+	margin: 3px 0;
+}
+
+.assistant li::marker {
+	color: var(--muted);
+}
+
+.assistant code {
+	padding: 2px 5px;
+	border-radius: var(--radius-xs);
+	background: var(--surface-3);
+	color: var(--accent-text);
+	font-family: var(--font-mono);
+	font-size: 0.885em;
+}
+
+/* ---------- 运行提示与系统注记 ---------- */
+
+/*
+ * 服务端的运行提示（上下文压缩、超窗救援、这一轮失败）。
+ * 它贴在对话末尾而不是混进消息里：这是「这次运行发生了什么」，也不是对话内容；放末尾的好处是
+ * 刷新或断线重连后它仍在最后一行，用户回头还看得到「刚才为什么失败」。
+ */
+.notice-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin-top: var(--space-4);
+}
+
+.notice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	padding: 6px 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+	color: var(--text-soft);
+	font-size: var(--text-sm);
+}
+
+.notice-error {
+	border-color: var(--danger);
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+/*
+ * 输入框右下角那枚「这一轮悄悄做了什么」（上下文压缩、超窗救援）。
+ *
+ * 按使用者的意思放在动作行的右下、紧挨发送按钮，并且包成药丸：它是一条状态，不是输入内容。
+ * 文字长了省略号收掉，完整文案始终在 title 里。
+ */
+.composer-notices {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: var(--space-1);
+	min-width: 0;
+	max-width: 100%;
+}
+.composer-notices .notice {
+	align-items: center;
+	max-width: 100%;
+	padding: 3px 10px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-3);
+	color: var(--muted);
+	font-size: var(--text-xs);
+	white-space: nowrap;
+}
+.composer-notices .notice-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+/* 多条时右边缀的「共 N 次」：固定不压缩，被挤掉的是正文（正文本来就有 title） */
+.composer-notices .notice-count {
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--text-soft);
+	text-overflow: ellipsis;
+}
+
+.notice-symbol {
+	flex: 0 0 auto;
+}
+
+.notice-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	word-break: break-word;
+}
+
+/*
+ * 历史里的系统注记：交接摘要与「说明文件已更新」。
+ * 这两条在历史里是 user 消息，但说话的不是用户，所以画成一条安静的注记而不是气泡；
+ * 交接摘要可能很长，折起来只露一行标题。
+ */
+.note {
+	margin: var(--space-3) 0;
+	color: var(--muted);
+}
+
+.note summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	cursor: pointer;
+	font-size: var(--text-sm);
+}
+
+.note pre {
+	margin: var(--space-2) 0 0;
+	padding: 10px 13px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+	color: var(--text-soft);
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-size: var(--text-sm);
+}
+
+.note-symbol {
+	flex: 0 0 auto;
+}
+
+/* ---------- 空状态 ---------- */
+
+.empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	max-width: var(--content-width);
+	margin: auto;
+	padding: 40px 0;
+	text-align: center;
+}
+
+.empty::before {
+	content: "";
+	width: 46px;
+	height: 46px;
+	margin-bottom: 10px;
+	opacity: 0.85;
+	background: no-repeat center / contain
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='4' y='7' width='40' height='30' rx='9' fill='none' stroke='%237a686c' stroke-width='2.5'/%3E%3Cpath d='M14 37l-4 7 10-7' fill='none' stroke='%237a686c' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M15 19h18M15 26h11' stroke='%237a686c' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.empty p {
+	margin: 0;
+	font-size: var(--text-md);
+	font-weight: 600;
+}
+
+.empty .hint {
+	max-width: 460px;
+	color: var(--muted);
+	font-size: var(--text-base);
+	font-weight: 400;
+	line-height: 1.7;
+}
+
+/* ---------- 思维链 ---------- */
+
+.reasoning {
+	margin: 0 0 12px;
+	padding: 2px 0 2px 13px;
+	border-left: 2px solid var(--border-strong);
+}
+
+.reasoning > summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--muted);
+	font-size: var(--text-sm);
+	cursor: pointer;
+	user-select: none;
+	list-style: none;
+}
+
+.reasoning > summary::-webkit-details-marker {
+	display: none;
+}
+
+.reasoning > summary::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-right: 1.6px solid currentColor;
+	border-bottom: 1.6px solid currentColor;
+	transform: rotate(-45deg);
+	transition: transform var(--motion-fast);
+}
+
+.reasoning[open] > summary::before {
+	transform: rotate(45deg);
+}
+
+.reasoning > summary:hover {
+	color: var(--text-soft);
+}
+
+.reasoning pre {
+	margin: 8px 0 2px;
+	color: var(--muted);
+	font-family: inherit;
+	font-size: var(--text-base);
+	line-height: 1.72;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* ---------- 代码块 ---------- */
+
+.code-block {
+	margin: 12px 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--code-bg);
+	overflow: hidden;
+}
+
+/* 语言标签与复制按钮同一行 */
+.code-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: 5px 8px 5px 13px;
+	border-bottom: 1px solid var(--border);
+	background: var(--code-lang-bg);
+}
+
+.code-lang {
+	color: var(--muted);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	letter-spacing: 0.05em;
+}
+
+.code-copy {
+	padding: 3px 11px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--muted);
+	font-size: var(--text-xs);
+	cursor: pointer;
+	transition: background var(--motion-fast), color var(--motion-fast), border-color var(--motion-fast);
+}
+
+.code-copy:hover {
+	border-color: var(--accent-ring);
+	background: var(--accent-soft);
+	color: var(--accent-text);
+}
+
+.code-block pre {
+	margin: 0;
+	padding: 13px 14px;
+	overflow-x: auto;
+}
+
+.code-block code {
+	padding: 0;
+	background: none;
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: var(--text-base);
+	line-height: 1.65;
+	white-space: pre;
+}
+
+/* ---------- 工具行 ---------- */
+
+/*
+ * 一次工具调用只占一行：左边「▸ 符号 工具名 等宽摘要」，右边「状态符号 耗时」。
+ * 原先一行 chrome（名字 / 参数 / 状态 / 详情）+ 一行折叠体，一轮里十几次调用就是一堵墙；
+ * 现在扫一眼就能看清调了哪个工具、打的是什么、成没成、花了多久。
+ * 详情体没有缩水，点这一行展开即可。
+ */
+.tool {
+	margin: 2px 0;
+	border-radius: var(--radius-sm);
+}
+
+.tool:hover {
+	background: var(--surface-1);
+}
+
+/* 三个符号列等宽，上下行的工具名与摘要才能对齐 */
+.tool-row {
+	display: grid;
+	/*
+	 * 六列：展开箭头 | 工具符号 | 工具名 | 摘要（吃掉剩余） | 状态 | 耗时。
+	 *
+	 * 状态与耗时给**固定宽度**：每一行都是各自独立的 grid，用 max-content 的话每行按自己的内容算宽，
+	 * 行与行之间就对不齐；而且原来第 5 列只给了 1.1em，那一格放的却是「✓ 完成」整块，
+	 * 结果被挤出来溢到耗时旁边（「完成2ms」挤成一团、✓ 的位置还参差不齐）。
+	 * 名称列保留 max-content：工具名长短差得多（todo_write 十一个字符），定宽会把长名字挤破。
+	 * 摘要列必须写 `minmax(0, 1fr)` 而不是 `1fr`：`1fr` 的隐式最小值是内容的 min-content，
+	 * 像 `{"todos":[]}` 这种没有换行点的摘要会把整行撑宽、把右边的状态与耗时顶走（460 宽下实测不齐）。
+	 */
+	grid-template-columns: 1.1em 1.1em max-content minmax(0, 1fr) 5.6em 6.4em;
+	align-items: center;
+	gap: var(--space-2);
+	padding: 3px var(--space-2);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	user-select: none;
+}
+
+.tool-row:hover {
+	background: var(--surface-2);
+}
+
+/*
+ * 窄屏（≤700px）下主干区只有 ~200px，而为对齐预留的状态+耗时两列就要 180px：
+ * 行会溢出 94px（实测）。这里退回按内容定宽，并且每一列都允许收缩 + 省略——
+ * 对齐换不来可用宽度，宁可这一档不齐，也不能让行溢出容器。
+ */
+@media (max-width: 700px) {
+	.tool-row {
+		grid-template-columns: 1.1em 1.1em minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content) minmax(0, max-content);
+		gap: 4px;
+	}
+	.tool-name,
+	.tool-status,
+	.tool-duration {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* 窄屏下「12 行」与耗时挤在一起时优先保耗时：把行数那一块收掉（只有行数、还没耗时时仍然显示） */
+	.tool-duration > span:first-child:not(:only-child) {
+		display: none;
+	}
+}
+
+.tool-row:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+/* 展开收起用 ▸ / ▾；切换直接变，不加过渡、不加动画 */
+.tool-caret {
+	color: var(--muted);
+	font-size: var(--text-xs);
+}
+
+.tool-caret::before {
+	content: "▸";
+}
+
+.tool:has(.tool-body:not([hidden])) .tool-caret::before {
+	content: "▾";
+}
+
+/* 工具类别符号：读取 ▤ / 写入 + / 编辑 − / 搜索 ⌕ / 终端 ⌗ */
+.tool-glyph {
+	color: var(--muted);
+	font-size: var(--text-xs);
+	text-align: center;
+}
+
+.tool-name {
+	flex: 0 0 auto;
+	color: var(--accent-text);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+
+/* 关键参数用等宽体：路径、命令、模式都是逐字比对的东西 */
+.tool-args {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--text-soft);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+/* 状态符号单独一列：● 运行中 / ✓ 完成 / ✕ 失败 */
+.tool-symbol {
+	color: var(--muted);
+	font-size: var(--text-xs);
+	text-align: center;
+}
+
+.tool-status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	flex: 0 0 auto;
+	color: var(--muted);
+	font-size: var(--text-xs);
+	white-space: nowrap;
+}
+
+.tool-status.ok {
+	color: var(--ok);
+}
+
+.tool-status.error {
+	color: var(--danger);
+}
+
+.tool-status.running {
+	color: var(--warn);
+}
+
+/* 后缀：先有「N 行」，结果回来再追加耗时；两段各自成块，靠 gap 分开。
+   右对齐 + 等宽数位：每行的耗时在同一条右边缘上，1ms / 12ms / 1.2s 的数位也对得上。 */
+.tool-duration {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	color: var(--muted);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* 输出被内核截断过时，摘要行上的一枚小标签：折叠着也看得见（正文里那行说明仍在） */
+.tool-flag {
+	flex: 0 0 auto;
+	padding: 0 var(--space-2);
+	border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+	border-radius: var(--radius-pill);
+	color: var(--warn);
+	font-size: var(--text-xs);
+	white-space: nowrap;
+}
+
+/* 失败时摆在折叠行上的结果首行：一眼看出哪儿错了，想看全文点开（条内空间有限，超长已在 JS 里截断） */
+.tool-failure {
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--danger);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+.tool-body {
+	padding: 2px var(--space-2) var(--space-3);
+	background: var(--surface-1);
+	border-radius: var(--radius-sm);
+}
+
+.tool-label {
+	margin: 11px 0 6px;
+	color: var(--muted);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+}
+
+.tool-body pre {
+	margin: 0;
+	padding: 10px 12px;
+	max-height: 330px;
+	overflow: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--code-bg);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	line-height: 1.6;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.tool-preview {
+	margin-top: 11px;
+	padding: 6px 11px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--accent-text);
+	font-size: var(--text-sm);
+	cursor: pointer;
+	transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.tool-preview:hover {
+	background: var(--accent-soft);
+	border-color: var(--accent-ring);
+}
+
+/* ---------- 输入区 ---------- */
+
+.composer {
+	position: relative;
+	/* 与对话区同样对称预留滚动条宽度（--scrollbar-width 由 app.js 量出来写入）：
+	   两边的可用宽度一致，内容列与输入框才能同宽同轴 */
+	padding: 6px calc(32px + var(--scrollbar-width, 0px)) 22px;
+}
+
+/*
+ * 定位壳：只管「多宽、多居中、相对谁定位」。
+ *
+ * 卡片的样子（圆角、描边、底色、毛玻璃）在下面的 .composer-frame 上——因为拉伸条要贴边通高、
+ * 必须被圆角裁掉（需要 overflow: hidden），而输入框上方那排浮标是伸到卡片**外面**的，
+ * 放在同一个裁切容器里就会被一起裁掉（真踩过：浮标几何还在、屏幕上却看不见）。
+ */
+.composer-box {
+	position: relative;
+	width: 100%;
+	max-width: var(--content-width);
+	margin: 0 auto;
+}
+
+/* 卡片本体：裁掉溢出，把两条通高贴边的拉伸条裁成卡片的形状 */
+.composer-frame {
+	position: relative;
+	overflow: hidden;
+	/* 底部两端的同心靠这四条内边距凑：左 18 + 边框 1 + 状态药丸帽半径 13 = 32（卡片圆角）；
+	   右/下 14 + 边框 1 + 发送按钮帽半径 17 = 32。改 --radius-xl 或按钮高度时要一起改这里。 */
+	padding: 14px 14px 14px 18px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-xl);
+	background: var(--surface-composer);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	box-shadow: var(--shadow-md);
+	transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.composer-frame:focus-within {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+#input {
+	display: block;
+	width: 100%;
+	/* 内层不再设圆角：容器已经圆过了，这里再圆一次会把首行文字切掉 */
+	max-height: 288px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font-size: var(--text-md);
+	line-height: 1.64;
+	resize: none;
+	overflow-y: auto;
+}
+
+#input:focus {
+	outline: none;
+}
+
+#input::placeholder {
+	color: var(--muted);
+}
+
+#input:disabled {
+	opacity: 0.6;
+}
+
+.composer-actions {
+	display: flex;
+	/* 底部对齐：两端各自贴自己的角（状态药丸靠 margin-bottom 让出高度差） */
+	align-items: flex-end;
+	/* 允许换行：窗口窄的时候宁可多一行，也不让药丸/按钮伸出卡片（实测 460 下曾溢出 70px） */
+	flex-wrap: wrap;
+	row-gap: var(--space-1);
+	column-gap: var(--space-3);
+	padding-top: 9px;
+}
+
+.status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	/* 按内容定宽（使用者要求）：flex-grow 去掉，药丸只包住自己的文字；
+	   仍然可缩（flex-shrink 保留 + min-width: 0 + 省略号），长状态不会把按钮挤出卡片 */
+	flex: 0 1 auto;
+	min-width: 0;
+	/* 药丸（使用者要求）：高度固定 26（帽半径 13），与卡片左下角同心；
+	   它比发送矮 8px，所以再让 4px，两端的圆心才各自落在自己的角上 */
+	height: 26px;
+	padding: 0 10px;
+	margin-bottom: 4px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	/* 可以缩，但**绝不换行**：min-width: 0 配上换行会把「就绪」挤成竖排两行（实测 11 行） */
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+/* 生成中：状态行前面一个静态的 ◐，与终端面板同一套符号。**不做转圈动画**——本仓库明确「不加动画」，
+   这里从前是一个 CSS 转圈（遗留）。 */
+body.running .status::before {
+	content: "◐";
+	margin-right: var(--space-1);
+	color: var(--accent);
+}
+
+/* ---------- 右侧预览 ---------- */
+.preview {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	/* 宽度归一个变量管：左边缘那条拖柄改的就是它（拖动范围见 preview.js）。
+	   给一个**压缩下限**：窗口再挤也不能把预览压成一条（使用者：「每一个横向拉伸的模块都应有一个压缩限制」） */
+	flex: 0 0 var(--lk-preview-width, 420px);
+	width: var(--lk-preview-width, 420px);
+	min-width: 320px;
+	/* 裁掉溢出：里面有圆角，代码块的背景原来会顶出圆角之外（使用者：「背景色出去了」） */
+	overflow: hidden;
+	margin: 8px 8px 8px 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-xl);
+	background: var(--surface-glass);
+	backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	box-shadow: var(--shadow-md);
+}
+
+/*
+ * 预览放不下时也变覆盖层（判据见 shell.js 的 syncPanelOverlay）。
+ * 它是个固定 420px 的侧栏，开着它时主干只剩 345——那种宽度下对话与工具行都读不了（实测复现）。
+ */
+.preview[data-lk-overlay="1"] {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 6;
+	flex: 0 0 auto;
+	width: min(100vw, 420px);
+	/* 面板也浮着时，让出它那一份宽度，两个并排而不是叠在一起（--lk-overlay-stack 由 shell.js 设） */
+	right: var(--lk-overlay-stack, 0px);
+	margin: 8px;
+	box-shadow: var(--shadow-lg, 0 8px 28px rgba(0, 0, 0, 0.35));
+}
+.preview[data-lk-overlay="1"] .preview-resize {
+	display: none;
+}
+
+/* 左边缘的拖柄：平时透明、悬停/聚焦/拖动时显一条强调色细线（与合成器那两条同款） */
+.preview-resize {
+	position: absolute;
+	top: -1px;
+	bottom: -1px;
+	left: 0;
+	width: 8px;
+	cursor: col-resize;
+	z-index: 2;
+}
+.preview-resize::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 2px;
+	border-radius: var(--radius-pill);
+	background: transparent;
+}
+.preview-resize:hover::after,
+.preview-resize:focus-visible::after,
+.preview-resize[data-dragging="1"]::after {
+	background: var(--accent);
+}
+@media (max-width: 700px) {
+	.preview-resize {
+		display: none;
+	}
+}
+
+.preview-head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--border);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+}
+
+.preview-path {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--text-soft);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+.preview-body {
+	flex: 1;
+	min-height: 0;
+	margin: 0;
+	padding: 14px;
+	overflow: auto;
+	border-bottom-left-radius: var(--radius-xl);
+	border-bottom-right-radius: var(--radius-xl);
+	background: var(--code-bg);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	line-height: 1.65;
+	white-space: pre-wrap;
+	word-break: break-word;
+	tab-size: 2;
+}
+
+/* ---------- 目录浏览弹窗 ---------- */
+
+.modal {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: rgba(11, 14, 20, 0.38);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+}
+
+.modal-box {
+	display: flex;
+	flex-direction: column;
+	width: min(620px, 100%);
+	max-height: min(78vh, 640px);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-xl);
+	background: var(--surface-glass-strong);
+	backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-lg)) saturate(var(--saturate-glass));
+	box-shadow: var(--shadow-lg);
+	overflow: hidden;
+}
+
+.modal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: 14px 16px;
+	border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+	font-size: var(--text-md);
+	font-weight: 620;
+}
+
+.modal-goto {
+	padding: 12px 16px 0;
+}
+
+#picker-path {
+	width: 100%;
+	padding: 10px 18px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+#picker-path:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+	background: var(--surface-3);
+}
+
+/* 新建文件夹：就地展开的一行，不用浏览器原生 prompt */
+.modal-create {
+	display: flex;
+	gap: var(--space-2);
+	padding: 10px 16px 0;
+}
+
+#picker-create-name {
+	flex: 1;
+	min-width: 0;
+	padding: 10px 18px;
+	border: 1px solid var(--accent);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--text);
+	font-size: var(--text-base);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+#picker-create-name:focus {
+	outline: none;
+}
+
+/* 密钥输入框：与其它输入控件一致的胶囊圆角 */
+#settings-key {
+	flex: 1;
+	min-width: 0;
+	padding: 10px 18px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-2);
+	color: var(--text);
+	font-size: var(--text-base);
+	transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
+}
+
+#settings-key:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-ring);
+	background: var(--surface-3);
+}
+
+.modal-error {
+	margin: 10px 16px 0;
+	padding: 9px 12px;
+	border: 1px solid var(--danger);
+	/* 与弹窗外框同心：--radius-xl(32) − 弹窗体留白 --space-4(16) = 16 */
+	border-radius: calc(var(--radius-xl) - var(--space-4));
+	background: var(--danger-soft);
+	color: var(--danger);
+	font-size: var(--text-sm);
+}
+
+.modal-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 12px 10px;
+}
+
+.modal-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	padding: 9px 18px;
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--text);
+	font-size: var(--text-base);
+	text-align: left;
+	cursor: pointer;
+	transition: background var(--motion-fast);
+}
+
+.modal-item::before {
+	content: "";
+	width: 15px;
+	height: 15px;
+	flex: 0 0 auto;
+	opacity: 0.75;
+	background: no-repeat center / contain
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.9 4.3h4.2l1.4 1.7h6.6v5.9a.9.9 0 0 1-.9.9H2.8a.9.9 0 0 1-.9-.9z' fill='none' stroke='%237a686c' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.modal-item:hover {
+	background: var(--hover);
+}
+
+.modal-empty {
+	padding: 18px 12px;
+	color: var(--muted);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+.modal-foot {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: 12px 16px;
+	border-top: 1px solid var(--border);
+	border-bottom-left-radius: inherit;
+	border-bottom-right-radius: inherit;
+	background: var(--surface-3);
+}
+
+.modal-hint {
+	flex: 1;
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+/* 接口密钥弹窗：内容比目录列表短，用窄版 */
+.modal-box.narrow {
+	width: min(460px, 100%);
+}
+
+.modal-body {
+	display: grid;
+	gap: var(--space-3);
+	padding: 16px;
+}
+
+.modal-note {
+	margin: 0;
+	color: var(--text-soft);
+	font-size: var(--text-base);
+}
+
+.modal-tip {
+	margin: 0;
+	color: var(--muted);
+	font-size: var(--text-sm);
+	line-height: 1.7;
+}
+
+.modal-status {
+	padding: 9px 12px;
+	border: 1px solid var(--border);
+	/* 同上：16 */
+	border-radius: calc(var(--radius-xl) - var(--space-4));
+	background: var(--surface-2);
+	font-size: var(--text-sm);
+}
+
+.modal-status.ok {
+	border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+	background: color-mix(in srgb, var(--ok) 12%, transparent);
+	color: var(--ok);
+}
+
+.modal-status.error {
+	border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+/* 没配密钥时把整行标出来，别让人对着「发送」猜 */
+.path-button.missing {
+	border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+	color: var(--danger);
+}
+
+.path-button.missing .icon {
+	color: var(--danger);
+}
+
+/* 不支持毛玻璃时退回不透明底色，保证可读性 */
+@supports not (backdrop-filter: blur(1px)) {
+	.sidebar,
+	.preview,
+	.sidebar-foot,
+	.composer-box,
+	.modal-box {
+		background: var(--surface);
+	box-shadow: var(--shadow-md);
+}
+}
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 1080px) {
+	.preview {
+		flex-basis: 340px;
+		width: 340px;
+	box-shadow: var(--shadow-md);
+}
+}
+
+@media (max-width: 860px) {
+	.sidebar {
+		flex-basis: var(--lk-sidebar-width, 240px);
+		width: var(--lk-sidebar-width, 240px);
+	box-shadow: var(--shadow-md);
+}
+	.preview {
+		display: none;
+	box-shadow: var(--shadow-md);
+}
+	.transcript,
+	.composer {
+		padding-left: 18px;
+		padding-right: 18px;
+	}
+}
+
+/* 窄屏（面板改成覆盖层的那一档）：确认卡片的三个按钮改为竖排整行，免得挤成一团或换行错位 */
+@media (max-width: 700px) {
+	.approval-actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.approval-actions .btn {
+		width: 100%;
+	}
+}
+
+/*
+ * 动效（使用者：「全部开始，加」）。
+ *
+ * 规矩照 DSH 那份成文约束来：**只允许 color / background-color / border-color / box-shadow / opacity
+ * 这几类属性做过渡**（不做位移、不做缩放——「从触发元素缩放」那版被判定潦草，别再回来），
+ * 时长与缓动统一走这三个 token，组件里不许手写 `transition: 0.2s ease`。
+ *
+ * 所以这里是一层全局的「按得动」反馈：按钮、会话行、可点区块的底色/边框/阴影/透明度跟着指针与焦点变，
+ * 状态切换仍然直接生效，不做入场动画（弹层也不做——菜单一开一合是最容易被看成「动来动去」的地方）。
+ */
+:root {
+	/*
+	 * 等宽字体：仓库里 diff / 终端 / 日志都用这一套栈。以前各处直接抄字面量，却没定义过
+	 * `--font-mono` 这个名字——引用未定义变量的声明会被整条丢掉，表现是「明明是等宽块，
+	 * 字体却退回界面无衬线」（真踩过，是日志查看器的字体探针量出来的）。这里一处收口。
+	 */
+	--font-mono: ui-monospace, "Cascadia Code", Consolas, "Courier New", monospace;
+	--motion-fast: 120ms;
+	--motion-base: 200ms;
+	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+button,
+[role="button"],
+a,
+summary,
+input,
+textarea,
+select,
+.session-item {
+	transition:
+		background-color var(--motion-fast) var(--ease-standard),
+		border-color var(--motion-fast) var(--ease-standard),
+		color var(--motion-fast) var(--ease-standard),
+		box-shadow var(--motion-fast) var(--ease-standard),
+		opacity var(--motion-fast) var(--ease-standard);
+}
+
+/* 关掉动效偏好。这一层必须留着：上面那组过渡是全局的，漏一处就是「有人被动画晃到」。 */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* ---------- 模型下拉的弹出层 ---------- */
+
+/*
+ * 原生 select 的弹出列表由系统绘制，圆角改不动。Chrome 135+ 支持 appearance: base-select，
+ * 弹出层会变成一个可以用 ::picker(select) 直接定位的元素，于是能跟着主题走。
+ * 不支持的浏览器会忽略这一整套规则，退回原来那行 appearance: none 的系统外观——功能不受影响。
+ */
+#model {
+	appearance: base-select;
+}
+
+#model::picker(select) {
+	appearance: base-select;
+	min-width: anchor-size(width);
+	margin-top: 6px;
+	padding: 6px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--surface);
+	box-shadow: var(--shadow-lg);
+}
+
+/* 箭头已经自绘了，藏掉内置的那一个 */
+#model::picker-icon {
+	display: none;
+}
+
+#model option {
+	padding: 9px 14px;
+	border-radius: var(--radius-pill);
+	font-size: var(--text-base);
+}
+
+#model option:hover,
+#model option:focus {
+	background: var(--hover);
+}
+
+#model option:checked {
+	background: var(--accent-soft);
+	color: var(--accent-on-fill);
+}
+/* ---------- 工具确认卡片 ---------- */
+
+.approval {
+	margin: 10px 0;
+	padding: 14px 16px;
+	border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+	border-radius: var(--radius-lg);
+	/* 卡片也用玻璃：它浮在对话之上等你回话，与浮层同一档模糊 */
+	background: color-mix(in srgb, var(--accent-soft) 78%, transparent);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+}
+
+.approval.approved {
+	border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+	background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+
+.approval.denied {
+	border-color: var(--border-strong);
+	background: var(--surface-2);
+}
+
+.approval-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+
+.approval-title {
+	font-size: var(--text-base);
+	font-weight: 600;
+	color: var(--accent-on-fill);
+}
+
+.approval-state {
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+.approval-detail {
+	margin: 10px 0 12px;
+	padding: 10px 14px;
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	line-height: 1.6;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.approval-warn {
+	margin: 0 0 12px;
+	padding: 8px 14px;
+	border-radius: var(--radius-sm);
+	border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+	color: var(--danger);
+	font-size: var(--text-sm);
+	line-height: 1.6;
+}
+
+/* 审批卡里的「改动片段」：等宽、可横滚（`−` / `+` 开头，与对话流里的 diff 同一套读法） */
+/* 交付物卡片：`present` 列的几件。整卡可点（点哪里都等于在右侧面板预览它），
+   次要那行悬停时换成「在侧边栏预览」，鼠标不用猜。 */
+.present-block {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 8px 0 4px;
+}
+
+.present-card {
+	display: flex;
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 260px;
+	align-items: center;
+	gap: var(--space-2);
+	height: 60px;
+	padding: 0 var(--space-3);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+	color: var(--text);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.present-card:hover {
+	border-color: var(--accent-ring);
+	background: var(--surface-3);
+}
+
+.present-glyph {
+	flex: 0 0 auto;
+	color: var(--muted);
+}
+
+.present-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	gap: 2px;
+}
+
+.present-name,
+.present-note {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.present-name {
+	font-size: var(--text-base);
+}
+
+.present-note {
+	color: var(--muted);
+	font-size: var(--text-xs);
+}
+
+/* 悬停时把说明换成「能干什么」：这张卡是可点的，得让人知道点了会怎样 */
+.present-card:hover .present-note {
+	color: var(--accent-text);
+}
+
+.present-more {
+	flex: 0 0 auto;
+	height: 60px;
+	padding: 0 var(--space-3);
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--muted);
+	font: inherit;
+	font-size: var(--text-xs);
+	cursor: pointer;
+}
+
+.present-more:hover {
+	color: var(--text);
+	border-color: var(--accent-ring);
+}
+
+.approval-diff {
+	max-height: 220px;
+	margin: 0 0 12px;
+	padding: 10px 14px;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--border);
+	background: var(--surface-1);
+	overflow: auto;
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	line-height: 1.6;
+	white-space: pre;
+}
+
+.approval-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	/* 三个按钮（允许 / 本会话总是允许 / 拒绝）在窄栏里放不下就换行，绝不能挤到看不见 */
+	flex-wrap: wrap;
+}
+
+/*
+ * 方案评审卡片：沿用确认卡片的骨架，只把「方案正文」换成一个可滚动的框、并加一个反馈输入框。
+ * 方案是模型写的整段文字，可能很长；不设上限会把后面的对话整段挤出屏幕。
+ */
+.plan-body {
+	max-height: 320px;
+	overflow: auto;
+	/* 方案是给人读的整段prose，不是命令或 JSON：用正文字体，别用确认卡片那套等宽 */
+	font-family: inherit;
+}
+
+.plan-feedback {
+	width: 100%;
+	margin-bottom: var(--space-3);
+	padding: 8px 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface-2);
+	color: var(--text);
+	font-family: inherit;
+	font-size: var(--text-sm);
+	line-height: var(--leading);
+	resize: vertical;
+}
+
+.plan-feedback:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+/*
+ * 窄屏：方案正文压矮一点。
+ *
+ * 这条必须放在 `.plan-body` 的基础规则**之后**——媒体查询不会提高优先级，写在前面的会被后面的
+ * 覆盖掉（第一版就写在了上面那一堆 700px 规则里，配了等于没配）。
+ * 目的是让整张卡片（正文框 + 反馈框 + 两个整行按钮）装进对话区：否则「按方案执行」会被挤到滚动
+ * 之外，用户只看到一个滚不到底的框。
+ */
+@media (max-width: 700px) {
+	.plan-body {
+		max-height: 200px;
+	}
+}
+/*
+ * 对话内容与输入框同轴同宽。
+ *
+ * 直接挂在对话流上的卡片（工具确认、方案评审）没有 .turn 那层包裹，原来就是通栏——与输入框错位。
+ * 这条放在文件末尾是有意的：它要压过各卡片自己的 `margin: 10px 0`（同优先级时按先后决定）。
+ */
+.transcript > * {
+	width: 100%;
+	max-width: var(--content-width);
+	margin-inline: auto;
+}
+
+/* 对话区宽度的拖柄：挂在输入框右边缘，与两侧栏那两个同一套做法（平时透明，悬停/聚焦/拖动显细线） */
+.composer-resize {
+	position: absolute;
+	/* 与卡片**等长**、并且压在卡片的边上（描边就在最外 1px）：两侧各一条，靠卡片裁圆角。
+	   上下各探 1px 补上描边内侧的包含块 */
+	top: -1px;
+	right: 0;
+	bottom: -1px;
+	width: 8px;
+	z-index: 3;
+	cursor: col-resize;
+	touch-action: none;
+}
+.composer-resize::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 2px;
+	background: transparent;
+}
+/* 左侧那一个：与右侧镜像（内容列是居中的，两边都能拉） */
+.composer-resize-left {
+	right: auto;
+	left: 0;
+}
+.composer-resize-left::after {
+	right: auto;
+	left: 0;
+}
+
+.composer-resize:hover::after,
+.composer-resize:focus-visible::after,
+.composer-resize[data-dragging="1"]::after {
+	background: var(--accent);
+}
+/* 很窄的窗口：内容宽度就是窗口宽度，没有可拖的余地 */
+@media (max-width: 700px) {
+	.composer-resize {
+		display: none;
+	}
+}
+
+/* 很窄的窗口：动作行的间距与按钮内边距都收一收，免得药丸与按钮挤出卡片
+   （460 + 侧栏展开时输入框只剩 ~100px，连一个「发送」都比动作行宽，曾溢出 3px） */
+@media (max-width: 700px) {
+	.composer-actions {
+		column-gap: var(--space-2);
+		flex-shrink: 0;
+	}
+	.composer-actions .btn {
+	/* 高度写死 34（帽半径 17）：同心的前提，改这里要一起改 frame 的右/下内边距 */
+	height: 34px;
+		padding: 8px 10px;
+	}
+}
+
+/*
+ * 输入框正上方那排「浮标」：跳到最新 / 历史输入 / 上下文压缩。
+ *
+ * - 宽了横排、窄了自动折行（折行后每行仍靠右，靠 justify-content: flex-end）；
+ * - 右对齐到输入框的右侧内容边（与 textarea 的右边一致：卡片留白 32px + 滚动条宽度）；
+ * - 空的地方不吃点击：容器 pointer-events: none，只有药丸自己收事件，否则会挡住底下的对话。
+ */
+/*
+ * 输入框正上方的一排浮标（跳到最新 / 历史输入 / 上下文压缩）。
+ *
+ * **正常占位**，不是浮在卡片上：浮着的话，滚动到任何位置都会压住某段对话（使用者反馈「会挡住文本」）。
+ * 占位之后对话区的下边界就在它上面，任何滚动位置都不可能被挡。
+ *
+ * 宽度跟着 .composer-box（也就是卡片的宽度），所以左右两端与卡片那两条竖边对齐；
+ * 折行时靠 justify-content: flex-end 逐行靠右。
+ */
+.composer-badges {
+	display: flex;
+	/* wrap-reverse：折行时**第一行落到最下面**。顺序是 压缩 → 历史输入 → 跳到最新，
+	   于是压缩在最底（离输入框最近）、跳到最新在最右（使用者两次的要求都满足）。 */
+	flex-wrap: wrap-reverse;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-1) var(--space-2);
+	margin-bottom: var(--space-2);
+	pointer-events: none;
+}
+.composer-badges > * {
+	pointer-events: auto;
+}
+
+/*
+ * 顺序：上下文压缩 → 历史输入 → **跳到最新**。
+ * 够宽时「跳到最新」落在最右（使用者要求它在右侧）；折行成一列时它在最下面，也就是离输入框最近的那一格。
+ * 用 order 而不是 DOM 顺序：芯片是 input-history.js 运行时 append 进来的，DOM 里必然排最后。
+ */
+.composer-badges > .composer-notices {
+	order: 1;
+}
+.composer-badges > .lkx-inputs-chip {
+	order: 2;
+}
+.composer-badges > #jump-latest {
+	order: 3;
+}
+
+/* 「↓ 跳到最新」：只在用户往上翻过、不再跟随末尾时出现 */
+.transcript-jump {
+	padding: 5px 14px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass-strong);
+	backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	-webkit-backdrop-filter: blur(var(--blur-md)) saturate(var(--saturate-glass));
+	box-shadow: var(--shadow-md);
+	color: var(--text-soft);
+	font: inherit;
+	font-size: var(--text-sm);
+	cursor: pointer;
+}
+.transcript-jump:hover {
+	border-color: var(--border-strong);
+	color: var(--text);
+}

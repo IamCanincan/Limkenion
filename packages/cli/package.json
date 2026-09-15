@@ -1,0 +1,65 @@
+{
+	"name": "limkenion",
+	"version": "1.0.0",
+	"description": "Limkenion 命令行编程助手：纯文本 REPL、浏览器界面与一次性执行模式",
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"limkenionConfig": {
+		"name": "limkenion",
+		"configDir": ".limkenion"
+	},
+	"bin": {
+		"limkenion": "dist/cli.js"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"bundleDependencies": [
+		"limkenion-core",
+		"limkenion-ai"
+	],
+	"scripts": {
+		"clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+		"build": "tsgo -p tsconfig.build.json && node scripts/copy-web-assets.mjs",
+		"test": "vitest --run",
+		"prepublishOnly": "npm run clean && npm run build"
+	},
+	"dependencies": {
+		"limkenion-core": "^1.0.0",
+		"limkenion-ai": "^1.0.0"
+	},
+	"keywords": [
+		"ai",
+		"llm",
+		"cli",
+		"agent"
+	],
+	"author": "IamCanincan",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/IamCanincan/Limkenion.git",
+		"directory": "packages/cli"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "22.19.19",
+		"typescript": "5.9.3",
+		"vitest": "4.1.9"
+	}
+}

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# 提交前钩子：先确认锁文件改动被允许，再跑完整检查，最后把被格式化修改过的文件重新入栈。
+
+# 记录入栈文件，格式化可能会改动它们，需要重新 add。
+STAGED_FILES=$(git diff --cached --name-only)
+
+node scripts/check-lockfile-commit.mjs
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+echo "正在运行格式化、lint 和类型检查..."
+npm run check
+if [ $? -ne 0 ]; then
+  echo "检查失败。请在提交前修复这些错误。"
+  exit 1
+fi
+
+for file in $STAGED_FILES; do
+  if [ -f "$file" ]; then
+    git add "$file"
+  fi
+done
+
+echo "所有提交前检查均已通过！"

@@ -1,0 +1,63 @@
+{
+	"name": "limkenion",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"limkenion": "node packages/cli/dist/cli.js",
+		"clean": "npm run clean --workspaces",
+		"build": "npm --prefix packages/ai run build && npm --prefix packages/core run build && npm --prefix packages/cli run build",
+		"check": "biome check --write --error-on-warnings . && npm run check:pinned-deps && npm run check:license && npm run check:runtime-deps && npm run check:ts-imports && npm run check:doc-versions && tsgo --noEmit && npm run test:scripts",
+		"check:pinned-deps": "node scripts/check-pinned-deps.mjs",
+		"check:license": "node scripts/check-license-copies.mjs",
+		"check:runtime-deps": "node scripts/check-runtime-deps.mjs",
+		"check:ts-imports": "node scripts/check-ts-relative-imports.mjs",
+		"check:doc-versions": "node scripts/check-doc-versions.mjs",
+		"test": "npm run test:scripts && npm run test --workspaces --if-present",
+		"test:scripts": "node --test scripts/*.test.mjs",
+		"version:patch": "npm version patch --workspaces --no-git-tag-version --no-workspaces-update && node scripts/sync-versions.js && npm install --package-lock-only --ignore-scripts",
+		"version:minor": "npm version minor --workspaces --no-git-tag-version --no-workspaces-update && node scripts/sync-versions.js && npm install --package-lock-only --ignore-scripts",
+		"version:major": "npm version major --workspaces --no-git-tag-version --no-workspaces-update && node scripts/sync-versions.js && npm install --package-lock-only --ignore-scripts",
+		"version:set": "npm version --workspaces --no-workspaces-update",
+		"prepublishOnly": "npm run clean && npm run build && npm run check",
+		"publish": "npm run prepublishOnly && node scripts/publish.mjs",
+		"publish:dry": "npm run prepublishOnly && node scripts/publish.mjs --dry-run",
+		"release:package": "node scripts/build-release.mjs",
+		"release:github": "node scripts/publish-github-release.mjs",
+		"release:patch": "node scripts/release.mjs patch",
+		"release:minor": "node scripts/release.mjs minor",
+		"release:major": "node scripts/release.mjs major",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.5",
+		"@types/node": "22.19.19",
+		"@typescript/native-preview": "7.0.0-dev.20260120.1",
+		"husky": "9.1.7",
+		"tsx": "4.22.1",
+		"typescript": "5.9.3"
+	},
+	"optionalDependencies": {
+		"@rolldown/binding-android-arm64": "1.0.3",
+		"@rolldown/binding-darwin-arm64": "1.0.3",
+		"@rolldown/binding-darwin-x64": "1.0.3",
+		"@rolldown/binding-freebsd-x64": "1.0.3",
+		"@rolldown/binding-linux-arm-gnueabihf": "1.0.3",
+		"@rolldown/binding-linux-arm64-gnu": "1.0.3",
+		"@rolldown/binding-linux-arm64-musl": "1.0.3",
+		"@rolldown/binding-linux-ppc64-gnu": "1.0.3",
+		"@rolldown/binding-linux-s390x-gnu": "1.0.3",
+		"@rolldown/binding-linux-x64-gnu": "1.0.3",
+		"@rolldown/binding-linux-x64-musl": "1.0.3",
+		"@rolldown/binding-openharmony-arm64": "1.0.3",
+		"@rolldown/binding-wasm32-wasi": "1.0.3",
+		"@rolldown/binding-win32-arm64-msvc": "1.0.3",
+		"@rolldown/binding-win32-x64-msvc": "1.0.3"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"version": "1.0.0"
+}

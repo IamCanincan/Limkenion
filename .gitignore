@@ -1,0 +1,27 @@
+node_modules/
+dist/
+packages/*/dist/
+*.tsbuildinfo
+*.log
+*.cpuprofile
+
+# 环境与本地配置
+.env
+.npm/
+.nyc_output/
+coverage/
+
+# 编辑器
+.vscode/
+.zed/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# 临时产物
+release/
+todo.md
+plans/
+.DS_Store

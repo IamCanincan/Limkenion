@@ -1,0 +1,43 @@
+name: 缺陷报告
+description: 报告一个明确的问题
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        报告前请先读 [CONTRIBUTING.md](https://github.com/IamCanincan/Limkenion/blob/main/CONTRIBUTING.md)。
+
+        请保持简短，一屏放不下就说明太长了。用你自己的话写。
+
+        **重要**：报告前请先设好 `DEEPSEEK_API_KEY`、用默认配置复现一次，并写明 `limkenion --version` 的输出。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 出了什么问题？
+      description: 具体一点，有报错就把报错贴上来。
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 能触发这个问题的最小步骤。
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 例如 1.0.0
+    validations:
+      required: false

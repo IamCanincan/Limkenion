@@ -1,0 +1,11 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "./dist",
+		"paths": {
+			"limkenion-ai": ["../ai/dist/index.d.ts"]
+		},
+		"rootDir": "./src"
+	},
+	"include": ["src/**/*.ts"]
+}

@@ -1,0 +1,16 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"paths": {
+			"*": ["./*"],
+			"limkenion-ai": ["./packages/ai/src/index.ts"],
+			"limkenion-core": ["./packages/core/src/index.ts"],
+			"limkenion": ["./packages/cli/src/index.ts"]
+		}
+	},
+	"include": ["packages/*/src/**/*", "packages/*/test/**/*"],
+	"exclude": ["**/dist/**"]
+}
