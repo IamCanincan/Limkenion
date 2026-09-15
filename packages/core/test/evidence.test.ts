@@ -87,15 +87,31 @@ describe("edit 的读取证据", () => {
 		expect(await readFile(join(cwd, "a.txt"), "utf-8")).toBe("hi\n");
 	});
 
-	it("读完之后又被外部改动就拒绝，要求重新读", async () => {
+	it("读完之后被外部改动：edit 照做（唯一匹配本身就是锚点），只在结果里提醒一句", async () => {
 		await writeFile(join(cwd, "a.txt"), "hello\n", "utf-8");
 		const { run } = tools();
 		await run("read", { path: "a.txt" });
-		// 模拟用户或别的进程改了文件
+		// 模拟格式化器 / 用户 / 别的进程改了**别处**
 		await writeFile(join(cwd, "a.txt"), "hello\n外部加了一行\n", "utf-8");
 		const edited = await run("edit", { path: "a.txt", edits: [{ oldText: "hello", newText: "hi" }] });
+		// 这是效率改动：跑一次 biome --write 就把后续所有编辑挡回去太贵了。
+		// 每段 oldText 必须逐字命中且唯一，命中本身就证明「改的就是模型看见的那一段」。
+		expect(edited.isError).toBe(false);
+		expect(edited.content).toContain("被别处改动过");
+		// 别处的内容原样保留，只换掉匹配到的那一段
+		expect(await readFile(join(cwd, "a.txt"), "utf-8")).toBe("hi\n外部加了一行\n");
+	});
+
+	it("外部改动把要改的那段整个换掉了：仍然拒绝，并给出最接近的几行", async () => {
+		await writeFile(join(cwd, "b.txt"), "const total = 1;\n", "utf-8");
+		const { run } = tools();
+		await run("read", { path: "b.txt" });
+		await writeFile(join(cwd, "b.txt"), "const sum = 1;\n", "utf-8");
+		const edited = await run("edit", { path: "b.txt", edits: [{ oldText: "const total = 1;", newText: "x" }] });
 		expect(edited.isError).toBe(true);
-		expect(edited.content).toContain("被改动过");
+		expect(edited.content).toContain("找不到这段内容");
+		// 报错要能直接照着改：给出候选行，省掉「为了看原文再 read 一次」
+		expect(edited.content).toContain("第 1 行：const sum = 1;");
 	});
 
 	it("同一轮里连改两次不会被自己拦下", async () => {

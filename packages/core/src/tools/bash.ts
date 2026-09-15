@@ -13,11 +13,15 @@ import { spawn } from "node:child_process";
 import { looksDangerousCommand } from "../permissions/danger.ts";
 import { looksReadOnlyCommand } from "../permissions/readonly-command.ts";
 import { DETACH_FOR_KILL, decodeProcessOutput, killProcessTree } from "../process.ts";
+import { sliceByBytes } from "../text.ts";
 import { defineTool } from "./contract.ts";
 import { formatSize, MAX_OUTPUT_BYTES, resolveUserPath } from "./path.ts";
 
 /** 默认超时 */
 const DEFAULT_TIMEOUT_MS = 120_000;
+
+/** 输出超过上限的多少倍才认定是「输出洪流」并终止命令 */
+const RUNAWAY_MULTIPLIER = 20;
 
 /** bash 工具的可配置项 */
 export interface BashToolOptions {
@@ -58,7 +62,8 @@ export function createBashTool(options: BashToolOptions) {
 		timeoutMs,
 		description:
 			"在工作目录中执行一条 shell 命令并返回输出。支持管道与重定向。" +
-			`命令有 ${(timeoutMs / 1000).toFixed(timeoutMs < 1000 ? 1 : 0)} 秒超时，输出超过 ${formatSize(maxBytes)} 会被截断并终止进程。` +
+			`命令有 ${(timeoutMs / 1000).toFixed(timeoutMs < 1000 ? 1 : 0)} 秒超时；输出超过 ${formatSize(maxBytes)} 时` +
+			`**保留头尾、省略中间**（测试与构建的结论通常在尾部），只有超过 ${RUNAWAY_MULTIPLIER} 倍的输出洪流才终止进程。` +
 			"只读的命令（ls / cat / grep / git status 这类）在只读档位与计划模式下也能跑。",
 		parameters: {
 			type: "object",
@@ -120,6 +125,9 @@ function runCommand(
 	signal: AbortSignal,
 ): Promise<{ content: string; isError: boolean }> {
 	return new Promise((resolvePromise) => {
+		// 真正的「输出洪流」阈值：到这儿才杀进程。中等程度的超限（跑一遍全量测试、装一次依赖）
+		// 不杀，改成省略中间——否则为了看结论得把同一条命令再跑一次，白等一轮。
+		const hardCap = maxBytes * RUNAWAY_MULTIPLIER;
 		const shell = resolveShell();
 		// POSIX 下让子进程成为进程组组长，这样能一次杀掉整棵进程树；Windows 用 taskkill /T。
 		const child = spawn(shell.command, shell.args(command), {
@@ -152,14 +160,22 @@ function runCommand(
 			const stdout = decodeProcessOutput(Buffer.concat(stdoutChunks));
 			const stderr = decodeProcessOutput(Buffer.concat(stderrChunks));
 			const parts: string[] = [];
-			if (stdout !== "") {
-				parts.push(stdout);
+			// 每个流各分一半预算，超了就省略中间（头尾都留）
+			const perStream = Math.ceil(maxBytes / 2);
+			const out = middleTruncate(stdout, perStream);
+			const err = middleTruncate(stderr, perStream);
+			if (out.text !== "") {
+				parts.push(out.text);
 			}
-			if (stderr !== "") {
-				parts.push(`[stderr]\n${stderr}`);
+			if (err.text !== "") {
+				parts.push(`[stderr]\n${err.text}`);
+			}
+			const elided = out.elided + err.elided;
+			if (elided > 0) {
+				parts.push(`[… 中间省略 ${formatSize(elided)}（保留头尾：结论通常在尾部）]`);
 			}
 			if (truncated) {
-				parts.push(`[输出超过 ${formatSize(maxBytes)}，已截断并终止命令]`);
+				parts.push(`[输出超过 ${formatSize(hardCap)}，已终止命令]`);
 			}
 			if (timedOut) {
 				parts.push(`[命令超过 ${Math.round(timeoutMs / 1000)} 秒，已终止]`);
@@ -185,9 +201,9 @@ function runCommand(
 			}
 			(target === "stdout" ? stdoutChunks : stderrChunks).push(chunk);
 			bytes += chunk.byteLength;
-			if (bytes > maxBytes) {
+			if (bytes > hardCap) {
 				truncated = true;
-				// 超限后立刻终止，否则一个死循环命令会一直往内存里写。
+				// 到这儿就不是「日志有点长」而是真的在刷屏（死循环、`yes`），立刻终止，不然内存会一直涨。
 				killProcessTree(child);
 			}
 		};
@@ -211,4 +227,44 @@ function runCommand(
 		child.on("error", (error: Error) => finish(null, `启动命令失败：${error.message}`));
 		child.on("close", (code: number | null) => finish(code));
 	});
+}
+
+/**
+ * 保留头尾、省略中间。
+ *
+ * 为什么不是「只留前 N 行」：这条命令的输出里，**结论几乎总在尾部**——测试的失败清单、
+ * 构建的错误、安装的结尾。只留头部的代价是模型为了看结论把同一条命令再跑一遍（一轮往返，
+ * 构建类命令还要等几十秒）。头尾都留就没这个问题。
+ *
+ * 边界按行切：省略的地方落在行中间会读起来像乱码。
+ */
+function middleTruncate(text: string, budget: number): { text: string; elided: number } {
+	const total = Buffer.byteLength(text, "utf-8");
+	if (total <= budget) {
+		return { text, elided: 0 };
+	}
+	const half = Math.floor(budget / 2);
+	const head = headBytes(text, half);
+	const tail = tailBytes(text, half);
+	const elided = total - Buffer.byteLength(head, "utf-8") - Buffer.byteLength(tail, "utf-8");
+	return { text: `${head}\n…\n${tail}`, elided: Math.max(elided, 0) };
+}
+
+/** 从开头取约 n 字节，并退到最后一个换行处 */
+function headBytes(text: string, budget: number): string {
+	const sliced = sliceByBytes(text, budget);
+	const cut = sliced.lastIndexOf("\n");
+	return cut === -1 ? sliced : sliced.slice(0, cut);
+}
+
+/** 从结尾取约 n 字节，并进到第一个换行处（多字节字符被切到时丢掉那个替换字符） */
+function tailBytes(text: string, budget: number): string {
+	const buffer = Buffer.from(text, "utf-8");
+	if (buffer.byteLength <= budget) {
+		return text;
+	}
+	const sliced = buffer.subarray(buffer.byteLength - budget).toString("utf-8");
+	const cleaned = sliced.startsWith("\uFFFD") ? sliced.slice(1) : sliced;
+	const cut = cleaned.indexOf("\n");
+	return cut === -1 ? cleaned : cleaned.slice(cut + 1);
 }

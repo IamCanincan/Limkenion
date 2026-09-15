@@ -128,13 +128,15 @@ export function createEditTool(options: EditToolOptions) {
 			if (raw === null) {
 				return { content: `文件不存在或不可读：${rawPath}`, isError: true };
 			}
-			// 读取证据：没读过、或读过之后变了，都先拒绝，让模型重新读一遍再改。
-			// 先记快照再动手：回滚要有「这轮开始前」的原始内容。
+			// 读取证据：没读过就拒绝（模型没法凭空抄出要替换的原文）；**整体变过不拒绝**——
+			// 每段 oldText 必须逐字命中且唯一，匹配本身就说明「改的就是它看见的那一段」，
+			// 而跑一次格式化器就要求整份重读纯属往返浪费（见 evidence.ts 的 checkEdits）。
 			options.checkpoints?.capture(absolute, raw);
-			const problem = options.evidence?.check(absolute, raw);
-			if (problem) {
-				return { content: problem, isError: true };
+			const verdict = options.evidence?.checkEdits(absolute, raw);
+			if (verdict !== undefined && !verdict.ok) {
+				return { content: verdict.message, isError: true };
 			}
+			const stale = verdict?.ok === true && verdict.stale;
 
 			// BOM 与换行符单独保管，替换只在 LF 归一化后的正文上做。
 			const hasBom = raw.startsWith("\uFEFF");
@@ -143,17 +145,26 @@ export function createEditTool(options: EditToolOptions) {
 			const content = withoutBom.replace(/\r\n/g, "\n");
 
 			const resolved: ResolvedEdit[] = [];
-			for (const edit of edits) {
+			for (const [index, edit] of edits.entries()) {
+				const where = edits.length > 1 ? `第 ${index + 1} 处 ` : "";
 				if (edit.oldText === "") {
-					return { content: "edits[].oldText 不能为空", isError: true };
+					return { content: `${where}edits[].oldText 不能为空`, isError: true };
 				}
 				const first = content.indexOf(edit.oldText);
 				if (first === -1) {
-					return { content: `原文中找不到这段内容：\n${preview(edit.oldText)}`, isError: true };
+					// 报错要能直接照着改：给出最接近的几行，别让模型为了「这段原文到底长什么样」
+					// 再花一次 read（大文件尤其贵）。
+					const near = nearbyCandidates(content, edit.oldText);
+					const hint =
+						near.length === 0 ? "" : `\n最接近的几行（照抄它们补全 oldText 即可）：\n${near.join("\n")}`;
+					return { content: `${where}原文中找不到这段内容：\n${preview(edit.oldText)}${hint}`, isError: true };
 				}
-				if (content.indexOf(edit.oldText, first + 1) !== -1) {
+				const second = content.indexOf(edit.oldText, first + 1);
+				if (second !== -1) {
+					// 出现多次时把行号全列出来：模型据此补上下文比整份重读便宜得多。
+					const lines = occurrenceLines(content, edit.oldText);
 					return {
-						content: `这段内容在文件中出现多次，请补充上下文使其唯一：\n${preview(edit.oldText)}`,
+						content: `${where}这段内容在文件中出现 ${lines.length} 次（第 ${lines.join("、")} 行），请补充上下文使其唯一：\n${preview(edit.oldText)}`,
 						isError: true,
 					};
 				}
@@ -179,8 +190,11 @@ export function createEditTool(options: EditToolOptions) {
 			options.evidence?.record(absolute, written);
 
 			const diff = buildDiff(resolved);
+			// 整体变过（格式化器、别人改了别处）时说一句：模型的印象已过期，接着改别的地方前
+			// 值得重新看一眼，但这次的替换是对的。
+			const note = stale ? "\n（注意：这个文件在你读取之后被别处改动过；本次只改了上面匹配到的片段）" : "";
 			return {
-				content: `已修改 ${rawPath}（${resolved.length} 处）\n${diff}`,
+				content: `已修改 ${rawPath}（${resolved.length} 处）\n${diff}${note}`,
 				isError: false,
 			};
 		},
@@ -222,6 +236,74 @@ function isEdit(value: unknown): value is Edit {
 	}
 	const candidate = value as Record<string, unknown>;
 	return typeof candidate.oldText === "string" && typeof candidate.newText === "string";
+}
+
+/** 某个片段出现的行号（1 起）；配合「出现多次」那条报错用 */
+function occurrenceLines(content: string, needle: string): number[] {
+	const lines: number[] = [];
+	let index = content.indexOf(needle);
+	while (index !== -1) {
+		lines.push(content.slice(0, index).split("\n").length);
+		index = content.indexOf(needle, index + 1);
+	}
+	return lines;
+}
+
+/**
+ * 「找不到原文」时给几条最像的行。
+ *
+ * 报错要能直接照着改：模型为了「这段原文到底长什么样」再花一次 read，在大文件上很贵；
+ * 而且它常常只是少抄了缩进、或者某个标识符换过名字。**按词元重合度**打分，而不是只认
+ * 「逐字相同或包含」——`const total = 1;` 与 `const sum = 1;` 重合 3/4 个词元，正是要提示的那种。
+ */
+function nearbyCandidates(content: string, oldText: string, limit = 3): string[] {
+	const anchor = oldText
+		.split("\n")
+		.map((line) => line.trim())
+		.find((line) => line.length >= 3);
+	if (anchor === undefined) {
+		return [];
+	}
+	const hits: { line: number; text: string; score: number }[] = [];
+	const lines = content.split("\n");
+	for (let index = 0; index < lines.length; index += 1) {
+		const trimmed = lines[index]?.trim() ?? "";
+		if (trimmed === "") {
+			continue;
+		}
+		const score = lineScore(trimmed, anchor);
+		if (score >= 0.5) {
+			hits.push({ line: index + 1, text: trimmed, score });
+		}
+	}
+	return hits
+		.sort((left, right) => right.score - left.score || left.line - right.line)
+		.slice(0, limit)
+		.map((hit) => `  第 ${hit.line} 行：${hit.text.length > 100 ? `${hit.text.slice(0, 100)}…` : hit.text}`);
+}
+
+/** 一行与锚点的相似度：逐字相同给 2，否则按词元重合比例（0–1） */
+function lineScore(line: string, anchor: string): number {
+	if (line === anchor) {
+		return 2;
+	}
+	const tokensOf = (text: string): string[] =>
+		text
+			.split(/[^\p{L}\p{N}_$]+/u)
+			.map((token) => token.trim())
+			.filter((token) => token.length > 0);
+	const anchorTokens = tokensOf(anchor);
+	if (anchorTokens.length === 0) {
+		return line.includes(anchor) ? 1 : 0;
+	}
+	const lineTokens = new Set(tokensOf(line));
+	let shared = 0;
+	for (const token of anchorTokens) {
+		if (lineTokens.has(token)) {
+			shared += 1;
+		}
+	}
+	return shared / anchorTokens.length;
 }
 
 /** 找出第一对重叠的替换 */

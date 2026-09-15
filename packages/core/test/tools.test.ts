@@ -318,12 +318,14 @@ describe("edit 工具", () => {
 		expect(await readFile(join(cwd, "e.txt"), "utf-8")).toBe("A\nb\nc\nD\n");
 	});
 
-	it("匹配不唯一时拒绝修改", async () => {
+	it("匹配不唯一时拒绝修改，并列出出现的位置", async () => {
 		await writeFile(join(cwd, "e.txt"), "same\nsame\n", "utf-8");
 		const tool = createEditTool({ cwd });
 		const outcome = await tool.execute({ path: "e.txt", edits: [{ oldText: "same", newText: "x" }] }, signal);
 		expect(outcome.isError).toBe(true);
-		expect(outcome.content).toContain("出现多次");
+		// 报错直接给出出现次数与行号：模型据此补上下文，比整份重读便宜
+		expect(outcome.content).toContain("出现 2 次");
+		expect(outcome.content).toContain("第 1、2 行");
 		expect(await readFile(join(cwd, "e.txt"), "utf-8")).toBe("same\nsame\n");
 	});
 
