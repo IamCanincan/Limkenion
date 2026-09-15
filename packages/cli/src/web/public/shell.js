@@ -460,39 +460,7 @@ export function addTopBarAction({ symbol = "", icon: iconName, iconSize = 15, la
 }
 
 /**
- * 侧栏底部加一个会话级动作（与「回滚上一轮」「清空上下文」同一排）。
- *
- * 为什么要有这个入口：顶栏已经在窄屏下横向滚动，再往里塞开关会把控件挤出可视区；而侧栏底部那排
- * 本来就是「作用在当前会话上的动作」。插件因此不必去改 index.html——那是共享文件。
- *
- * 返回按钮元素，调用方自己改文案/状态（`textContent`、`disabled`）。
- */
-export function addSidebarAction({ symbol = "", label, title = "", onClick }) {
-	const root = ensureShell();
-	if (root === null) {
-		return null;
-	}
-	const foot = document.querySelector(".sidebar-foot");
-	if (!foot) {
-		return null;
-	}
-	const button = document.createElement("button");
-	button.type = "button";
-	button.className = "btn ghost small";
-	button.title = title || label;
-	const sideIcon = SYMBOL_TO_ICON[symbol];
-	if (sideIcon !== undefined) {
-		button.append(icon(sideIcon, 15));
-	}
-	const text = document.createElement("span");
-	text.textContent = sideIcon === undefined && symbol !== "" ? `${symbol} ${label}` : label;
-	button.append(text);
-	button.addEventListener("click", onClick);
-	foot.append(button);
-	return button;
-}
-
-/** 顶部栏左侧的标题（会话摘要之类） */ export function setTopBarTitle(text) {
+ * 顶部栏左侧的标题（会话摘要之类） */ export function setTopBarTitle(text) {
 	const root = ensureShell();
 	if (root !== null) {
 		root.title.textContent = text;

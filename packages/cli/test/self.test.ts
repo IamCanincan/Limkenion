@@ -306,11 +306,11 @@ describe("self versions", () => {
 	async function makeVersions(): Promise<{ current: string; previous: string }> {
 		const paths = selfPaths();
 		await mkdir(paths.dir, { recursive: true });
-		const current = join(paths.dir, "limkenion-1.3.1-1000.tgz");
-		const previous = join(paths.dir, "limkenion-1.3.1-2000.tgz");
+		const current = join(paths.dir, "limkenion-1.0.0-1000.tgz");
+		const previous = join(paths.dir, "limkenion-1.0.0-2000.tgz");
 		await writeFile(current, "x".repeat(100), "utf-8");
 		await writeFile(previous, "x".repeat(200), "utf-8");
-		await writeFile(join(paths.dir, "limkenion-1.3.1-3000.tgz"), "x".repeat(50), "utf-8");
+		await writeFile(join(paths.dir, "limkenion-1.0.0-3000.tgz"), "x".repeat(50), "utf-8");
 		// 旧流程留下的整份备份目录（现在没有任何代码读它）
 		for (const stamp of ["100", "200", "300"]) {
 			const backup = join(paths.dir, `installed-before-${stamp}`);

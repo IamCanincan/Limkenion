@@ -1,12 +1,4 @@
-import {
-	addPanelTab,
-	addSidebarAction,
-	addTopBarAction,
-	closePanel,
-	openPanel,
-	panelOpen,
-	setTopBarTitle,
-} from "./shell.js";
+import { addPanelTab, addTopBarAction, closePanel, openPanel, panelOpen, setTopBarTitle } from "./shell.js";
 /*
  * 前端功能聚合。
  *
@@ -28,7 +20,7 @@ import { init as initUsage } from "./usage.js";
 
 /** 启动全部功能模块；单个模块出错不影响其它模块与主流程 */
 // 外壳 API 从这里转发给各功能模块：位置统一，谁也不必自己造浮层或改 index.html。
-export { addPanelTab, addSidebarAction, addTopBarAction, closePanel, openPanel, panelOpen, setTopBarTitle };
+export { addPanelTab, addTopBarAction, closePanel, openPanel, panelOpen, setTopBarTitle };
 
 export function initFeatures() {
 	for (const [name, init] of [

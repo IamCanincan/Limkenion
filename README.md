@@ -72,10 +72,12 @@ limkenion                               # 交互模式
 limkenion "给这个仓库补一个 LICENSE"       # 执行一条指令后退出
 cat error.log | limkenion -p "分析这个报错"  # 从标准输入读取指令
 limkenion web                           # 浏览器界面，http://127.0.0.1:4887
+limkenion sessions [list|rename|rm|trash]  # 管理历史会话（删除是移到回收目录，不是硬删）
 limkenion review --base main            # 多 agent 代码评审（有 blocker 退出码 1，可当 CI 门禁）
 limkenion search "RepeatGuard"          # 搜历史会话（找到 0 / 没找到 1）
 limkenion doctor                        # 环境体检：版本、目录权限、密钥来源、接口可达性、配置分层
 limkenion self update --from <源码目录>   # 改自己：过门禁 → 打包 → 退出后安装，失败自动回滚
+limkenion self versions [--prune]        # 看历史安装包（默认只列不删）
 ```
 
 在任意项目里运行时，工作目录及上级目录的 `AGENTS.md` 会自动注入系统提示词，
