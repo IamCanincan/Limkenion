@@ -39,12 +39,18 @@ limkenion -m deepseek-v4-pro -v "重构这个模块"
 
 长会话会自动压缩上下文：先无成本地裁掉很久以前的大段工具输出，超过上下文窗口 75% 时再生成一次结构化摘要（CLI 会往 stderr 写一行「上下文压缩：…」）。
 
-交互模式下 `/rewind` 可以回滚上一轮对文件的改动（改过的写回旧内容、新建的删除）：每轮开始前会把被改文件的旧内容记在会话文件旁边，所以长时间跑也随时能后悔。
+交互模式下 `/diff [轮次]` 先看这一轮改了哪些文件（`▸ 路径 +N −M`、`@@` 段头与 `−`/`+` 行），末尾提示
+「撤掉这一轮及其之后共几轮：`/rewind <n>`」；`/rewind [轮数]` 才真的撤（改过的写回旧内容、新建的删除）。
+每轮开始前会把被改文件的旧内容记在会话文件旁边，所以长时间跑也随时能后悔——**先看再撤**，别闭着眼睛回滚。
 
 子命令 `limkenion doctor` 用来排查「为什么跑不起来」：逐个检查 Node 版本、目录权限、密钥来源与存储方式、模型、接口可达性，给出结论与退出码（有 fail 为 1）。连不上时它会多说一层：列出实际生效的代理变量（口令打码）并说明 Node 自带的 fetch 默认**不读**它们、只有 `NODE_USE_ENV_PROXY=1`（Node 24 及以上）才作数；证书类失败指向 `NODE_EXTRA_CA_CERTS`，并提醒 **Node 的 fetch 不读 `SSL_CERT_FILE`**（curl / git 认它不代表这里认）。
 
-内置工具八个：`bash`、`read`、`write`、`edit`、`grep`、`glob`、`todo_write`、`todo_read`；计划模式下
-另挂一个 `exit_plan_mode` 用来提交方案（没有评审入口时不注册，模型会被要求把方案写成回答）。
+内置 18 个工具，分四组：**文件与命令** `bash`、`read`、`write`、`edit`、`grep`、`glob`；
+**会话内状态** `todo_write`、`todo_read`、`goal_write`、`goal_read`、`present`；
+**后台任务** `job_start`、`job_list`、`job_kill`；**子代理** `subagent_start`、`subagent_stop`、
+`subagent_list`、`subagent_read`（子代理那条路上后 4 个根本不会注册，深度上限 1——套娃的代价是
+不可控的上下文与花费）。计划模式下另挂一个 `exit_plan_mode` 用来提交方案（没有评审入口时不注册，
+模型会被要求把方案写成回答）。终端与网页用的是同一套工具，装配也只有一处（`createRunRuntime`）。
 
 改文件有一条硬约束（**读取证据**）：`edit` 与覆盖已存在文件的 `write` 要求先 `read` 过，且读过之后
 内容没被改动，否则会被拒绝并提示重新读取——避免模型凭印象把改动盖上去；新建文件不受限制。
@@ -52,9 +58,13 @@ limkenion -m deepseek-v4-pro -v "重构这个模块"
 搜索用 `grep` 与 `glob`：跨平台行为一致，且自动跳过 `.git`、`node_modules` 等目录，遍历文件数、
 单文件体积与结果条数都有上限，搜索范围被夹在工作目录内。
 
-交互模式下的命令：`/help`、`/quit`、`/clear`、`/model <id>`、`/history`、`/rewind`、
-`/plan [strict|guide|off]`、`/review`、`/style [名字]`、`/search <词>`、`/approvals [clear]`，
-外加 `commands/` 目录里的自定义命令（见下）。
+交互模式下的命令：`/help`、`/quit`、`/clear`、`/model <id>`、`/history`、`/rename [名字]`、
+`/diff [轮次]`、`/rewind [轮数]`、`/plan [strict|guide|off]`、`/approval [档位]`、`/compact [on|off]`、
+`/review`、`/style [名字]`、`/search <词>`、`/approvals [clear]`、`/todos`、
+`/jobs [log|kill <id>]`、`/subagents [stop]`，外加 `commands/` 目录里的自定义命令（见下）。
+`/approval` 与 `/compact` 是**运行期开关**（从前只能启动时用参数定死），不带参数就报当前档位；
+`/rename` 给当前会话起名（列表里就不再用首条消息当标题）。工具行打的是工具自陈的摘要
+（`> bash echo hi`），收尾那行带用量与上下文占用（`[3 轮，用量 1200 输入 / 340 输出，上下文 4.2 万/100 万（4%）]`）。
 `Ctrl+C` 中断正在进行的回答，在提示符下再按一次退出。
 
 ## 浏览器界面
@@ -142,6 +152,12 @@ limkenion web --host 0.0.0.0 --port 8080 # 对局域网开放，无认证，谨�
 - **接口密钥在网页上填**：点侧栏「接口密钥」粘贴保存即可，下一次生成立即生效，不必重启服务。
   密钥加密后落在本机 `auth.json`（Windows 用 DPAPI，只有本机本用户能解；其它平台退回明文 0600，
   界面会写明）；接口只回打码后的预览与来源，明文不出服务端，也不进会话记录。
+- **设置面板里的「版本与自更新」卡片**：显示当前版本、上一版（回滚点）、上次自更新的结果与安装日志，
+  并给两个按钮——「回滚到上一版」随时可用，「更新到源码当前状态」要先带 `--from` 启动：
+  `limkenion web --from <源码目录>`（更新要跑门禁与打包，服务得知道源码在哪）。
+  **两个都只是「安排」**：服务端把作业挂到分离进程上，等你停掉这个服务（Ctrl+C 或关窗口）它才真正
+  `npm install -g`——Windows 上正在被加载的文件换不掉。所以回执写的是「请停止这个服务」，不是「已完成」；
+  更新还会在卡片上显示跑到哪一步与构建输出的最后一行（跑着的时候服务照常能用）。
 - **用量与耗时**：状态那一行显示最近一轮的输入/输出 token、上下文占用百分比与耗时；代码块右上角
   有复制按钮。
 - **多会话并行**：不同会话可以同时生成，各自独立推流。
@@ -437,6 +453,19 @@ argument-hint: [范围]
 - 交互模式每次启动都会新建一个会话文件。
 - `limkenion -p` 默认不写会话文件，避免零散提问混进会话列表；加 `--continue` 才会续写。
 
+终端里也能管理会话（网页侧栏一直有，命令行从前只能靠 `-c` 与 `search`）：
+
+```bash
+limkenion sessions                       # 列当前目录的（最近的在前，带条数、相对时间、名字）
+limkenion sessions --all                 # 跨工作目录，标出每个会话属于哪个目录
+limkenion sessions rename <id> <名字>     # 起名（名字给空串则取消命名）；<id> 是列表里那 8 位，也可写 latest
+limkenion sessions rm <id>               # 删除——**移到 <会话目录>/.trash/，不是硬删**
+limkenion sessions trash [--empty]       # 看回收目录里有什么；--empty 才真删
+```
+
+删除故意不做成硬删：会话是这个工具里唯一不可再生的东西，而命令行一个 `rm` 只差一次误敲。
+回收目录也**不会自动过期**（自动清理就是静默删除），要腾地方就显式 `trash --empty`。
+
 ### 搜索历史会话
 
 JSONL 本来就能 grep，做成命令是为了补上 grep 做不到的事：跳过逐轮快照文件（它们同目录同后缀，
@@ -459,7 +488,12 @@ limkenion self update --from <源码目录>   # 门禁 → 打包 → 存产物 
 limkenion self update --dry-run           # 只做到打包，不安装
 limkenion self rollback                   # 装回上一版
 limkenion self status                     # 当前版 / 上一版 / 上次结果 / 日志位置
+limkenion self versions [--prune]         # 看历史安装包（★ 标出在用的与回滚点）；--prune 才真删
 ```
+
+`self versions` 默认**只列不删**：`<配置目录>/versions/` 下会攒下每次自更新的 tgz，旧流程还留下过
+整份 `installed-before-*` 备份目录（这台机器上曾经到 240MB）。`--prune` 的规则只有一条：**只留在用的
+那一版、回滚点，以及最新一份备份**，目录里的 `state.json`、安装脚本与日志一律不动。
 
 两条不可调换的约束，都是为了「换不坏」：
 

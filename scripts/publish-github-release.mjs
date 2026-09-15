@@ -5,7 +5,7 @@
  *
  * 用法：
  *   node scripts/publish-github-release.mjs              # 版本取自 packages/cli/package.json
- *   node scripts/publish-github-release.mjs --tag v1.3.1 # 指定 tag
+ *   node scripts/publish-github-release.mjs --tag v1.0.0 # 指定 tag
  *   node scripts/publish-github-release.mjs --dry-run    # 只打包并打印要做的事，不碰网络
  *
  * 需要 `GH_TOKEN`（或 `GITHUB_TOKEN`）环境变量，权限为「对仓库内容的写权限 + 附件上传」。
@@ -19,6 +19,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runNpm } from "./npm-command.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -179,7 +180,8 @@ console.log(`准备发布 ${tag} 到 ${repo.owner}/${repo.repo}`);
 // 1. 打包（内部会先清 dist 再构建，所以删过的源文件不会留在包里）
 console.log("打包…");
 if (!dryRun) {
-	execFileSync("npm", ["run", "release:package"], { cwd: repoRoot, stdio: "inherit", shell: process.platform === "win32" });
+	// 走 scripts/npm-command.mjs 那条路：`shell: true` 配参数数组会触发 DEP0190（Node 明确警告的写法）
+	runNpm(["run", "release:package"], { cwd: repoRoot });
 }
 
 // 2. 源码归档：从 tag 导出，只含 tracked 文件

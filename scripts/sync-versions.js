@@ -37,7 +37,7 @@ if (versions.size > 1) {
 console.log("\n所有非 private 包版本一致（锁步）。");
 
 // 顺带把仓库根 package.json 的版本也对齐：`npm version --workspaces` 不会碰它，于是它长期停在
-// 上一个版本（发 1.3.1 时根上还写着 1.0.0），lock 里那两条根条目也跟着漂。
+// 上一个版本（`npm version --workspaces` 碰不到根清单，于是它长期停在上一个版本号），lock 里那两条根条目也跟着漂。
 // 找不到根清单就跳过（脚本可能被指向某个包目录树，那时没有「仓库根」这回事）。
 const releaseVersion = [...versions][0];
 const rootManifestPath = join(packageRoot, "..", "package.json");

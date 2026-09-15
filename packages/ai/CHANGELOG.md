@@ -1,6 +1,6 @@
 # Changelog
 
-从本版本开始记录。
+从 1.0.0 起记录。
 
 ## [Unreleased]
 
