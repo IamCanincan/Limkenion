@@ -32,3 +32,10 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const psHandler = stub
+export const logsHandler = stub
+export const attachHandler = stub
+export const killHandler = stub
+export const handleBgFlag = stub

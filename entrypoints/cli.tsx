@@ -241,11 +241,15 @@ async function main(): Promise<void> {
     main: cliMain
   } = await import('../main.js');
   profileCheckpoint('cli_after_main_import');
-  process.stderr.write('[Limkenion DEBUG] cli: calling cliMain()\n');
+  // Never swallow the error: `void main()` above does not handle rejections, so an
+  // empty catch here would reproduce the original "exit 0 with zero output" bug.
+  // Print it and exit non-zero so failures are always visible.
   await cliMain().catch(err => {
-    process.stderr.write('[Limkenion DEBUG] cliMain REJECTED: ' + (err && err.stack ? err.stack : String(err)) + '\n');
-  });
-  process.stderr.write('[Limkenion DEBUG] cli: cliMain() returned\n');
+    process.stderr.write(
+      `[Limkenion] fatal: ${err && err.stack ? err.stack : String(err)}\n`,
+    )
+    process.exit(1)
+  })
   profileCheckpoint('cli_after_main_complete');
 }
 

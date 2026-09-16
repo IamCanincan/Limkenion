@@ -32,3 +32,8 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const WizardStepComponent = stub
+export const WizardContextValue = stub
+export const WizardProviderProps = stub

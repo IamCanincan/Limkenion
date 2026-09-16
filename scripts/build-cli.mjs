@@ -29,6 +29,7 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ESBUILD = join(ROOT, 'web', 'node_modules', 'esbuild', 'bin', 'esbuild')
@@ -36,11 +37,31 @@ const ESBUILD = join(ROOT, 'web', 'node_modules', 'esbuild', 'bin', 'esbuild')
 const outfileIdx = process.argv.indexOf('--outfile')
 const outfile = outfileIdx > -1 ? process.argv[outfileIdx + 1] : join(ROOT, 'dist', 'cli.mjs')
 
+// MACRO is a Bun compile-time macro (build metadata injected at bundle time).
+// esbuild has no such thing, so define the fields the source actually reads:
+//   MACRO.VERSION / PACKAGE_URL / NATIVE_PACKAGE_URL / BUILD_TIME /
+//   FEEDBACK_CHANNEL / ISSUES_EXPLAINER / VERSION_CHANGELOG
+const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+const MACRO_OBJ = {
+  VERSION: pkg.version ?? '0.0.0',
+  PACKAGE_URL: pkg.name ?? 'limkenion-code',
+  NATIVE_PACKAGE_URL: '',
+  BUILD_TIME: new Date().toISOString(),
+  FEEDBACK_CHANNEL: '',
+  ISSUES_EXPLAINER: '',
+  VERSION_CHANGELOG: '',
+}
+
 const BANNER =
-  "import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"
+  "import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);" +
+  `globalThis.MACRO=${JSON.stringify(MACRO_OBJ)};`
 
 const args = [
-  join(ROOT, 'main.tsx'),
+  // Entry must be entrypoints/cli.tsx, NOT main.tsx.
+  // main.tsx only *exports* main(); entrypoints/cli.tsx is what actually calls
+  // it via `void main()`. Bundling from main.tsx produced a CLI whose top-level
+  // code ran but never invoked run(), so it exited 0 with zero output.
+  join(ROOT, 'entrypoints', 'cli.tsx'),
   '--bundle',
   '--platform=node',
   '--format=esm',

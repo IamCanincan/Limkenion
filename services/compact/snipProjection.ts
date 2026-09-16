@@ -32,3 +32,7 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const isSnipBoundaryMessage = stub
+export const projectSnippedView = stub

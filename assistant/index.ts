@@ -32,3 +32,15 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// KAIROS (assistant mode) surface referenced by main.tsx.
+// NOTE: do NOT point these at `stub` — the Proxy is truthy and callable, so
+// `isAssistantMode()` would return a truthy object and the CLI would wrongly
+// enter the assistant path. Return explicit "disabled" values instead, since
+// assistant mode is an 上游 feature we have intentionally dropped.
+export const isAssistantMode = (): boolean => false
+export const isAssistantForced = (): boolean => false
+export const markAssistantForced = (): void => {}
+export const initializeAssistantTeam = async (): Promise<undefined> => undefined
+export const getAssistantSystemPromptAddendum = (): undefined => undefined
+export const getAssistantActivationPath = (): undefined => undefined

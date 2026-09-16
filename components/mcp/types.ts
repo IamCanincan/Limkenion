@@ -32,3 +32,12 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const LimkenionAIServerInfo = stub
+export const HTTPServerInfo = stub
+export const SSEServerInfo = stub
+export const StdioServerInfo = stub
+export const AgentMcpServerInfo = stub
+export const ServerInfo = stub
+export const MCPViewState = stub

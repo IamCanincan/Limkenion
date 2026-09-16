@@ -32,3 +32,12 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const NotebookCellType = stub
+export const NotebookContent = stub
+export const NotebookCell = stub
+export const NotebookCellOutput = stub
+export const NotebookCellSource = stub
+export const NotebookCellSourceOutput = stub
+export const NotebookOutputImage = stub

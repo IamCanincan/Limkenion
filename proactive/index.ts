@@ -32,3 +32,10 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const setContextBlocked = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const isProactiveActive = stub
+export const activateProactive = stub

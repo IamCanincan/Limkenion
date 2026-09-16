@@ -127,6 +127,19 @@ export function fireRawRead(): Promise<RawReadResult> {
  */
 export function startMdmRawRead(): void {
   if (rawReadPromise) return
+  // Escape hatch: skip the MDM subprocess probe entirely.
+  // Some sandboxed/CI environments kill the whole process when it spawns
+  // reg.exe (Windows) or plutil (macOS), which makes the CLI impossible to
+  // even start for debugging. Setting LIMKENION_SKIP_MDM=1 returns the
+  // "no MDM settings" result without spawning anything.
+  if (process.env.LIMKENION_SKIP_MDM === '1') {
+    rawReadPromise = Promise.resolve({
+      plistStdouts: null,
+      hklmStdout: null,
+      hkcuStdout: null,
+    })
+    return
+  }
   rawReadPromise = fireRawRead()
 }
 

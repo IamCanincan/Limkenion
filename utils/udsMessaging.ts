@@ -32,3 +32,23 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const setOnEnqueue = stub
+
+// Namespace-style calls from setup.ts (`m.startUdsMessaging(...)`,
+// `m.getDefaultUdsSocketPath()`) — not destructuring, so the auto script
+// cannot detect them. UDS messaging is a dropped feature: make startUdsMessaging
+// a no-op and the path empty (falsy) so callers skip socket setup.
+export const startUdsMessaging = async (
+  _socketPath?: string,
+  _opts?: unknown,
+): Promise<void> => {}
+export const getDefaultUdsSocketPath = (): string => ''
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const loadPluginHooks = stub
+export const setupPluginHookHotReload = stub
+export const isInternalModelRepo = stub
+export const registerSessionFileAccessHooks = stub
+export const startTeamMemoryWatcher = stub

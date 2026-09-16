@@ -32,3 +32,8 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const ScopedLspServerConfig = stub
+export const LspServerState = stub
+export const LspServerConfig = stub

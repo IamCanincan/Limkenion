@@ -32,3 +32,16 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const ShellProgress = stub
+export const AgentToolProgress = stub
+export const BashProgress = stub
+export const MCPProgress = stub
+export const REPLToolProgress = stub
+export const SkillToolProgress = stub
+export const TaskOutputProgress = stub
+export const ToolProgressData = stub
+export const WebSearchProgress = stub
+export const PowerShellProgress = stub
+export const SdkWorkflowProgress = stub

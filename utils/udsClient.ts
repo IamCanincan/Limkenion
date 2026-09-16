@@ -32,3 +32,15 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const sendToUdsSocket = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const listAllLiveSessions = stub
+
+// Namespace-style call: `m.getDefaultUdsSocketPath()` in setup.ts — the auto
+// script cannot see these (no destructuring), so provide explicitly.
+// Return '' rather than `stub`: UDS is a dropped feature, and an empty path is
+// falsy so callers skip socket setup instead of trying to use a Proxy as a path.
+export const getDefaultUdsSocketPath = (): string => ''

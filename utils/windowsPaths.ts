@@ -1,3 +1,4 @@
+import { existsSync } from 'fs'
 import memoize from 'lodash-es/memoize.js'
 import * as path from 'path'
 import * as pathWin32 from 'path/win32'
@@ -13,9 +14,12 @@ import { getPlatform } from './platform.js'
  * @returns true if the path exists, false otherwise
  */
 function checkPathExists(path: string): boolean {
+  // Was: execSync_DEPRECATED(`dir "${path}"`) — 'dir' is a cmd.exe builtin, so
+  // it is unavailable (or behaves differently) under Git Bash / PowerShell,
+  // causing existing paths to be reported as missing. fs.existsSync is
+  // cross-shell and has no subprocess cost.
   try {
-    execSync_DEPRECATED(`dir "${path}"`, { stdio: 'pipe' })
-    return true
+    return existsSync(path)
   } catch {
     return false
   }

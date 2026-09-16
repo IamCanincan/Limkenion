@@ -32,3 +32,12 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const getStats = stub
+export const isContextCollapseEnabled = stub
+
+// Called as `(require('./services/contextCollapse/index.js')).initContextCollapse()` in
+// setup.ts — an immediate call, not a destructuring or namespace binding, so the auto
+// script cannot detect it. Provide explicitly as a no-op (feature is dropped).
+export const initContextCollapse = (): void => {}

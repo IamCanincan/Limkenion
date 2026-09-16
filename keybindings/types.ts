@@ -32,3 +32,11 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const KeybindingAction = stub
+export const KeybindingContextName = stub
+export const KeybindingBlock = stub
+export const ParsedBinding = stub
+export const ParsedKeystroke = stub
+export const Chord = stub

@@ -32,3 +32,16 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// --- auto-added by scripts/fix-stub-exports.mjs ---
+export const OAuthTokens = stub
+export const ReferralRedemptionsResponse = stub
+export const ReferrerRewardInfo = stub
+export const ReferralCampaign = stub
+export const ReferralEligibilityResponse = stub
+export const SubscriptionType = stub
+export const BillingType = stub
+export const OAuthProfileResponse = stub
+export const OAuthTokenExchangeResponse = stub
+export const RateLimitTier = stub
+export const UserRolesResponse = stub
