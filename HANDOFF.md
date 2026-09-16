@@ -67,6 +67,12 @@ node scripts/build-cli.mjs      # 或 npm run build:cli
 `main.tsx:770` 的 `isNonInteractive = ... || !process.stdout.isTTY`
 会判定为非交互模式并静默退出（exit 0、0 输出），这是正常行为不是故障。
 请在真实终端跑 `node dist/cli.mjs` 确认 REPL 界面。
+也可以直接双击仓库根目录的 **`start-cli.bat`** —— 它会自动检测 node
+（PATH 中没有则回退到 `D:\nodejs\node.exe`）、首次运行自动构建、
+结束后暂停显示退出码。支持传参：`start-cli.bat -p "hello"`。
+
+⚠️ `.bat` 文件名必须保持 ASCII（故命名为 `start-cli.bat` 而非中文名），
+Windows 上中文文件名的 .bat 会因代码页错位而乱码/无法执行。
 
 ### 2. 私有包是空壳（功能永久缺失）
 这些 上游 内部包装不到，upstream-ref-impl 也没有，只能 stub：
