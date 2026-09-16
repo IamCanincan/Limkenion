@@ -2,7 +2,7 @@ import type {
   ImageBlockParam,
   TextBlockParam,
   ToolResultBlockParam,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from '../types/llm-protocol.js'
 import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
 import { formatOutput } from '../tools/BashTool/utils.js'
 import type {

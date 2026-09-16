@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js'
 import type { QuerySource } from '../../constants/querySource.js'
 import type { ToolUseContext } from '../../Tool.js'
 import { FILE_EDIT_TOOL_NAME } from '../../tools/FileEditTool/constants.js'

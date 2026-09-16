@@ -10,7 +10,7 @@
  */
 
 import { feature } from 'bun:bundle'
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/messages.mjs'
+import type { ContentBlockParam } from '../../types/llm-protocol.js'
 import { getSystemPrompt } from '../../constants/prompts.js'
 import { TEAMMATE_MESSAGE_TAG } from '../../constants/xml.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'

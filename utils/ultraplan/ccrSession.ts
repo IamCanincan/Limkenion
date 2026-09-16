@@ -7,7 +7,7 @@
 import type {
   ToolResultBlockParam,
   ToolUseBlock,
-} from '@limkenion-ai/sdk/resources'
+} from '../../types/llm-protocol.js'
 import type { SDKMessage } from '../../entrypoints/agentSdkTypes.js'
 import { EXIT_PLAN_MODE_V2_TOOL_NAME } from '../../tools/ExitPlanModeTool/constants.js'
 import { logForDebugging } from '../debug.js'

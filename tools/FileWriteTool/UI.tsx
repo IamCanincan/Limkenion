@@ -1,5 +1,5 @@
 import { c as _c } from "react/compiler-runtime";
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js';
 import type { StructuredPatchHunk } from 'diff';
 import { isAbsolute, relative, resolve } from 'path';
 import * as React from 'react';

@@ -16,9 +16,9 @@ import type {
   BetaToolUnion,
   BetaUsage,
   BetaMessageParam as MessageParam,
-} from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
-import type { TextBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
-import type { Stream } from '@limkenion-ai/sdk/streaming.mjs'
+} from '../../types/llm-protocol.js'
+import type { TextBlockParam } from '../../types/llm-protocol.js'
+import type { Stream } from '../../types/llm-protocol.js'
 import { randomUUID } from 'crypto'
 import { queryOpenAICompat, queryOpenAICompatOnce } from './openai-compat.js'
 import {
@@ -108,12 +108,12 @@ const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
   : null
 
 import { feature } from 'bun:bundle'
-import type { ClientOptions } from '@limkenion-ai/sdk'
+import type { ClientOptions } from '../../types/llm-protocol.js'
 import {
   APIConnectionTimeoutError,
   APIError,
   APIUserAbortError,
-} from '@limkenion-ai/sdk/error'
+} from '../../types/llm-protocol.js'
 import {
   getAfkModeHeaderLatched,
   getCacheEditingHeaderLatched,

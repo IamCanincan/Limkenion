@@ -1,4 +1,4 @@
-import type { ClientOptions } from '@limkenion-ai/sdk'
+import type { ClientOptions } from '../../types/llm-protocol.js'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import { dirname, join } from 'path'

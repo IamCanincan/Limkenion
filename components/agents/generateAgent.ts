@@ -1,4 +1,4 @@
-import type { ContentBlock } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ContentBlock } from '../../types/llm-protocol.js'
 import { getUserContext } from 'src/context.js'
 import { queryModelWithoutStreaming } from 'src/services/api/limkenion.js'
 import { getEmptyToolPermissionContext } from 'src/Tool.js'

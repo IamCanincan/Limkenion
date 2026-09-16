@@ -1,7 +1,7 @@
 import type {
   Base64ImageSource,
   ImageBlockParam,
-} from '@limkenion-ai/sdk/resources/messages.mjs'
+} from '../types/llm-protocol.js'
 import {
   API_IMAGE_MAX_BASE64_SIZE,
   IMAGE_MAX_HEIGHT,

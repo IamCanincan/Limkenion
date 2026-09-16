@@ -1,4 +1,4 @@
-import { APIUserAbortError } from '@limkenion-ai/sdk'
+import { APIUserAbortError } from '../types/llm-protocol.js'
 
 export class LimkenionError extends Error {
   constructor(message: string) {

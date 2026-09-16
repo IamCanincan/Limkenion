@@ -1,4 +1,4 @@
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js';
 import React from 'react';
 import { MessageResponse } from 'src/components/MessageResponse.js';
 import { extractTag } from 'src/utils/messages.js';

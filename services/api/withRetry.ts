@@ -1,10 +1,10 @@
 import { feature } from 'bun:bundle'
-import type Limkenion from '@limkenion-ai/sdk'
+import type Limkenion from '../../types/llm-protocol.js'
 import {
   APIConnectionError,
   APIError,
   APIUserAbortError,
-} from '@limkenion-ai/sdk'
+} from '../../types/llm-protocol.js'
 import type { QuerySource } from 'src/constants/querySource.js'
 import type { SystemAPIErrorMessage } from 'src/types/message.js'
 import { isAwsCredentialsProviderError } from 'src/utils/aws.js'

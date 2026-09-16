@@ -1,9 +1,9 @@
 import { feature } from 'bun:bundle'
-import { APIError } from '@limkenion-ai/sdk'
+import { APIError } from '../../types/llm-protocol.js'
 import type {
   BetaStopReason,
   BetaUsage as Usage,
-} from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+} from '../../types/llm-protocol.js'
 import {
   addToTotalDurationState,
   consumePostCompaction,

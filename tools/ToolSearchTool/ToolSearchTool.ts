@@ -1,4 +1,4 @@
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js'
 import memoize from 'lodash-es/memoize.js'
 import { z } from 'zod/v4'
 import {

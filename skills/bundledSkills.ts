@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ContentBlockParam } from '../types/llm-protocol.js'
 import { constants as fsConstants } from 'fs'
 import { mkdir, open } from 'fs/promises'
 import { dirname, isAbsolute, join, normalize, sep as pathSep } from 'path'

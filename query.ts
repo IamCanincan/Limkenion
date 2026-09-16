@@ -2,7 +2,7 @@
 import type {
   ToolResultBlockParam,
   ToolUseBlock,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from './types/llm-protocol.js'
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
 import { FallbackTriggeredError } from './services/api/withRetry.js'
 import {

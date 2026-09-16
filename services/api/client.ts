@@ -1,4 +1,4 @@
-import Limkenion, { type ClientOptions } from '@limkenion-ai/sdk'
+import Limkenion, { type ClientOptions } from '../../types/llm-protocol.js'
 import { randomUUID } from 'crypto'
 import type { GoogleAuth } from 'google-auth-library'
 import {

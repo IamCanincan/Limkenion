@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle';
-import type { TextBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { TextBlockParam } from '../../types/llm-protocol.js';
 import React, { useContext, useMemo } from 'react';
 import { getKairosActive, getUserMsgOptIn } from '../../bootstrap/state.js';
 import { Box } from '../../ink.js';

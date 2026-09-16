@@ -1,4 +1,4 @@
-import type { BetaTool } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaTool } from '../types/llm-protocol.js'
 
 // Session-scoped cache of rendered tool schemas. Tool schemas render at server
 // position 2 (before system prompt), so any byte-level change busts the entire

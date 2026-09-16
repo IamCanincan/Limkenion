@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/messages.js'
+import type { ContentBlockParam } from '../types/llm-protocol.js'
 import type { Command } from '../commands.js'
 import type { ToolUseContext } from '../Tool.js'
 

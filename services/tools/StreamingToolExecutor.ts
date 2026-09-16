@@ -1,4 +1,4 @@
-import type { ToolUseBlock } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ToolUseBlock } from '../../types/llm-protocol.js'
 import {
   createUserMessage,
   REJECT_MESSAGE,

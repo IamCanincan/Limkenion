@@ -1,4 +1,4 @@
-import { APIUserAbortError } from '@limkenion-ai/sdk';
+import { APIUserAbortError } from '../../../../types/llm-protocol.js';
 import React, { type ReactNode, useCallback, useRef, useState } from 'react';
 import { useMainLoopModel } from '../../../../hooks/useMainLoopModel.js';
 import { Box, Text } from '../../../../ink.js';

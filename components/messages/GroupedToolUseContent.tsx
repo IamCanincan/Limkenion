@@ -1,4 +1,4 @@
-import type { ToolResultBlockParam, ToolUseBlockParam } from '@limkenion-ai/sdk/resources/messages/messages.mjs';
+import type { ToolResultBlockParam, ToolUseBlockParam } from '../../types/llm-protocol.js';
 import * as React from 'react';
 import { filterToolProgressMessages, findToolByName, type Tools } from '../../Tool.js';
 import type { GroupedToolUseMessage } from '../../types/message.js';

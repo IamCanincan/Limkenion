@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/messages.mjs'
+import type { ContentBlockParam } from './llm-protocol.js'
 import type { UUID } from 'crypto'
 import type React from 'react'
 import type { PermissionResult } from '../entrypoints/agentSdkTypes.js'

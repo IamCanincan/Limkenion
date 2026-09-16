@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { Limkenion } from '@limkenion-ai/sdk'
+import type { Limkenion } from '../types/llm-protocol.js'
 import {
   getSystemPrompt,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,

@@ -1,8 +1,8 @@
-import type Limkenion from '@limkenion-ai/sdk'
+import type Limkenion from '../types/llm-protocol.js'
 import type {
   BetaTool,
   BetaToolUnion,
-} from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+} from '../types/llm-protocol.js'
 import { createHash } from 'crypto'
 import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from 'src/constants/prompts.js'
 import { getSystemContext, getUserContext } from 'src/context.js'

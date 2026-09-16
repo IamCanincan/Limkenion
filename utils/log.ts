@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { BetaMessageStreamParams } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaMessageStreamParams } from '../types/llm-protocol.js'
 import { readdir, readFile, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'

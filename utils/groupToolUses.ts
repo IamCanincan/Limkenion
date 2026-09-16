@@ -1,5 +1,5 @@
-import type { BetaToolUseBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/messages/messages.mjs'
+import type { BetaToolUseBlock } from '../types/llm-protocol.js'
+import type { ToolResultBlockParam } from '../types/llm-protocol.js'
 import type { Tools } from '../Tool.js'
 import type {
   GroupedToolUseMessage,

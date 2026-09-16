@@ -1,5 +1,5 @@
-import type { BetaToolUnion } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
-import type { TextBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { BetaToolUnion } from '../../types/llm-protocol.js'
+import type { TextBlockParam } from '../../types/llm-protocol.js'
 import { createPatch } from 'diff'
 import { mkdir, writeFile } from 'fs/promises'
 import { join } from 'path'

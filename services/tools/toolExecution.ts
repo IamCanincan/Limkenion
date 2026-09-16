@@ -3,7 +3,7 @@ import type {
   ContentBlockParam,
   ToolResultBlockParam,
   ToolUseBlock,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from '../../types/llm-protocol.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,

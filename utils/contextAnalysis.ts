@@ -1,8 +1,8 @@
-import type { BetaContentBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaContentBlock } from '../types/llm-protocol.js'
 import type {
   ContentBlock,
   ContentBlockParam,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from '../types/llm-protocol.js'
 import { roughTokenCountEstimation as countTokens } from '../services/tokenEstimation.js'
 import type {
   AssistantMessage,

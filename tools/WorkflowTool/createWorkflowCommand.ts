@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ContentBlockParam } from '../../types/llm-protocol.js'
 import type { Command } from '../../types/command.js'
 import { loadWorkflows } from '../../utils/workflows/discovery.js'
 import { areWorkflowsEnabled } from '../../utils/workflows/enabled.js'

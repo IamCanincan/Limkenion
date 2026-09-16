@@ -1,7 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
 import { feature } from 'bun:bundle';
-import type { BetaContentBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs';
-import type { ImageBlockParam, TextBlockParam, ThinkingBlockParam, ToolResultBlockParam, ToolUseBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { BetaContentBlock } from '../types/llm-protocol.js';
+import type { ImageBlockParam, TextBlockParam, ThinkingBlockParam, ToolResultBlockParam, ToolUseBlockParam } from '../types/llm-protocol.js';
 import * as React from 'react';
 import type { Command } from '../commands.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';

@@ -2,11 +2,11 @@ import {
   APIConnectionError,
   APIConnectionTimeoutError,
   APIError,
-} from '@limkenion-ai/sdk'
+} from '../../types/llm-protocol.js'
 import type {
   BetaMessage,
   BetaStopReason,
-} from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+} from '../../types/llm-protocol.js'
 import { AFK_MODE_BETA_HEADER } from 'src/constants/betas.js'
 import type { SDKAssistantMessageError } from 'src/entrypoints/agentSdkTypes.js'
 import type {

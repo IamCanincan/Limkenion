@@ -1,4 +1,4 @@
-import type { Base64ImageSource } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { Base64ImageSource } from '../../types/llm-protocol.js'
 import { readdir, readFile as readFileAsync } from 'fs/promises'
 import * as path from 'path'
 import { posix, win32 } from 'path'

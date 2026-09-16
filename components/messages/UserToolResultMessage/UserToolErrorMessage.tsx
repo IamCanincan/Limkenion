@@ -1,6 +1,6 @@
 import { c as _c } from "react/compiler-runtime";
 import { feature } from 'bun:bundle';
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { ToolResultBlockParam } from '../../../types/llm-protocol.js';
 import * as React from 'react';
 import { BULLET_OPERATOR } from '../../../constants/figures.js';
 import { Text } from '../../../ink.js';

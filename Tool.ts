@@ -1,7 +1,7 @@
 import type {
   ToolResultBlockParam,
   ToolUseBlockParam,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from './types/llm-protocol.js'
 import type {
   ElicitRequestURLParams,
   ElicitResult,

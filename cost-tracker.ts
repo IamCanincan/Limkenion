@@ -1,4 +1,4 @@
-import type { BetaUsage as Usage } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaUsage as Usage } from './types/llm-protocol.js'
 import chalk from 'chalk'
 import {
   addToTotalCostState,

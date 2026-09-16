@@ -1,4 +1,4 @@
-import type { ToolUseBlock } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ToolUseBlock } from '../../types/llm-protocol.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
 import { findToolByName, type ToolUseContext } from '../../Tool.js'
 import type { AssistantMessage, Message } from '../../types/message.js'

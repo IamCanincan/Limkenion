@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/messages.js';
+import type { ContentBlockParam } from '../../types/llm-protocol.js';
 import React from 'react';
 import type { LocalJSXCommandCall, LocalJSXCommandOnDone } from '../../types/command.js';
 import { checkOverageGate, confirmOverage, launchRemoteReview } from './reviewRemote.js';

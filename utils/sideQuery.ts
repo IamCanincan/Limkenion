@@ -1,5 +1,5 @@
-import type Limkenion from '@limkenion-ai/sdk'
-import type { BetaToolUnion } from '@limkenion-ai/sdk/resources/beta/messages.js'
+import type Limkenion from '../types/llm-protocol.js'
+import type { BetaToolUnion } from '../types/llm-protocol.js'
 import {
   getLastApiCompletionTimestamp,
   setLastApiCompletionTimestamp,

@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle'
-import type Limkenion from '@limkenion-ai/sdk'
-import type { BetaToolUnion } from '@limkenion-ai/sdk/resources/beta/messages.js'
+import type Limkenion from '../../types/llm-protocol.js'
+import type { BetaToolUnion } from '../../types/llm-protocol.js'
 import { mkdir, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { z } from 'zod/v4'

@@ -6,7 +6,7 @@
  * - yoloClassifier.ts (YOLO mode security classification)
  */
 
-import type { BetaContentBlock } from '@limkenion-ai/sdk/resources/beta/messages.js'
+import type { BetaContentBlock } from '../../types/llm-protocol.js'
 import type { z } from 'zod/v4'
 
 /**

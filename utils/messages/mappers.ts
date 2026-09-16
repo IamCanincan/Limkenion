@@ -1,4 +1,4 @@
-import type { BetaContentBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaContentBlock } from '../../types/llm-protocol.js'
 import { randomUUID, type UUID } from 'crypto'
 import { getSessionId } from 'src/bootstrap/state.js'
 import {

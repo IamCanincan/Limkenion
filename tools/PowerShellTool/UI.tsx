@@ -1,4 +1,4 @@
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs';
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js';
 import * as React from 'react';
 import { KeyboardShortcutHint } from '../../components/design-system/KeyboardShortcutHint.js';
 import { FallbackToolUseErrorMessage } from '../../components/FallbackToolUseErrorMessage.js';

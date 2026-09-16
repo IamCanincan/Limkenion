@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import type { ToolResultBlockParam } from '../../types/llm-protocol.js'
 import uniqBy from 'lodash-es/uniqBy.js'
 import { dirname } from 'path'
 import { getProjectRoot } from 'src/bootstrap/state.js'

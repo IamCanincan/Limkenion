@@ -3,7 +3,7 @@
  * This isolates mock logic from production code
  */
 
-import { APIError } from '@limkenion-ai/sdk'
+import { APIError } from '../types/llm-protocol.js'
 import {
   applyMockHeaders,
   checkMockFastModeRateLimit,

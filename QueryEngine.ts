@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources/messages.mjs'
+import type { ContentBlockParam } from './types/llm-protocol.js'
 import { randomUUID } from 'crypto'
 import last from 'lodash-es/last.js'
 import {

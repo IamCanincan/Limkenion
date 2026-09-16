@@ -1,4 +1,4 @@
-import type { ContentBlockParam } from '@limkenion-ai/sdk/resources';
+import type { ContentBlockParam } from '../../types/llm-protocol.js';
 import { randomUUID } from 'crypto';
 import * as React from 'react';
 import { BashModeProgress } from 'src/components/BashModeProgress.js';

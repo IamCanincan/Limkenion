@@ -1,5 +1,5 @@
-import { APIError } from '@limkenion-ai/sdk'
-import type { MessageParam } from '@limkenion-ai/sdk/resources/index.mjs'
+import { APIError } from '../types/llm-protocol.js'
+import type { MessageParam } from '../types/llm-protocol.js'
 import isEqual from 'lodash-es/isEqual.js'
 import { getIsNonInteractiveSession } from '../bootstrap/state.js'
 import { isLimkenionAISubscriber } from '../utils/auth.js'

@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { BetaToolUseBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaToolUseBlock } from '../../types/llm-protocol.js'
 import { randomUUID } from 'crypto'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import {

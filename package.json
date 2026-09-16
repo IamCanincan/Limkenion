@@ -14,14 +14,12 @@
     "restore:missing": "node scripts/restore-missing-files.mjs --from \"D:/下载/agent/upstream-ref-impl/src\""
   },
   "dependencies": {
-    "@上游兼容-ai/sandbox-runtime": "^0.0.44",
     "@aws-sdk/client-bedrock": "^3.1133.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1020.0",
     "@aws-sdk/client-sts": "^3.1133.0",
     "@azure/identity": "^4.13.3",
     "@commander-js/extra-typings": "^14.0.0",
     "@growthbook/growthbook": "^1.6.5",
-    "@limkenion-ai/sdk": "npm:@上游兼容-ai/sdk@^0.80.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@opentelemetry/api-logs": "^0.214.0",
     "@opentelemetry/core": "^2.6.1",

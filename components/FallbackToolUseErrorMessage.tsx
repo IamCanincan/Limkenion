@@ -1,5 +1,5 @@
 import { c as _c } from "react/compiler-runtime";
-import type { ToolResultBlockParam } from '@limkenion-ai/sdk/resources/messages/messages.mjs';
+import type { ToolResultBlockParam } from '../types/llm-protocol.js';
 import * as React from 'react';
 import { stripUnderlineAnsi } from 'src/components/shell/OutputLine.js';
 import { extractTag } from 'src/utils/messages.js';

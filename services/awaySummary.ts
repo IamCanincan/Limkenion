@@ -1,4 +1,4 @@
-import { APIUserAbortError } from '@limkenion-ai/sdk'
+import { APIUserAbortError } from '../types/llm-protocol.js'
 import { getEmptyToolPermissionContext } from '../Tool.js'
 import type { Message } from '../types/message.js'
 import { logForDebugging } from '../utils/debug.js'

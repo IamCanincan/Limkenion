@@ -1,4 +1,4 @@
-import type { BetaContentBlock } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaContentBlock } from '../types/llm-protocol.js'
 import { createHash, randomUUID, type UUID } from 'crypto'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import isPlainObject from 'lodash-es/isPlainObject.js'

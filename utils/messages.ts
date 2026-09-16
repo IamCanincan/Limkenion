@@ -1,5 +1,5 @@
 import { feature } from 'bun:bundle'
-import type { BetaUsage as Usage } from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+import type { BetaUsage as Usage } from '../types/llm-protocol.js'
 import type {
   ContentBlock,
   ContentBlockParam,
@@ -11,7 +11,7 @@ import type {
   ToolResultBlockParam,
   ToolUseBlock,
   ToolUseBlockParam,
-} from '@limkenion-ai/sdk/resources/index.mjs'
+} from '../types/llm-protocol.js'
 import { randomUUID, type UUID } from 'crypto'
 import isObject from 'lodash-es/isObject.js'
 import last from 'lodash-es/last.js'
@@ -90,14 +90,14 @@ type HookAttachmentWithName = Exclude<
   HookPermissionDecisionAttachment
 >
 
-import type { APIError } from '@limkenion-ai/sdk'
+import type { APIError } from '../types/llm-protocol.js'
 import type {
   BetaContentBlock,
   BetaMessage,
   BetaRedactedThinkingBlock,
   BetaThinkingBlock,
   BetaToolUseBlock,
-} from '@limkenion-ai/sdk/resources/beta/messages/messages.mjs'
+} from '../types/llm-protocol.js'
 import type {
   HookEvent,
   SDKAssistantMessageError,
