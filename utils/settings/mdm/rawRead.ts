@@ -88,24 +88,32 @@ export function fireRawRead(): Promise<RawReadResult> {
     }
 
     if (process.platform === 'win32') {
-      const [hklm, hkcu] = await Promise.all([
-        execFilePromise('reg', [
-          'query',
-          WINDOWS_REGISTRY_KEY_PATH_HKLM,
-          '/v',
-          WINDOWS_REGISTRY_VALUE_NAME,
-        ]),
-        execFilePromise('reg', [
-          'query',
-          WINDOWS_REGISTRY_KEY_PATH_HKCU,
-          '/v',
-          WINDOWS_REGISTRY_VALUE_NAME,
-        ]),
-      ])
-      return {
-        plistStdouts: null,
-        hklmStdout: hklm.code === 0 ? hklm.stdout : null,
-        hkcuStdout: hkcu.code === 0 ? hkcu.stdout : null,
+      // reg.exe 并非总是可用：企业环境可能被组策略禁用、注册表服务可能异常、
+      // 沙箱/容器可能直接禁止派生该进程。原实现未做错误处理，一旦 execFile
+      // 抛出（EPERM / ENOENT / EACCES）就会让整个 CLI 在启动期崩溃。
+      // 这里降级为「读不到 MDM 设置」，让 CLI 继续以默认配置启动。
+      try {
+        const [hklm, hkcu] = await Promise.all([
+          execFilePromise('reg', [
+            'query',
+            WINDOWS_REGISTRY_KEY_PATH_HKLM,
+            '/v',
+            WINDOWS_REGISTRY_VALUE_NAME,
+          ]),
+          execFilePromise('reg', [
+            'query',
+            WINDOWS_REGISTRY_KEY_PATH_HKCU,
+            '/v',
+            WINDOWS_REGISTRY_VALUE_NAME,
+          ]),
+        ])
+        return {
+          plistStdouts: null,
+          hklmStdout: hklm.code === 0 ? hklm.stdout : null,
+          hkcuStdout: hkcu.code === 0 ? hkcu.stdout : null,
+        }
+      } catch {
+        return { plistStdouts: null, hklmStdout: null, hkcuStdout: null }
       }
     }
 
