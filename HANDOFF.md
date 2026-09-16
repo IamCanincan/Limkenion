@@ -64,10 +64,30 @@ CLI 启动后调用 `reg.exe`（Windows 注册表，MDM 设备检测）→ `spaw
 `mcpb` / `modifiers-napi`。
 → 电脑操作（computer-use）、Vertex/Foundry/Bedrock 接入**不可用**。
 
-### 3. 版本混用
+### 3. 版本混用 —— 类型层面不健康（重要）
 补进来的 174 个文件来自**较新的** upstream-ref-impl，原有 270 个文件是旧版。
-打包能过，但行为可能有细微不一致。彻底解法：用 upstream-ref-impl 整份 `src/` 重新改名覆盖，
-代价是带回 `bridge/buddy/voice/vim/remote/server/upstreamproxy`。
+
+**当前状态**：
+- `esbuild` 打包：**0 错误** ✅（产物可用）
+- `tsc --noEmit`：**2049 个错误** ❌（TS2614=641 / TS2339=542 / TS2307=232，涉 591 文件）
+
+这两个数字不矛盾：esbuild 只做转译+打包，不做类型检查。
+`--loader:.js=tsx` 让打包器能解析，但真实的类型不一致依然存在。
+
+**根源**：新版 upstream-ref-impl 文件 + 旧版 Limkenion 文件的 API 对不上。
+这是"只补缺失文件"方案的固有代价，装依赖解决不了。
+
+**彻底解法（未做，需你决定）**：用 upstream-ref-impl 整份 `src/` 重新改名覆盖，
+而不是补 174 个文件。收益是版本一致、类型大概率干净；
+代价是会带回已移除的 `bridge/buddy/voice/vim/remote/server/upstreamproxy`，
+需要重新移除，且 web 端 drift 测试要重跑。
+
+### 3b. 扩展名已修正（131 个文件）
+从 upstream-ref-impl 复制时我曾把 `.ts/.tsx` 改成 `.js`（以为要匹配 import 里的 `.js`）——
+**搞反了**：TS 约定是源文件 `.ts`、import 写 `.js`，由 `moduleResolution: bundler` 映射。
+上游 2372 个 `.ts/.tsx` vs 仅 18 个 `.js`，Limkenion 却有 156 个 `.js`。
+已批量改回：129 → `.ts`、2 → `.tsx`、25 个纯 JS 保持。
+效果：`tsc` 错误 665 → 391 → 13（随后因真正开始解析而暴露出上述 2049）。
 
 ### 4. 建议装 Bun 1.3.14
 项目真正依赖 Bun（`bun:bundle` + `feature()` 编译期死代码消除）。
