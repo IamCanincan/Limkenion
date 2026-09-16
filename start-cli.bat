@@ -12,6 +12,8 @@ REM 因此端点用 DeepSeek 原生地址（不是 /上游兼容 兼容路径）
 set "LIMKENION_API_PROVIDER=openai"
 set "DEEPSEEK_OPENAI_URL=https://api.deepseek.com"
 set "DEEPSEEK_MODEL=deepseek-chat"
+REM 需要推理能力时改成 deepseek-reasoner（等效 上游 extended thinking）
+REM REASONING_EFFORT=low|medium|high 仅对 OpenAI o-series / gpt-5+ 生效，DeepSeek 不认
 
 if not "%DEEPSEEK_API_KEY%"=="" goto HAVE_KEY
 echo ==========================================

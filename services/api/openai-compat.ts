@@ -35,6 +35,10 @@ function getConfig() {
       process.env.LIMKENION_BASE_URL ||
       DEFAULT_BASE_URL,
     model: process.env.LIMKENION_MODEL || DEFAULT_MODEL,
+    // 推理强度：low / medium / high（对应 codex 的 reasoning.effort，
+    // 也是 上游 extended thinking 在 OpenAI 协议下的等效物）。
+    // 仅对支持该参数的模型（OpenAI o-series / gpt-5+、部分兼容网关）生效。
+    reasoningEffort: process.env.REASONING_EFFORT || '',
   }
 }
 
@@ -157,6 +161,10 @@ export function toOpenAITools(tools: any): any[] | undefined {
         parameters: t.inputSchema ?? t.input_schema ?? { type: 'object', properties: {} },
       },
     }))
+    // 按名字排序，保证每轮请求里 tools 数组的顺序完全一致。
+    // OpenAI 按「前缀」做自动缓存：system + tools 逐字节一致才会命中，
+    // 顺序抖动会让缓存整体失效（codex 里对应 prompt_cache_key 的稳定性要求）。
+    .sort((a: any, b: any) => a.function.name.localeCompare(b.function.name))
 
   return out.length ? out : undefined
 }
@@ -205,6 +213,8 @@ export async function* queryOpenAICompat({
   }
   if (maxTokens) request.max_tokens = maxTokens
   if (typeof temperature === 'number') request.temperature = temperature
+  // 推理强度（等效于 上游 的 extended thinking / codex 的 reasoning.effort）
+  if (cfg.reasoningEffort) request.reasoning_effort = cfg.reasoningEffort
 
   const stream: any = await client.chat.completions.create(request, {
     ...(signal ? { signal } : {}),
@@ -278,7 +288,12 @@ export async function* queryOpenAICompat({
         input_tokens: usage?.prompt_tokens ?? 0,
         output_tokens: usage?.completion_tokens ?? 0,
         cache_creation_input_tokens: 0,
-        cache_read_input_tokens: 0,
+        // OpenAI 系前缀缓存命中的 token 数（自动缓存，无需显式标记）。
+        // 便于在 /cost 等处观察是否真的命中缓存。
+        cache_read_input_tokens:
+          usage?.prompt_tokens_details?.cached_tokens ??
+          usage?.cached_tokens ??
+          0,
       },
     },
   }
