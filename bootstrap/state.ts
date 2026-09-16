@@ -1758,5 +1758,7 @@ export function setPromptId(id: string | null): void {
 
 
 export function isReplBridgeActive(): boolean {
-  return STATE.replBridgeActive
+  // replBridgeActive 只在 USER_TYPE === 'ant' 时条件性注入到 STATE，
+  // 因此类型上不存在、运行时也可能是 undefined —— 安全访问并按布尔返回。
+  return (STATE as { replBridgeActive?: boolean }).replBridgeActive === true
 }
