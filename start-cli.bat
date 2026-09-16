@@ -68,7 +68,13 @@ echo [Limkenion] Provider : DeepSeek
 echo [Limkenion] Endpoint : %DEEPSEEK_BASE_URL%
 echo [Limkenion] Model    : %LIMKENION_MODEL%
 echo.
-"%NODE_EXE%" dist\cli.mjs %*
+
+REM IMPORTANT: 'start' opens a NEW console window so node gets a real TTY.
+REM When the parent bat just spawns node directly, stdout/stdin are pipes
+REM (cmd pipes them to node), so !process.stdout.isTTY is always true and
+REM the CLI silently exits or sits in a 3-second stdin wait. A fresh console
+REM is the only reliable way to get TTY on Windows from a bat launcher.
+start "Limkenion CLI" /wait cmd /c """%NODE_EXE%"" dist\cli.mjs %*"
 set EXIT_CODE=%errorlevel%
 
 echo.

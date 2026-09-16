@@ -767,7 +767,13 @@ export async function main() {
   const hasPrintFlag = cliArgs.includes('-p') || cliArgs.includes('--print');
   const hasInitOnlyFlag = cliArgs.includes('--init-only');
   const hasSdkUrl = cliArgs.some(arg => arg.startsWith('--sdk-url'));
-  const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || !process.stdout.isTTY;
+  // Whether to enter non-interactive mode. We only treat *explicit* flags
+  // as the signal (--print / --init-only / --sdk-url). Checking stdout.isTTY
+  // here is wrong: when launched from a .bat script, node's stdout is a pipe
+  // and reports !isTTY, so the CLI would silently exit even when the user
+  // double-clicked the bat and expected a REPL. Whether the terminal can do
+  // fancy rendering is an output-layer concern, not a control-flow one.
+  const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl;
 
   // Stop capturing early input for non-interactive modes
   if (isNonInteractive) {
