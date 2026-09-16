@@ -6,9 +6,11 @@ chcp 65001 >nul 2>&1
 cd /d "D:\Github Repositories\Limkenion"
 
 REM ============ DeepSeek config ============
-REM DeepSeek exposes an 上游-Messages-compatible endpoint, which is what
-REM Limkenion speaks (it uses the 上游 SDK under the hood).
-set "DEEPSEEK_上游_URL=https://api.deepseek.com/上游兼容"
+REM LIMKENION_API_PROVIDER=openai 让 CLI 走 services/api/openai-compat.ts，
+REM 即 OpenAI SDK + OpenAI chat-completions 协议，不再经过 上游 SDK。
+REM 因此端点用 DeepSeek 原生地址（不是 /上游兼容 兼容路径）。
+set "LIMKENION_API_PROVIDER=openai"
+set "DEEPSEEK_OPENAI_URL=https://api.deepseek.com"
 set "DEEPSEEK_MODEL=deepseek-chat"
 
 if not "%DEEPSEEK_API_KEY%"=="" goto HAVE_KEY
@@ -24,9 +26,9 @@ echo Saved - you will not be asked again.
 echo.
 :HAVE_KEY
 
-REM Map DeepSeek onto the env vars Limkenion reads
+REM Map DeepSeek onto the env vars the OpenAI-compat adapter reads
+set "DEEPSEEK_BASE_URL=%DEEPSEEK_OPENAI_URL%"
 set "LIMKENION_API_KEY=%DEEPSEEK_API_KEY%"
-set "LIMKENION_BASE_URL=%DEEPSEEK_上游_URL%"
 set "LIMKENION_MODEL=%DEEPSEEK_MODEL%"
 set "LIMKENION_SMALL_FAST_MODEL=%DEEPSEEK_MODEL%"
 REM tool search is disabled by default on non-first-party hosts

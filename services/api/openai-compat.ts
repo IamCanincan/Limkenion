@@ -1,0 +1,295 @@
+/**
+ * OpenAI 兼容适配器 —— 让 Limkenion 可以走 DeepSeek / 任何 OpenAI 格式端点，
+ * 不再依赖 上游 SDK。
+ *
+ * 设计要点：
+ * - 上层（queryModel 的调用方）期望的是 **上游 风格**的 AssistantMessage
+ *   （message.content 是 block 数组：text / tool_use / thinking）。
+ *   所以这里做双向翻译：请求 上游->OpenAI，响应 OpenAI->上游。
+ *   这样上层一行都不用改。
+ * - 上游 专有能力（prompt caching / extended thinking / beta headers /
+ *   advisor / bedrock-vertex provider）在 OpenAI 协议下没有对应物，直接忽略。
+ *
+ * 启用方式：设置环境变量
+ *   LIMKENION_API_PROVIDER=openai
+ *   DEEPSEEK_API_KEY / OPENAI_API_KEY
+ *   DEEPSEEK_BASE_URL / OPENAI_BASE_URL  （默认 https://api.deepseek.com）
+ */
+
+import OpenAI from 'openai'
+
+/**  endpoints 默认值 */
+const DEFAULT_BASE_URL = 'https://api.deepseek.com'
+const DEFAULT_MODEL = 'deepseek-chat'
+
+function getConfig() {
+  return {
+    apiKey:
+      process.env.DEEPSEEK_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.LIMKENION_API_KEY ||
+      '',
+    baseURL:
+      process.env.DEEPSEEK_BASE_URL ||
+      process.env.OPENAI_BASE_URL ||
+      process.env.LIMKENION_BASE_URL ||
+      DEFAULT_BASE_URL,
+    model: process.env.LIMKENION_MODEL || DEFAULT_MODEL,
+  }
+}
+
+/** 上游 content block -> 纯文本（OpenAI 只接受字符串或 content part 数组） */
+function blockToText(block: any): string {
+  if (block == null) return ''
+  if (typeof block === 'string') return block
+  switch (block.type) {
+    case 'text':
+      return block.text ?? ''
+    case 'tool_result': {
+      // 工具结果：取其中的文本内容
+      const c = block.content
+      if (typeof c === 'string') return c
+      if (Array.isArray(c)) return c.map(blockToText).join('')
+      return typeof c === 'object' && c !== null ? JSON.stringify(c) : String(c ?? '')
+    }
+    case 'thinking':
+      return ''
+    case 'image':
+      return ''
+    default:
+      return ''
+  }
+}
+
+function contentToText(content: any): string {
+  if (content == null) return ''
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) return content.map(blockToText).filter(Boolean).join('\n')
+  if (typeof content === 'object') {
+    // 可能是 { type:'text', text } 单块
+    return blockToText(content)
+  }
+  return String(content)
+}
+
+/**
+ * Limkenion 消息（上游 风格） -> OpenAI messages
+ * Limkenion 每条消息形如 { type:'user'|'assistant', message:{ role, content:[blocks] }, uuid }
+ */
+export function toOpenAIMessages(messages: any[], systemPrompt: any): any[] {
+  const out: any[] = []
+
+  // system prompt：可能是 string，也可能是 block 数组
+  const systemText = contentToText(
+    typeof systemPrompt === 'string' ? systemPrompt : systemPrompt,
+  )
+  if (systemText) out.push({ role: 'system', content: systemText })
+
+  for (const m of messages ?? []) {
+    const inner = m?.message ?? m
+    const role = inner?.role ?? m?.type
+
+    if (role === 'user') {
+      const content = inner?.content
+      // 工具结果在 上游 里是 user message 里的 tool_result block
+      if (Array.isArray(content)) {
+        const toolResults = content.filter((b: any) => b?.type === 'tool_result')
+        const text = contentToText(content.filter((b: any) => b?.type !== 'tool_result'))
+        if (text) out.push({ role: 'user', content: text })
+        for (const tr of toolResults) {
+          out.push({
+            role: 'tool',
+            tool_call_id: tr.tool_use_id,
+            content: contentToText(tr.content) || '(empty)',
+          })
+        }
+      } else {
+        const text = contentToText(content)
+        if (text) out.push({ role: 'user', content: text })
+      }
+      continue
+    }
+
+    if (role === 'assistant') {
+      const content = inner?.content
+      const textParts: string[] = []
+      const toolCalls: any[] = []
+
+      if (Array.isArray(content)) {
+        for (const b of content) {
+          if (b?.type === 'text') textParts.push(b.text ?? '')
+          else if (b?.type === 'tool_use') {
+            toolCalls.push({
+              id: b.id,
+              type: 'function',
+              function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) },
+            })
+          }
+          // thinking / redacted_thinking 忽略
+        }
+      } else {
+        const t = contentToText(content)
+        if (t) textParts.push(t)
+      }
+
+      const msg: any = { role: 'assistant', content: textParts.join('') || null }
+      if (toolCalls.length) msg.tool_calls = toolCalls
+      out.push(msg)
+      continue
+    }
+  }
+
+  return out
+}
+
+/** Limkenion 工具（上游: name/description/inputSchema） -> OpenAI functions */
+export function toOpenAITools(tools: any): any[] | undefined {
+  const list = Array.isArray(tools) ? tools : (tools?.tools ?? [])
+  if (!Array.isArray(list) || list.length === 0) return undefined
+
+  const out = list
+    .filter((t: any) => t && t.name)
+    .map((t: any) => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description ?? '',
+        parameters: t.inputSchema ?? t.input_schema ?? { type: 'object', properties: {} },
+      },
+    }))
+
+  return out.length ? out : undefined
+}
+
+/**
+ * 调用 OpenAI 兼容端点，产出 **上游 风格**的 AssistantMessage，
+ * 使上层无需改动。
+ */
+export async function* queryOpenAICompat({
+  messages,
+  systemPrompt,
+  tools,
+  signal,
+  model,
+  maxTokens,
+  temperature,
+}: {
+  messages: any[]
+  systemPrompt: any
+  tools: any
+  signal?: AbortSignal
+  model?: string
+  maxTokens?: number
+  temperature?: number
+}): AsyncGenerator<any, void> {
+  const cfg = getConfig()
+  if (!cfg.apiKey) {
+    throw new Error(
+      'OpenAI 兼容模式需要 API key：请设置 DEEPSEEK_API_KEY（或 OPENAI_API_KEY）',
+    )
+  }
+
+  const client = new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseURL })
+
+  const oaiMessages = toOpenAIMessages(messages, systemPrompt)
+  const oaiTools = toOpenAITools(tools)
+
+  const request: any = {
+    model: model || cfg.model,
+    messages: oaiMessages,
+    stream: true,
+  }
+  if (oaiTools) {
+    request.tools = oaiTools
+    request.tool_choice = 'auto'
+  }
+  if (maxTokens) request.max_tokens = maxTokens
+  if (typeof temperature === 'number') request.temperature = temperature
+
+  const stream: any = await client.chat.completions.create(request, {
+    ...(signal ? { signal } : {}),
+  })
+
+  // 流式累积
+  let text = ''
+  const toolCallMap = new Map<number, { id?: string; name?: string; args: string }>()
+  let finishReason: string | undefined
+  let usage: any
+
+  for await (const chunk of stream) {
+    const choice = chunk?.choices?.[0]
+    if (!choice) {
+      if (chunk?.usage) usage = chunk.usage
+      continue
+    }
+    const delta = choice.delta ?? {}
+    if (typeof delta.content === 'string' && delta.content) text += delta.content
+
+    if (Array.isArray(delta.tool_calls)) {
+      for (const tc of delta.tool_calls) {
+        const idx = tc.index ?? 0
+        const cur = toolCallMap.get(idx) ?? { args: '' }
+        if (tc.id) cur.id = tc.id
+        if (tc.function?.name) cur.name = tc.function.name
+        if (tc.function?.arguments) cur.args += tc.function.arguments
+        toolCallMap.set(idx, cur)
+      }
+    }
+
+    if (choice.finish_reason) finishReason = choice.finish_reason
+    if (chunk?.usage) usage = chunk.usage
+  }
+
+  // 组装 上游 风格 content blocks
+  const content: any[] = []
+  if (text) content.push({ type: 'text', text })
+
+  for (const [, tc] of [...toolCallMap.entries()].sort((a, b) => a[0] - b[0])) {
+    let input: any = {}
+    try {
+      input = tc.args ? JSON.parse(tc.args) : {}
+    } catch {
+      input = {}
+    }
+    content.push({
+      type: 'tool_use',
+      id: tc.id ?? `toolu_${Math.random().toString(36).slice(2, 10)}`,
+      name: tc.name ?? '',
+      input,
+    })
+  }
+
+  const stopReason =
+    finishReason === 'tool_calls'
+      ? 'tool_use'
+      : finishReason === 'length'
+        ? 'max_tokens'
+        : 'end_turn'
+
+  yield {
+    type: 'assistant',
+    uuid: crypto.randomUUID(),
+    message: {
+      role: 'assistant',
+      model: model || cfg.model,
+      content,
+      stop_reason: stopReason,
+      usage: {
+        input_tokens: usage?.prompt_tokens ?? 0,
+        output_tokens: usage?.completion_tokens ?? 0,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+      },
+    },
+  }
+}
+
+/** 非流式版本（供需要 Promise 的调用点使用） */
+export async function queryOpenAICompatOnce(
+  args: Parameters<typeof queryOpenAICompat>[0],
+): Promise<any> {
+  for await (const msg of queryOpenAICompat(args)) {
+    if (msg?.type === 'assistant') return msg
+  }
+  throw new Error('OpenAI 兼容请求未返回 assistant 消息')
+}

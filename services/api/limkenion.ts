@@ -20,6 +20,7 @@ import type {
 import type { TextBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
 import type { Stream } from '@limkenion-ai/sdk/streaming.mjs'
 import { randomUUID } from 'crypto'
+import { queryOpenAICompat } from './openai-compat.js'
 import {
   getAPIProvider,
   isFirstPartyLimkenionBaseUrl,
@@ -1025,6 +1026,24 @@ async function* queryModel(
   StreamEvent | AssistantMessage | SystemAPIErrorMessage,
   void
 > {
+  // OpenAI 兼容模式（DeepSeek / 任何 OpenAI 格式端点）：绕开 上游 SDK，
+  // 走 services/api/openai-compat.ts。产出仍是 上游 风格的 AssistantMessage，
+  // 因此上层无需改动。上游 专有能力（prompt caching、extended thinking、
+  // beta headers、advisor、bedrock/vertex provider）在此路径下不可用。
+  if (process.env.LIMKENION_API_PROVIDER === 'openai') {
+    yield* queryOpenAICompat({
+      messages,
+      systemPrompt,
+      tools,
+      signal,
+      model: options.model,
+      maxTokens:
+        (options as any).maxTokensToSample ?? (options as any).maxTokens,
+      temperature: (options as any).temperature,
+    })
+    return
+  }
+
   // Check cheap conditions first — the off-switch await blocks on GrowthBook
   // init (~10ms). For non-Opus models (haiku, sonnet) this skips the await
   // entirely. Subscribers don't hit this path at all.
