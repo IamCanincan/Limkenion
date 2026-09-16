@@ -1,0 +1,158 @@
+/**
+ * DeepSeek API 客户端 —— 对齐 deepseek-harness packages/llm/llm-deepseek 的线上行为：
+ *   - OpenAI 兼容 POST {baseURL}/chat/completions，SSE 流式
+ *   - delta.content 文本流；delta.reasoning_content 思维链（V4 Pro 等思考模型）
+ *   - 凭证从 DEEPSEEK_API_KEY 解析；缺失时抛 MISSING_CREDENTIAL
+ *   - base URL 可用 DEEPSEEK_BASE_URL 覆盖（默认 https://api.deepseek.com）
+ *
+ * 模型目录取自 deepseek-harness 的 DEFAULT_MODELS。
+ */
+
+export const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com'
+export const API_KEY_ENV = 'DEEPSEEK_API_KEY'
+
+export const DEEPSEEK_MODELS = [
+  { value: 'deepseek-v4-flash', label: 'V4 Flash', description: '快速、经济，适合日常与并行任务' },
+  { value: 'deepseek-v4-pro', label: 'V4 Pro', description: '更强推理与复杂编码，含思维链' },
+  { value: 'deepseek-flash', label: 'V41 Flash', description: '多模态（文本+图像）快速模型' },
+  { value: 'deepseek-v4-flash-vision-exp', label: 'V4 Flash Vision (实验)', description: '实验性视觉模型' },
+]
+
+export function getApiKey() {
+  return process.env[API_KEY_ENV] ?? null
+}
+
+/**
+ * 流式对话补全（含函数调用）。
+ *
+ * @param {object} opts
+ * @param {string} opts.model
+ * @param {Array<{role: 'system'|'user'|'assistant'|'tool', content: string, tool_calls?: object[], tool_call_id?: string}>} opts.messages 完整对话历史
+ * @param {Array<object>} [opts.tools] OpenAI function-calling 工具 schema
+ * @param {(ev: {type: 'text'|'reasoning'|'tool_call', delta: string, toolCall?: object}) => void} opts.onDelta 流式增量
+ * @param {AbortSignal} [opts.signal] 取消信号
+ * @returns {Promise<{usage: {inputTokens: number, outputTokens: number}, toolCalls: Array<{id: string, name: string, arguments: string}>}>}
+ */
+export async function chatCompletion({ model, messages, tools, onDelta, signal }) {
+  const apiKey = getApiKey()
+  if (!apiKey) {
+    const err = new Error(`缺少 ${API_KEY_ENV} 环境变量。请设置后重启服务：set ${API_KEY_ENV}=sk-...`)
+    err.code = 'MISSING_CREDENTIAL'
+    throw err
+  }
+
+  const body = {
+    model,
+    messages,
+    stream: true,
+    // stream_options 让 API 在最后一个 chunk 回报累计 usage
+    stream_options: { include_usage: true },
+  }
+  if (tools?.length) body.tools = tools
+
+  let response
+  try {
+    response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        // stream_options 让 API 在最后一个 chunk 回报累计 usage
+        stream_options: { include_usage: true },
+      }),
+      signal,
+    })
+  } catch (error) {
+    if (signal?.aborted) throw error
+    const err = new Error(`DeepSeek API 请求失败（${DEEPSEEK_BASE_URL}）：${String(error)}`)
+    err.code = 'TRANSPORT'
+    throw err
+  }
+
+  if (!response.ok) {
+    let message = `DeepSeek API 错误（HTTP ${response.status}）`
+    try {
+      const parsed = await response.json()
+      if (parsed?.error?.message) message = parsed.error.message
+    } catch {
+      // 网关返回非 JSON 时以状态码为准
+    }
+    const err = new Error(message)
+    err.code = `HTTP_${response.status}`
+    throw err
+  }
+
+  // --- SSE 解析（与 llm-deepseek translate.ts 相同的事件顺序） ---
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let usage = { inputTokens: 0, outputTokens: 0 }
+  // tool_calls 流式累积：按 delta.tool_calls[].index 聚合 id/name/arguments 片段
+  const toolCallAcc = new Map()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? '' // 末行可能不完整，留待下轮
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.length === 0 || trimmed.startsWith(':')) continue // 空行 / 注释心跳
+      if (!trimmed.startsWith('data:')) continue
+      const payload = trimmed.slice(5).trim()
+      if (payload === '[DONE]') continue
+
+      let chunk
+      try {
+        chunk = JSON.parse(payload)
+      } catch {
+        continue // 容忍畸形 chunk
+      }
+
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens ?? 0,
+          outputTokens: chunk.usage.completion_tokens ?? 0,
+        }
+      }
+
+      for (const choice of chunk.choices ?? []) {
+        const delta = choice.delta ?? {}
+        // 思维链在前，正文在后（思考模型的交错顺序）
+        if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) {
+          onDelta({ type: 'reasoning', delta: delta.reasoning_content })
+        }
+        if (typeof delta.content === 'string' && delta.content.length > 0) {
+          onDelta({ type: 'text', delta: delta.content })
+        }
+        for (const call of delta.tool_calls ?? []) {
+          let acc = toolCallAcc.get(call.index)
+          if (!acc) {
+            acc = { id: '', name: '', arguments: '' }
+            toolCallAcc.set(call.index, acc)
+          }
+          if (call.id) acc.id = call.id
+          if (call.function?.name) acc.name = call.function.name
+          if (call.function?.arguments) {
+            acc.arguments += call.function.arguments
+            onDelta({ type: 'tool_call', delta: call.function.arguments, toolCall: { index: call.index, name: acc.name } })
+          }
+        }
+      }
+    }
+  }
+
+  const toolCalls = [...toolCallAcc.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, acc]) => ({ id: acc.id, name: acc.name, arguments: acc.arguments }))
+
+  return { usage, toolCalls }
+}

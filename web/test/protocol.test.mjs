@@ -1,0 +1,266 @@
+/**
+ * 协议层测试：以子进程启动真实服务，验证握手鉴权、静态服务加固、
+ * 命令往返与会话持久化。这是唯一覆盖「真实 HTTP + WS 边界」的测试。
+ */
+
+import { test, describe, before, after } from 'node:test'
+import assert from 'node:assert/strict'
+import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import WebSocket from 'ws'
+import { fetchToken, startServer } from './helpers.mjs'
+
+const PORT = 18899
+let srv
+let token
+let stateDir
+
+before(async () => {
+  stateDir = await mkdtemp(join(tmpdir(), 'limkenion-state-'))
+  srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+  token = await fetchToken(srv.base)
+})
+
+after(async () => {
+  srv?.child.kill()
+  await rm(stateDir, { recursive: true, force: true })
+})
+
+/** 打开一条 WS，返回 { ws, next(type), close() }。 */
+function openWs(query = '', opts = {}) {
+  // ws 库要用 options.origin 才会真的发出 Origin 头（headers 里的会被过滤）
+  const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws${query}`, opts)
+  const queue = []
+  const waiters = []
+  ws.on('message', raw => {
+    const msg = JSON.parse(raw.toString())
+    const w = waiters.shift()
+    if (w) w(msg)
+    else queue.push(msg)
+  })
+  return {
+    ws,
+    next(type, timeoutMs = 8000) {
+      return new Promise((resolve, reject) => {
+        const take = msg => {
+          if (!type || msg.type === type) resolve(msg)
+          else {
+            const w = waiters.shift()
+            void w
+            resolve(msg)
+          }
+        }
+        const found = queue.findIndex(m => !type || m.type === type)
+        if (found >= 0) return resolve(queue.splice(found, 1)[0])
+        const timer = setTimeout(() => reject(new Error(`等待 ${type} 超时`)), timeoutMs)
+        const push = msg => {
+          if (!type || msg.type === type) {
+            clearTimeout(timer)
+            resolve(msg)
+          } else {
+            queue.push(msg)
+            waiters.push(push)
+          }
+        }
+        waiters.push(push)
+      })
+    },
+    close() {
+      ws.close()
+    },
+  }
+}
+
+function connect(query = '', opts = {}) {
+  return new Promise((resolve, reject) => {
+    const client = openWs(query, opts)
+    client.ws.on('open', () => resolve(client))
+    client.ws.on('error', reject)
+    setTimeout(() => reject(new Error('连接超时')), 8000)
+  })
+}
+
+// ---------------------------------------------------------------------------
+
+describe('握手鉴权', () => {
+  test('无 token 被拒（403）', async () => {
+    await assert.rejects(() => connect(''), /403|Unexpected server response/)
+  })
+
+  test('错误 token 被拒', async () => {
+    await assert.rejects(() => connect('?token=deadbeef'), /403|Unexpected server response/)
+  })
+
+  test('外部 Origin 被拒（防跨站页面驱动 agent）', async () => {
+    await assert.rejects(
+      () => connect(`?token=${token}`, { origin: 'https://evil.example.com' }),
+      /403|Unexpected server response/,
+      '外部 Origin 竟然被放行了',
+    )
+  })
+
+  test('本机 Origin + 正确 token 放行，并收到 hello/commands/settings', async () => {
+    const client = await connect(`?token=${token}`)
+    const hello = await client.next('hello')
+    assert.ok(hello.serverVersion)
+    assert.ok(Array.isArray(hello.sessions))
+    const commands = await client.next('commands')
+    assert.ok(commands.commands.length > 0)
+    const settings = await client.next('settings')
+    assert.equal(settings.settings.workspace.length > 0, true)
+    client.close()
+  })
+
+  test('/ws-token 对本机来源返回 token', async () => {
+    const res = await fetch(`${srv.base}/ws-token`)
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.equal(body.token, token)
+  })
+
+  test('/ws-token 对外部 Origin 返回 403', async () => {
+    const res = await fetch(`${srv.base}/ws-token`, { headers: { origin: 'https://evil.example.com' } })
+    assert.equal(res.status, 403)
+  })
+
+  test('token 不会出现在 HTML 之外的地方（no-store）', async () => {
+    const res = await fetch(`${srv.base}/`)
+    assert.match(res.headers.get('cache-control') ?? '', /no-store/)
+  })
+})
+
+describe('静态服务加固', () => {
+  test('目录穿越被拒', async () => {
+    for (const p of ['/../server/index.mjs', '/..%2fserver/index.mjs', '/..\\server\\index.mjs', '/../package.json']) {
+      const res = await fetch(`${srv.base}${p}`)
+      // 可能是 403，也可能被 SPA 回退成 200 的 index.html —— 关键是拿不到目标文件
+      const body = await res.text()
+      assert.ok(
+        res.status === 403 || body.includes('<div id="root">'),
+        `${p} 竟然返回了目标文件：${body.slice(0, 80)}`,
+      )
+      assert.ok(!body.includes('limkenion-web'), `${p} 泄露了 package.json`)
+    }
+  })
+
+  test('安全响应头齐全', async () => {
+    const res = await fetch(`${srv.base}/`)
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff')
+    assert.equal(res.headers.get('referrer-policy'), 'no-referrer')
+    assert.match(res.headers.get('content-security-policy') ?? '', /default-src 'self'/)
+    assert.match(res.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/)
+  })
+
+  test('SPA 回退返回 index.html', async () => {
+    const res = await fetch(`${srv.base}/some/route`)
+    assert.equal(res.status, 200)
+    assert.match(await res.text(), /<div id="root">/)
+  })
+
+  test('非 GET/HEAD 返回 405', async () => {
+    const res = await fetch(`${srv.base}/`, { method: 'POST' })
+    assert.equal(res.status, 405)
+  })
+})
+
+describe('命令往返', () => {
+  test('/help 与 /tools 有真实输出', async () => {
+    const client = await connect(`?token=${token}`)
+    const hello = await client.next('hello')
+    const sessionId = hello.sessions[0].id
+    await client.next('commands')
+    await client.next('settings')
+
+    for (const [cmd, expect] of [
+      ['/help', /web 端有真实语义/],
+      ['/tools', /常驻/],
+      ['/status', /工作区/],
+      ['/config', /当前设置/],
+      ['/mcp', /不可用/],
+      ['/不存在的命令', /未知命令/],
+    ]) {
+      client.ws.send(JSON.stringify({ type: 'run_command', sessionId, command: cmd }))
+      const res = await client.next('command_result')
+      assert.match(res.output, expect, `${cmd} 输出不符：${res.output.slice(0, 120)}`)
+    }
+    client.close()
+  })
+
+  test('设置是会话级的：改一个会话不影响另一个', async () => {
+    const client = await connect(`?token=${token}`)
+    const hello = await client.next('hello')
+    const a = hello.sessions[0].id
+    client.ws.send(JSON.stringify({ type: 'new_session' }))
+    const created = await client.next('session_messages')
+    const b = created.sessionId
+
+    client.ws.send(JSON.stringify({ type: 'set_setting', key: 'theme', value: 'light', sessionId: a }))
+    await client.next('settings')
+
+    client.ws.send(JSON.stringify({ type: 'get_settings', sessionId: b }))
+    let got = await client.next('settings')
+    while (got.sessionId !== b) got = await client.next('settings')
+    assert.equal(got.settings.theme, 'dark', 'B 会话被 A 的改动污染了')
+
+    client.ws.send(JSON.stringify({ type: 'get_settings', sessionId: a }))
+    got = await client.next('settings')
+    while (got.sessionId !== a) got = await client.next('settings')
+    assert.equal(got.settings.theme, 'light')
+    client.close()
+  })
+
+  test('非法设置值被拒', async () => {
+    const client = await connect(`?token=${token}`)
+    const hello = await client.next('hello')
+    await client.next('commands')
+    await client.next('settings')
+    client.ws.send(JSON.stringify({ type: 'set_setting', key: 'theme', value: '彩虹色', sessionId: hello.sessions[0].id }))
+    const err = await client.next('error')
+    assert.match(err.message, /无法设置/)
+    client.close()
+  })
+
+  test('未知会话报错而不是静默丢弃', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    await client.next('commands')
+    await client.next('settings')
+    client.ws.send(JSON.stringify({ type: 'run_command', sessionId: 's_nope', command: '/help' }))
+    const err = await client.next('error')
+    assert.match(err.message, /会话不存在/)
+    client.close()
+  })
+})
+
+describe('会话持久化', () => {
+  test('重启后会话被恢复', async () => {
+    const client = await connect(`?token=${token}`)
+    const hello = await client.next('hello')
+    const id = hello.sessions[0].id
+    await client.next('commands')
+    await client.next('settings')
+    client.ws.send(JSON.stringify({ type: 'rename_session', sessionId: id, title: '持久化验证' }))
+    await client.next('sessions_changed')
+    client.close()
+
+    // 等防抖落盘
+    await new Promise(r => setTimeout(r, 1200))
+    const raw = await readFile(join(stateDir, 'sessions.json'), 'utf8')
+    assert.match(raw, /持久化验证/)
+
+    // 重启服务
+    srv.child.kill()
+    await new Promise(r => setTimeout(r, 400))
+    srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+    token = await fetchToken(srv.base)
+
+    const c2 = await connect(`?token=${token}`)
+    const hello2 = await c2.next('hello')
+    assert.ok(
+      hello2.sessions.some(s => s.title === '持久化验证'),
+      `重启后未恢复会话：${JSON.stringify(hello2.sessions.map(s => s.title))}`,
+    )
+    c2.close()
+  })
+})
