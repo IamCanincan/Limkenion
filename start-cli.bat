@@ -1,19 +1,21 @@
 @echo off
 REM Limkenion CLI launcher - DeepSeek only.
-REM ASCII-only filename on purpose (non-ASCII .bat names get garbled on Windows).
+REM
+REM IMPORTANT: this file must stay pure ASCII and must NOT call chcp.
+REM Changing the codepage mid-script makes cmd re-read the remaining lines
+REM at wrong byte offsets when multi-byte characters are present, which
+REM corrupts commands and makes the window exit instantly. Also, "|" is a
+REM special character in batch even inside REM in some encodings.
 
-chcp 65001 >nul 2>&1
 cd /d "D:\Github Repositories\Limkenion"
 
-REM ============ DeepSeek config ============
-REM LIMKENION_API_PROVIDER=openai 让 CLI 走 services/api/openai-compat.ts，
-REM 即 OpenAI SDK + OpenAI chat-completions 协议，不再经过 上游 SDK。
-REM 因此端点用 DeepSeek 原生地址（不是 /上游兼容 兼容路径）。
+REM ---- DeepSeek configuration ----
 set "LIMKENION_API_PROVIDER=openai"
 set "DEEPSEEK_OPENAI_URL=https://api.deepseek.com"
 set "DEEPSEEK_MODEL=deepseek-chat"
-REM 需要推理能力时改成 deepseek-reasoner（等效 上游 extended thinking）
-REM REASONING_EFFORT=low|medium|high 仅对 OpenAI o-series / gpt-5+ 生效，DeepSeek 不认
+REM Use deepseek-reasoner instead if you want reasoning.
+REM REASONING_EFFORT only applies to OpenAI o-series and gpt-5+ models,
+REM DeepSeek ignores it.
 
 if not "%DEEPSEEK_API_KEY%"=="" goto HAVE_KEY
 echo ==========================================
@@ -22,13 +24,13 @@ echo ==========================================
 echo.
 echo Get one at: https://platform.deepseek.com/api_keys
 echo.
-set /p DEEPSEEK_API_KEY=Paste your DeepSeek API key: 
+set /p DEEPSEEK_API_KEY=Paste your DeepSeek API key:
 setx DEEPSEEK_API_KEY "%DEEPSEEK_API_KEY%" >nul 2>&1
 echo Saved - you will not be asked again.
 echo.
 :HAVE_KEY
 
-REM Map DeepSeek onto the env vars the OpenAI-compat adapter reads
+REM Map onto the env vars read by services/api/openai-compat.ts
 set "DEEPSEEK_BASE_URL=%DEEPSEEK_OPENAI_URL%"
 set "LIMKENION_API_KEY=%DEEPSEEK_API_KEY%"
 set "LIMKENION_MODEL=%DEEPSEEK_MODEL%"
@@ -36,7 +38,7 @@ set "LIMKENION_SMALL_FAST_MODEL=%DEEPSEEK_MODEL%"
 REM tool search is disabled by default on non-first-party hosts
 set "ENABLE_TOOL_SEARCH=true"
 
-REM ============ Node detection ============
+REM ---- Node detection ----
 set "NODE_EXE=node"
 where node >nul 2>&1
 if %errorlevel% neq 0 (
@@ -49,7 +51,7 @@ if %errorlevel% neq 0 (
     )
 )
 
-REM ============ Build if needed ============
+REM ---- Build if needed ----
 if not exist "dist\cli.mjs" (
     echo [Limkenion] dist\cli.mjs not found - building...
     "%NODE_EXE%" scripts\build-cli.mjs
@@ -60,10 +62,10 @@ if not exist "dist\cli.mjs" (
     )
 )
 
-REM ============ Run ============
+REM ---- Run ----
 echo.
 echo [Limkenion] Provider : DeepSeek
-echo [Limkenion] Endpoint : %LIMKENION_BASE_URL%
+echo [Limkenion] Endpoint : %DEEPSEEK_BASE_URL%
 echo [Limkenion] Model    : %LIMKENION_MODEL%
 echo.
 "%NODE_EXE%" dist\cli.mjs %*
