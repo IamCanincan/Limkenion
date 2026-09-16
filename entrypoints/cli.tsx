@@ -241,7 +241,11 @@ async function main(): Promise<void> {
     main: cliMain
   } = await import('../main.js');
   profileCheckpoint('cli_after_main_import');
-  await cliMain();
+  process.stderr.write('[Limkenion DEBUG] cli: calling cliMain()\n');
+  await cliMain().catch(err => {
+    process.stderr.write('[Limkenion DEBUG] cliMain REJECTED: ' + (err && err.stack ? err.stack : String(err)) + '\n');
+  });
+  process.stderr.write('[Limkenion DEBUG] cli: cliMain() returned\n');
   profileCheckpoint('cli_after_main_complete');
 }
 

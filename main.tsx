@@ -581,6 +581,7 @@ const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE') ? {
   extraCliArgs: []
 } : undefined;
 export async function main() {
+  process.stderr.write('[Limkenion DEBUG] main() entered\n');
   profileCheckpoint('main_function_start');
 
   // SECURITY: Prevent Windows from executing commands from current directory
