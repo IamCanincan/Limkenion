@@ -51,6 +51,9 @@
       ]
     },
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "bun"
+    ]
   }
 }

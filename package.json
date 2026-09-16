@@ -100,6 +100,7 @@
     "follow-redirects": "^1.16.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.2",
     "esbuild": "^0.25.0",
     "mermaid": "^11.14.0"
   }
