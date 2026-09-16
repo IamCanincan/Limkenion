@@ -782,6 +782,7 @@ export async function main() {
 
   // Set simplified tracking fields
   const isInteractive = !isNonInteractive;
+  process.stderr.write('[Limkenion DEBUG] isNonInteractive=' + isNonInteractive + ' isInteractive=' + isInteractive + '\n');
   setIsInteractive(isInteractive);
 
   // Initialize entrypoint based on mode - needs to be set before any event is logged
@@ -855,6 +856,7 @@ async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json
   return prompt;
 }
 async function run(): Promise<CommanderCommand> {
+  process.stderr.write('[Limkenion DEBUG] run() entered\n');
   profileCheckpoint('run_function_start');
 
   // Create help config that sorts options by long option name.
@@ -3452,6 +3454,7 @@ async function run(): Promise<CommanderCommand> {
         }
       }
       const initialMessages = deepLinkBanner ? [deepLinkBanner, ...hookMessages] : hookMessages.length > 0 ? hookMessages : undefined;
+      process.stderr.write('[Limkenion DEBUG] reached REPL launch, initialMessages=' + (initialMessages ? initialMessages.length : 0) + '\n');
       await launchRepl(root, {
         getFpsMetrics,
         stats,
