@@ -52,10 +52,21 @@ node scripts/build-cli.mjs      # 或 npm run build:cli
 
 ## 三、还没做的 / 已知限制
 
-### 1. 运行时被沙箱拦（非代码问题）
-CLI 启动后调用 `reg.exe`（Windows 注册表，MDM 设备检测）→ `spawn EPERM`。
-沙箱黑名单限制，真实环境正常。若想在此环境跑通，需在
-**安全中心 → 命令安全 → 程序黑名单** 移除 `reg.exe`。
+### 1. reg.exe 崩溃已修复（但完整验证仍需真实终端）
+~~CLI 启动后调用 reg.exe → spawn EPERM 崩溃。~~ **已修复。**
+
+`main.tsx:16` 顶层无条件 `startMdmRawRead()`，Windows 上派生 `reg.exe`；
+原实现无错误处理，execFile 抛出即崩溃。这其实**不只是沙箱问题**——
+企业组策略禁用 reg.exe、注册表服务异常、容器环境都会触发。
+
+已在 `utils/settings/mdm/rawRead.ts` 的 win32 分支加 try/catch，
+失败时降级为「读不到 MDM 设置」，CLI 继续启动。
+修复前：`spawn EPERM` 崩溃；修复后：exit 0，能执行到 `run()`。
+
+**仍需真实终端验证**：本沙箱非 TTY（`stdout.isTTY` 为假），
+`main.tsx:770` 的 `isNonInteractive = ... || !process.stdout.isTTY`
+会判定为非交互模式并静默退出（exit 0、0 输出），这是正常行为不是故障。
+请在真实终端跑 `node dist/cli.mjs` 确认 REPL 界面。
 
 ### 2. 私有包是空壳（功能永久缺失）
 这些 上游 内部包装不到，upstream-ref-impl 也没有，只能 stub：
