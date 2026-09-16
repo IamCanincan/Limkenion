@@ -20,7 +20,7 @@ import type {
 import type { TextBlockParam } from '@limkenion-ai/sdk/resources/index.mjs'
 import type { Stream } from '@limkenion-ai/sdk/streaming.mjs'
 import { randomUUID } from 'crypto'
-import { queryOpenAICompat } from './openai-compat.js'
+import { queryOpenAICompat, queryOpenAICompatOnce } from './openai-compat.js'
 import {
   getAPIProvider,
   isFirstPartyLimkenionBaseUrl,
@@ -535,6 +535,35 @@ export async function verifyApiKey(
   // Skip API verification if running in print mode (isNonInteractiveSession)
   if (isNonInteractiveSession) {
     return true
+  }
+
+  // OpenAI 兼容模式：用一个最小的 chat-completions 调用验证 key。
+  // 原路径（下面）直接调 limkenion.beta.messages.create，会打到 上游，
+  // 在 openai provider 下必然失败，所以这里单独走适配器。
+  if (process.env.LIMKENION_API_PROVIDER === 'openai') {
+    try {
+      await queryOpenAICompatOnce({
+        messages: [{ message: { role: 'user', content: 'test' } } as any],
+        systemPrompt: '',
+        tools: [],
+        maxTokens: 1,
+      })
+      return true
+    } catch (error) {
+      logError(error)
+      const msg = error instanceof Error ? error.message.toLowerCase() : ''
+      // 只有明确的认证失败才算 key 无效
+      if (
+        msg.includes('401') ||
+        msg.includes('unauthorized') ||
+        msg.includes('authentication') ||
+        msg.includes('invalid api key')
+      ) {
+        return false
+      }
+      // 网络抖动等其它错误不阻断启动
+      return true
+    }
   }
 
   try {
