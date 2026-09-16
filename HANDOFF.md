@@ -52,6 +52,21 @@ node scripts/build-cli.mjs      # 或 npm run build:cli
 
 ## 三、还没做的 / 已知限制
 
+### 0. 运行时已无 上游 调用（openai provider 下）
+设 `LIMKENION_API_PROVIDER=openai` 后，三条路径全部走 DeepSeek：
+
+| 路径 | 走向 |
+|---|---|
+| 主对话 | `queryModel` → openai 分支 |
+| 小模型辅助（命名/摘要/日期解析…） | `queryHaiku` → `queryModelWithoutStreaming` → `queryModel`（同一分支） |
+| key 验证 | `verifyApiKey` → 新增 openai 分支（原来直接调 上游 SDK，是最后残留） |
+
+⚠️ `queryHaiku` 用 `getSmallFastModel()`，必须设 `LIMKENION_SMALL_FAST_MODEL`
+（start-cli.bat 已设），否则会拿 haiku 模型名去请求 DeepSeek 而 404。
+
+**仍未摆脱的两层**：代码层仍 import `@limkenion-ai/sdk`（20+ 文件，多为类型引用）；
+架构层仍是 上游 CLI 原型 架子（工具集/命令体系/消息语义）——这个不是换 SDK 能解决的。
+
 ### 1. reg.exe 崩溃已修复（但完整验证仍需真实终端）
 ~~CLI 启动后调用 reg.exe → spawn EPERM 崩溃。~~ **已修复。**
 
