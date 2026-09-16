@@ -77,10 +77,20 @@ CLI 启动后调用 `reg.exe`（Windows 注册表，MDM 设备检测）→ `spaw
 **根源**：新版 upstream-ref-impl 文件 + 旧版 Limkenion 文件的 API 对不上。
 这是"只补缺失文件"方案的固有代价，装依赖解决不了。
 
-**彻底解法（未做，需你决定）**：用 upstream-ref-impl 整份 `src/` 重新改名覆盖，
-而不是补 174 个文件。收益是版本一致、类型大概率干净；
-代价是会带回已移除的 `bridge/buddy/voice/vim/remote/server/upstreamproxy`，
-需要重新移除，且 web 端 drift 测试要重跑。
+**已实测：整份替换不划算，不做。**
+曾考虑用 upstream-ref-impl 整份 `src/` 改名覆盖来换取版本一致。已在临时副本上实测：
+
+| 方案 | esbuild | tsc（含 bun types） |
+|---|---|---|
+| 整份替换（upstream-ref-impl 全量，2441 文件） | 4 错误 | **2016** |
+| **只补缺失文件（当前）** | **0 错误** | **1802** |
+
+整份替换两项都略差——它会把已移除的 `bridge/buddy/voice/vim/remote/server/upstreamproxy`
+带回来，而这些正是剩余 tsc 错误的大户（`bridge/` 里大量
+`has no exported member 'Message'` 与 union 收窄失败）。
+维持当前方案。
+
+剩余 1802 个类型错误的性质：多为已移除功能残留 + TS 版本差异，**不影响打包产物**。
 
 ### 3b. 扩展名已修正（131 个文件）
 从 upstream-ref-impl 复制时我曾把 `.ts/.tsx` 改成 `.js`（以为要匹配 import 里的 `.js`）——
