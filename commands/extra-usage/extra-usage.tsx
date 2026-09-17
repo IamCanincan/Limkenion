@@ -9,8 +9,8 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
     onDone(result.value);
     return null;
   }
-  return <Login startingMessage={'Starting new login following /extra-usage. Exit with Ctrl-C to use existing account.'} onDone={success => {
+  return <Login startingMessage={'需要配置 DeepSeek API Key 后继续。/extra-usage 依赖 DeepSeek 计费。按 Ctrl-C 取消。'} onDone={success => {
     context.onChangeAPIKey();
-    onDone(success ? 'Login successful' : 'Login interrupted');
+    onDone(success ? '已配置 DeepSeek API Key' : '已取消配置');
   }} />;
 }

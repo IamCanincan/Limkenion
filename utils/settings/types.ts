@@ -620,12 +620,12 @@ export const SettingsSchema = lazySchema(() =>
             'these exact sources are blocked from being added as marketplaces. The check happens BEFORE ' +
             'downloading, so blocked sources never touch the filesystem.',
         ),
-      // Force a specific login method: 'limkenionai' for Limkenion Pro/Max, 'console' for Console billing
+      // Force a specific login method: 'limkenionai' or 'console' (both map to DeepSeek API Key setup)
       forceLoginMethod: z
         .enum(['limkenionai', 'console'])
         .optional()
         .describe(
-          'Force a specific login method: "limkenionai" for Limkenion Pro/Max, "console" for Console billing',
+          'Force a specific login method: both "limkenionai" and "console" set up the DeepSeek / OpenAI-compatible API Key',
         ),
       // Organization UUID to use for OAuth login (will be added as URL param to authorization URL)
       forceLoginOrgUUID: z

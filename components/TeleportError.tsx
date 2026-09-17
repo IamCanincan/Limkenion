@@ -135,7 +135,7 @@ export function TeleportError(t0) {
         if (isLoggingIn) {
           let t9;
           if ($[14] !== handleLoginComplete) {
-            t9 = <ConsoleOAuthFlow onDone={handleLoginComplete} mode="login" forceLoginMethod="limkenionai" />;
+            t9 = <ConsoleOAuthFlow onDone={handleLoginComplete} mode="login" startingMessage={'配置 DeepSeek API Key 即可使用远程会话。'} />;
             $[14] = handleLoginComplete;
             $[15] = t9;
           } else {
@@ -145,15 +145,15 @@ export function TeleportError(t0) {
         }
         let t9;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t9 = <Box flexDirection="column"><Text dimColor={true}>Teleport 需要一个 Limkenion.ai 账户。</Text><Text dimColor={true}>您的 Limkenion Pro/Max 订阅将由 Limkenion 使用。</Text></Box>;
+          t9 = <Box flexDirection="column"><Text dimColor={true}>远程会话需要有效的 DeepSeek API Key。</Text><Text dimColor={true}>配置 DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量后即可继续。</Text></Box>;
           $[16] = t9;
         } else {
           t9 = $[16];
         }
         let t10;
         if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t10 = <Dialog title="登录 Limkenion" onCancel={onCancel}>{t9}<Select options={[{
-              label: "使用 Limkenion 账户登录",
+          t10 = <Dialog title="配置 DeepSeek API Key" onCancel={onCancel}>{t9}<Select options={[{
+              label: "配置 DeepSeek API Key",
               value: "login"
             }, {
               label: "退出",

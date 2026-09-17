@@ -727,7 +727,7 @@ export function getAssistantMessageFromError(
   ) {
     return createAssistantAPIErrorMessage({
       content:
-        'Limkenion Pro 套餐不包含 Limkenion Opus。如果你最近更新了订阅套餐，请运行 /logout 后再 /login 以使其生效。',
+        '该模型当前不可用。本地 DeepSeek 模式下请检查 DEEPSEEK_API_KEY / OPENAI_API_KEY 配置。',
       error: 'invalid_request',
     })
   }

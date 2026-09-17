@@ -71,7 +71,7 @@ export async function call(): Promise<React.ReactNode> {
   await performLogout({
     clearOnboarding: true
   });
-  const message = <Text>Successfully logged out from your Limkenion account.</Text>;
+  const message = <Text>已登出。本地凭据已清除。</Text>;
   setTimeout(() => {
     gracefulShutdownSync(0, 'logout');
   }, 200);

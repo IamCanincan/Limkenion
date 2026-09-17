@@ -1722,15 +1722,14 @@ export function getSubscriptionName(): string {
 
   switch (subscriptionType) {
     case 'enterprise':
-      return 'Limkenion Enterprise'
+      return '企业用量'
     case 'team':
-      return 'Limkenion Team'
+      return '团队用量'
     case 'max':
-      return 'Limkenion Max'
     case 'pro':
-      return 'Limkenion Pro'
+      return 'DeepSeek 按量使用'
     default:
-      return 'Limkenion API'
+      return 'DeepSeek 按量使用'
   }
 }
 

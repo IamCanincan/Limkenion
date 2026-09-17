@@ -47,7 +47,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
         authVersion: prev.authVersion + 1
       }));
     }
-    onDone(success ? 'Login successful' : 'Login interrupted');
+    onDone(success ? '已配置 DeepSeek API Key' : '已取消配置');
   }} />;
 }
 export function Login(props) {

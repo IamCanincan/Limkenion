@@ -7,8 +7,8 @@ export default () =>
     type: 'local-jsx',
     name: 'login',
     description: hasLimkenionApiKeyAuth()
-      ? '切换 Limkenion 账号'
-      : '使用你的 Limkenion 账号登录',
+      ? '重新配置 DeepSeek API Key'
+      : '配置 DeepSeek / OpenAI 兼容 API Key',
     isEnabled: () => !isEnvTruthy(process.env.DISABLE_LOGIN_COMMAND),
     load: () => import('./login.js'),
   }) satisfies Command

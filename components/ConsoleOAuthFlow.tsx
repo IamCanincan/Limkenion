@@ -60,7 +60,7 @@ export function ConsoleOAuthFlow({
   const settings = getSettings_DEPRECATED() || {};
   const forceLoginMethod = forceLoginMethodProp ?? settings.forceLoginMethod;
   const orgUUID = settings.forceLoginOrgUUID;
-  const forcedMethodMessage = forceLoginMethod === 'limkenionai' ? 'Login method pre-selected: Subscription Plan (Limkenion Pro/Max)' : forceLoginMethod === 'console' ? 'Login method pre-selected: API Usage Billing (Limkenion Console)' : null;
+  const forcedMethodMessage = forceLoginMethod === 'limkenionai' ? '登录方式已预选：DeepSeek / OpenAI 兼容 API Key' : forceLoginMethod === 'console' ? '登录方式已预选：DeepSeek / OpenAI 兼容 API Key' : null;
   const terminal = useTerminalNotification();
   const [oauthStatus, setOAuthStatus] = useState<OAuthStatus>(() => {
     if (mode === 'setup-token') {
@@ -241,7 +241,7 @@ export function ConsoleOAuthFlow({
           state: 'success'
         });
         void sendNotification({
-          message: 'Limkenion login successful',
+          message: '已配置 DeepSeek / OpenAI 兼容 API Key',
           notificationType: 'auth_success'
         }, terminal);
       }
@@ -383,7 +383,7 @@ function OAuthStatusMessage(t0) {
         let t4;
         if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
           t4 = {
-            label: <Text>Limkenion 账号登录 ·{" "}<Text dimColor={true}>订阅额度</Text>{false && <Text>{"\n"}<Text color="warning">[ANT-ONLY]</Text>{" "}<Text dimColor={true}>Please use this option unless you need to login to a special org for accessing sensitive data (e.g. customer data, HIPI data) with the Console option</Text></Text>}{"\n"}</Text>,
+            label: <Text>DeepSeek / OpenAI 兼容 API Key ·{" "}<Text dimColor={true}>按用量计费</Text>{"\n"}</Text>,
             value: "limkenionai"
           };
           $[3] = t4;
@@ -410,23 +410,13 @@ function OAuthStatusMessage(t0) {
         let t7;
         if ($[6] !== setLoginWithLimkenionAi || $[7] !== setOAuthStatus) {
           t7 = <Box><Select options={t6} onChange={value_0 => {
-              if (value_0 === "platform") {
-                logEvent("limkenion_oauth_platform_selected", {});
-                setOAuthStatus({
-                  state: "platform_setup"
-                });
-              } else {
-                setOAuthStatus({
-                  state: "ready_to_start"
-                });
-                if (value_0 === "limkenionai") {
-                  logEvent("limkenion_oauth_limkenionai_selected", {});
-                  setLoginWithLimkenionAi(true);
-                } else {
-                  logEvent("limkenion_oauth_console_selected", {});
-                  setLoginWithLimkenionAi(false);
-                }
-              }
+              // 纯本地 DeepSeek 接入：不再弹出浏览器做 Limkenion OAuth 登录，
+              // 只需用户设置 DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量即可。
+              logEvent("limkenion_oauth_console_selected", {});
+              setLoginWithLimkenionAi(false);
+              setOAuthStatus({
+                state: "success"
+              });
             }} /></Box>;
           $[6] = setLoginWithLimkenionAi;
           $[7] = setOAuthStatus;
@@ -474,21 +464,21 @@ function OAuthStatusMessage(t0) {
         }
         let t5;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t5 = <Text>· Amazon Bedrock:{" "}<Link url="https://code.limkenion.com/docs/en/amazon-bedrock">https://code.limkenion.com/docs/en/amazon-bedrock</Link></Text>;
+          t5 = <Text>· DeepSeek:{" "}<Link url="https://api.deepseek.com">https://api.deepseek.com</Link></Text>;
           $[16] = t5;
         } else {
           t5 = $[16];
         }
         let t6;
         if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t6 = <Text>· Microsoft Foundry:{" "}<Link url="https://code.limkenion.com/docs/en/microsoft-foundry">https://code.limkenion.com/docs/en/microsoft-foundry</Link></Text>;
+          t6 = <Text>· OpenAI 兼容:{" "}设置 <Text bold={true}>OPENAI_API_KEY</Text> 环境变量（默认端点 https://api.deepseek.com）</Text>;
           $[17] = t6;
         } else {
           t6 = $[17];
         }
         let t7;
         if ($[18] === Symbol.for("react.memo_cache_sentinel")) {
-          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}{t6}<Text>· Vertex AI:{" "}<Link url="https://code.limkenion.com/docs/en/google-vertex-ai">https://code.limkenion.com/docs/en/google-vertex-ai</Link></Text></Box>;
+          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}{t6}</Box>;
           $[18] = t7;
         } else {
           t7 = $[18];
@@ -514,7 +504,7 @@ function OAuthStatusMessage(t0) {
         }
         let t2;
         if ($[22] !== showPastePrompt) {
-          t2 = !showPastePrompt && <Box><Spinner /><Text>Opening browser to sign in…</Text></Box>;
+          t2 = !showPastePrompt && <Box><Spinner /><Text>正在完成配置…</Text></Box>;
           $[22] = showPastePrompt;
           $[23] = t2;
         } else {
@@ -551,7 +541,7 @@ function OAuthStatusMessage(t0) {
       {
         let t1;
         if ($[37] === Symbol.for("react.memo_cache_sentinel")) {
-          t1 = <Box flexDirection="column" gap={1}><Box><Spinner /><Text>Creating API key for Limkenion…</Text></Box></Box>;
+          t1 = <Box flexDirection="column" gap={1}><Box><Spinner /><Text>正在完成配置…</Text></Box></Box>;
           $[37] = t1;
         } else {
           t1 = $[37];
@@ -573,7 +563,7 @@ function OAuthStatusMessage(t0) {
       {
         let t1;
         if ($[39] !== mode || $[40] !== oauthStatus.token) {
-          t1 = mode === "setup-token" && oauthStatus.token ? null : <>{getOauthAccountInfo()?.emailAddress ? <Text dimColor={true}>Logged in as{" "}<Text>{getOauthAccountInfo()?.emailAddress}</Text></Text> : null}<Text color="success">Login successful. Press <Text bold={true}>Enter</Text> to continue…</Text></>;
+          t1 = mode === "setup-token" && oauthStatus.token ? null : <><Text color="success">已连接 DeepSeek。请确保已设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY 环境变量。按 <Text bold={true}>Enter</Text> 继续…</Text></>;
           $[39] = mode;
           $[40] = oauthStatus.token;
           $[41] = t1;
