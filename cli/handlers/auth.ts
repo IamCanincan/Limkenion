@@ -4,229 +4,36 @@ import {
   clearAuthRelatedCaches,
   performLogout,
 } from '../../commands/logout/logout.js'
+import { logEvent } from '../../services/analytics/index.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
-} from '../../services/analytics/index.js'
-import { getSSLErrorHint } from '../../services/api/errorUtils.js'
-import { fetchAndStoreLimkenionFirstTokenDate } from '../../services/api/firstTokenDate.js'
-import {
-  createAndStoreApiKey,
-  fetchAndStoreUserRoles,
-  refreshOAuthToken,
-  shouldUseLimkenionAIAuth,
-  storeOAuthAccountInfo,
-} from '../../services/oauth/client.js'
-import { getOauthProfileFromOauthToken } from '../../services/oauth/getOauthProfile.js'
-import { OAuthService } from '../../services/oauth/index.js'
-import type { OAuthTokens } from '../../services/oauth/types.js'
-import {
-  clearOAuthTokenCache,
   getLimkenionApiKeyWithSource,
   getAuthTokenSource,
   getOauthAccountInfo,
   getSubscriptionType,
   isUsing3PServices,
-  saveOAuthTokensIfNeeded,
-  validateForceLoginOrg,
 } from '../../utils/auth.js'
-import { saveGlobalConfig } from '../../utils/config.js'
-import { logForDebugging } from '../../utils/debug.js'
 import { isRunningOnHomespace } from '../../utils/envUtils.js'
-import { errorMessage } from '../../utils/errors.js'
-import { logError } from '../../utils/log.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
-import { getInitialSettings } from '../../utils/settings/settings.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import {
-  buildAccountProperties,
-  buildAPIProviderProperties,
-} from '../../utils/status.js'
 
 /**
- * Shared post-token-acquisition logic. Saves tokens, fetches profile/roles,
- * and sets up the local auth state.
+ * Limkenion 是纯本地工具，无远程账号/OAuth。登录即设置
+ * DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量即可，无需浏览器登录。
  */
-export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
-  // Clear old state before saving new credentials
-  await performLogout({ clearOnboarding: false })
-
-  // Reuse pre-fetched profile if available, otherwise fetch fresh
-  const profile =
-    tokens.profile ?? (await getOauthProfileFromOauthToken(tokens.accessToken))
-  if (profile) {
-    storeOAuthAccountInfo({
-      accountUuid: profile.account.uuid,
-      emailAddress: profile.account.email,
-      organizationUuid: profile.organization.uuid,
-      displayName: profile.account.display_name || undefined,
-      hasExtraUsageEnabled:
-        profile.organization.has_extra_usage_enabled ?? undefined,
-      billingType: profile.organization.billing_type ?? undefined,
-      subscriptionCreatedAt:
-        profile.organization.subscription_created_at ?? undefined,
-      accountCreatedAt: profile.account.created_at,
-    })
-  } else if (tokens.tokenAccount) {
-    // Fallback to token exchange account data when profile endpoint fails
-    storeOAuthAccountInfo({
-      accountUuid: tokens.tokenAccount.uuid,
-      emailAddress: tokens.tokenAccount.emailAddress,
-      organizationUuid: tokens.tokenAccount.organizationUuid,
-    })
-  }
-
-  const storageResult = saveOAuthTokensIfNeeded(tokens)
-  clearOAuthTokenCache()
-
-  if (storageResult.warning) {
-    logEvent('limkenion_oauth_storage_warning', {
-      warning:
-        storageResult.warning as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    })
-  }
-
-  // Roles and first-token-date may fail for limited-scope tokens (e.g.
-  // inference-only from setup-token). They're not required for core auth.
-  await fetchAndStoreUserRoles(tokens.accessToken).catch(err =>
-    logForDebugging(String(err), { level: 'error' }),
-  )
-
-  if (shouldUseLimkenionAIAuth(tokens.scopes)) {
-    await fetchAndStoreLimkenionFirstTokenDate().catch(err =>
-      logForDebugging(String(err), { level: 'error' }),
-    )
-  } else {
-    // API key creation is critical for Console users — let it throw.
-    const apiKey = await createAndStoreApiKey(tokens.accessToken)
-    if (!apiKey) {
-      throw new Error(
-        '无法创建 API key。服务器接受了请求但没有返回 key。',
-      )
-    }
-  }
-
-  await clearAuthRelatedCaches()
-}
-
-export async function authLogin({
-  email,
-  sso,
-  console: useConsole,
-  limkenionai,
-}: {
+export async function authLogin(_opts: {
   email?: string
   sso?: boolean
   console?: boolean
   limkenionai?: boolean
 }): Promise<void> {
-  if (useConsole && limkenionai) {
-    process.stderr.write(
-      '错误：--console 与 --limkenionai 不能同时使用。\n',
-    )
-    process.exit(1)
-  }
-
-  const settings = getInitialSettings()
-  // forceLoginMethod is a hard constraint (enterprise setting) — matches ConsoleOAuthFlow behavior.
-  // Without it, --console selects Console; --limkenionai (or no flag) selects limkenion.ai.
-  const loginWithLimkenionAi = settings.forceLoginMethod
-    ? settings.forceLoginMethod === 'limkenionai'
-    : !useConsole
-  const orgUUID = settings.forceLoginOrgUUID
-
-  // Fast path: if a refresh token is provided via env var, skip the browser
-  // OAuth flow and exchange it directly for tokens.
-  const envRefreshToken = process.env.LIMKENION_OAUTH_REFRESH_TOKEN
-  if (envRefreshToken) {
-    const envScopes = process.env.LIMKENION_OAUTH_SCOPES
-    if (!envScopes) {
-      process.stderr.write(
-        '使用 LIMKENION_OAUTH_REFRESH_TOKEN 时必须设置 LIMKENION_OAUTH_SCOPES。\n' +
-          '请设置为该 refresh token 签发时对应的作用域（空格分隔）\n' +
-          '（例如 "user:inference" 或 "user:profile user:inference user:sessions:limkenion user:mcp_servers"）。\n',
-      )
-      process.exit(1)
-    }
-
-    const scopes = envScopes.split(/\s+/).filter(Boolean)
-
-    try {
-      logEvent('limkenion_login_from_refresh_token', {})
-
-      const tokens = await refreshOAuthToken(envRefreshToken, { scopes })
-      await installOAuthTokens(tokens)
-
-      const orgResult = await validateForceLoginOrg()
-      if (!orgResult.valid) {
-        process.stderr.write(orgResult.message + '\n')
-        process.exit(1)
-      }
-
-      // Mark onboarding complete — interactive paths handle this via
-      // the Onboarding component, but the env var path skips it.
-      saveGlobalConfig(current => {
-        if (current.hasCompletedOnboarding) return current
-        return { ...current, hasCompletedOnboarding: true }
-      })
-
-      logEvent('limkenion_oauth_success', {
-        loginWithLimkenionAi: shouldUseLimkenionAIAuth(tokens.scopes),
-      })
-      process.stdout.write('登录成功。\n')
-      process.exit(0)
-    } catch (err) {
-      logError(err)
-      const sslHint = getSSLErrorHint(err)
-      process.stderr.write(
-        `登录失败：${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
-      )
-      process.exit(1)
-    }
-  }
-
-  const resolvedLoginMethod = sso ? 'sso' : undefined
-
-  const oauthService = new OAuthService()
-
-  try {
-    logEvent('limkenion_oauth_flow_start', { loginWithLimkenionAi })
-
-    const result = await oauthService.startOAuthFlow(
-      async url => {
-        process.stdout.write('正在打开浏览器登录…\n')
-        process.stdout.write(`若浏览器未打开，请访问：${url}\n`)
-      },
-      {
-        loginWithLimkenionAi,
-        loginHint: email,
-        loginMethod: resolvedLoginMethod,
-        orgUUID,
-      },
-    )
-
-    await installOAuthTokens(result)
-
-    const orgResult = await validateForceLoginOrg()
-    if (!orgResult.valid) {
-      process.stderr.write(orgResult.message + '\n')
-      process.exit(1)
-    }
-
-    logEvent('limkenion_oauth_success', { loginWithLimkenionAi })
-
-    process.stdout.write('登录成功。\n')
-    process.exit(0)
-  } catch (err) {
-    logError(err)
-    const sslHint = getSSLErrorHint(err)
-    process.stderr.write(
-      `登录失败：${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
-    )
-    process.exit(1)
-  } finally {
-    oauthService.cleanup()
-  }
+  logEvent('limkenion_oauth_flow_start', {})
+  process.stdout.write(
+    'Limkenion 无需账号登录。请设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY ' +
+      '环境变量后使用（默认端点 https://api.deepseek.com）。\n',
+  )
+  await clearAuthRelatedCaches()
+  process.stdout.write('登录成功。\n')
+  process.exit(0)
 }
 
 export async function authStatus(opts: {
@@ -260,34 +67,12 @@ export async function authStatus(opts: {
   }
 
   if (opts.text) {
-    const properties = [
-      ...buildAccountProperties(),
-      ...buildAPIProviderProperties(),
-    ]
-    let hasAuthProperty = false
-    for (const prop of properties) {
-      const value =
-        typeof prop.value === 'string'
-          ? prop.value
-          : Array.isArray(prop.value)
-            ? prop.value.join(', ')
-            : null
-      if (value === null || value === 'none') {
-        continue
-      }
-      hasAuthProperty = true
-      if (prop.label) {
-        process.stdout.write(`${prop.label}: ${value}\n`)
-      } else {
-        process.stdout.write(`${value}\n`)
-      }
-    }
-    if (!hasAuthProperty && hasApiKeyEnvVar) {
+    if (hasApiKeyEnvVar) {
       process.stdout.write('API key: LIMKENION_API_KEY\n')
     }
     if (!loggedIn) {
       process.stdout.write(
-        '未登录。请运行 limkenion auth login 进行身份认证。\n',
+        '未登录。请设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY 环境变量。\n',
       )
     }
   } else {
@@ -306,10 +91,9 @@ export async function authStatus(opts: {
     if (resolvedApiKeySource) {
       output.apiKeySource = resolvedApiKeySource
     }
-    if (authMethod === 'limkenion.ai') {
-      output.email = oauthAccount?.emailAddress ?? null
-      output.orgId = oauthAccount?.organizationUuid ?? null
-      output.orgName = oauthAccount?.organizationName ?? null
+    if (oauthAccount) {
+      output.email = oauthAccount.emailAddress ?? null
+      output.orgId = oauthAccount.organizationUuid ?? null
       output.subscriptionType = subscriptionType ?? null
     }
 

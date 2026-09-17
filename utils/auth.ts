@@ -1666,71 +1666,37 @@ export function hasOpusAccess(): boolean {
 }
 
 export function getSubscriptionType(): SubscriptionType | null {
-  // Check for mock subscription type first (ANT-only testing)
-  if (shouldUseMockSubscription()) {
-    return getMockSubscriptionType()
-  }
-
-  if (!isLimkenionAuthEnabled()) {
-    return null
-  }
-  const oauthTokens = getLimkenionAIOAuthTokens()
-  if (!oauthTokens) {
-    return null
-  }
-
-  return oauthTokens.subscriptionType ?? null
+  // Limkenion 是纯本地工具，无远程账号/订阅。恒为 null（非订阅态）。
+  return null
 }
 
 export function isMaxSubscriber(): boolean {
-  return getSubscriptionType() === 'max'
+  return false
 }
 
 export function isTeamSubscriber(): boolean {
-  return getSubscriptionType() === 'team'
+  return false
 }
 
 export function isTeamPremiumSubscriber(): boolean {
-  return (
-    getSubscriptionType() === 'team' &&
-    getRateLimitTier() === 'default_limkenion_max_5x'
-  )
+  return false
 }
 
 export function isEnterpriseSubscriber(): boolean {
-  return getSubscriptionType() === 'enterprise'
+  return false
 }
 
 export function isProSubscriber(): boolean {
-  return getSubscriptionType() === 'pro'
+  return false
 }
 
 export function getRateLimitTier(): string | null {
-  if (!isLimkenionAuthEnabled()) {
-    return null
-  }
-  const oauthTokens = getLimkenionAIOAuthTokens()
-  if (!oauthTokens) {
-    return null
-  }
-
-  return oauthTokens.rateLimitTier ?? null
+  return null
 }
 
 export function getSubscriptionName(): string {
-  const subscriptionType = getSubscriptionType()
-
-  switch (subscriptionType) {
-    case 'enterprise':
-      return '企业用量'
-    case 'team':
-      return '团队用量'
-    case 'max':
-    case 'pro':
-      return 'DeepSeek 按量使用'
-    default:
-      return 'DeepSeek 按量使用'
-  }
+  // Limkenion 无订阅套餐，统称 DeepSeek 按量使用。
+  return 'DeepSeek 按量使用'
 }
 
 /** Check if using third-party services (Bedrock or Vertex or Foundry) */
@@ -1969,7 +1935,7 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
         `Unable to verify organization for the current authentication token.\n` +
         `This machine requires organization ${requiredOrgUuid} but the profile could not be fetched.\n` +
         `This may be a network error, or the token may lack the user:profile scope required for\n` +
-        `verification (tokens from 'limkenion setup-token' do not include this scope).\n` +
+        `verification (该 scope 未包含在当前的认证信息中)。\n` +
         `Try again, or obtain a full-scope token via 'limkenion auth login'.`,
     }
   }

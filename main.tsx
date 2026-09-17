@@ -3678,17 +3678,6 @@ async function run(): Promise<CommanderCommand> {
   });
   // END ANT-ONLY
 
-  // 设置令牌命令
-  program.command('setup-token').description('设置长期有效的认证令牌（需要 Limkenion 订阅）').action(async () => {
-    const [{
-      setupTokenHandler
-    }, {
-      createRoot
-    }] = await Promise.all([import('./cli/handlers/util.js'), import('./ink.js')]);
-    const root = await createRoot(getBaseRenderOptions(false));
-    await setupTokenHandler(root);
-  });
-
   // Agents 命令 - 列出已配置的 agent
   program.command('agents').description('列出已配置的 agent').option('--setting-sources <sources>', '要加载的设置来源列表，用逗号分隔（user、project、local）。').action(async () => {
     const {
