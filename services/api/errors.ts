@@ -27,7 +27,6 @@ import {
   getDefaultMainLoopModelSetting,
   isNonCustomStrongModel,
 } from 'src/utils/model/model.js'
-import { getModelStrings } from 'src/utils/model/modelStrings.js'
 import { getAPIProvider } from 'src/utils/model/providers.js'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import {
@@ -723,7 +722,7 @@ export function getAssistantMessageFromError(
     error instanceof APIError &&
     error.status === 400 &&
     error.message.toLowerCase().includes('invalid model name') &&
-    (isNonCustomStrongModel(model) || model === 'opus')
+    isNonCustomStrongModel(model)
   ) {
     return createAssistantAPIErrorMessage({
       content:
@@ -918,24 +917,9 @@ export function getAssistantMessageFromError(
  * 对 3P 用户，当所选模型不可用时建议一个回退模型。
  * 返回模型名建议，若无适用建议则返回 undefined。
  */
-function get3PModelFallbackSuggestion(model: string): string | undefined {
-  if (getAPIProvider() === 'firstParty') {
-    return undefined
-  }
-  // @[MODEL LAUNCH]: 为新模型 → 前一版本为 3P 添加回退建议链
-  const m = model.toLowerCase()
-  // 若失败的模型看起来像 deepseek-v4-pro 变体，则建议默认 deepseek-v4-pro（对 3P 为 4.1）
-  if (m.includes('opus-4-6') || m.includes('opus_4_6')) {
-    return getModelStrings().deepseekV4Pro
-  }
-  // 若失败的模型看起来像 deepseek-flash 变体，则建议 deepseek-flash
-  if (m.includes('sonnet-4-6') || m.includes('sonnet_4_6')) {
-    return getModelStrings().deepseekFlash
-  }
-  // 若失败的模型看起来像 deepseek-flash 变体，则建议 deepseek-flash
-  if (m.includes('sonnet-4-5') || m.includes('sonnet_4_5')) {
-    return getModelStrings().deepseekFlash
-  }
+function get3PModelFallbackSuggestion(_model: string): string | undefined {
+  // 本构建只有 firstParty（DeepSeek），原本那套"按上游模型名建议回退版本"的
+  // 分支链在 firstParty 下本来就恒返回 undefined，已随模型表移除。
   return undefined
 }
 
@@ -1173,12 +1157,12 @@ export function getErrorMessageIfRefusal(
   logEvent('limkenion_refusal_api_response', {})
 
   const baseMessage = getIsNonInteractiveSession()
-    ? `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（）。请尝试改写请求或换一种方式。`
-    : `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（）。请双击 esc 修改你的上一条消息，或开启新的会话让 Limkenion 帮你处理其他任务。`
+    ? `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策。请尝试改写请求或换一种方式。`
+    : `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策。请双击 esc 修改你的上一条消息，或开启新的会话让 Limkenion 帮你处理其他任务。`
 
   const modelSuggestion =
-    model !== 'limkenion-sonnet-4-20250514'
-      ? ' 如果你反复遇到此拒绝，请尝试运行 /model limkenion-sonnet-4-20250514 切换模型。'
+    model !== 'deepseek-flash'
+      ? ' 如果你反复遇到此拒绝，请尝试运行 /model deepseek-flash 切换模型。'
       : ''
 
   return createAssistantAPIErrorMessage({

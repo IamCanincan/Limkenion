@@ -20,7 +20,6 @@ import type { Tools } from '../Tool.js'
 import type { Command } from '../types/command.js'
 import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
 import {
-  getCanonicalName,
   getMarketingNameForModel,
 } from '../utils/model/model.js'
 import { getSkillToolCommands } from 'src/commands.js'
@@ -657,23 +656,15 @@ export async function computeSimpleEnvInfo(
   ].join(`\n`)
 }
 
-// @[MODEL LAUNCH]: Add a knowledge cutoff date for the new model.
-function getKnowledgeCutoff(modelId: string): string | null {
-  const canonical = getCanonicalName(modelId)
-  if (canonical.includes('limkenion-sonnet-4-6')) {
-    return 'August 2025'
-  } else if (canonical.includes('limkenion-opus-4-6')) {
-    return 'May 2025'
-  } else if (canonical.includes('limkenion-opus-4-5')) {
-    return 'May 2025'
-  } else if (canonical.includes('limkenion-haiku-4')) {
-    return 'February 2025'
-  } else if (
-    canonical.includes('limkenion-opus-4') ||
-    canonical.includes('limkenion-sonnet-4')
-  ) {
-    return 'January 2025'
-  }
+// @[MODEL LAUNCH]: 新增模型时在这里补知识截止日期。
+/**
+ * 返回模型的知识截止日期。
+ *
+ * 本构建只有 DeepSeek 两个模型，而**官方没有公开这两个模型的知识截止日期**，
+ * 所以这里返回 null（系统提示词会省略这一行）——
+ * 不编造日期比写一个错的更有用。原本那串按上游模型 ID 分支的日期表已移除。
+ */
+function getKnowledgeCutoff(_modelId: string): string | null {
   return null
 }
 
