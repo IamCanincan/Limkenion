@@ -594,7 +594,7 @@ export function createModelSwitchBreadcrumbs(
     createSyntheticUserCaveatMessage(),
     createUserMessage({ content: formatCommandInputTags('model', modelArg) }),
     createUserMessage({
-      content: `<${LOCAL_COMMAND_STDOUT_TAG}>Set model to ${resolvedDisplay}</${LOCAL_COMMAND_STDOUT_TAG}>`,
+      content: `<${LOCAL_COMMAND_STDOUT_TAG}>模型已设为 ${resolvedDisplay}</${LOCAL_COMMAND_STDOUT_TAG}>`,
     }),
   ]
 }

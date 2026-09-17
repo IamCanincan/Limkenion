@@ -8,7 +8,7 @@ const compact = {
     '清除对话历史但保留上下文摘要。可选：/compact [摘要指令]',
   isEnabled: () => !isEnvTruthy(process.env.DISABLE_COMPACT),
   supportsNonInteractive: true,
-  argumentHint: '<optional custom summarization instructions>',
+  argumentHint: '<可选的自定义总结指令>',
   load: () => import('./compact.js'),
 } satisfies Command
 

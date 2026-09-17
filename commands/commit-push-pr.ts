@@ -108,7 +108,7 @@ const command = {
     // 用一个伪分支名估算内容长度
     return getPromptContent('main').length
   },
-  progressMessage: 'creating commit and PR',
+  progressMessage: '正在创建提交并打开 PR',
   source: 'builtin',
   async getPromptForCommand(args, context) {
     // 获取默认分支与增强的 PR 署名

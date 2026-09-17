@@ -58,7 +58,7 @@ const command = {
   description: '创建一次 Git 提交',
   allowedTools: ALLOWED_TOOLS,
   contentLength: 0, // 动态内容
-  progressMessage: 'creating commit',
+  progressMessage: '正在创建提交',
   source: 'builtin',
   async getPromptForCommand(_args, context) {
     const promptContent = getPromptContent()

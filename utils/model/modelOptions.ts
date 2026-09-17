@@ -14,7 +14,7 @@ import {
 } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
-import { getAPIProvider } from './providers.js'
+import { getAPIProvider, isOpenAICompat } from './providers.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import {
   getCanonicalName,
@@ -55,11 +55,10 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
   }
 
   // PAYG
-  const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: null,
-    label: 'Default (recommended)',
-    description: `Use the default model (currently ${renderDefaultModelSetting(getDefaultMainLoopModelSetting())})${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
+    label: '默认（推荐）',
+    description: `使用默认模型（当前为 ${renderDefaultModelSetting(getDefaultMainLoopModelSetting())}）`,
   }
 }
 
@@ -433,6 +432,11 @@ function getKnownModelOption(model: string): ModelOption | null {
 }
 
 export function getModelOptions(fastMode = false): ModelOption[] {
+  // OpenAI 兼容模式（DeepSeek）下：Limkenion 只有一个模型（deepseek-flash），
+  // 只展示"默认"这一项即可，不再罗列 CC 系（Sonnet/Opus/Haiku）选项。
+  if (isOpenAICompat()) {
+    return [getDefaultOptionForUser(fastMode)]
+  }
   const options = getModelOptionsBase(fastMode)
 
   // Add the custom model from the LIMKENION_CUSTOM_MODEL_OPTION env var

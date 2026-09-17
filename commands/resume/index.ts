@@ -5,7 +5,7 @@ const resume: Command = {
   name: 'resume',
   description: '恢复之前的对话',
   aliases: ['continue'],
-  argumentHint: '[conversation id or search term]',
+  argumentHint: '[会话 ID 或搜索词]',
   load: () => import('./resume.js'),
 }
 

@@ -2858,7 +2858,7 @@ const usageReport: Command = {
   name: 'insights',
   description: '生成一份分析你 Limkenion 会话的报告',
   contentLength: 0, // 动态内容
-  progressMessage: 'analyzing your sessions',
+  progressMessage: '正在分析你的会话',
   source: 'builtin',
   async getPromptForCommand(args) {
     let collectRemote = false

@@ -5,7 +5,7 @@ import { isEnvTruthy } from '../../utils/envUtils.js'
 const upgrade = {
   type: 'local-jsx',
   name: 'upgrade',
-  description: '升级到 Max 以获得更高速率限制与更多 Opus',
+  description: '查看或升级你的 Limkenion 服务套餐',
   availability: ['limkenion-ai'],
   isEnabled: () =>
     !isEnvTruthy(process.env.DISABLE_UPGRADE_COMMAND) &&

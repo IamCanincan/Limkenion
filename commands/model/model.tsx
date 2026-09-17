@@ -11,7 +11,6 @@ import type { EffortLevel } from '../../utils/effort.js';
 import { isBilledAsExtraUsage } from '../../utils/extraUsage.js';
 import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
-import { checkOpus1mAccess, checkSonnet1mAccess } from '../../utils/model/check1mAccess.js';
 import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
@@ -32,7 +31,7 @@ function ModelPickerWrapper(t0) {
         action: "cancel" as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       const displayModel = renderModelLabel(mainLoopModel);
-      onDone(`Kept model as ${chalk.bold(displayModel)}`, {
+      onDone(`保留模型为 ${chalk.bold(displayModel)}`, {
         display: "system"
       });
     };
@@ -56,9 +55,9 @@ function ModelPickerWrapper(t0) {
         mainLoopModel: model,
         mainLoopModelForSession: null
       }));
-      let message = `Set model to ${chalk.bold(renderModelLabel(model))}`;
+      let message = `模型已设为 ${chalk.bold(renderModelLabel(model))}`;
       if (effort !== undefined) {
-        message = message + ` with ${chalk.bold(effort)} effort`;
+        message = message + `，投入度 ${chalk.bold(effort)}`;
       }
       let wasFastModeToggledOn = undefined;
       if (isFastModeEnabled()) {
@@ -68,16 +67,16 @@ function ModelPickerWrapper(t0) {
           wasFastModeToggledOn = false;
         } else {
           if (isFastModeSupportedByModel(model) && isFastModeAvailable() && isFastMode) {
-            message = message + " \xB7 Fast mode ON";
+            message = message + " · Fast 模式：已开启";
             wasFastModeToggledOn = true;
           }
         }
       }
       if (isBilledAsExtraUsage(model, wasFastModeToggledOn === true, isOpus1mMergeEnabled())) {
-        message = message + " \xB7 Billed as extra usage";
+        message = message + " · 计费为额外用量";
       }
       if (wasFastModeToggledOn === false) {
-        message = message + " \xB7 Fast mode OFF";
+        message = message + " · Fast 模式：已关闭";
       }
       onDone(message);
     };
@@ -143,21 +142,7 @@ function SetModelAndClose({
   React.useEffect(() => {
     async function handleModelChange(): Promise<void> {
       if (model && !isModelAllowed(model)) {
-        onDone(`Model '${model}' is not available. Your organization restricts model selection.`, {
-          display: 'system'
-        });
-        return;
-      }
-
-      // @[MODEL LAUNCH]: 更新 1M 访问检查。
-      if (model && isOpus1mUnavailable(model)) {
-        onDone(`Opus 4.6 with 1M context is not available for your account. Learn more: https://code.limkenion.com/docs/en/model-config#extended-context-with-1m`, {
-          display: 'system'
-        });
-        return;
-      }
-      if (model && isSonnet1mUnavailable(model)) {
-        onDone(`Sonnet 4.6 with 1M context is not available for your account. Learn more: https://code.limkenion.com/docs/en/model-config#extended-context-with-1m`, {
+        onDone(`模型「${model}」不可用。你的组织限制了可用的模型。`, {
           display: 'system'
         });
         return;
@@ -186,12 +171,12 @@ function SetModelAndClose({
         if (valid) {
           setModel(model);
         } else {
-          onDone(error_0 || `Model '${model}' not found`, {
+          onDone(error_0 || `模型「${model}」未找到`, {
             display: 'system'
           });
         }
       } catch (error) {
-        onDone(`Failed to validate model: ${(error as Error).message}`, {
+        onDone(`校验模型失败：${(error as Error).message}`, {
           display: 'system'
         });
       }
@@ -202,7 +187,7 @@ function SetModelAndClose({
         mainLoopModel: modelValue,
         mainLoopModelForSession: null
       }));
-      let message = `Set model to ${chalk.bold(renderModelLabel(modelValue))}`;
+      let message = `模型已设为 ${chalk.bold(renderModelLabel(modelValue))}`;
       let wasFastModeToggledOn = undefined;
       if (isFastModeEnabled()) {
         clearFastModeCooldown();
@@ -214,16 +199,16 @@ function SetModelAndClose({
           wasFastModeToggledOn = false;
           // 不要在设置中更新快速模式，因为这是一次自动降级
         } else if (isFastModeSupportedByModel(modelValue) && isFastMode) {
-          message += ` · Fast mode ON`;
+          message += ` · Fast 模式：已开启`;
           wasFastModeToggledOn = true;
         }
       }
       if (isBilledAsExtraUsage(modelValue, wasFastModeToggledOn === true, isOpus1mMergeEnabled())) {
-        message += ` · Billed as extra usage`;
+        message += ` · 计费为额外用量`;
       }
       if (wasFastModeToggledOn === false) {
         // 快速模式已被关闭，在额外用量计费之后显示后缀
-        message += ` · Fast mode OFF`;
+        message += ` · Fast 模式：已关闭`;
       }
       onDone(message);
     }
@@ -234,16 +219,6 @@ function SetModelAndClose({
 function isKnownAlias(model: string): boolean {
   return (MODEL_ALIASES as readonly string[]).includes(model.toLowerCase().trim());
 }
-function isOpus1mUnavailable(model: string): boolean {
-  const m = model.toLowerCase();
-  return !checkOpus1mAccess() && !isOpus1mMergeEnabled() && m.includes('opus') && m.includes('[1m]');
-}
-function isSonnet1mUnavailable(model: string): boolean {
-  const m = model.toLowerCase();
-  // 对 Sonnet 和 Sonnet 4.6 给出警告，但不针对 Sonnet 4.5，因为后者
-  // 有不同的访问标准。
-  return !checkSonnet1mAccess() && (m.includes('sonnet[1m]') || m.includes('sonnet-4-6[1m]'));
-}
 function ShowModelAndClose(t0) {
   const {
     onDone
@@ -252,11 +227,11 @@ function ShowModelAndClose(t0) {
   const mainLoopModelForSession = useAppState(_temp8);
   const effortValue = useAppState(_temp9);
   const displayModel = renderModelLabel(mainLoopModel);
-  const effortInfo = effortValue !== undefined ? ` (effort: ${effortValue})` : "";
+  const effortInfo = effortValue !== undefined ? `（投入度：${effortValue}）` : "";
   if (mainLoopModelForSession) {
-    onDone(`Current model: ${chalk.bold(renderModelLabel(mainLoopModelForSession))} (session override from plan mode)\nBase model: ${displayModel}${effortInfo}`);
+    onDone(`当前模型：${chalk.bold(renderModelLabel(mainLoopModelForSession))}（由 plan 模式的会话语义覆盖）\n基础模型：${displayModel}${effortInfo}`);
   } else {
-    onDone(`Current model: ${displayModel}${effortInfo}`);
+    onDone(`当前模型：${displayModel}${effortInfo}`);
   }
   return null;
 }
@@ -278,7 +253,7 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     return <ShowModelAndClose onDone={onDone} />;
   }
   if (COMMON_HELP_ARGS.includes(args)) {
-    onDone('Run /model to open the model selection menu, /model [modelName] to set the model, or /model [low|medium|high] to set reasoning effort.', {
+    onDone('运行 /model 打开模型选择菜单，运行 /model [模型名] 设置模型，或运行 /model [low|medium|high] 设置推理投入度。', {
       display: 'system'
     });
     return;
@@ -287,7 +262,7 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   // 对全部后续请求生效，无需重启；API 的 reasoning_effort 仅接受这三档）。
   if (args === 'low' || args === 'medium' || args === 'high') {
     setRuntimeReasoningEffort(args);
-    onDone(`Set reasoning effort to ${chalk.bold(args)}`, {
+    onDone(`推理投入度已设为 ${chalk.bold(args)}`, {
       display: 'system'
     });
     return;
@@ -302,5 +277,5 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
 };
 function renderModelLabel(model: string | null): string {
   const rendered = renderDefaultModelSetting(model ?? getDefaultMainLoopModelSetting());
-  return model === null ? `${rendered} (default)` : rendered;
+  return model === null ? `${rendered}（默认）` : rendered;
 }

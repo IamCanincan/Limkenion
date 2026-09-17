@@ -6,9 +6,9 @@ export default {
   type: 'local-jsx',
   name: 'model',
   get description() {
-    return `Set the AI model for Limkenion (currently ${renderModelName(getMainLoopModel())})`
+    return `为 Limkenion 设置 AI 模型（当前为 ${renderModelName(getMainLoopModel())}）`
   },
-  argumentHint: '[model | low | medium | high]',
+  argumentHint: '[模型 | low | medium | high]',
   get immediate() {
     return shouldInferenceConfigCommandBeImmediate()
   },

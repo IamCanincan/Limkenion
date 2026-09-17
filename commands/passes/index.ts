@@ -10,9 +10,9 @@ export default {
   get description() {
     const reward = getCachedReferrerReward()
     if (reward) {
-      return 'Share a free week of Limkenion with friends and earn extra usage'
+      return '与朋友分享 Limkenion 免费周并获得额外用量'
     }
-    return 'Share a free week of Limkenion with friends'
+    return '与朋友分享 Limkenion 免费周'
   },
   get isHidden() {
     const { eligible, hasCache } = checkCachedPassesEligibility()
