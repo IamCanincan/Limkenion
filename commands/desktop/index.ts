@@ -15,7 +15,7 @@ const desktop = {
   name: 'desktop',
   aliases: ['app'],
   description: '在 Limkenion 桌面端继续当前会话',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   isEnabled: isSupportedPlatform,
   get isHidden() {
     return !isSupportedPlatform()

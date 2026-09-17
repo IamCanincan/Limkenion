@@ -7,7 +7,7 @@ const web = {
   name: 'web-setup',
   description:
     '在 Web 上设置 Limkenion（需要连接你的 GitHub 账号）',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   isEnabled: () =>
     getFeatureValue_CACHED_MAY_BE_STALE('limkenion_cobalt_lantern', false) &&
     isPolicyAllowed('allow_remote_sessions'),

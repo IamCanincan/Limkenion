@@ -11,7 +11,7 @@ const fast = {
   get description() {
     return `切换快速模式（仅 ${FAST_MODE_MODEL_DISPLAY}）`
   },
-  availability: ['limkenion-ai', 'console'],
+  availability: ['cloud-subscriber', 'console'],
   isEnabled: () => isFastModeEnabled(),
   get isHidden() {
     return !isFastModeEnabled()

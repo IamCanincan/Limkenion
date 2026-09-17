@@ -4,6 +4,6 @@ export default {
   type: 'local-jsx',
   name: 'usage',
   description: '显示套餐用量限制',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   load: () => import('./usage.js'),
 } satisfies Command

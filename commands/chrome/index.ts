@@ -4,7 +4,7 @@ import type { Command } from '../../commands.js'
 const command: Command = {
   name: 'chrome',
   description: 'Limkenion 浏览器（Beta）设置',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   isEnabled: () => !getIsNonInteractiveSession(),
   type: 'local-jsx',
   load: () => import('./chrome.js'),

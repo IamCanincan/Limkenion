@@ -162,14 +162,14 @@ type LocalJSXCommand = {
  * Commands with `availability` are only shown if the user matches at least one
  * of the listed auth types. See meetsAvailabilityRequirement() in commands.ts.
  *
- * Example: `availability: ['limkenion-ai', 'console']` shows the command to
- * 远端服务 subscribers and direct Console API key users (127.0.0.1),
- * but hides it from Bedrock/Vertex/Foundry users and custom base URL users.
+ * Example: `availability: ['cloud-subscriber', 'console']` shows the command to
+ * cloud-subscriber users and direct API key users, but hides it from
+ * third-party providers and custom base URL users.
  */
 export type CommandAvailability =
-  // 远端服务 OAuth subscriber (Pro/Max/Team/Enterprise via 远端服务)
-  | 'limkenion-ai'
-  // Console API key user (direct 127.0.0.1, not via 远端服务 OAuth)
+  // 云端订阅用户（本构建里恒不成立 —— 没有账号体系）
+  | 'cloud-subscriber'
+  // 直接用 API key 的用户（本构建的常态）
   | 'console'
 
 export type CommandBase = {

@@ -408,7 +408,7 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
   if (!cmd.availability) return true
   for (const a of cmd.availability) {
     switch (a) {
-      case 'limkenion-ai':
+      case 'cloud-subscriber':
         if (isLimkenionAISubscriber()) return true
         break
       case 'console':

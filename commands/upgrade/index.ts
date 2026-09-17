@@ -6,7 +6,7 @@ const upgrade = {
   type: 'local-jsx',
   name: 'upgrade',
   description: 'Limkenion 为纯本地 DeepSeek 工具，无在线套餐',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   isEnabled: () =>
     !isEnvTruthy(process.env.DISABLE_UPGRADE_COMMAND) &&
     getSubscriptionType() !== 'enterprise',

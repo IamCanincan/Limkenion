@@ -4,7 +4,7 @@ const installSlackApp = {
   type: 'local',
   name: 'install-slack-app',
   description: '安装 Limkenion Slack 应用',
-  availability: ['limkenion-ai'],
+  availability: ['cloud-subscriber'],
   supportsNonInteractive: false,
   load: () => import('./install-slack-app.js'),
 } satisfies Command
