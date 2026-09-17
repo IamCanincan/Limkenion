@@ -5,7 +5,7 @@
  * 这条链路真的通的测试。之前所有验证都是直接调 executeTool，绕过了整个链路。
  */
 
-import { test, describe, before, after, beforeEach } from 'node:test'
+import { test, describe, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -65,6 +65,30 @@ after(async () => {
 function setScript(steps) {
   stub.setScript(steps)
 }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+/**
+ * 用例之间必须**没有在途回合**。
+ *
+ * 桩模型的脚本游标是全局共享的。定时任务是有回合在后台跑的用例（`void runTurn`），
+ * 即使 clearCronsForSession 已经清掉定时器，**已经在跑的那个回合仍会跑完** ——
+ * 它会继续消费桩脚本，把下一个用例的游标顶偏，于是那个用例拿到错的脚本、
+ * 断言在一个毫不相关的用例上失败（表现为"偶发失败"，1/3 概率，极难查）。
+ */
+async function drainTurns(timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const busy = [...sessions.allSessions()].some(s => engine.isTurnActive(s.id))
+    if (!busy) return
+    await sleep(10)
+  }
+  throw new Error('有用例留下没跑完的回合（5s 内未结束）')
+}
+
+afterEach(async () => {
+  await drainTurns()
+})
 
 describe('完整回合链路', () => {
   test('模型调用 Write → 弹权限 → 允许 → 落盘 → 回灌 → 最终回答', async () => {
@@ -365,5 +389,99 @@ describe('撞到工具轮次上限时必须明说', () => {
     const text = s.messages.at(-1).text
     assert.match(text, /轮次上限/, `父回合应看到子代理撞上限的说明，实际：${JSON.stringify(text.slice(-300))}`)
     assert.doesNotMatch(text, /子代理未产出结论/, '不该只回一句无信息量的兜底')
+  })
+})
+
+describe('同一会话不并发跑两个回合', () => {
+  /**
+   * 用户按 Esc 中断之后**紧接着**又发一条，是极常见的操作。
+   * 协议层发消息时会把 cancelled 置回 false —— 如果回合只看这个布尔值，
+   * 被中断的那个回合就会"复活"，和新回合同时跑：两边都往同一个会话里写消息，
+   * 被中断那一轮的工具还会继续执行（写文件、跑命令），而用户以为已经停了。
+   */
+  test('中断后紧接着再发一条 → 被中断的回合不复活', async () => {
+    const s = sessions.createSession()
+    setupClient()
+    // 永远只读文件 → 旧回合会一直想跑下去（只需它"还活着"就行）
+    setScript([{ toolCalls: [{ id: 'loop', name: 'Read', args: { file_path: 'seed.txt' } }] }])
+
+    const old = engine.runTurn(s, '第一轮', 'msg_old')
+    await sleep(60) // 让它真的跑起来（多数时间卡在 await 上）
+
+    // 模拟「Esc 中断 + 立刻再发一条」：两步之间没有 await，
+    // 所以旧回合没机会在中间观察到 cancelled 为 true。
+    sessions.cancelSession(s)
+    s.cancelled = false
+    const next = engine.runTurn(s, '第二轮', 'msg_new')
+    await Promise.all([old, next])
+
+    const cancelledIds = client.ofType('turn_cancelled').map(m => m.messageId)
+    const completedIds = client.ofType('turn_complete').map(m => m.messageId)
+    assert.ok(cancelledIds.includes('msg_old'), `被中断的回合应以 turn_cancelled 收尾：${cancelledIds}`)
+    assert.ok(
+      !completedIds.includes('msg_old'),
+      `被中断的回合复活了（msg_old 竟然正常完成）：completed=${completedIds}`,
+    )
+    assert.ok(completedIds.includes('msg_new'), `新回合应正常完成：${completedIds}`)
+  })
+
+  test('中断后的旧回合不再继续产出工具调用', async () => {
+    const s = sessions.createSession()
+    setupClient()
+    setScript([{ toolCalls: [{ id: 'loop', name: 'Read', args: { file_path: 'seed.txt' } }] }])
+
+    const old = engine.runTurn(s, '第一轮', 'msg_old')
+    await sleep(60)
+    sessions.cancelSession(s)
+    s.cancelled = false
+    const next = engine.runTurn(s, '第二轮', 'msg_new')
+    await Promise.all([old, next])
+    await sleep(60)
+
+    const n1 = client.ofType('tool_call').filter(m => m.messageId === 'msg_old').length
+    await sleep(80)
+    const n2 = client.ofType('tool_call').filter(m => m.messageId === 'msg_old').length
+    assert.equal(n2, n1, `被中断的回合还在继续跑工具（${n1} → ${n2}）`)
+  })
+
+  /**
+   * 定时任务是唯一会"自己发起"回合的来源。回合比间隔长时，下一次触发不能直接
+   * 再开一个 —— 否则同一会话并发两个回合、token 双倍消耗、界面两条回复同时在转。
+   * 跳过必须**说出来**：静默跳过会让人以为定时任务根本没生效。
+   */
+  test('定时任务撞上未结束的回合 → 跳过本次并说明', async () => {
+    const s = sessions.createSession()
+    setupClient()
+    // Sleep 800ms：这一轮**必然**比 everyMs 长，跳过是确定会发生的（不靠运气）
+    setScript([
+      { toolCalls: [{ id: 'sl', name: 'Sleep', args: { duration_ms: 800 } }] },
+      { text: '睡醒了。' },
+    ])
+
+    const longTurn = engine.runTurn(s, '长长的一轮', 'msg_long')
+    assert.equal(engine.isTurnActive(s.id), true, '回合应当在跑')
+
+    engine.scheduleCron(s, { everyMs: 20, prompt: '定时检查' })
+    await sleep(150)
+    engine.clearCronsForSession(s.id)
+
+    const notices = client.ofType('notice').map(n => n.text)
+    assert.ok(
+      notices.some(t => /跳过/.test(t)),
+      `定时任务撞上忙碌会话时应明确说明跳过，实际 notices=${JSON.stringify(notices)}`,
+    )
+    // 跳过期间不该有第二个回合被启动
+    assert.equal(client.ofType('turn_complete').length, 0, '忙碌期间不该有回合完成')
+
+    sessions.cancelSession(s)
+    await longTurn
+  })
+
+  test('回合结束后不再是"忙碌"状态', async () => {
+    const s = sessions.createSession()
+    setupClient()
+    setScript([{ text: '好的。' }])
+    await engine.runTurn(s, '说话', 'msg_idle')
+    assert.equal(engine.isTurnActive(s.id), false, 'isTurnActive 应在回合结束后归位')
   })
 })

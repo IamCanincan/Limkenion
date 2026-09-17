@@ -25,6 +25,7 @@ import { checkHandshake } from './security.mjs'
 import {
   allSessionInfo,
   broadcastSessions,
+  cancelSession,
   collectStats,
   createSession,
   deleteSession,
@@ -176,7 +177,10 @@ async function handleClientMessage(ws, msg, registry) {
 
     case 'cancel': {
       const s = getSession(msg.sessionId)
-      if (s) s.cancelled = true
+      // 用 cancelSession：除了置 cancelled，还会推进回合代次 ——
+      // 这样即使用户紧接着又发一条（下面会把 cancelled 置回 false），
+      // 被中断的那个回合也回不来。
+      if (s) cancelSession(s)
       break
     }
 

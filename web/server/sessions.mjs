@@ -4,8 +4,9 @@
  * 原先纯内存，服务重启即失忆。现在把会话写到 `~/.limkenion-web/sessions.json`
  * （可用 LIMKENION_WEB_STATE_DIR 覆盖），启动时恢复；写入做 800ms 防抖，避免频繁落盘。
  *
- * 不可序列化的运行时状态（cancelled、Set 形式的 allowedTools/enabledTools）单独处理：
- * 持久化时转数组，恢复时转回 Set；cancelled 不落盘。
+ * 不可序列化的运行时状态（cancelled、turnSeq、Set 形式的 allowedTools/enabledTools）单独处理：
+ * 持久化时转数组，恢复时转回 Set；cancelled 不落盘，turnSeq 每次进程启动从 0 重来
+ * （回合都是进程内的，跨进程沿用旧代次没有意义）。
  *
  * 会话删除时通过 onSessionDeleted 钩子通知外部（引擎据此清理定时器），
  * 这样 sessions 不需要反向依赖引擎。
@@ -53,7 +54,40 @@ function blankSession(id) {
     tags: [],
     allowedTools: new Set(),
     enabledTools: new Set(),
+    turnSeq: 0,
   }
+}
+
+// ---------------------------------------------------------------------------
+// 回合代次（运行时状态，不落盘）
+// ---------------------------------------------------------------------------
+
+/**
+ * 开始一个回合：推进代次并返回"我这一代"。
+ *
+ * 为什么需要代次，而不是只看 `cancelled`：它是个**共享的布尔值**。
+ * 用户按 Esc 中断之后马上再发一条，协议层会把 `cancelled` 置回 false ——
+ * 此时**上一个回合会"复活"**，和新回合同时跑：两边都往同一个会话里写消息，
+ * 被中断那一轮的工具还会继续执行（写文件、跑命令），而用户以为已经停了。
+ *
+ * 代次把"谁在跑"变成回合自己的属性：代次对不上 = 这个回合已过期，
+ * 无论它正卡在哪个 await 上，下次边界检查就会停下。
+ */
+export function beginTurn(session) {
+  session.turnSeq = (session.turnSeq ?? 0) + 1
+  return session.turnSeq
+}
+
+/** 中断会话：置标志并推进代次，让在途回合立刻过期。 */
+export function cancelSession(session) {
+  if (!session) return
+  session.cancelled = true
+  session.turnSeq = (session.turnSeq ?? 0) + 1
+}
+
+/** 该回合是否已过期（被中断，或被后来的回合顶掉）。 */
+export function turnExpired(session, seq) {
+  return (session.turnSeq ?? 0) !== seq
 }
 
 export function createSession() {
@@ -159,7 +193,9 @@ export function broadcastSessions() {
 export function deleteSession(id) {
   const s = sessions.get(id)
   if (!s) return false
-  s.cancelled = true
+  // 用 cancelSession 而不是直接写 cancelled：它同时推进代次，
+  // 让正在跑的回合在下一个边界就过期，而不是等它自己检查布尔值。
+  cancelSession(s)
   sessions.delete(id)
   for (const fn of deleteHooks) {
     try {

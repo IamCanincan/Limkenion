@@ -26,7 +26,13 @@ import {
   requestPermission,
   requestQuestions,
 } from './interactions.mjs'
-import { allSessions, broadcastSessions, schedulePersist } from './sessions.mjs'
+import {
+  allSessions,
+  beginTurn,
+  broadcastSessions,
+  schedulePersist,
+  turnExpired,
+} from './sessions.mjs'
 import { deniedBy } from './settings.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
@@ -38,6 +44,20 @@ function newMessageId() {
 }
 
 export { newMessageId }
+
+/**
+ * 正在跑回合的会话（同一会话不并发跑两个回合）。
+ *
+ * 定时任务是唯一会"自己发起"回合的来源：间隔到了就触发。如果上一次还没跑完
+ * （回合比间隔还长），再触发一次就会同一会话并发跑两个回合 —— 消息交错、
+ * token 双倍消耗、界面出现两条同时在转的回复。所以要能查"这个会话忙不忙"。
+ */
+const activeTurns = new Set()
+
+/** 该会话当前是否有回合在执行。 */
+export function isTurnActive(sessionId) {
+  return activeTurns.has(sessionId)
+}
 
 function baseSystemPrompt() {
   return (
@@ -132,8 +152,13 @@ function makeSummarizer(session) {
 /**
  * 单个 agent 回合：模型 ⇄ 工具多轮迭代，直到最终回答（或轮次上限）。
  * 事件流：assistant_reasoning / assistant_delta / tool_call / tool_result / notice。
+ *
+ * @param {object} session
+ * @param {string} text
+ * @param {(ev: object) => void} emit
+ * @param {() => boolean} expired 本回合是否已过期（被中断，或被后来的回合顶掉）
  */
-async function runDeepSeekTurn(session, text, emit) {
+async function runDeepSeekTurn(session, text, emit, expired) {
   const settings = settingsFor(session)
   const messages = sessionToWireMessages(session)
   let totalUsage = { inputTokens: 0, outputTokens: 0 }
@@ -162,11 +187,11 @@ async function runDeepSeekTurn(session, text, emit) {
       return ok
     },
     enableTools: names => enableTools(session, names),
-    runSubAgent: ({ description, prompt }) => runSubAgent(session, prompt, description, emit),
+    runSubAgent: ({ description, prompt }) => runSubAgent(session, prompt, description, emit, expired),
   }
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    if (session.cancelled) break
+    if (expired()) break
 
     // 记录这次模型请求的耗时/状态/token —— 供 Web 端的「请求追踪」面板查看。
     // 成功与失败都记：排查"为什么卡住"时，失败那条往往是关键。
@@ -233,7 +258,7 @@ async function runDeepSeekTurn(session, text, emit) {
     })
 
     for (const tc of toolCalls) {
-      if (session.cancelled) break
+      if (expired()) break
 
       let input = {}
       try {
@@ -364,7 +389,7 @@ async function runDeepSeekTurn(session, text, emit) {
   }
 
   // 撞到工具轮次上限就明说 —— 静默停止会让用户以为模型"答完了"。
-  if (!finishedNaturally && !session.cancelled) {
+  if (!finishedNaturally && !expired()) {
     emit({
       type: 'assistant_delta',
       delta:
@@ -381,7 +406,7 @@ async function runDeepSeekTurn(session, text, emit) {
  * 只读子代理（Agent 工具）：独立上下文跑一个小循环，只允许只读工具。
  * 内部工具调用以 `Agent·<工具>` 的形式冒泡到界面，保持过程可见。
  */
-async function runSubAgent(session, prompt, description, emit) {
+async function runSubAgent(session, prompt, description, emit, expired) {
   if (!getApiKey()) {
     return `（mock 引擎）子代理「${description ?? 'task'}」无法执行：未设置 DEEPSEEK_API_KEY。`
   }
@@ -415,7 +440,7 @@ async function runSubAgent(session, prompt, description, emit) {
   }
 
   for (let round = 0; round < MAX_SUBAGENT_ROUNDS; round++) {
-    if (session.cancelled) break
+    if (expired()) break
     const { toolCalls } = await chatCompletion({
       model: settingsFor(session).model,
       messages,
@@ -441,7 +466,7 @@ async function runSubAgent(session, prompt, description, emit) {
     })
 
     for (const tc of toolCalls) {
-      if (session.cancelled) break
+      if (expired()) break
       let input = {}
       try {
         input = tc.arguments ? JSON.parse(tc.arguments) : {}
@@ -475,7 +500,7 @@ async function runSubAgent(session, prompt, description, emit) {
   }
   // 撞到轮次上限时给父模型一个**明确说法** —— 原来只回「（子代理未产出结论）」，
   // 父模型根本不知道是"子代理空转完了"还是"任务太大做不完"，于是容易反复重派。
-  if (!finishedNaturally && !session.cancelled) {
+  if (!finishedNaturally && !expired()) {
     return (
       `（子代理已达轮次上限 ${MAX_SUBAGENT_ROUNDS} 轮，未给出结论）\n` +
       '它已经做过的探查：' +
@@ -501,12 +526,12 @@ async function runMockTurn(session, text, emit) {
 }
 
 /** 统一回合入口：真实引擎优先，失败时把错误作为正文反馈。 */
-async function runAgentTurn(session, text, emit) {
+async function runAgentTurn(session, text, emit, expired) {
   if (!getApiKey()) return runMockTurn(session, text, emit)
   try {
-    return await runDeepSeekTurn(session, text, emit)
+    return await runDeepSeekTurn(session, text, emit, expired)
   } catch (err) {
-    if (session.cancelled) return { inputTokens: 0, outputTokens: 0 }
+    if (expired()) return { inputTokens: 0, outputTokens: 0 }
     emit({ type: 'assistant_delta', delta: '⚠️ DeepSeek 调用失败：' + String(err.message ?? err) })
     return { inputTokens: 0, outputTokens: 0 }
   }
@@ -517,11 +542,14 @@ async function runAgentTurn(session, text, emit) {
  * @returns {Promise<void>}
  */
 export async function runTurn(session, text, messageId = newMessageId()) {
+  // 本回合的代次：从这一刻起，"是否还在跑"由代次说了算（见 sessions.beginTurn）。
+  const seq = beginTurn(session)
+  const expired = () => session.cancelled || turnExpired(session, seq)
   let acc = ''
   let reasoning = ''
   let toolCalls = []
   const emit = ev => {
-    if (session.cancelled) return
+    if (expired()) return
     if (ev.type === 'assistant_delta') acc += ev.delta
     if (ev.type === 'assistant_reasoning') reasoning += ev.delta
     if (ev.type === 'tool_call') toolCalls.push(ev.toolCall)
@@ -541,11 +569,12 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     broadcast({ sessionId: session.id, messageId, ...ev })
   }
 
+  activeTurns.add(session.id)
   try {
-    const usage = await runAgentTurn(session, text, emit)
+    const usage = await runAgentTurn(session, text, emit, expired)
     session.turnCount++
     session.toolCallCount += toolCalls.length
-    if (session.cancelled) {
+    if (expired()) {
       session.messages.push({ id: messageId, role: 'assistant', text: acc, reasoning, toolCalls, timestamp: Date.now() })
       broadcast({ type: 'turn_cancelled', sessionId: session.id, messageId })
     } else {
@@ -564,6 +593,8 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     }
   } catch (err) {
     broadcast({ type: 'error', message: `回合执行失败：${String(err)}` })
+  } finally {
+    activeTurns.delete(session.id)
   }
   session.updatedAt = Date.now()
   broadcastSessions()
@@ -590,6 +621,16 @@ export function scheduleCron(session, { everyMs, prompt }) {
     if (![...allSessions()].some(s => s.id === session.id)) {
       clearInterval(timer)
       crons.delete(id)
+      return
+    }
+    // 上一个回合还在跑就跳过本次 —— 同一会话不允许并发回合。
+    // 跳过要**说出来**：静默跳过会让人以为定时任务没生效（在排查"为什么没触发"时最难查）。
+    if (activeTurns.has(session.id)) {
+      broadcast({
+        type: 'notice',
+        sessionId: session.id,
+        text: `[定时任务] 上一次「${prompt}」还在执行，本次跳过（同一会话不会并发跑两个回合）。`,
+      })
       return
     }
     session.cancelled = false
