@@ -1106,6 +1106,32 @@ export const getApiKeyFromConfigOrMacOSKeychain = memoize(
   },
 )
 
+/**
+ * 是否已经配置了任何可用的 API Key（不校验有效性）。
+ *
+ * 覆盖全部来源：环境变量（LIMKENION_ / DEEPSEEK_ / OPENAI_API_KEY）、
+ * apiKeyHelper、以及 /login 保存到全局配置的 primaryApiKey。
+ *
+ * 存在的理由：启动向导原本只检查环境变量，于是用户用 /login 存了 key 之后
+ * 每次启动仍会被弹一遍"选择登录方式"的向导。**任何"有没有配 key"的判断
+ * 都该用这个函数，不要各自去读 process.env。**
+ */
+export function hasAnyApiKeyConfigured(): boolean {
+  if (
+    process.env.LIMKENION_API_KEY ||
+    process.env.DEEPSEEK_API_KEY ||
+    process.env.OPENAI_API_KEY
+  ) {
+    return true
+  }
+  try {
+    return getApiKeyFromConfigOrMacOSKeychain() !== null
+  } catch {
+    // 配置尚未允许读取（bootstrap 之前）时视为未配置，不要抛
+    return false
+  }
+}
+
 function isValidApiKey(apiKey: string): boolean {
   // Only allow alphanumeric characters, dashes, and underscores
   return /^[a-zA-Z0-9-_]+$/.test(apiKey)

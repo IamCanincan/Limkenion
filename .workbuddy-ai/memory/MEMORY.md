@@ -112,7 +112,16 @@ Windows 上就是写配置文件。不需要另造轮子。
   不要硬比 `process.env.LIMKENION_API_PROVIDER === 'openai'`。
   2026-09-17 踩过：三处硬比导致只设 `DEEPSEEK_API_KEY` 时 queryModel 落到已移除的上游 SDK 路径，
   每次请求必报"上游 client 已移除"（commit 26d53b0 已修）。
-  `isOpenAICompat()` 的取 key 顺序必须与 `services/api/openai-compat.ts` 的 `getConfig()` 保持一致。
+- **`isOpenAICompat()` 恒返回 `true`，不是"检测"出来的。** 上游协议在本项目里已永久移除，
+  不存在"另一种模式"可回退。**同一个坑踩了两次**：第二版把它写成"检测到 key 才算兼容模式"，
+  于是用户把 key 清空后 → false → 全仓库又回落到已删除的上游路径，
+  表现为每次请求报"上游 client 已移除"，且欢迎屏模型名变回上游的 `Sonnet 4.6`。
+  **"用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**
+  有没有 key 用 `hasAnyApiKeyConfigured()`（`utils/auth.ts`）。
+- **"有没有配 key"统一用 `hasAnyApiKeyConfigured()`**：覆盖环境变量 + apiKeyHelper +
+  `/login` 存到全局配置的 `primaryApiKey`。别各自去读 `process.env` ——
+  `interactiveHelpers.tsx` 的启动向导原本就是这么写的，导致用户 `/login` 存了 key
+  每次启动还被弹向导。
 - 上游 SDK 已不存在（`types/llm-protocol.ts` 里的 `Limkenion` 只是会抛错的占位类），
   **任何非兼容路径都是死路**，`.beta` / `.messages` 一碰就抛。
 - 官方插件市场自动安装**默认关闭**（云端源不存在）；要开得显式设
@@ -200,6 +209,11 @@ Windows 上就是写配置文件。不需要另造轮子。
   `shouldProcessRateLimits(isLimkenionAISubscriber())` 拦住，本地模式恒 false（除非设了 mock 开关）。
 
 **教训**：报"某功能坏了"之前，先确认那条路真的可达（找守卫/短路条件），别只看调用点存在。
+
+## 踩过的构建坑
+- **JSDoc 里不能写 `**/`**：`/** ... **/login ... */` 中的 `*/` 会提前闭合注释块，
+  esbuild 报 `Expected ";" but found "..."`，整个构建挂掉。
+  写 `/login` 就好，别在块注释里给路径加 markdown 粗体。
 
 ## 测试相关
 - `NODE_ENV=test` 会让 `services/vcr.ts` 的 `shouldUseVCR()` 返回 true，

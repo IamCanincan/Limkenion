@@ -18,6 +18,7 @@ import { handleMcpjsonServerApprovals } from './services/mcpServerApproval.js';
 import { AppStateProvider } from './state/AppState.js';
 import { onChangeAppState } from './state/onChangeAppState.js';
 import { normalizeApiKeyForConfig } from './utils/authPortable.js';
+import { hasAnyApiKeyConfigured } from './utils/auth.js';
 import { getExternalLimkenionMdIncludes, getMemoryFiles, shouldShowLimkenionMdExternalIncludesWarning } from './utils/limkenionmd.js';
 import { checkHasTrustDialogAccepted, getCustomApiKeyStatus, getGlobalConfig, saveGlobalConfig } from './utils/config.js';
 import { updateDeepLinkTerminalPreference } from './utils/deepLink/terminalPreference.js';
@@ -112,11 +113,10 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   // 该向导会让你选择登录方式（订阅 / console / 第三方）和主题 ——
   // 对使用 DeepSeek 或其他 OpenAI 兼容端点的 API key 用户来说，两者都没有意义。
   // 注意这里只跳过 Onboarding；下面的 TrustDialog 是安全边界，仍会执行。
-  const hasApiKey = Boolean(
-    process.env.LIMKENION_API_KEY ||
-      process.env.DEEPSEEK_API_KEY ||
-      process.env.OPENAI_API_KEY,
-  )
+  //
+  // 必须用 hasAnyApiKeyConfigured()，不要各自去读 process.env —— 后者看不见
+  // /login 保存到全局配置的 key，会导致用户明明配好了、每次启动还被弹向导。
+  const hasApiKey = hasAnyApiKeyConfigured()
 
   let onboardingShown = false;
   if (!hasApiKey && (!config.theme || !config.hasCompletedOnboarding) // 至少始终显示一次引导流程

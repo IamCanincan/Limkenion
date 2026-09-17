@@ -256,7 +256,8 @@ export async function* queryOpenAICompat({
   const cfg = getConfig()
   if (!cfg.apiKey) {
     throw new Error(
-      'OpenAI 兼容模式需要 API key：请设置 DEEPSEEK_API_KEY（或 OPENAI_API_KEY）',
+      '尚未配置 API Key。请运行 /login 输入 DeepSeek API Key，' +
+        '或设置 DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量后重启。',
     )
   }
 
