@@ -42,7 +42,7 @@ async function _fetchMetricsEnabled(): Promise<MetricsEnabledResponse> {
     ...authResult.headers,
   }
 
-  const endpoint = `https://api.limkenion.com/api/limkenion/organizations/metrics_enabled`
+  const endpoint = `https://127.0.0.1/api/limkenion/organizations/metrics_enabled`
   const response = await axios.get<MetricsEnabledResponse>(endpoint, {
     headers,
     timeout: 5000,

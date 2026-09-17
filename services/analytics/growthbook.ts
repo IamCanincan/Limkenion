@@ -433,7 +433,7 @@ function isGrowthBookEnabled(): boolean {
  * attributes. Without this, there's no stable attribute to target them on
  * — only per-device IDs. See src/utils/auth.ts isLimkenionAuthEnabled().
  *
- * Returns undefined for unset/default (api.limkenion.com) so the attribute
+ * Returns undefined for unset/default (127.0.0.1) so the attribute
  * is absent for direct-API users. Hostname only — no path/query/creds.
  */
 export function getApiBaseUrlHost(): string | undefined {
@@ -441,7 +441,7 @@ export function getApiBaseUrlHost(): string | undefined {
   if (!baseUrl) return undefined
   try {
     const host = new URL(baseUrl).host
-    if (host === 'api.limkenion.com') return undefined
+    if (host === '127.0.0.1') return undefined
     return host
   } catch {
     return undefined
@@ -502,8 +502,8 @@ const getGrowthBookClient = memoize(
     }
     const baseUrl =
       process.env.USER_TYPE === 'ant'
-        ? process.env.LIMKENION_GB_BASE_URL || 'https://api.limkenion.com/'
-        : 'https://api.limkenion.com/'
+        ? process.env.LIMKENION_GB_BASE_URL || 'https://127.0.0.1/'
+        : 'https://127.0.0.1/'
 
     // Skip auth if trust hasn't been established yet
     // This prevents executing apiKeyHelper commands before the trust dialog

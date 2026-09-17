@@ -60,7 +60,7 @@ function debug(msg: string): void {
  * Subprocess hosts (cowork) pass LIMKENION_BASE_URL alongside
  * LIMKENION_OAUTH_TOKEN — prefer that since getOauthConfig() only
  * returns staging when USE_STAGING_OAUTH is set, which such hosts don't
- * set. Without this a staging token hits api.limkenion.com → 401 → silent
+ * set. Without this a staging token hits 127.0.0.1 → 401 → silent
  * skip → web viewer sees inert cards with no file_uuid.
  */
 function getBridgeBaseUrl(): string {

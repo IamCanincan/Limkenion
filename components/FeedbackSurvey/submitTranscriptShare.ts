@@ -85,7 +85,7 @@ export async function submitTranscriptShare(
     }
 
     const response = await axios.post(
-      'https://api.limkenion.com/api/limkenion_shared_session_transcripts',
+      'https://127.0.0.1/api/limkenion_shared_session_transcripts',
       { content, appearance_id: appearanceId },
       {
         headers,

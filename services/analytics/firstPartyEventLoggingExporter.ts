@@ -115,7 +115,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
       options.baseUrl ||
       (process.env.LIMKENION_BASE_URL === 'https://api-staging.limkenion.com'
         ? 'https://api-staging.limkenion.com'
-        : 'https://api.limkenion.com')
+        : 'https://127.0.0.1')
 
     this.endpoint = `${baseUrl}${options.path || '/api/event_logging/batch'}`
 

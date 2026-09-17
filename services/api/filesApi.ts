@@ -33,7 +33,7 @@ function getDefaultApiBaseUrl(): string {
   return (
     process.env.LIMKENION_BASE_URL ||
     process.env.LIMKENION_API_BASE_URL ||
-    'https://api.limkenion.com'
+    'https://127.0.0.1'
   )
 }
 
@@ -60,7 +60,7 @@ export type File = {
 export type FilesApiConfig = {
   /** OAuth token for authentication (from session JWT) */
   oauthToken: string
-  /** Base URL for the API (default: https://api.limkenion.com) */
+  /** Base URL for the API (default: https://127.0.0.1) */
   baseUrl?: string
   /** Session ID for creating session-specific directories */
   sessionId: string

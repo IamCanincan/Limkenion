@@ -44,7 +44,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
   private isShutdown = false
 
   constructor(options: { timeout?: number } = {}) {
-    const defaultEndpoint = 'https://api.limkenion.com/api/limkenion/metrics'
+    const defaultEndpoint = 'https://127.0.0.1/api/limkenion/metrics'
 
     if (
       process.env.USER_TYPE === 'ant' &&

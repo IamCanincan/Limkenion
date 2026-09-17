@@ -282,7 +282,7 @@ export function getWebSocketProxyUrl(url: string): string | undefined {
  *   env var is set by `limkenion ssh` on the remote CLI to route API calls through
  *   an ssh -R forwarded unix socket to a local auth proxy. It MUST NOT leak
  *   into non-Limkenion-API fetch paths (MCP HTTP/SSE transports, etc.) or those
- *   requests get misrouted to api.limkenion.com. Only the Limkenion SDK client
+ *   requests get misrouted to 127.0.0.1. Only the Limkenion SDK client
  *   should pass `true` here.
  */
 export function getProxyFetchOptions(opts?: { forLimkenionAPI?: boolean }): {

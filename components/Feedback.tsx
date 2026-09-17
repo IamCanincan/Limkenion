@@ -540,7 +540,7 @@ async function submitFeedback(data: FeedbackData, signal?: AbortSignal): Promise
       'User-Agent': getUserAgent(),
       ...authResult.headers
     };
-    const response = await axios.post('https://api.limkenion.com/api/limkenion_cli_feedback', {
+    const response = await axios.post('https://127.0.0.1/api/limkenion_cli_feedback', {
       content: jsonStringify(data)
     }, {
       headers,
