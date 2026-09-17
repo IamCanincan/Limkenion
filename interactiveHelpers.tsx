@@ -107,8 +107,22 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     return false;
   }
   const config = getGlobalConfig();
+
+  // Skip the onboarding wizard when an API key is already configured.
+  // The wizard asks you to pick a login method (subscription / console /
+  // 3rd-party) and a theme — both are meaningless for an API-key user whose
+  // provider is DeepSeek or another OpenAI-compatible endpoint. Note we only
+  // skip Onboarding here; the TrustDialog below is a security boundary and
+  // still runs.
+  const hasApiKey = Boolean(
+    process.env.LIMKENION_API_KEY ||
+      process.env.DEEPSEEK_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.上游_API_KEY,
+  )
+
   let onboardingShown = false;
-  if (!config.theme || !config.hasCompletedOnboarding // always show onboarding at least once
+  if (!hasApiKey && (!config.theme || !config.hasCompletedOnboarding) // always show onboarding at least once
   ) {
     onboardingShown = true;
     const {
