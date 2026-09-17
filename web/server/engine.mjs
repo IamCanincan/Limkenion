@@ -29,6 +29,7 @@ import { allSessions, broadcastSessions, schedulePersist } from './sessions.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
+import { recordRequest } from './requestLog.mjs'
 
 function newMessageId() {
   return `m_${Math.random().toString(36).slice(2, 10)}`
@@ -150,19 +151,46 @@ async function runDeepSeekTurn(session, text, emit) {
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (session.cancelled) break
 
-    const { usage, toolCalls } = await chatCompletion({
+    // 记录这次模型请求的耗时/状态/token —— 供 Web 端的「请求追踪」面板查看。
+    // 成功与失败都记：排查"为什么卡住"时，失败那条往往是关键。
+    const requestAt = Date.now()
+    let usage
+    let toolCalls
+    try {
+      ;({ usage, toolCalls } = await chatCompletion({
+        model: settings.model,
+        messages,
+        tools: schemasFor(session),
+        onDelta: ev => {
+          if (ev.type === 'reasoning') {
+            reasoning += ev.delta
+            emit({ type: 'assistant_reasoning', delta: ev.delta })
+          } else if (ev.type === 'text') {
+            answer += ev.delta
+            emit({ type: 'assistant_delta', delta: ev.delta })
+          }
+        },
+      }))
+    } catch (err) {
+      recordRequest({
+        at: requestAt,
+        durationMs: Date.now() - requestAt,
+        model: settings.model,
+        ok: false,
+        code: err?.code ?? null,
+        error: err?.message ?? String(err),
+        sessionId: session.id,
+      })
+      throw err
+    }
+    recordRequest({
+      at: requestAt,
+      durationMs: Date.now() - requestAt,
       model: settings.model,
-      messages,
-      tools: schemasFor(session),
-      onDelta: ev => {
-        if (ev.type === 'reasoning') {
-          reasoning += ev.delta
-          emit({ type: 'assistant_reasoning', delta: ev.delta })
-        } else if (ev.type === 'text') {
-          answer += ev.delta
-          emit({ type: 'assistant_delta', delta: ev.delta })
-        }
-      },
+      ok: true,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      sessionId: session.id,
     })
     totalUsage.inputTokens += usage.inputTokens
     totalUsage.outputTokens += usage.outputTokens

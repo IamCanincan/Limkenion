@@ -55,6 +55,14 @@ export async function startStubModel(initialScript) {
       }
       const step = script[Math.min(idx++, script.length - 1)] ?? { text: '（桩模型默认回复）' }
 
+      // 支持模拟错误响应：{ status: 500, error: '...' }
+      // 用于验证失败路径（重试、错误记录、用户提示）。
+      if (step.status && step.status !== 200) {
+        res.writeHead(step.status, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ error: { message: step.error ?? `桩模型错误 ${step.status}` } }))
+        return
+      }
+
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
       const emit = obj => res.write(`data: ${JSON.stringify(obj)}\n\n`)
 

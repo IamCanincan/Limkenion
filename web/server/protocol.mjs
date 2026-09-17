@@ -20,6 +20,7 @@ import {
 import { runCommand, exportSessionMarkdown } from './commands.mjs'
 import { newMessageId, runTurn } from './engine.mjs'
 import { resolvePermission, resolveQuestions } from './interactions.mjs'
+import { clearRequests, listRequests, requestSummary } from './requestLog.mjs'
 import { checkHandshake } from './security.mjs'
 import {
   allSessionInfo,
@@ -195,6 +196,26 @@ async function handleClientMessage(ws, msg, registry) {
     case 'get_stats': {
       const s = getSession(msg.sessionId) ?? allSessionInfo()[0]
       send(ws, { type: 'stats', stats: collectStats(s ? getSession(s.id) : null, startedAt) })
+      break
+    }
+
+    case 'get_requests': {
+      send(ws, {
+        type: 'requests',
+        requests: listRequests(msg.limit),
+        summary: requestSummary(),
+      })
+      break
+    }
+
+    case 'clear_requests': {
+      const cleared = clearRequests()
+      send(ws, {
+        type: 'requests',
+        requests: listRequests(msg.limit),
+        summary: requestSummary(),
+        cleared,
+      })
       break
     }
 

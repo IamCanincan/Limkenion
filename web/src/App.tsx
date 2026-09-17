@@ -6,9 +6,12 @@ import { Composer } from './components/Composer'
 import { StatusBar } from './components/StatusBar'
 import { ModelSelector } from './components/ModelSelector'
 import { SettingsControls } from './components/SettingsControls'
+import { RequestLogPanel } from './components/RequestLogPanel'
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog'
 import { QuestionDialog } from './components/QuestionDialog'
 import type {
+  RequestLogEntry,
+  RequestSummary,
   AskQuestion,
   ChatMessage,
   CommandInfo,
@@ -42,6 +45,9 @@ export function App() {
   const [planMode, setPlanMode] = useState(false)
   const [files, setFiles] = useState<string[]>([])
   const [stats, setStats] = useState<UsageStats | null>(null)
+  const [requests, setRequests] = useState<RequestLogEntry[]>([])
+  const [requestSummary, setRequestSummary] = useState<RequestSummary | null>(null)
+  const [showRequests, setShowRequests] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
@@ -53,6 +59,14 @@ export function App() {
   const refreshStats = useCallback(() => {
     const id = activeSessionIdRef.current
     if (id !== null) connectionRef.current.send({ type: 'get_stats' })
+  }, [])
+
+  const refreshRequests = useCallback(() => {
+    connectionRef.current.send({ type: 'get_requests' })
+  }, [])
+
+  const clearRequests = useCallback(() => {
+    connectionRef.current.send({ type: 'clear_requests' })
   }, [])
 
   /** 会话导出：收到 Markdown 后触发浏览器下载。 */
@@ -222,6 +236,10 @@ export function App() {
         case 'stats':
           setStats(msg.stats)
           break
+        case 'requests':
+          setRequests(msg.requests)
+          setRequestSummary(msg.summary)
+          break
         case 'permission_request':
           setPermissionRequest({
             requestId: msg.requestId,
@@ -372,12 +390,28 @@ export function App() {
         <header className="chat-header">
           <ModelSelector models={models} current={currentModel} onSelect={onSelectModel} />
           <SettingsControls settings={settings} onSet={onSetSetting} />
+          <button
+            className="request-log-btn"
+            onClick={() => setShowRequests(v => !v)}
+            title="查看每次模型请求的耗时与状态"
+          >
+            请求追踪{requestSummary && requestSummary.failed > 0 ? ` (${requestSummary.failed} 失败)` : ''}
+          </button>
           <span className="chat-header-hint">键入 / 浏览 {commands.length} 个命令</span>
         </header>
         {planMode && (
           <div className="plan-banner">
             计划模式已开启：模型只做只读探查并给出方案，不会修改文件。再次执行 /plan 退出。
           </div>
+        )}
+        {showRequests && (
+          <RequestLogPanel
+            requests={requests}
+            summary={requestSummary}
+            onRefresh={refreshRequests}
+            onClear={clearRequests}
+            onClose={() => setShowRequests(false)}
+          />
         )}
         <ChatView messages={messages} streaming={streamingMessageId !== null} />
         <Composer

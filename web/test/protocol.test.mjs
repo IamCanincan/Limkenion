@@ -264,3 +264,35 @@ describe('会话持久化', () => {
     c2.close()
   })
 })
+
+describe('请求追踪协议', () => {
+  test('get_requests 返回 requests + summary 两个字段', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'get_requests' }))
+    const msg = await client.next('requests')
+    assert.ok(Array.isArray(msg.requests), 'requests 应是数组')
+    assert.ok(msg.summary && typeof msg.summary.count === 'number', 'summary 应带 count')
+    assert.ok('ok' in msg.summary && 'failed' in msg.summary, 'summary 应带成功/失败计数')
+    client.close()
+  })
+
+  test('clear_requests 清空并回报条数', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'clear_requests' }))
+    const msg = await client.next('requests')
+    assert.ok(typeof msg.cleared === 'number', 'cleared 应是数字')
+    assert.equal(msg.requests.length, 0, '清空后应为空')
+    client.close()
+  })
+
+  test('limit 参数生效（不会返回超过上限的条数）', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'get_requests', limit: 1 }))
+    const msg = await client.next('requests')
+    assert.ok(msg.requests.length <= 1, 'limit=1 时最多返回 1 条')
+    client.close()
+  })
+})

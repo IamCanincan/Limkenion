@@ -18,6 +18,8 @@ export type ClientMessage =
   | { type: 'get_settings'; sessionId?: string }
   | { type: 'set_setting'; key: string; value: unknown; sessionId?: string }
   | { type: 'get_stats' }
+  | { type: 'get_requests'; limit?: number }
+  | { type: 'clear_requests'; limit?: number }
   | { type: 'export_session'; sessionId: string }
   | { type: 'list_files' }
   | { type: 'permission_response'; requestId: string; decision: 'allow' | 'always' | 'deny' }
@@ -69,6 +71,7 @@ export type ServerMessage =
   | { type: 'model_changed'; model: string; sessionId?: string | null }
   | { type: 'settings'; settings: Settings; sessionId?: string | null }
   | { type: 'stats'; stats: UsageStats }
+  | { type: 'requests'; requests: RequestLogEntry[]; summary: RequestSummary; cleared?: number }
   | { type: 'files'; files: string[] }
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
@@ -200,3 +203,30 @@ export interface UsageStats {
 }
 
 export type ConnectionState = 'connecting' | 'open' | 'closed'
+
+/** 一次模型请求的记录（服务端内存环形缓冲，进程重启即清空）。 */
+export interface RequestLogEntry {
+  id: number
+  /** 请求发起时刻（epoch ms）。 */
+  at: number
+  durationMs: number
+  model: string
+  ok: boolean
+  /** 失败时的错误码（如 HTTP_429 / TRANSPORT / MISSING_CREDENTIAL）。 */
+  code: string | null
+  error: string | null
+  inputTokens: number
+  outputTokens: number
+  sessionId: string | null
+}
+
+/** 请求记录的汇总（面板顶部统计条）。 */
+export interface RequestSummary {
+  count: number
+  ok: number
+  failed: number
+  avgMs: number
+  maxMs: number
+  inputTokens: number
+  outputTokens: number
+}

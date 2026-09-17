@@ -11,11 +11,23 @@
 export const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com'
 export const API_KEY_ENV = 'DEEPSEEK_API_KEY'
 
+/**
+ * 模型目录。
+ *
+ * **必须与 CLI 端对齐**（`utils/model/configs.ts` 的 `ALL_MODEL_CONFIGS`）——
+ * 这是用户明确要求的"双端功能语义对齐"。
+ *
+ * 之前这里抄的是 deepseek-harness 的 `DEFAULT_MODELS`，列了 4 个，其中
+ * `deepseek-v4-flash` 与 `deepseek-v4-flash-vision-exp` 是**已退役的别名**
+ * （官方说明：请求会被转发到 V4.1-Flash 并按 Flash 计费），而且
+ * `MODELS[0]` 被当作默认模型 —— 于是 web 端默认用的竟是个退役别名，
+ * 和 CLI 的默认（deepseek-flash）不一致。
+ *
+ * 以实测 `GET https://api.deepseek.com/models` 为准：只有下面两个。
+ */
 export const DEEPSEEK_MODELS = [
-  { value: 'deepseek-v4-flash', label: 'V4 Flash', description: '快速、经济，适合日常与并行任务' },
-  { value: 'deepseek-v4-pro', label: 'V4 Pro', description: '更强推理与复杂编码，含思维链' },
-  { value: 'deepseek-flash', label: 'V41 Flash', description: '多模态（文本+图像）快速模型' },
-  { value: 'deepseek-v4-flash-vision-exp', label: 'V4 Flash Vision (实验)', description: '实验性视觉模型' },
+  { value: 'deepseek-flash', label: 'DeepSeek Flash', description: '快速、经济，适合日常任务；支持图像输入' },
+  { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', description: '更强推理与复杂编码，含思维链；不支持图像' },
 ]
 
 export function getApiKey() {
