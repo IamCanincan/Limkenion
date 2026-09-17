@@ -238,3 +238,24 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 
 **结论：真正的差距不在 API 层，而在功能层**（upstream-ref-impl 是完整桌面工作台）。
 按用户"只支持 DeepSeek"的决定，多供应商那条不算缺口。
+
+## 九、Web 端「请求追踪」面板（2026-09-18）
+用户："CLI 不能加，可以加 web 上。"
+- 服务端 `web/server/requestLog.mjs`：内存环形缓冲（最近 500 条），记录每次模型调用的
+  耗时/状态/错误码/token。**成功与失败都记**。在 `engine.mjs` 的模型调用点接入（一处覆盖全部）。
+- 协议：`get_requests` / `clear_requests` 两个 WS 消息（`protocol.mjs`）。
+- 客户端：`web/src/components/RequestLogPanel.tsx`（汇总条 + 成功/失败筛选 + 耗时条形图 +
+  点行展开错误详情）；入口是聊天头部一个按钮，有失败时按钮上显示失败数。
+- 样式在 `web/src/styles.css` 末尾，用 CSS 变量，深浅主题自动跟随。
+- **只在内存里**：不上报、不落盘、不写进会话文件。
+
+### 顺带修掉的真 bug：双端模型列表不一致
+`web/server/deepseek.mjs` 的 `DEEPSEEK_MODELS` 原本抄的是 deepseek-harness 的
+`DEFAULT_MODELS`（4 个），其中 `deepseek-v4-flash` 与 `deepseek-v4-flash-vision-exp`
+是**已退役的别名**，而且 `MODELS[0]` 被当作默认模型 —— **web 端默认用的竟是个退役别名**，
+与 CLI 的 `deepseek-flash` 不一致。**这违反用户"双端功能语义对齐"的要求。**
+已按实测 `GET /models` 对齐成同样两个。
+
+### 测试
+新增 `web/test/requestLog.test.mjs`（5 项）；`protocol.test.mjs` 补 3 项 WS 往返。
+顺带扩展测试桩支持 `{ status: 500 }` 模拟错误。全套 web 测试 **137 项全过**。
