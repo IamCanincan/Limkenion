@@ -347,7 +347,7 @@ export function GroveDialog(t0) {
   return t14;
 }
 function _temp(exitState) {
-  return exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <Byline><KeyboardShortcutHint shortcut="Enter" action="confirm" /><KeyboardShortcutHint shortcut="Esc" action="cancel" /></Byline>;
+  return exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : <Byline><KeyboardShortcutHint shortcut="Enter" action="confirm" /><KeyboardShortcutHint shortcut="Esc" action="cancel" /></Byline>;
 }
 type PrivacySettingsDialogProps = {
   settings: AccountSettings;
@@ -417,7 +417,7 @@ export function PrivacySettingsDialog(t0) {
   }
   let t4;
   if ($[7] !== domainExcluded) {
-    t4 = exitState => exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : domainExcluded ? <KeyboardShortcutHint shortcut="Esc" action="cancel" /> : <Byline><KeyboardShortcutHint shortcut="Enter/Tab/Space" action="toggle" /><KeyboardShortcutHint shortcut="Esc" action="cancel" /></Byline>;
+    t4 = exitState => exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : domainExcluded ? <KeyboardShortcutHint shortcut="Esc" action="cancel" /> : <Byline><KeyboardShortcutHint shortcut="Enter/Tab/Space" action="toggle" /><KeyboardShortcutHint shortcut="Esc" action="cancel" /></Byline>;
     $[7] = domainExcluded;
     $[8] = t4;
   } else {

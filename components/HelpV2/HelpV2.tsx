@@ -153,7 +153,7 @@ export function HelpV2(t0) {
   }
   let t8;
   if ($[34] !== dismissShortcut || $[35] !== exitState.keyName || $[36] !== exitState.pending) {
-    t8 = <Box marginTop={1}><Text dimColor={true}>{exitState.pending ? <>Press {exitState.keyName} again to exit</> : <Text italic={true}>{dismissShortcut} to cancel</Text>}</Text></Box>;
+    t8 = <Box marginTop={1}><Text dimColor={true}>{exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <Text italic={true}>{dismissShortcut} to cancel</Text>}</Text></Box>;
     $[34] = dismissShortcut;
     $[35] = exitState.keyName;
     $[36] = exitState.pending;

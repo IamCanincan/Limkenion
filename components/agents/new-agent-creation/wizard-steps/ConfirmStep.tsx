@@ -312,7 +312,7 @@ export function ConfirmStep(t0) {
   }
   let t23;
   if ($[64] === Symbol.for("react.memo_cache_sentinel")) {
-    t23 = <Box marginTop={2}><Text color="success">Press {t21} or {t22} to save,{" "}<Text bold={true}>e</Text> to save and edit</Text></Box>;
+    t23 = <Box marginTop={2}><Text color="success">按下 {t21} 或 {t22} 保存，{" "}<Text bold={true}>e</Text> 保存并编辑</Text></Box>;
     $[64] = t23;
   } else {
     t23 = $[64];

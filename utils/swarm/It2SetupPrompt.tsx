@@ -341,7 +341,7 @@ export function It2SetupPrompt(t0) {
   }
   let t15;
   if ($[29] !== exitState || $[30] !== step) {
-    t15 = step !== "installing" && step !== "verifying" && step !== "success" && <Text dimColor={true} italic={true}>{exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Esc to cancel</>}</Text>;
+    t15 = step !== "installing" && step !== "verifying" && step !== "success" && <Text dimColor={true} italic={true}>{exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <>Esc 取消</>}</Text>;
     $[29] = exitState;
     $[30] = step;
     $[31] = t15;

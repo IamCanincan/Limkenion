@@ -111,7 +111,7 @@ export function Passes({
         <Box flexDirection="column" gap={1}>
           <Text dimColor>Loading guest pass information…</Text>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Esc to cancel</>}
+            {exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <>Esc 取消</>}
           </Text>
         </Box>
       </Pane>;
@@ -121,7 +121,7 @@ export function Passes({
         <Box flexDirection="column" gap={1}>
           <Text>Guest passes are not currently available.</Text>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Esc to cancel</>}
+            {exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <>Esc 取消</>}
           </Text>
         </Box>
       </Pane>;
@@ -175,7 +175,7 @@ export function Passes({
 
         <Box>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Enter to copy link · Esc to cancel</>}
+            {exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <>回车复制链接 · Esc 取消</>}
           </Text>
         </Box>
       </Box>

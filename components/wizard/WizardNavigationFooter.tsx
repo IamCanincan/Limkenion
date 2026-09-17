@@ -17,7 +17,7 @@ export function WizardNavigationFooter({
   const exitState = useExitOnCtrlCDWithKeybindings();
   return <Box marginLeft={3} marginTop={1}>
       <Text dimColor>
-        {exitState.pending ? `Press ${exitState.keyName} again to exit` : instructions}
+        {exitState.pending ? `再次按下 ${exitState.keyName} 退出` : instructions}
       </Text>
     </Box>;
 }

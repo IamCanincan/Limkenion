@@ -554,7 +554,7 @@ export function ManageMarketplaces({
 
         <Box marginLeft={3}>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to go back</> : <Byline>
+            {exitState.pending ? <>再次按下 {exitState.keyName} 返回</> : <Byline>
                 <ConfigurableShortcutHint action="select:accept" context="Select" fallback="Enter" description="select" />
                 <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />
               </Byline>}
@@ -584,8 +584,7 @@ export function ManageMarketplaces({
               </Box>}
           <Box marginTop={1}>
             <Text>
-              Press <Text bold>y</Text> to confirm or <Text bold>n</Text> to
-              cancel
+              按 <Text bold>y</Text> 确认，或 <Text bold>n</Text> 取消
             </Text>
           </Box>
         </Box>
@@ -772,7 +771,7 @@ function ManageMarketplacesKeyHints(t0) {
   if (exitState.pending) {
     let t1;
     if ($[0] !== exitState.keyName) {
-      t1 = <Box marginTop={1}><Text dimColor={true} italic={true}>Press {exitState.keyName} again to go back</Text></Box>;
+      t1 = <Box marginTop={1}><Text dimColor={true} italic={true}>再次按下 {exitState.keyName} 返回</Text></Box>;
       $[0] = exitState.keyName;
       $[1] = t1;
     } else {

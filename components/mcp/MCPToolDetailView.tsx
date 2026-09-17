@@ -207,5 +207,5 @@ export function MCPToolDetailView(t0) {
   return t18;
 }
 function _temp(exitState) {
-  return exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />;
+  return exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />;
 }

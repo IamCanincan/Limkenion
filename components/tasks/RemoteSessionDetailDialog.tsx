@@ -773,7 +773,7 @@ function ReviewSessionDetail(t0) {
   return t20;
 }
 function _temp(exitState) {
-  return exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <Byline><KeyboardShortcutHint shortcut="Enter" action="select" /><KeyboardShortcutHint shortcut="Esc" action="go back" /></Byline>;
+  return exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : <Byline><KeyboardShortcutHint shortcut="Enter" action="select" /><KeyboardShortcutHint shortcut="Esc" action="go back" /></Byline>;
 }
 export function RemoteSessionDetailDialog({
   session,
@@ -846,7 +846,7 @@ export function RemoteSessionDetailDialog({
   // Map TaskStatus to display status (handle 'pending')
   const displayStatus = session.status === 'pending' ? 'starting' : session.status;
   return <Box flexDirection="column" tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
-      <Dialog title="Remote session details" onCancel={handleClose} color="background" inputGuide={exitState => exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <Byline>
+      <Dialog title="Remote session details" onCancel={handleClose} color="background" inputGuide={exitState => exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : <Byline>
               {onBack && <KeyboardShortcutHint shortcut="←" action="go back" />}
               <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />
               {!isTeleporting && <KeyboardShortcutHint shortcut="t" action="teleport" />}

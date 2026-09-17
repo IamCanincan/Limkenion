@@ -165,7 +165,7 @@ export function MCPStdioServerMenu({
 
       <Box marginTop={1}>
         <Text dimColor italic>
-          {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <Byline>
+          {exitState.pending ? <>再次按下 {exitState.keyName} 退出</> : <Byline>
               <KeyboardShortcutHint shortcut="↑↓" action="navigate" />
               <KeyboardShortcutHint shortcut="Enter" action="select" />
               <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="back" />

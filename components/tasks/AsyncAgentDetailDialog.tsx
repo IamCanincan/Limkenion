@@ -157,7 +157,7 @@ export function AsyncAgentDetailDialog(t0) {
   const subtitle = t13;
   let t14;
   if ($[27] !== agent.status || $[28] !== onBack || $[29] !== onKillAgent) {
-    t14 = exitState => exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <Byline>{onBack && <KeyboardShortcutHint shortcut={"\u2190"} action="go back" />}<KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />{agent.status === "running" && onKillAgent && <KeyboardShortcutHint shortcut="x" action="stop" />}</Byline>;
+    t14 = exitState => exitState.pending ? <Text>再次按下 {exitState.keyName} 退出</Text> : <Byline>{onBack && <KeyboardShortcutHint shortcut={"\u2190"} action="go back" />}<KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />{agent.status === "running" && onKillAgent && <KeyboardShortcutHint shortcut="x" action="stop" />}</Byline>;
     $[27] = agent.status;
     $[28] = onBack;
     $[29] = onKillAgent;
