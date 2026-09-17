@@ -12,9 +12,11 @@
 3. **以"高效编码"为目的** —— 取舍标准是写代码好不好用，不是功能多。
 4. **只支持 DeepSeek**，不做其他供应商。
 5. **尽量不要删功能；发现问题先提出来，不要擅自删。**
-6. 是**本地 agent**，无云、无账号、无网站。
+6. 是**本地 agent**，无云、无账号、**无网站、无邮箱**。
 7. **DeepSeek 模型/价格以官网实测为准，不要凭印象写死。**
 8. **API key 由用户自己输入**（`/login` 已能录入并持久化，见下）。
+9. **不要桌宠**（2026-09-18 用户明确："桌宠不要了"）—— `buddy/` 与 `commands/buddy/`
+   已整块删除，`feature('BUDDY')` 的守卫点也清了。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` = **CLI（React/ink REPL）+ web 界面** 的双端 agent harness。
@@ -133,10 +135,11 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
 剩下 10 处**刻意不动**，全是同名巧合：
 | 位置 | 为什么保留 |
 |---|---|
-| `buddy/sprites.ts`、`buddy/types.ts` 的 `octopus`（5 处） | 桌宠的**章鱼精灵** |
 | `utils/shell/readOnlyCommandValidation.ts` 的 `'--octopus'` | **git 的真实参数**（`git merge-base --octopus`） |
 | `utils/words.ts` 的 `'octopus'` / `'sonnet'`（2 处） | **随机词表**里的英文单词 |
 | `constants/files.ts` 的 `'.opus'` | **音频文件扩展名** |
+
+（桌宠那 5 处 `octopus` 已随功能删除而消失。）
 
 **教训：批量改名前必须区分"同名巧合"。** 这轮里 `octopus`（桌宠/git 参数/词表）、
 `.opus`（文件扩展名）、`sonnet`（词表单词）都差点被误伤。
