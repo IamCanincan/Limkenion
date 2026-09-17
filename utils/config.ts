@@ -336,7 +336,7 @@ export type GlobalConfig = {
   voiceFooterHintSeenCount?: number // Number of sessions the "hold X to speak" footer hint has been shown
 
   // deepseek-v4-pro（1M 上下文） merge notice tracking
-  opus1mMergeNoticeSeenCount?: number // Number of times the deepseek-v4-pro-1m-merge notice has been shown
+  context1mMergeNoticeSeenCount?: number // Number of times the deepseek-v4-pro-1m-merge notice has been shown
 
   // Experiment enrollment notice tracking (keyed by experiment id)
   experimentNoticesSeenCount?: Record<string, number>

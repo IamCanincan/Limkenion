@@ -196,12 +196,12 @@ export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
 
   // Max users get deepseek-v4-pro as default
   if (isMaxSubscriber()) {
-    return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
+    return getDefaultStrongModel() + (is1mContextMergeEnabled() ? '[1m]' : '')
   }
 
   // Team Premium gets deepseek-v4-pro (same as Max)
   if (isTeamPremiumSubscriber()) {
-    return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
+    return getDefaultStrongModel() + (is1mContextMergeEnabled() ? '[1m]' : '')
   }
 
   // PAYG (1P and 3P), Enterprise, Team Standard, and Pro get deepseek-flash as default
@@ -309,7 +309,7 @@ export function renderDefaultModelSetting(
   return renderModelName(parseUserSpecifiedModel(setting))
 }
 
-export function isOpus1mMergeEnabled(): boolean {
+export function is1mContextMergeEnabled(): boolean {
   if (
     is1mContextDisabled() ||
     isProSubscriber() ||

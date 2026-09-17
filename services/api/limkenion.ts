@@ -66,7 +66,7 @@ import { getOrCreateUserID } from '../../utils/config.js'
 import {
   CAPPED_DEFAULT_MAX_TOKENS,
   getModelMaxOutputTokens,
-  getSonnet1mExpTreatmentEnabled,
+  get1mContextTreatmentEnabled,
 } from '../../utils/context.js'
 import { resolveAppliedEffort } from '../../utils/effort.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
@@ -1574,7 +1574,7 @@ async function* queryModel(
     // 为 deepseek-flash（1M 上下文） 实验动态追加 1M beta。
     if (
       !betasParams.includes(CONTEXT_1M_BETA_HEADER) &&
-      getSonnet1mExpTreatmentEnabled(retryContext.model)
+      get1mContextTreatmentEnabled(retryContext.model)
     ) {
       betasParams.push(CONTEXT_1M_BETA_HEADER)
     }

@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import { UP_ARROW } from '../../constants/figures.js';
 import { Box, Text } from '../../ink.js';
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
-import { isOpus1mMergeEnabled } from '../../utils/model/model.js';
+import { is1mContextMergeEnabled } from '../../utils/model/model.js';
 import { AnimatedAsterisk } from './AnimatedAsterisk.js';
 const MAX_SHOW_COUNT = 6;
-export function shouldShowOpus1mMergeNotice(): boolean {
-  return isOpus1mMergeEnabled() && (getGlobalConfig().opus1mMergeNoticeSeenCount ?? 0) < MAX_SHOW_COUNT;
+export function shouldShowContext1mMergeNotice(): boolean {
+  return is1mContextMergeEnabled() && (getGlobalConfig().context1mMergeNoticeSeenCount ?? 0) < MAX_SHOW_COUNT;
 }
-export function Opus1mMergeNotice() {
+export function Context1mMergeNotice() {
   const $ = _c(4);
-  const [show] = useState(shouldShowOpus1mMergeNotice);
+  const [show] = useState(shouldShowContext1mMergeNotice);
   let t0;
   let t1;
   if ($[0] !== show) {
@@ -20,14 +20,14 @@ export function Opus1mMergeNotice() {
       if (!show) {
         return;
       }
-      const newCount = (getGlobalConfig().opus1mMergeNoticeSeenCount ?? 0) + 1;
+      const newCount = (getGlobalConfig().context1mMergeNoticeSeenCount ?? 0) + 1;
       saveGlobalConfig(prev => {
-        if ((prev.opus1mMergeNoticeSeenCount ?? 0) >= newCount) {
+        if ((prev.context1mMergeNoticeSeenCount ?? 0) >= newCount) {
           return prev;
         }
         return {
           ...prev,
-          opus1mMergeNoticeSeenCount: newCount
+          context1mMergeNoticeSeenCount: newCount
         };
       });
     };

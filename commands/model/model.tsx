@@ -11,7 +11,7 @@ import type { EffortLevel } from '../../utils/effort.js';
 import { isBilledAsExtraUsage } from '../../utils/extraUsage.js';
 import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
-import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
+import { getDefaultMainLoopModelSetting, is1mContextMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 import { setRuntimeReasoningEffort } from '../../services/api/openai-compat.js';
@@ -72,7 +72,7 @@ function ModelPickerWrapper(t0) {
           }
         }
       }
-      if (isBilledAsExtraUsage(model, wasFastModeToggledOn === true, isOpus1mMergeEnabled())) {
+      if (isBilledAsExtraUsage(model, wasFastModeToggledOn === true, is1mContextMergeEnabled())) {
         message = message + " · 计费为额外用量";
       }
       if (wasFastModeToggledOn === false) {
@@ -203,7 +203,7 @@ function SetModelAndClose({
           wasFastModeToggledOn = true;
         }
       }
-      if (isBilledAsExtraUsage(modelValue, wasFastModeToggledOn === true, isOpus1mMergeEnabled())) {
+      if (isBilledAsExtraUsage(modelValue, wasFastModeToggledOn === true, is1mContextMergeEnabled())) {
         message += ` · 计费为额外用量`;
       }
       if (wasFastModeToggledOn === false) {

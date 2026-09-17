@@ -1100,11 +1100,11 @@ export function REPL({
   // all fall back to the product name.
   const terminalTitleFromRename = useAppState(s => s.settings.terminalTitleFromRename) !== false;
   const sessionTitle = terminalTitleFromRename ? getCurrentSessionTitle(getSessionId()) : undefined;
-  const [haikuTitle, setHaikuTitle] = useState<string>();
+  const [haikuTitle, setSmallFastTitle] = useState<string>();
   // Gates the one-shot deepseek-flash call that generates the tab title. Seeded true
   // on resume (initialMessages present) so we don't re-title a resumed
   // session from mid-conversation context.
-  const haikuTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
+  const smallFastTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
   const agentTitle = mainThreadAgentDefinition?.agentType;
   const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'Limkenion';
   const isWaitingForApproval = toolUseConfirmQueue.length > 0 || promptQueue.length > 0 || pendingWorkerRequest || pendingSandboxRequest;
@@ -1799,8 +1799,8 @@ export function REPL({
       // Resumed sessions shouldn't re-title from mid-conversation context
       // (same reasoning as the useRef seed), and the previous session's
       // deepseek-flash title shouldn't carry over.
-      haikuTitleAttemptedRef.current = true;
-      setHaikuTitle(undefined);
+      smallFastTitleAttemptedRef.current = true;
+      setSmallFastTitle(undefined);
 
       // Exit any worktree a prior /resume entered, then cd into the one
       // this session was in. Without the exit, resuming from worktree B
@@ -2608,7 +2608,7 @@ export function REPL({
     // useDeferredHookMessages) and attachment messages (appended by
     // processTextPrompt) — both pushed length past 1 on turn one, so the
     // title silently fell through to the "Limkenion" default.
-    if (!titleDisabled && !sessionTitle && !agentTitle && !haikuTitleAttemptedRef.current) {
+    if (!titleDisabled && !sessionTitle && !agentTitle && !smallFastTitleAttemptedRef.current) {
       const firstUserMessage = newMessages.find(m => m.type === 'user' && !m.isMeta);
       const text = firstUserMessage?.type === 'user' ? getContentText(firstUserMessage.message.content) : null;
       // Skip synthetic breadcrumbs — slash-command output, prompt-skill
@@ -2616,11 +2616,11 @@ export function REPL({
       // (/help → <command-name>), and bash-mode (!cmd → <bash-input>).
       // None of these are the user's topic; wait for real prose.
       if (text && !text.startsWith(`<${LOCAL_COMMAND_STDOUT_TAG}>`) && !text.startsWith(`<${COMMAND_MESSAGE_TAG}>`) && !text.startsWith(`<${COMMAND_NAME_TAG}>`) && !text.startsWith(`<${BASH_INPUT_TAG}>`)) {
-        haikuTitleAttemptedRef.current = true;
+        smallFastTitleAttemptedRef.current = true;
         void generateSessionTitle(text, new AbortController().signal).then(title => {
-          if (title) setHaikuTitle(title);else haikuTitleAttemptedRef.current = false;
+          if (title) setSmallFastTitle(title);else smallFastTitleAttemptedRef.current = false;
         }, () => {
-          haikuTitleAttemptedRef.current = false;
+          smallFastTitleAttemptedRef.current = false;
         });
       }
     }
@@ -2936,8 +2936,8 @@ export function REPL({
           setAppState,
           setConversationId
         });
-        haikuTitleAttemptedRef.current = false;
-        setHaikuTitle(undefined);
+        smallFastTitleAttemptedRef.current = false;
+        setSmallFastTitle(undefined);
         bashTools.current.clear();
         bashToolsProcessedIdx.current = 0;
 
@@ -4636,8 +4636,8 @@ export function REPL({
                 setAppState,
                 setConversationId
               });
-              haikuTitleAttemptedRef.current = false;
-              setHaikuTitle(undefined);
+              smallFastTitleAttemptedRef.current = false;
+              setSmallFastTitle(undefined);
               bashTools.current.clear();
               bashToolsProcessedIdx.current = 0;
             }

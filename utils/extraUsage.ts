@@ -4,7 +4,7 @@ import { has1mContext } from './context.js'
 export function isBilledAsExtraUsage(
   model: string | null,
   isFastMode: boolean,
-  isOpus1mMerged: boolean,
+  is1mContextMerged: boolean,
 ): boolean {
   if (!isLimkenionAISubscriber()) return false
   if (isFastMode) return true
@@ -14,10 +14,10 @@ export function isBilledAsExtraUsage(
     .toLowerCase()
     .replace(/\[1m\]$/, '')
     .trim()
-  const isOpus46 = m === 'opus' || m.includes('opus-4-6')
-  const isSonnet46 = m === 'sonnet' || m.includes('sonnet-4-6')
+  const isStrongModel = m === 'opus' || m.includes('opus-4-6')
+  const isMainModel = m === 'sonnet' || m.includes('sonnet-4-6')
 
-  if (isOpus46 && isOpus1mMerged) return false
+  if (isStrongModel && is1mContextMerged) return false
 
-  return isOpus46 || isSonnet46
+  return isStrongModel || isMainModel
 }

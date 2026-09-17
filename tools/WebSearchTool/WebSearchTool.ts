@@ -259,7 +259,7 @@ export const WebSearchTool = buildTool({
     })
     const toolSchema = makeToolSchema(input)
 
-    const useHaiku = getFeatureValue_CACHED_MAY_BE_STALE(
+    const useSmallFastModel = getFeatureValue_CACHED_MAY_BE_STALE(
       'limkenion_plum_vx3',
       false,
     )
@@ -270,15 +270,15 @@ export const WebSearchTool = buildTool({
       systemPrompt: asSystemPrompt([
         'You are an assistant for performing a web search tool use',
       ]),
-      thinkingConfig: useHaiku
+      thinkingConfig: useSmallFastModel
         ? { type: 'disabled' as const }
         : context.options.thinkingConfig,
       tools: [],
       signal: context.abortController.signal,
       options: {
         getToolPermissionContext: async () => appState.toolPermissionContext,
-        model: useHaiku ? getSmallFastModel() : context.options.mainLoopModel,
-        toolChoice: useHaiku ? { type: 'tool', name: 'web_search' } : undefined,
+        model: useSmallFastModel ? getSmallFastModel() : context.options.mainLoopModel,
+        toolChoice: useSmallFastModel ? { type: 'tool', name: 'web_search' } : undefined,
         isNonInteractiveSession: context.options.isNonInteractiveSession,
         hasAppendSystemPrompt: !!context.options.appendSystemPrompt,
         extraToolSchemas: [toolSchema],

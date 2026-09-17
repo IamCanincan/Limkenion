@@ -7,7 +7,7 @@ import {
 } from '../auth.js'
 import { getModelStrings } from './modelStrings.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
-import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
+import { checkStrong1mAccess, checkMain1mAccess } from './check1mAccess.js'
 import {
   getAPIProvider,
   isOpenAICompat,
@@ -24,7 +24,7 @@ import {
   getDefaultMainLoopModelSetting,
   getMarketingNameForModel,
   getUserSpecifiedModelSetting,
-  isOpus1mMergeEnabled,
+  is1mContextMergeEnabled,
   renderDefaultModelSetting,
   type ModelSetting,
 } from './model.js'
@@ -62,18 +62,18 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
 
 function getCustomSonnetOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customSonnetModel = process.env.LIMKENION_DEFAULT_SONNET_MODEL
+  const customMainModel = process.env.LIMKENION_DEFAULT_SONNET_MODEL
   // When a 3P user has a custom deepseek-flash model string, show it directly
-  if (is3P && customSonnetModel) {
-    const is1m = has1mContext(customSonnetModel)
+  if (is3P && customMainModel) {
+    const is1m = has1mContext(customMainModel)
     return {
       value: 'sonnet',
       label:
-        process.env.LIMKENION_DEFAULT_SONNET_MODEL_NAME ?? customSonnetModel,
+        process.env.LIMKENION_DEFAULT_SONNET_MODEL_NAME ?? customMainModel,
       description:
         process.env.LIMKENION_DEFAULT_SONNET_MODEL_DESCRIPTION ??
         `Custom Sonnet model${is1m ? ' (1M context)' : ''}`,
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_SONNET_MODEL_DESCRIPTION ?? `Custom Sonnet model${is1m ? ' with 1M context' : ''}`} (${customSonnetModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_SONNET_MODEL_DESCRIPTION ?? `Custom Sonnet model${is1m ? ' with 1M context' : ''}`} (${customMainModel})`,
     }
   }
 }
@@ -93,17 +93,17 @@ function getSonnet46Option(): ModelOption {
 
 function getCustomOpusOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customOpusModel = process.env.LIMKENION_DEFAULT_OPUS_MODEL
+  const customStrongModel = process.env.LIMKENION_DEFAULT_OPUS_MODEL
   // When a 3P user has a custom deepseek-v4-pro model string, show it directly
-  if (is3P && customOpusModel) {
-    const is1m = has1mContext(customOpusModel)
+  if (is3P && customStrongModel) {
+    const is1m = has1mContext(customStrongModel)
     return {
       value: 'opus',
-      label: process.env.LIMKENION_DEFAULT_OPUS_MODEL_NAME ?? customOpusModel,
+      label: process.env.LIMKENION_DEFAULT_OPUS_MODEL_NAME ?? customStrongModel,
       description:
         process.env.LIMKENION_DEFAULT_OPUS_MODEL_DESCRIPTION ??
         `Custom Opus model${is1m ? ' (1M context)' : ''}`,
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_OPUS_MODEL_DESCRIPTION ?? `Custom Opus model${is1m ? ' with 1M context' : ''}`} (${customOpusModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_OPUS_MODEL_DESCRIPTION ?? `Custom Opus model${is1m ? ' with 1M context' : ''}`} (${customStrongModel})`,
     }
   }
 }
@@ -117,7 +117,7 @@ function getOpus41Option(): ModelOption {
   }
 }
 
-function getOpus46Option(fastMode = false): ModelOption {
+function getStrongOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: is3P ? getModelStrings().deepseekV4Pro : 'opus',
@@ -127,7 +127,7 @@ function getOpus46Option(fastMode = false): ModelOption {
   }
 }
 
-export function getSonnet46_1MOption(): ModelOption {
+export function getMain1mOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: is3P ? getModelStrings().deepseekFlash + '[1m]' : 'sonnet[1m]',
@@ -138,7 +138,7 @@ export function getSonnet46_1MOption(): ModelOption {
   }
 }
 
-export function getOpus46_1MOption(fastMode = false): ModelOption {
+export function getStrong1mOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: is3P ? getModelStrings().deepseekV4Pro + '[1m]' : 'opus[1m]',
@@ -151,21 +151,21 @@ export function getOpus46_1MOption(fastMode = false): ModelOption {
 
 function getCustomHaikuOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customHaikuModel = process.env.LIMKENION_DEFAULT_HAIKU_MODEL
+  const customSmallFastModel = process.env.LIMKENION_DEFAULT_HAIKU_MODEL
   // When a 3P user has a custom deepseek-flash model string, show it directly
-  if (is3P && customHaikuModel) {
+  if (is3P && customSmallFastModel) {
     return {
       value: 'haiku',
-      label: process.env.LIMKENION_DEFAULT_HAIKU_MODEL_NAME ?? customHaikuModel,
+      label: process.env.LIMKENION_DEFAULT_HAIKU_MODEL_NAME ?? customSmallFastModel,
       description:
         process.env.LIMKENION_DEFAULT_HAIKU_MODEL_DESCRIPTION ??
         'Custom Haiku model',
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_HAIKU_MODEL_DESCRIPTION ?? 'Custom Haiku model'} (${customHaikuModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_HAIKU_MODEL_DESCRIPTION ?? 'Custom Haiku model'} (${customSmallFastModel})`,
     }
   }
 }
 
-function getHaiku45Option(): ModelOption {
+function getSmallFastOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: 'haiku',
@@ -191,11 +191,11 @@ function getHaikuOption(): ModelOption {
   // Return correct deepseek-flash option based on provider
   const haikuModel = getDefaultSmallFastModel()
   return haikuModel === getModelStrings().deepseekFlash
-    ? getHaiku45Option()
+    ? getSmallFastOption()
     : getHaiku35Option()
 }
 
-function getMaxOpusOption(fastMode = false): ModelOption {
+function getMaxStrongOption(fastMode = false): ModelOption {
   return {
     value: 'opus',
     label: 'Opus',
@@ -203,7 +203,7 @@ function getMaxOpusOption(fastMode = false): ModelOption {
   }
 }
 
-export function getMaxSonnet46_1MOption(): ModelOption {
+export function getMaxMain1mOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   const billingInfo = isLimkenionAISubscriber() ? ' · Billed as extra usage' : ''
   return {
@@ -213,7 +213,7 @@ export function getMaxSonnet46_1MOption(): ModelOption {
   }
 }
 
-export function getMaxOpus46_1MOption(fastMode = false): ModelOption {
+export function getMaxStrong1mOption(fastMode = false): ModelOption {
   const billingInfo = isLimkenionAISubscriber() ? ' · Billed as extra usage' : ''
   return {
     value: 'opus[1m]',
@@ -222,7 +222,7 @@ export function getMaxOpus46_1MOption(fastMode = false): ModelOption {
   }
 }
 
-function getMergedOpus1MOption(fastMode = false): ModelOption {
+function getMerged1mContextOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
   return {
     value: is3P ? getModelStrings().deepseekV4Pro + '[1m]' : 'opus[1m]',
@@ -239,7 +239,7 @@ const MaxSonnet46Option: ModelOption = {
   description: 'Sonnet 4.6 · Best for everyday tasks',
 }
 
-const MaxHaiku45Option: ModelOption = {
+const MaxSmallFastOption: ModelOption = {
   value: 'haiku',
   label: 'Haiku',
   description: 'Haiku 4.5 · Fastest for quick answers',
@@ -262,84 +262,84 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
       // Max and Team Premium users: deepseek-v4-pro is default, show deepseek-flash as alternative
       const premiumOptions = [getDefaultOptionForUser(fastMode)]
-      if (!isOpus1mMergeEnabled() && checkOpus1mAccess()) {
-        premiumOptions.push(getMaxOpus46_1MOption(fastMode))
+      if (!is1mContextMergeEnabled() && checkStrong1mAccess()) {
+        premiumOptions.push(getMaxStrong1mOption(fastMode))
       }
 
       premiumOptions.push(MaxSonnet46Option)
-      if (checkSonnet1mAccess()) {
-        premiumOptions.push(getMaxSonnet46_1MOption())
+      if (checkMain1mAccess()) {
+        premiumOptions.push(getMaxMain1mOption())
       }
 
-      premiumOptions.push(MaxHaiku45Option)
+      premiumOptions.push(MaxSmallFastOption)
       return premiumOptions
     }
 
     // Pro/Team Standard/Enterprise users: deepseek-flash is default, show deepseek-v4-pro as alternative
     const standardOptions = [getDefaultOptionForUser(fastMode)]
-    if (checkSonnet1mAccess()) {
-      standardOptions.push(getMaxSonnet46_1MOption())
+    if (checkMain1mAccess()) {
+      standardOptions.push(getMaxMain1mOption())
     }
 
-    if (isOpus1mMergeEnabled()) {
-      standardOptions.push(getMergedOpus1MOption(fastMode))
+    if (is1mContextMergeEnabled()) {
+      standardOptions.push(getMerged1mContextOption(fastMode))
     } else {
-      standardOptions.push(getMaxOpusOption(fastMode))
-      if (checkOpus1mAccess()) {
-        standardOptions.push(getMaxOpus46_1MOption(fastMode))
+      standardOptions.push(getMaxStrongOption(fastMode))
+      if (checkStrong1mAccess()) {
+        standardOptions.push(getMaxStrong1mOption(fastMode))
       }
     }
 
-    standardOptions.push(MaxHaiku45Option)
+    standardOptions.push(MaxSmallFastOption)
     return standardOptions
   }
 
   // PAYG 1P API: Default (deepseek-flash) + deepseek-flash（1M 上下文） + deepseek-v4-pro + deepseek-v4-pro（1M 上下文） + deepseek-flash
   if (getAPIProvider() === 'firstParty') {
     const payg1POptions = [getDefaultOptionForUser(fastMode)]
-    if (checkSonnet1mAccess()) {
-      payg1POptions.push(getSonnet46_1MOption())
+    if (checkMain1mAccess()) {
+      payg1POptions.push(getMain1mOption())
     }
-    if (isOpus1mMergeEnabled()) {
-      payg1POptions.push(getMergedOpus1MOption(fastMode))
+    if (is1mContextMergeEnabled()) {
+      payg1POptions.push(getMerged1mContextOption(fastMode))
     } else {
-      payg1POptions.push(getOpus46Option(fastMode))
-      if (checkOpus1mAccess()) {
-        payg1POptions.push(getOpus46_1MOption(fastMode))
+      payg1POptions.push(getStrongOption(fastMode))
+      if (checkStrong1mAccess()) {
+        payg1POptions.push(getStrong1mOption(fastMode))
       }
     }
-    payg1POptions.push(getHaiku45Option())
+    payg1POptions.push(getSmallFastOption())
     return payg1POptions
   }
 
   // PAYG 3P: Default (deepseek-flash) + deepseek-flash (3P custom) or deepseek-flash/1M + deepseek-v4-pro (3P custom) or deepseek-v4-pro/deepseek-v4-pro/Opus1M + deepseek-flash + deepseek-v4-pro
   const payg3pOptions = [getDefaultOptionForUser(fastMode)]
 
-  const customSonnet = getCustomSonnetOption()
-  if (customSonnet !== undefined) {
-    payg3pOptions.push(customSonnet)
+  const customMain = getCustomSonnetOption()
+  if (customMain !== undefined) {
+    payg3pOptions.push(customMain)
   } else {
     // Add deepseek-flash since deepseek-flash is the default
     payg3pOptions.push(getSonnet46Option())
-    if (checkSonnet1mAccess()) {
-      payg3pOptions.push(getSonnet46_1MOption())
+    if (checkMain1mAccess()) {
+      payg3pOptions.push(getMain1mOption())
     }
   }
 
-  const customOpus = getCustomOpusOption()
-  if (customOpus !== undefined) {
-    payg3pOptions.push(customOpus)
+  const customStrong = getCustomOpusOption()
+  if (customStrong !== undefined) {
+    payg3pOptions.push(customStrong)
   } else {
     // Add deepseek-v4-pro, deepseek-v4-pro and deepseek-v4-pro 1M
     payg3pOptions.push(getOpus41Option()) // This is the default deepseek-v4-pro
-    payg3pOptions.push(getOpus46Option(fastMode))
-    if (checkOpus1mAccess()) {
-      payg3pOptions.push(getOpus46_1MOption(fastMode))
+    payg3pOptions.push(getStrongOption(fastMode))
+    if (checkStrong1mAccess()) {
+      payg3pOptions.push(getStrong1mOption(fastMode))
     }
   }
-  const customHaiku = getCustomHaikuOption()
-  if (customHaiku !== undefined) {
-    payg3pOptions.push(customHaiku)
+  const customSmallFast = getCustomHaikuOption()
+  if (customSmallFast !== undefined) {
+    payg3pOptions.push(customSmallFast)
   } else {
     payg3pOptions.push(getHaikuOption())
   }
@@ -484,12 +484,12 @@ export function getModelOptions(fastMode = false): ModelOption[] {
   } else if (customModel === 'opus' && getAPIProvider() === 'firstParty') {
     return filterModelOptionsByAllowlist([
       ...options,
-      getMaxOpusOption(fastMode),
+      getMaxStrongOption(fastMode),
     ])
   } else if (customModel === 'opus[1m]' && getAPIProvider() === 'firstParty') {
     return filterModelOptionsByAllowlist([
       ...options,
-      getMergedOpus1MOption(fastMode),
+      getMerged1mContextOption(fastMode),
     ])
   } else {
     // Try to show a human-readable label for known Limkenion models, with an

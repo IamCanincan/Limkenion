@@ -65,14 +65,14 @@ export function getContextWindowForModel(
   if (betas?.includes(CONTEXT_1M_BETA_HEADER) && modelSupports1M(model)) {
     return 1_000_000
   }
-  if (getSonnet1mExpTreatmentEnabled(model)) {
+  if (get1mContextTreatmentEnabled(model)) {
     return 1_000_000
   }
   
   return MODEL_CONTEXT_WINDOW_DEFAULT
 }
 
-export function getSonnet1mExpTreatmentEnabled(model: string): boolean {
+export function get1mContextTreatmentEnabled(model: string): boolean {
   if (is1mContextDisabled()) {
     return false
   }

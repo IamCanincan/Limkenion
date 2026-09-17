@@ -4,7 +4,7 @@ import { Box, Text } from '../ink.js';
 import { isMaxSubscriber, isProSubscriber, isTeamSubscriber } from '../utils/auth.js';
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js';
 import type { EffortLevel } from '../utils/effort.js';
-import { convertEffortValueToLevel, getDefaultEffortForModel, getOpusDefaultEffortConfig, toPersistableEffort } from '../utils/effort.js';
+import { convertEffortValueToLevel, getDefaultEffortForModel, getStrongModelDefaultEffortConfig, toPersistableEffort } from '../utils/effort.js';
 import { parseUserSpecifiedModel } from '../utils/model/model.js';
 import { updateSettingsForSource } from '../utils/settings/settings.js';
 import type { OptionWithDescription } from './CustomSelect/select.js';
@@ -25,7 +25,7 @@ export function EffortCallout(t0) {
   } = t0;
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = getOpusDefaultEffortConfig();
+    t1 = getStrongModelDefaultEffortConfig();
     $[0] = t1;
   } else {
     t1 = $[0];
@@ -239,14 +239,14 @@ export function shouldShowEffortCallout(model: string): boolean {
       markV2Dismissed();
       return false;
     }
-    return getOpusDefaultEffortConfig().enabled;
+    return getStrongModelDefaultEffortConfig().enabled;
   }
 
   // Max/Team are the target of the limkenion_grey_step2 config.
   // Don't mark dismissed when config is disabled — they should see the dialog
   // once it's enabled for them.
   if (isMaxSubscriber() || isTeamSubscriber()) {
-    return getOpusDefaultEffortConfig().enabled;
+    return getStrongModelDefaultEffortConfig().enabled;
   }
 
   // Everyone else (free tier, API key, non-subscribers): not in scope.

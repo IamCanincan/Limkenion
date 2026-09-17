@@ -235,20 +235,20 @@ export function getEffortValueDescription(value: EffortValue): string {
   return '均衡方案，包含标准的实现与测试'
 }
 
-export type OpusDefaultEffortConfig = {
+export type StrongModelDefaultEffortConfig = {
   enabled: boolean
   dialogTitle: string
   dialogDescription: string
 }
 
-const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: OpusDefaultEffortConfig = {
+const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: StrongModelDefaultEffortConfig = {
   enabled: true,
   dialogTitle: '我们建议强模型使用中等 effort',
   dialogDescription:
     'Effort 决定 Limkenion 完成你的任务时思考的时长。我们建议大多数任务使用中等 effort，以在速度与智能之间取得平衡并最大化速率限制。需要时可使用 ultrathink 触发高 effort。',
 }
 
-export function getOpusDefaultEffortConfig(): OpusDefaultEffortConfig {
+export function getStrongModelDefaultEffortConfig(): StrongModelDefaultEffortConfig {
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
     'limkenion_grey_step2',
     OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT,
@@ -275,7 +275,7 @@ export function getDefaultEffortForModel(
       return 'medium'
     }
     if (
-      getOpusDefaultEffortConfig().enabled &&
+      getStrongModelDefaultEffortConfig().enabled &&
       (isMaxSubscriber() || isTeamSubscriber())
     ) {
       return 'medium'

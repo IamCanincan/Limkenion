@@ -17,7 +17,7 @@ import {
 } from '../services/compact/autoCompact.js'
 import {
   countMessagesTokensWithAPI,
-  countTokensViaHaikuFallback,
+  countTokensViaSmallFastFallback,
   roughTokenCountEstimation,
 } from '../services/tokenEstimation.js'
 import { estimateSkillFrontmatterTokens } from '../skills/loadSkillsDir.js'
@@ -92,7 +92,7 @@ async function countTokensWithFallback(
   }
 
   try {
-    const fallbackResult = await countTokensViaHaikuFallback(messages, tools)
+    const fallbackResult = await countTokensViaSmallFastFallback(messages, tools)
     if (fallbackResult === null) {
       logForDebugging(
         `countTokensWithFallback: haiku fallback also returned null (${tools.length} tools)`,

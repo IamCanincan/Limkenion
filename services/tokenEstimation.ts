@@ -143,7 +143,7 @@ export async function countTokensWithAPI(
  *
  * OpenAI 协议没有 count_tokens 接口，但发一个 max_tokens=1 的最小请求、
  * 读回 usage.prompt_tokens 拿到的就是精确值 —— 这正是
- * countTokensViaHaikuFallback 原本的思路，这里直接复用适配器，
+ * countTokensViaSmallFastFallback 原本的思路，这里直接复用适配器，
  * 避免走到已被移除的上游 SDK。
  */
 async function countTokensViaOpenAICompat(
@@ -280,7 +280,7 @@ export function roughTokenCountEstimationForFileType(
  * - Vertex global region: uses deepseek-flash (deepseek-flash not available)
  * - Bedrock with thinking blocks: uses deepseek-flash (deepseek-flash doesn't support thinking)
  */
-export async function countTokensViaHaikuFallback(
+export async function countTokensViaSmallFastFallback(
   messages: Limkenion.Beta.Messages.BetaMessageParam[],
   tools: Limkenion.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
