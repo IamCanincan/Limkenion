@@ -449,5 +449,37 @@ allow 规则 → 弹窗 0 次且文件创建；deny 规则 → 弹窗 0 次、�
 **方法可复用**：先量化（grep 计数 + 逐条核实"是真实现还是占位桩"），
 再分类（能搬 / 死路径 / 需设计变更），最后只搬"能搬"的并如实报告其余。
 
+### 十五、UI 接线端到端串测（2026-09-18）—— 本轮**没发现 bug**
+把本轮加的东西在真实浏览器里从头串一遍，确认前端接线没断：
+
+| 链路 | 结果 |
+|---|---|
+| 点「推理」下拉选「低」→ 服务端 | ✅ `effortLevel: "low"` / `effectiveEffort: "low"` |
+| 低档下跑一轮 | ✅ 思维链 198 字，回合正常 |
+| 改回「默认」 | ✅ 服务端 `effortLevel: null` |
+| 在真实输入框敲 `/btw` | ✅ 出现「旁路回答」 |
+| 在真实输入框敲 `/rewind` | ✅ 出现用法提示 |
+
+**结论：设置面板 → 会话设置 → 请求参数这条链是通的。** 前几轮每轮都能抓到 bug，
+这轮没有 —— 说明之前的修复是扎实的。
+
+### hooks：评估后**没搬**（如实记）
+CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent）+
+20 多个文件（含 SSRF 防护、异步注册表、skill 钩子、frontmatter 钩子）的**大子系统**。
+忠实搬是大工程，且用户目前**没有任何钩子配置**（连 settings.json 都没有）。
+已在报告里说明，等用户点名再做。
+
+### 仍未搬的总清单（给下一轮参考）
+| 项 | 为什么没做 |
+|---|---|
+| `hooks` | 大子系统（4 种类型 / 20+ 文件），用户未配置 |
+| MCP 客户端 | 大工程（stdio + HTTP 传输、JSON-RPC、工具发现）；web 现有 4 个 MCP 工具是"降级"占位 |
+| `WorkflowTool` | web 无动态工作流编排层 |
+| worktree / `additionalDirectories` | 要改沙箱根（`paths.mjs` 的模块级 `WORKSPACE_ROOT`），属**安全边界**改动 |
+| `/insights` | 读 CLI 会话日志 + 生成 HTML 报告，web 会话存储是另一套 |
+| `permissions.additionalDirectories` | 同 worktree，安全边界 |
+| 其他设置键（`env` / `outputStyle` / `mcpServers`） | 未消费 |
+
+
 
 
