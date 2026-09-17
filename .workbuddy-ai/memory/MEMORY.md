@@ -107,9 +107,30 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
 2. **一处"保守但可能不对"的判定**（改造前就有，我没改行为）：
    - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
 3. **两处功能缺口**（用户还没定做不做）：
-   - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
-     真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
-   - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
+   - **`/effort` 是空操作**（已核实）：`/effort high` 把值存进设置文件的 `effortLevel`，
+     但 API 的 `reasoning_effort` 读的是 `getRuntimeReasoningEffort()`
+     （`services/api/openai-compat.ts`），而它只被 `/model low|medium|high` 设置过。
+     所以真正生效的只有 `/model low|medium|high`。
+   - **`modelSupportsStructuredOutputs` 恒 false，但翻它没用**（已核实）：
+     它控制 4 处（`limkenion.ts:1616`、`utils/api.ts:189`、`betas.ts:279`、`sideQuery.ts:132`）——
+     给工具加 `strict: true`、加结构化输出的 beta 头。
+     但 **`services/api/openai-compat.ts` 的 `toOpenAITools()` 根本不发 `strict`，
+     也完全不发 betas** —— 所以翻这个开关什么也不会发生。
+     要真用上结构化输出，得同时改适配器。
+
+### **更正：本地定时任务其实是有的**（2026-09-18 核实）
+我早先报"没有本地定时任务"是**错的**。实际上：
+- `tools/ScheduleCronTool/` —— `CronCreate` / `CronDelete` / `CronList` 三个工具
+- `utils/cronScheduler.ts` + `utils/cronTasks.ts`（存 `.limkenion/scheduled_tasks.json`）
+- `hooks/useScheduledTasks.ts` —— REPL 里负责触发
+- **是开着的**：`feature('AGENT_TRIGGERS')` 不在 `bun-bundle-stub.ts` 的
+  `UNSUPPORTED_UPSTREAM_FEATURES` 里 → 返回 true；`isKairosCronEnabled()` 也为 true
+- 真正没了的只是 **`/schedule` 这个斜杠命令入口**（它走云端远程 agent），
+  以及 `RemoteTriggerTool`（`feature('AGENT_TRIGGERS_REMOTE')`）。
+- **所以模型已经能创建本地定时任务**，缺的只是命令层的 UX。
+
+**教训：报"某功能没有"之前，先搜一遍相关关键词（cron / schedule / scheduler）。
+我这次是凭印象说的，实际仓库里早就有。**
 
 **已完成（2026-09-18 用户拍板"修"）**：
 - `MODEL_CONTEXT_WINDOW_DEFAULT` 200K → **1M**（`utils/context.ts`）—— 长对话不再被过早压缩
