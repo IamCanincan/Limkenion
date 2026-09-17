@@ -268,7 +268,7 @@ export async function launchUltraplan(opts: {
     return [
     // 通过 <Markdown> 渲染；裸 <message> 会被当作 HTML 分词
     // 并被丢弃。用反斜杠转义尖括号。
-    '用法：/ultraplan \\<prompt\\>，或在提示的任意位置包含 "ultraplan"', '在你的提示中', '', '使用我们最强大模型的高级多代理计划模式', '(Opus)。在 Limkenion on the web 中运行。当计划就绪时，', '你可以在 web 会话中执行，或将其发回此处。', '远程规划期间终端保持空闲。', '需要 /login。', '', `条款：${CCR_TERMS_URL}`].join('\n');
+    '用法：/ultraplan \\<prompt\\>，或在提示的任意位置包含 "ultraplan"', '在你的提示中', '', '使用我们最强大模型的高级多代理计划模式', '(Opus)。在 Limkenion on the web 中运行。当计划就绪时，', '你可以在 web 会话中执行，或将其发回此处。', '远程规划期间终端保持空闲。', '需要 /login。'].join('\n');
   }
 
   // 在分离流程之前同步设置，防止 teleportToRemote 窗口期内的重复启动。
@@ -456,7 +456,7 @@ const call: LocalJSXCommandCall = async (onDone, context, args) => {
 export default {
   type: 'local-jsx',
   name: 'ultraplan',
-  description: `约 10–30 分钟 · Limkenion on the web 起草一份可编辑和批准的高级计划。参见 ${CCR_TERMS_URL}`,
+  description: `约 10–30 分钟 · Limkenion on the web 起草一份可编辑和批准的高级计划。`,
   argumentHint: '<prompt>',
   isEnabled: () => false,
   load: () => Promise.resolve({

@@ -28,8 +28,6 @@ import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js';
 import TextInput from './TextInput.js';
 
 // This value was determined experimentally by testing the URL length limit
-const GITHUB_URL_LIMIT = 7250;
-const GITHUB_ISSUES_REPO_URL = '';
 type Props = {
   abortSignal: AbortSignal;
   messages: Message[];
@@ -252,7 +250,7 @@ export function Feedback({
           display: 'system'
         });
       } else {
-        onDone('反馈 / Bug 报告已提交', {
+        onDone('反馈已保存到本地', {
           display: 'system'
         });
       }
@@ -272,17 +270,12 @@ export function Feedback({
   useInput((input, key) => {
     // Allow any key press to close the dialog when done or when there's an error
     if (step === 'done') {
-      if (key.return && title) {
-        // Open GitHub issue URL when Enter is pressed
-        const issueUrl = createGitHubIssueUrl(feedbackId ?? '', title, description, getSanitizedErrorLogs());
-        void openBrowser(issueUrl);
-      }
       if (error) {
         onDone('提交反馈 / Bug 报告时出错', {
           display: 'system'
         });
       } else {
-        onDone('反馈 / Bug 报告已提交', {
+        onDone('反馈已保存到本地', {
           display: 'system'
         });
       }
@@ -382,64 +375,10 @@ export function Feedback({
         </Box>}
     </Dialog>;
 }
-export function createGitHubIssueUrl(feedbackId: string, title: string, description: string, errors: Array<{
-  error?: string;
-  timestamp?: string;
-}>): string {
-  const sanitizedTitle = redactSensitiveInfo(title);
-  const sanitizedDescription = redactSensitiveInfo(description);
-  const bodyPrefix = `**Bug Description**\n${sanitizedDescription}\n\n` + `**Environment Info**\n` + `- Platform: ${env.platform}\n` + `- Terminal: ${env.terminal}\n` + `- Version: ${MACRO.VERSION || 'unknown'}\n` + `- Feedback ID: ${feedbackId}\n` + `\n**Errors**\n\`\`\`json\n`;
-  const errorSuffix = `\n\`\`\`\n`;
-  const errorsJson = jsonStringify(errors);
-  const baseUrl = `${GITHUB_ISSUES_REPO_URL}/new?title=${encodeURIComponent(sanitizedTitle)}&labels=user-reported,bug&body=`;
-  const truncationNote = `\n**Note:** Content was truncated.\n`;
-  const encodedPrefix = encodeURIComponent(bodyPrefix);
-  const encodedSuffix = encodeURIComponent(errorSuffix);
-  const encodedNote = encodeURIComponent(truncationNote);
-  const encodedErrors = encodeURIComponent(errorsJson);
-
-  // Calculate space available for errors
-  const spaceForErrors = GITHUB_URL_LIMIT - baseUrl.length - encodedPrefix.length - encodedSuffix.length - encodedNote.length;
-
-  // If description alone exceeds limit, truncate everything
-  if (spaceForErrors <= 0) {
-    const ellipsis = encodeURIComponent('…');
-    const buffer = 50; // Extra safety margin
-    const maxEncodedLength = GITHUB_URL_LIMIT - baseUrl.length - ellipsis.length - encodedNote.length - buffer;
-    const fullBody = bodyPrefix + errorsJson + errorSuffix;
-    let encodedFullBody = encodeURIComponent(fullBody);
-    if (encodedFullBody.length > maxEncodedLength) {
-      encodedFullBody = encodedFullBody.slice(0, maxEncodedLength);
-      // Don't cut in middle of %XX sequence
-      const lastPercent = encodedFullBody.lastIndexOf('%');
-      if (lastPercent >= encodedFullBody.length - 2) {
-        encodedFullBody = encodedFullBody.slice(0, lastPercent);
-      }
-    }
-    return baseUrl + encodedFullBody + ellipsis + encodedNote;
-  }
-
-  // If errors fit, no truncation needed
-  if (encodedErrors.length <= spaceForErrors) {
-    return baseUrl + encodedPrefix + encodedErrors + encodedSuffix;
-  }
-
-  // Truncate errors to fit (prioritize keeping description)
-  // Slice encoded errors directly, then trim to avoid cutting %XX sequences
-  const ellipsis = encodeURIComponent('…');
-  const buffer = 50; // Extra safety margin
-  let truncatedEncodedErrors = encodedErrors.slice(0, spaceForErrors - ellipsis.length - buffer);
-  // If we cut in middle of %XX, back up to before the %
-  const lastPercent = truncatedEncodedErrors.lastIndexOf('%');
-  if (lastPercent >= truncatedEncodedErrors.length - 2) {
-    truncatedEncodedErrors = truncatedEncodedErrors.slice(0, lastPercent);
-  }
-  return baseUrl + encodedPrefix + truncatedEncodedErrors + ellipsis + encodedSuffix + encodedNote;
-}
 async function generateTitle(description: string, abortSignal: AbortSignal): Promise<string> {
   try {
     const response = await querySmallFastModel({
-      systemPrompt: asSystemPrompt(['Generate a concise, technical issue title (max 80 chars) for a public GitHub issue based on this bug report for Limkenion.', 'Limkenion is an agentic coding CLI based on the Limkenion API.', 'The title should:', '- Include the type of issue [Bug] or [Feature Request] as the first thing in the title', '- Be concise, specific and descriptive of the actual problem', '- Use technical terminology appropriate for a software issue', '- For error messages, extract the key error (e.g., "Missing Tool Result Block" rather than the full message)', '- Be direct and clear for developers to understand the problem', '- If you cannot determine a clear issue, use "Bug Report: [brief description]"', '- Any LLM API errors are from the Limkenion API, not from any other model provider', 'Your response will be directly used as the title of the Github issue, and as such should not contain any other commentary or explaination', 'Examples of good titles include: "[Bug] Auto-Compact triggers to soon", "[Bug] Limkenion API Error: Missing Tool Result Block", "[Bug] Error: Invalid Model Name for Opus"']),
+      systemPrompt: asSystemPrompt(['Generate a concise, technical issue title (max 80 chars) for a bug report about Limkenion.', 'Limkenion is an agentic coding CLI based on the Limkenion API.', 'The title should:', '- Include the type of issue [Bug] or [Feature Request] as the first thing in the title', '- Be concise, specific and descriptive of the actual problem', '- Use technical terminology appropriate for a software issue', '- For error messages, extract the key error (e.g., "Missing Tool Result Block" rather than the full message)', '- Be direct and clear for developers to understand the problem', '- If you cannot determine a clear issue, use "Bug Report: [brief description]"', '- Any LLM API errors are from the Limkenion API, not from any other model provider', 'Your response will be used directly as the title, so it should contain no other commentary or explanation', 'Examples of good titles include: "[Bug] Auto-Compact triggers too soon", "[Bug] Limkenion API Error: Missing Tool Result Block"']),
       userPrompt: description,
       signal: abortSignal,
       options: {

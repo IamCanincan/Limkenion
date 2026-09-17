@@ -48,7 +48,7 @@ const review: Command = {
 const ultrareview: Command = {
   type: 'local-jsx',
   name: 'ultrareview',
-  description: `约 10–20 分钟 · 查找并验证你分支中的缺陷。在 Limkenion on the web 上运行。参见 ${CCR_TERMS_URL}`,
+  description: `约 10–20 分钟 · 查找并验证你分支中的缺陷。在 Limkenion on the web 上运行。`,
   isEnabled: () => isUltrareviewEnabled(),
   load: () => import('./review/ultrareviewCommand.js'),
 }

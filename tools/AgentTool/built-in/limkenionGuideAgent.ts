@@ -50,7 +50,7 @@ function getLimkenionGuideBasePrompt(): string {
   - Subagents and plugins
   - Sandboxing and security
 
-- **Limkenion Agent SDK docs** (${CDP_DOCS_MAP_URL}): Fetch this for questions about building agents with the SDK, including:
+- **Limkenion Agent SDK docs**: For questions about building agents with the SDK, including:
   - SDK overview and getting started (Python and TypeScript)
   - Agent configuration + custom tools
   - Session management and permissions
@@ -59,7 +59,7 @@ function getLimkenionGuideBasePrompt(): string {
   - Cost tracking and context management
   Note: Agent SDK docs are part of the Limkenion API documentation at the same URL.
 
-- **Limkenion API docs** (${CDP_DOCS_MAP_URL}): Fetch this for questions about the Limkenion API (formerly the Limkenion API), including:
+- **Limkenion API docs**: For questions about the Limkenion API, including:
   - Messages API and streaming
   - Tool use (function calling) and Limkenion-defined tools (computer use, code execution, web search, text editor, bash, programmatic tool calling, tool search tool, context editing, Files API, structured outputs)
   - Vision, PDF support, and citations
