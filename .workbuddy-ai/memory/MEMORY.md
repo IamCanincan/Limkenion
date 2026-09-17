@@ -1,5 +1,22 @@
 # Limkenion 项目长期记忆
 
+## 用户明确要求（2026-09-17 复述，优先级最高）
+1. **CLI + Web 双端**都要，功能语义对齐。
+2. **只依赖 Node**，不引入新运行时（不要 Bun/Deno/Python）。
+3. **以"高效编码"为目的** —— 判断取舍的标准是写代码好不好用，不是功能多。
+4. **只支持 DeepSeek**，不做其他供应商。
+5. **尽量不要删功能；发现问题先提出来，不要擅自删。**（这条覆盖了早先"保持现状"的口径：
+   现在是"不删 + 先报告"）
+6. 是**本地 agent**，无云、无账号。
+7. **DeepSeek 模型以官网/接口为准，不要凭印象写死。**
+   2026-09-17 实测 `GET https://api.deepseek.com/models` 返回两个：
+   **`deepseek-flash`** 与 **`deepseek-v4-pro`**（`deepseek-flash` 确实存在）。
+8. **API key 由用户自己输入** —— 所以 `/login` 应该真的能录入并持久化 key，
+   而不是现在这样只显示"去设环境变量"。
+9. 参照实现在 `D:\下载\agent\`：`pi`（首选简单参照）、`deepseek-harness`、`codex`、
+   `opencode`、`deepseek-reasonix`、`upstream-ref-impl`（本仓库缺失模块的来源）、
+   `CC-code-source-code-leak`。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
