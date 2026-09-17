@@ -14,8 +14,8 @@ export function isBilledAsExtraUsage(
     .toLowerCase()
     .replace(/\[1m\]$/, '')
     .trim()
-  const isStrongModel = m === 'opus' || m.includes('opus-4-6')
-  const isMainModel = m === 'sonnet' || m.includes('sonnet-4-6')
+  const isStrongModel = m.includes('deepseek-v4-pro')
+  const isMainModel = m.includes('deepseek-flash')
 
   if (isStrongModel && is1mContextMerged) return false
 

@@ -945,7 +945,7 @@ async function run(): Promise<CommanderCommand> {
     return Number.isFinite(n) ? n : undefined;
   }).hideHelp()).option('--from-pr [value]', '按 PR 编号/URL 恢复与 PR 关联的会话，或打开带可选搜索词的交互相应式选择器', value => value || true).option('--no-session-persistence', '禁用会话持久化——会话不会被保存到磁盘，也无法恢复（仅对 --print 生效）').addOption(new Option('--resume-session-at <message id>', '恢复时只恢复 <message.id> 及之前的消息（在 print 模式下与 --resume 搭配使用）').argParser(String).hideHelp()).addOption(new Option('--rewind-files <user-message-id>', '将文件恢复到指定用户消息时的状态并退出（需要 --resume）').hideHelp())
   // @[MODEL LAUNCH]: 更新 --model 帮助文本中的示例模型 ID。
-  .option('--model <model>', `当前会话使用的模型。可提供最新模型的别名（如 'sonnet' 或 'opus'），或模型的完整名称（如 'limkenion-sonnet-4-6'）。`).addOption(new Option('--effort <level>', `当前会话的努力程度（low、medium、high、max）`).argParser((rawValue: string) => {
+  .option('--model <model>', `当前会话使用的模型。可提供模型名（如 'deepseek-flash' 或 'deepseek-v4-pro'）。`).addOption(new Option('--effort <level>', `当前会话的努力程度（low、medium、high、max）`).argParser((rawValue: string) => {
     const value = rawValue.toLowerCase();
     const allowed = ['low', 'medium', 'high', 'max'];
     if (!allowed.includes(value)) {

@@ -341,8 +341,8 @@ export type GlobalConfig = {
   // Experiment enrollment notice tracking (keyed by experiment id)
   experimentNoticesSeenCount?: Record<string, number>
 
-  // OpusPlan experiment config
-  hasShownOpusPlanWelcome?: Record<string, boolean> // Whether the OpusPlan welcome message has been shown per org
+  // Plan 模式（Plan 用强模型）实验配置
+  hasShownPlanModeWelcome?: Record<string, boolean> // Plan 模式欢迎提示是否已展示过（按 org
 
   // Queue usage tracking
   promptQueueUseCount: number // Number of times use has used the prompt queue
@@ -420,10 +420,8 @@ export type GlobalConfig = {
   idleReturnDismissed?: boolean // "Don't ask again" picked
 
   // deepseek-v4-pro Pro migration tracking
-  opusProMigrationComplete?: boolean
 
   // deepseek-flash 1m migration tracking
-  sonnet1m45MigrationComplete?: boolean
 
   // deepseek-v4-pro/4.1 → current deepseek-v4-pro migration (shows one-time notif)
 

@@ -61,7 +61,7 @@ ${modelSection}
 - 设置深色主题：{ "setting": "theme", "value": "dark" }
 - 启用 vim 模式：{ "setting": "editorMode", "value": "vim" }
 - 启用详细输出：{ "setting": "verbose", "value": true }
-- 更换模型：{ "setting": "model", "value": "opus" }
+- 更换模型：{ "setting": "model", "value": "deepseek-v4-pro" }
 - 更改权限模式：{ "setting": "permissions.defaultMode", "value": "plan" }
 `
 }
@@ -78,6 +78,6 @@ function generateModelSection(): string {
 ${lines.join('\n')}`
   } catch {
     return `## 模型
-- model - 覆盖默认模型（sonnet、opus、haiku、best 或完整模型 ID）`
+- model - 覆盖默认模型（deepseek-flash、deepseek-v4-pro）`
   }
 }

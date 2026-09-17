@@ -57,7 +57,8 @@ export function parsePDFPageRange(
  * @日期）。
  */
 export function isPDFSupported(): boolean {
-  return !getMainLoopModel().toLowerCase().includes('limkenion-3-haiku')
+  // 本构建只有 DeepSeek 模型，不存在需要特殊豁免的旧版小快模型。
+  return true
 }
 
 /**

@@ -368,7 +368,7 @@ export function parseUserSpecifiedModel(
   // 3P providers may not yet have 4.6 capacity, so pass through unchanged.
   if (
     getAPIProvider() === 'firstParty' &&
-    isLegacyOpusFirstParty(modelString) &&
+    isLegacyStrongModelId(modelString) &&
     isLegacyModelRemapEnabled()
   ) {
     return getDefaultStrongModel() + (has1mTag ? '[1m]' : '')
@@ -415,11 +415,11 @@ export function resolveSkillModelOverride(
 }
 
 // 本构建里这张表是空的 —— 上游那些已下线的模型串不可能再出现在用户设置里，
-// 所以 isLegacyOpusFirstParty() 恒返回 false，重映射分支不会触发。
-const LEGACY_OPUS_FIRSTPARTY: string[] = []
+// 所以下面的判定恒返回 false，重映射分支不会触发。
+const LEGACY_STRONG_MODEL_IDS: string[] = []
 
-function isLegacyOpusFirstParty(model: string): boolean {
-  return LEGACY_OPUS_FIRSTPARTY.includes(model)
+function isLegacyStrongModelId(model: string): boolean {
+  return LEGACY_STRONG_MODEL_IDS.includes(model)
 }
 
 /**

@@ -1126,7 +1126,7 @@ export const AgentDefinitionSchema = lazySchema(() =>
         .string()
         .optional()
         .describe(
-          "模型别名（例如 'sonnet'、'opus'、'haiku'）或完整模型 ID（例如 'limkenion-opus-4-5'）。如果省略或为 'inherit'，则使用主模型",
+          "模型名（例如 'deepseek-flash' 或 'deepseek-v4-pro'）。如果省略或为 'inherit'，则使用主模型",
         ),
       mcpServers: z.array(AgentMcpServerSpecSchema()).optional(),
       criticalSystemReminder_EXPERIMENTAL: z

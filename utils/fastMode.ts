@@ -171,7 +171,7 @@ export function isFastModeSupportedByModel(
   }
   const model = modelSetting ?? getDefaultMainLoopModelSetting()
   const parsedModel = parseUserSpecifiedModel(model)
-  return parsedModel.toLowerCase().includes('opus-4-6')
+  return parsedModel.toLowerCase().includes('deepseek-v4-pro')
 }
 
 // --- Fast mode runtime state ---

@@ -1338,7 +1338,7 @@ export function isOverageProvisioningAllowed(): boolean {
 
 // Returns whether the user has deepseek-v4-pro access at all, regardless of whether they
 // are a subscriber or PayG.
-export function hasOpusAccess(): boolean {
+export function hasStrongModelAccess(): boolean {
   const subscriptionType = getSubscriptionType()
 
   return (

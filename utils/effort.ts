@@ -230,7 +230,7 @@ export type StrongModelDefaultEffortConfig = {
   dialogDescription: string
 }
 
-const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: StrongModelDefaultEffortConfig = {
+const STRONG_MODEL_DEFAULT_EFFORT_CONFIG_DEFAULT: StrongModelDefaultEffortConfig = {
   enabled: true,
   dialogTitle: '我们建议强模型使用中等 effort',
   dialogDescription:
@@ -240,10 +240,10 @@ const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: StrongModelDefaultEffortConfig = {
 export function getStrongModelDefaultEffortConfig(): StrongModelDefaultEffortConfig {
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
     'limkenion_grey_step2',
-    OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT,
+    STRONG_MODEL_DEFAULT_EFFORT_CONFIG_DEFAULT,
   )
   return {
-    ...OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT,
+    ...STRONG_MODEL_DEFAULT_EFFORT_CONFIG_DEFAULT,
     ...config,
   }
 }
@@ -259,7 +259,7 @@ export function getDefaultEffortForModel(
 
   // Pro 用户在 deepseek-v4-pro 上默认用中等 effort。
   // 当 limkenion_grey_step2 配置启用时，Max/Team 同样使用中等 effort。
-  if (model.toLowerCase().includes('opus-4-6')) {
+  if (model.toLowerCase().includes('deepseek-v4-pro')) {
     if (isProSubscriber()) {
       return 'medium'
     }

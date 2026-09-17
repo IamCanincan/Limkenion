@@ -54,10 +54,6 @@ import {
  *
  * Vertex AI：
  * - 模型特定区域变量（最高优先级）：
- *   - VERTEX_REGION_LIMKENION_3_5_HAIKU：deepseek-flash 模型的区域
- *   - VERTEX_REGION_LIMKENION_HAIKU_4_5：Limkenion deepseek-flash 模型的区域
- *   - VERTEX_REGION_LIMKENION_3_5_SONNET：deepseek-flash 模型的区域
- *   - VERTEX_REGION_LIMKENION_3_7_SONNET：deepseek-flash 模型的区域
  * - CLOUD_ML_REGION：可选。所有模型默认使用的 GCP 区域
  *   若上面未指定特定模型区域时
  * - LIMKENION_VERTEX_PROJECT_ID：必需。你的 GCP 项目 ID

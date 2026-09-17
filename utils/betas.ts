@@ -192,11 +192,11 @@ export function shouldUseGlobalCacheScope(): boolean {
 
 export const getAllModelBetas = memoize((model: string): string[] => {
   const betaHeaders = []
-  const isHaiku = getCanonicalName(model).includes('haiku')
+  const isSmallFast = getCanonicalName(model).includes('deepseek-flash')
   const provider = getAPIProvider()
   const includeFirstPartyOnlyBetas = shouldIncludeFirstPartyOnlyBetas()
 
-  if (!isHaiku) {
+  if (!isSmallFast) {
     betaHeaders.push(LIMKENION_20250219_BETA_HEADER)
     
   }

@@ -168,7 +168,7 @@ export function AssistantTextMessage(t0) {
       {
         let t2;
         if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <Text color="error">我们目前正面临 Opus 4 的高需求。</Text>;
+          t2 = <Text color="error">模型当前负载较高。</Text>;
           $[12] = t2;
         } else {
           t2 = $[12];

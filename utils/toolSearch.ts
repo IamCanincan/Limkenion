@@ -201,7 +201,7 @@ export function getToolSearchMode(): ToolSearchMode {
  * Default patterns for models that do NOT support tool_reference.
  * New models are assumed to support tool_reference unless explicitly listed here.
  */
-const DEFAULT_UNSUPPORTED_MODEL_PATTERNS = ['haiku']
+const DEFAULT_UNSUPPORTED_MODEL_PATTERNS = ['deepseek-flash']
 
 /**
  * Get the list of model patterns that do NOT support tool_reference.
@@ -419,7 +419,7 @@ export async function isToolSearchEnabled(
   if (!modelSupportsToolReference(model)) {
     logForDebugging(
       `Tool search disabled for model '${model}': model does not support tool_reference blocks. ` +
-        `This feature is only available on Limkenion Sonnet 4+, Opus 4+, and newer models.`,
+        `此功能只在较新的模型上可用。`,
     )
     logModeDecision(false, 'standard', 'model_unsupported')
     return false

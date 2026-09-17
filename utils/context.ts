@@ -73,18 +73,15 @@ export function getContextWindowForModel(
   return MODEL_CONTEXT_WINDOW_DEFAULT
 }
 
-export function get1mContextTreatmentEnabled(model: string): boolean {
-  if (is1mContextDisabled()) {
-    return false
-  }
-  // Only applies to deepseek-flash 4.6 without an explicit [1m] suffix
-  if (has1mContext(model)) {
-    return false
-  }
-  if (!getCanonicalName(model).includes('sonnet-4-6')) {
-    return false
-  }
-  return getGlobalConfig().clientDataCache?.['coral_reef_sonnet'] === 'true'
+/**
+ * 1M 上下文的实验开关。
+ *
+ * **本构建恒返回 false** —— 原本它依赖服务端下发的 `clientDataCache` 标记，
+ * 而本构建没有服务端，那个缓存永远不会被写入；而且 DeepSeek 的上下文本来就是 1M，
+ * 不需要这种实验性开关。
+ */
+export function get1mContextTreatmentEnabled(_model: string): boolean {
+  return false
 }
 
 /**
