@@ -15,10 +15,6 @@ import {
   preferThirdPartyAuthentication,
 } from '../bootstrap/state.js'
 import {
-  getMockSubscriptionType,
-  shouldUseMockSubscription,
-} from '../services/mockRateLimits.js'
-import {
   getApiKeyFromFileDescriptor,
   getOAuthTokenFromFileDescriptor,
 } from './authFileDescriptor.js'

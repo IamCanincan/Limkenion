@@ -43,19 +43,7 @@ export function hasConsoleBillingAccess(): boolean {
   )
 }
 
-// Mock billing access for /mock-limits testing (set by mockRateLimits.ts)
-let mockBillingAccessOverride: boolean | null = null
-
-export function setMockBillingAccessOverride(value: boolean | null): void {
-  mockBillingAccessOverride = value
-}
-
 export function hasLimkenionAiBillingAccess(): boolean {
-  // Check for mock billing access first (for /mock-limits testing)
-  if (mockBillingAccessOverride !== null) {
-    return mockBillingAccessOverride
-  }
-
   if (!isLimkenionAISubscriber()) {
     return false
   }

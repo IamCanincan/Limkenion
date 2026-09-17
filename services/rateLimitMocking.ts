@@ -1,130 +1,48 @@
 /**
- * Facade for rate limit header processing
- * This isolates mock logic from production code
+ * 限流响应头处理门面。
+ *
+ * 原本这里是 mock 限流的接线层（给 `/mock-limits` 命令用）。整套 mock 已删除：
+ * - `services/mockRateLimits.ts`（719 行）的 `shouldProcessMockLimits()` 开头就是
+ *   `if (true) return false`，本来就是硬关掉的死代码；
+ * - 它模拟的是"按模型分档的限流窗口"，那是上游服务端才有的概念，
+ *   DeepSeek 根本不发这类响应头。
+ *
+ * 保留这几个导出是为了不动调用方（limkenionAiLimits / api/errors / withRetry /
+ * RateLimitMessage）。它们现在都是恒等或空操作。
  */
 
-import { APIError } from '../types/llm-protocol.js'
-import {
-  applyMockHeaders,
-  checkMockFastModeRateLimit,
-  getMockHeaderless429Message,
-  getMockHeaders,
-  isMockFastModeRateLimitScenario,
-  shouldProcessMockLimits,
-} from './mockRateLimits.js'
+import type { APIError } from '../types/llm-protocol.js'
 
-/**
- * Process headers, applying mocks if /mock-limits command is active
- */
+/** 原样返回 —— 没有 mock 需要注入。 */
 export function processRateLimitHeaders(
   headers: globalThis.Headers,
 ): globalThis.Headers {
-  // Only apply mocks for Ant employees using /mock-limits command
-  if (shouldProcessMockLimits()) {
-    return applyMockHeaders(headers)
-  }
   return headers
 }
 
 /**
- * Check if we should process rate limits (either real subscriber or /mock-limits command)
+ * 是否处理限流。
+ * 原本是 `isSubscriber || shouldProcessMockLimits()`；mock 已删，
+ * 所以只取决于订阅状态（本构建里恒为 false）。
  */
 export function shouldProcessRateLimits(isSubscriber: boolean): boolean {
-  return isSubscriber || shouldProcessMockLimits()
+  return isSubscriber
 }
 
-/**
- * Check if mock rate limits should throw a 429 error
- * Returns the error to throw, or null if no error should be thrown
- * @param currentModel The model being used for the current request
- * @param isFastModeActive Whether fast mode is currently active (for fast-mode-only mocks)
- */
+/** mock 已删除，永远不抛模拟的 429。 */
 export function checkMockRateLimitError(
-  currentModel: string,
-  isFastModeActive?: boolean,
+  _currentModel: string,
+  _isFastModeActive?: boolean,
 ): APIError | null {
-  if (!shouldProcessMockLimits()) {
-    return null
-  }
-
-  const headerlessMessage = getMockHeaderless429Message()
-  if (headerlessMessage) {
-    return new APIError(
-      429,
-      { error: { type: 'rate_limit_error', message: headerlessMessage } },
-      headerlessMessage,
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      new globalThis.Headers(),
-    )
-  }
-
-  const mockHeaders = getMockHeaders()
-  if (!mockHeaders) {
-    return null
-  }
-
-  // Check if we should throw a 429 error
-  // Only throw if:
-  // 1. Status is rejected AND
-  // 2. Either no overage headers OR overage is also rejected
-  // 3. For Opus-specific limits, only throw if actually using an Opus model
-  const status = mockHeaders['limkenion-ratelimit-unified-status']
-  const overageStatus =
-    mockHeaders['limkenion-ratelimit-unified-overage-status']
-
-  // Check for mock fast mode rate limits (handles expiry, countdown, etc.)
-  if (isMockFastModeRateLimitScenario()) {
-    const fastModeHeaders = checkMockFastModeRateLimit(isFastModeActive)
-    if (fastModeHeaders === null) {
-      return null
-    }
-    // Create a mock 429 error with the fast mode headers
-    const error = new APIError(
-      429,
-      { error: { type: 'rate_limit_error', message: 'Rate limit exceeded' } },
-      'Rate limit exceeded',
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      new globalThis.Headers(
-        Object.entries(fastModeHeaders).filter(([_, v]) => v !== undefined) as [
-          string,
-          string,
-        ][],
-      ),
-    )
-    return error
-  }
-
-  const shouldThrow429 =
-    status === 'rejected' && (!overageStatus || overageStatus === 'rejected')
-
-  if (shouldThrow429) {
-    // Create a mock 429 error with the appropriate headers
-    const error = new APIError(
-      429,
-      { error: { type: 'rate_limit_error', message: 'Rate limit exceeded' } },
-      'Rate limit exceeded',
-      // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      new globalThis.Headers(
-        Object.entries(mockHeaders).filter(([_, v]) => v !== undefined) as [
-          string,
-          string,
-        ][],
-      ),
-    )
-    return error
-  }
-
   return null
 }
 
-/**
- * Check if this is a mock 429 error that shouldn't be retried
- */
-export function isMockRateLimitError(error: APIError): boolean {
-  return shouldProcessMockLimits() && error.status === 429
+/** mock 已删除，不会有模拟的限流错误。 */
+export function isMockRateLimitError(_error: APIError): boolean {
+  return false
 }
 
-/**
- * Check if /mock-limits command is currently active (for UI purposes)
- */
-export { shouldProcessMockLimits }
+/** mock 已删除。保留导出是为了不动 RateLimitMessage 的调用点。 */
+export function shouldProcessMockLimits(): boolean {
+  return false
+}
