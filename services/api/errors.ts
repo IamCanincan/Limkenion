@@ -159,7 +159,7 @@ export const CCR_AUTH_ERROR_MESSAGE =
   '认证出错 · 这可能是临时的网络问题，请重试'
 export const REPEATED_529_ERROR_MESSAGE = 'Repeated 529 Overloaded errors'
 export const CUSTOM_OFF_SWITCH_MESSAGE =
-  'Opus is experiencing high load, please use /model to switch to Sonnet'
+  'DeepSeek V4 Pro 当前负载较高，可用 /model 切到 DeepSeek Flash'
 export const API_TIMEOUT_ERROR_MESSAGE = '请求超时'
 export function getPdfTooLargeErrorMessage(): string {
   const limits = `max ${API_PDF_MAX_PAGES} pages, ${formatFileSize(PDF_TARGET_RAW_SIZE)}`

@@ -216,7 +216,7 @@ export function getEffortLevelDescription(level: EffortLevel): string {
     case 'high':
       return '全面实现，包含充分的测试与文档'
     case 'max':
-      return '最大能力，推理最深（仅限 Opus 4.6）'
+      return '最大能力，推理最深（仅限 DeepSeek V4 Pro）'
   }
 }
 
@@ -243,7 +243,7 @@ export type OpusDefaultEffortConfig = {
 
 const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: OpusDefaultEffortConfig = {
   enabled: true,
-  dialogTitle: '我们建议 Opus 使用中等 effort',
+  dialogTitle: '我们建议强模型使用中等 effort',
   dialogDescription:
     'Effort 决定 Limkenion 完成你的任务时思考的时长。我们建议大多数任务使用中等 effort，以在速度与智能之间取得平衡并最大化速率限制。需要时可使用 ultrathink 触发高 effort。',
 }

@@ -30,35 +30,10 @@ type DeprecationEntry = {
  * Keys are substrings to match in model IDs (case-insensitive).
  * To add a new deprecated model, add an entry to this object.
  */
-const DEPRECATED_MODELS: Record<string, DeprecationEntry> = {
-  'limkenion-3-opus': {
-    modelName: 'Limkenion 3 Opus',
-    retirementDates: {
-      firstParty: 'January 5, 2026',
-      bedrock: 'January 15, 2026',
-      vertex: 'January 5, 2026',
-      foundry: 'January 5, 2026',
-    },
-  },
-  'limkenion-3-7-sonnet': {
-    modelName: 'Limkenion 3.7 Sonnet',
-    retirementDates: {
-      firstParty: 'February 19, 2026',
-      bedrock: 'April 28, 2026',
-      vertex: 'May 11, 2026',
-      foundry: 'February 19, 2026',
-    },
-  },
-  'limkenion-3-5-haiku': {
-    modelName: 'Limkenion 3.5 Haiku',
-    retirementDates: {
-      firstParty: 'February 19, 2026',
-      bedrock: null,
-      vertex: null,
-      foundry: null,
-    },
-  },
-}
+// 本构建只有 DeepSeek 两个模型，没有会退役的上游模型。
+// 原本这里是一张上游模型的退役日期表（Limkenion 3 Opus / 3.7 Sonnet / 3.5 Haiku …），
+// 那些模型都不存在，整张表已清空 —— getDeprecationInfo() 因此恒返回 undefined。
+const DEPRECATED_MODELS: Record<string, DeprecationEntry> = {}
 
 /**
  * Check if a model is deprecated and get its deprecation info

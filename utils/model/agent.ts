@@ -134,19 +134,14 @@ export function getAgentModelDisplay(model: string | undefined): string {
 export function getAgentModelOptions(): AgentModelOption[] {
   return [
     {
-      value: 'sonnet',
-      label: 'Sonnet',
-      description: 'Balanced performance - best for most agents',
+      value: 'deepseek-flash',
+      label: 'DeepSeek Flash',
+      description: '日常任务默认模型，快且省',
     },
     {
-      value: 'opus',
-      label: 'Opus',
-      description: 'Most capable for complex reasoning tasks',
-    },
-    {
-      value: 'haiku',
-      label: 'Haiku',
-      description: 'Fast and efficient for simple tasks',
+      value: 'deepseek-v4-pro',
+      label: 'DeepSeek V4 Pro',
+      description: '复杂推理任务用，能力最强',
     },
     {
       value: 'inherit',

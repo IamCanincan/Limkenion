@@ -34,14 +34,10 @@ import typescriptLimkenionApiToolUse from './limkenion-api/typescript/limkenion-
 //   - limkenion-api/SKILL.md (Current Models pricing table)
 //   - limkenion-api/shared/models.md (full model catalog with legacy versions and alias mappings)
 export const SKILL_MODEL_VARS = {
-  OPUS_ID: 'limkenion-opus-4-6',
-  OPUS_NAME: 'Limkenion Opus 4.6',
-  SONNET_ID: 'limkenion-sonnet-4-6',
-  SONNET_NAME: 'Limkenion Sonnet 4.6',
-  HAIKU_ID: 'limkenion-haiku-4-5',
-  HAIKU_NAME: 'Limkenion Haiku 4.5',
-  // Previous Sonnet ID — used in "do not append date suffixes" example in SKILL.md.
-  PREV_SONNET_ID: 'limkenion-sonnet-4-5',
+  PRO_ID: 'deepseek-v4-pro',
+  PRO_NAME: 'DeepSeek V4 Pro',
+  FLASH_ID: 'deepseek-flash',
+  FLASH_NAME: 'DeepSeek Flash',
 } satisfies Record<string, string>
 
 export const SKILL_PROMPT: string = skillPrompt

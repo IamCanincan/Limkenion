@@ -292,34 +292,21 @@ export function getCanonicalName(fullModelName: ModelName): ModelShortName {
   return firstPartyNameToCanonical(resolveOverriddenModel(fullModelName))
 }
 
-// @[MODEL LAUNCH]: Update the default model description strings shown to users.
+// @[MODEL LAUNCH]: 新增模型时更新这里给用户看的默认模型描述。
 export function getLimkenionAiUserDefaultModelDescription(
-  fastMode = false,
+  _fastMode = false,
 ): string {
-  if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
-    if (isOpus1mMergeEnabled()) {
-      return `Opus 4.6 with 1M context · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
-    }
-    return `Opus 4.6 · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
-  }
-  return 'Sonnet 4.6 · Best for everyday tasks'
+  // 本构建只有 DeepSeek 两个模型，没有订阅分档，也没有按模型的定价后缀。
+  return 'DeepSeek Flash · 日常任务的默认模型'
 }
 
 export function renderDefaultModelSetting(
   setting: ModelName | ModelAlias,
 ): string {
   if (setting === 'opusplan') {
-    return 'Opus 4.6 in plan mode, else Sonnet 4.6'
+    return '计划模式用 DeepSeek V4 Pro，其余用 DeepSeek Flash'
   }
   return renderModelName(parseUserSpecifiedModel(setting))
-}
-
-/**
- * 原本返回 " · ⚡ $5/$25 per Mtok" 这样的定价后缀。
- * 定价表已移除（DeepSeek 价格会变，不写死），所以不再展示金额。
- */
-export function getPricingSuffix(_fastMode: boolean): string {
-  return ''
 }
 
 export function isOpus1mMergeEnabled(): boolean {
@@ -344,7 +331,7 @@ export function isOpus1mMergeEnabled(): boolean {
 
 export function renderModelSetting(setting: ModelName | ModelAlias): string {
   if (setting === 'opusplan') {
-    return 'Opus Plan'
+    return 'Plan 用强模型'
   }
   if (isModelAlias(setting)) {
     return capitalize(setting)
@@ -527,47 +514,19 @@ export function modelDisplayString(model: ModelSetting): string {
 }
 
 // @[MODEL LAUNCH]: Add a marketing name mapping for the new model below.
+/**
+ * 把模型 ID 映射成给用户看的名字。
+ * 本构建只有 DeepSeek 两个模型；原本那一长串上游模型名
+ * （Opus 4.6 / Sonnet 4.6 / Haiku 4.5 …）已全部移除。
+ */
 export function getMarketingNameForModel(modelId: string): string | undefined {
-  if (getAPIProvider() === 'foundry') {
-    // deployment ID is user-defined in Foundry, so it may have no relation to the actual model
-    return undefined
-  }
-
-  const has1m = modelId.toLowerCase().includes('[1m]')
   const canonical = getCanonicalName(modelId)
 
-  if (canonical.includes('limkenion-opus-4-6')) {
-    return has1m ? 'Opus 4.6 (with 1M context)' : 'Opus 4.6'
+  if (canonical.includes('deepseek-v4-pro')) {
+    return 'DeepSeek V4 Pro'
   }
-  if (canonical.includes('limkenion-opus-4-5')) {
-    return 'Opus 4.5'
-  }
-  if (canonical.includes('limkenion-opus-4-1')) {
-    return 'Opus 4.1'
-  }
-  if (canonical.includes('limkenion-opus-4')) {
-    return 'Opus 4'
-  }
-  if (canonical.includes('limkenion-sonnet-4-6')) {
-    return has1m ? 'Sonnet 4.6 (with 1M context)' : 'Sonnet 4.6'
-  }
-  if (canonical.includes('limkenion-sonnet-4-5')) {
-    return has1m ? 'Sonnet 4.5 (with 1M context)' : 'Sonnet 4.5'
-  }
-  if (canonical.includes('limkenion-sonnet-4')) {
-    return has1m ? 'Sonnet 4 (with 1M context)' : 'Sonnet 4'
-  }
-  if (canonical.includes('limkenion-3-7-sonnet')) {
-    return 'Limkenion 3.7 Sonnet'
-  }
-  if (canonical.includes('limkenion-3-5-sonnet')) {
-    return 'Limkenion 3.5 Sonnet'
-  }
-  if (canonical.includes('limkenion-haiku-4-5')) {
-    return 'Haiku 4.5'
-  }
-  if (canonical.includes('limkenion-3-5-haiku')) {
-    return 'Limkenion 3.5 Haiku'
+  if (canonical.includes('deepseek-flash')) {
+    return 'DeepSeek Flash'
   }
 
   return undefined

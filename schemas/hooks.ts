@@ -150,7 +150,7 @@ function buildHookSchemas() {
       .string()
       .optional()
       .describe(
-        'Model to use for this agent hook (e.g., "limkenion-sonnet-4-6"). If not specified, uses Haiku.',
+        'Model to use for this agent hook (e.g., "deepseek-flash"). If not specified, uses the small fast model.',
       ),
     statusMessage: z
       .string()

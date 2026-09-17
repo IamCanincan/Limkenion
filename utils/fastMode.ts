@@ -22,7 +22,6 @@ import { logForDebugging } from './debug.js'
 import { isEnvTruthy } from './envUtils.js'
 import {
   getDefaultMainLoopModelSetting,
-  isOpus1mMergeEnabled,
   type ModelSetting,
   parseUserSpecifiedModel,
 } from './model/model.js'
@@ -139,11 +138,11 @@ export function getFastModeUnavailableReason(): string | null {
   return null
 }
 
-// @[MODEL LAUNCH]: Update supported Fast Mode models.
-export const FAST_MODE_MODEL_DISPLAY = 'Opus 4.6'
+// @[MODEL LAUNCH]: 新增模型时更新 Fast 模式支持的模型。
+export const FAST_MODE_MODEL_DISPLAY = 'DeepSeek V4 Pro'
 
 export function getFastModeModel(): string {
-  return 'opus' + (isOpus1mMergeEnabled() ? '[1m]' : '')
+  return 'deepseek-v4-pro'
 }
 
 export function getInitialFastModeSetting(model: ModelSetting): boolean {

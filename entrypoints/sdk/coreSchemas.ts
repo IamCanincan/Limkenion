@@ -71,7 +71,7 @@ export const ThinkingAdaptiveSchema = lazySchema(() =>
     .object({
       type: z.literal('adaptive'),
     })
-    .describe('Limkenion 自行决定是否思考以及思考的深度（Opus 4.6+）。'),
+    .describe('Limkenion 自行决定是否思考以及思考的深度。'),
 )
 
 export const ThinkingEnabledSchema = lazySchema(() =>
