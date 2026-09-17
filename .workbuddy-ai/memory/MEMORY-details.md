@@ -406,4 +406,48 @@ EnterWorktree、ExitWorktree —— 设计上"给明确说明而非静默失败"
 三个按钮 `允许一次 | 本会话总是允许 | 拒绝 (Esc)`。
 **请求追踪面板实测**：`共 3 次 · 成功 3 · 失败 0 · 平均 1.06s · 最慢 1.36s · 9.2k→414 token`。
 
+### 十四、设置层：web 原先完全不读设置文件（2026-09-18）
+「CLI 有的都要搬到 web」的第三层（前两层：命令、工具）。发现 web 端
+**完全不读设置文件** —— `grep` 设置文件关键字在 `web/server/*.mjs` 零命中。
+
+**后果**：CLI 那边配的 `Bash(npm run test:*)` 预授权在 web 每次还弹；
+更严重的是 **`permissions.deny` 本该硬拦截，web 会照常放行** ——
+"用户以为挡住了、其实没挡"，比"少个功能"严重。
+
+**新增 `web/server/settings.mjs`**，读与 CLI 同一套文件（用户级 / 项目级 / 项目本地级，
+数组并集、标量 local > project > user），支持 `deny` / `ask` / `allow` /
+`defaultMode` / `disableBypassPermissionsMode`。
+
+**规则语法**（与 CLI 的 `utils/settings/toolValidationConfig.ts` 对齐）：
+- 裸工具名 → 匹配任何调用
+- 命令类工具：`npm run test:*)` **前缀**匹配（CLI 的 legacy `:*` 写法）、
+  `npm run *` **通配**、否则精确。前缀要成词（`npm run testing` 不算命中）
+- 文件类工具（Read/Write/Edit/Glob/NotebookRead/NotebookEdit）→ `file_path` glob，
+  支持 CLI 的 `//abs/path` 写法，并自动补 `**/` 前缀
+- **其他工具的 specifier → 返回 `unsupported`，不是 `no-match`**。
+  **这条是设计要点**：当成"不匹配"会让 deny 规则给人假的保护感。
+  `/permissions` 与启动横幅会明确列出"哪些规则在 web 端不生效"。
+
+**优先级**（写进 `needsPermission`）：计划模式 → **escalate（不可被 allow 绕过）**
+→ `ask` → `allow` → 原有逻辑。`ask` 与 `allow` 同时命中时 **`ask` 赢**。
+
+**顺带**：`tools.mjs` 的 `toolGlob` 里内联的 glob→regex 抽到 `paths.mjs` 的
+`globToRegExp()`，两处共用避免语义漂移。
+
+**没做**：`permissions.additionalDirectories`（要改沙箱根，安全边界）；
+其他设置键（hooks / env / mcpServers / outputStyle）仍不消费。
+
+**e2e 实测**（用隔离的配置目录环境变量，没碰用户真实配置）：
+allow 规则 → 弹窗 0 次且文件创建；deny 规则 → 弹窗 0 次、硬拦截、文件没写。
+测试 26 项，全套 **206 项全过**。
+
+### 审计过的三层（顺序）
+1. **命令**（82 → 搬 7 个；其余是占位桩/已停用/需云端/终端专属）
+2. **工具**（55 目录 → 真缺只有 CronList/CronDelete）
+3. **设置**（原先零读取 → 已补权限相关）
+
+**方法可复用**：先量化（grep 计数 + 逐条核实"是真实现还是占位桩"），
+再分类（能搬 / 死路径 / 需设计变更），最后只搬"能搬"的并如实报告其余。
+
+
 
