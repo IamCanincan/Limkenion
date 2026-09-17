@@ -610,3 +610,118 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 - 顺手发现并记下：web 服务的 API key 取自 `~/.limkenion.json` 的 `primaryApiKey`；
   任务分享页内容的取法（`/v2/as/p/tasks/share/<code>` + `POST .../verify`）。
 
+
+---
+
+## 附五：2026-09-18 第二轮（"全部都做"：五项全搬完）
+
+用户看完五项解释后说"全部都做"。五个 commit：`6363805`（沙箱根+worktree）、`04ac322`（hooks）、
+`5e9ecef`（MCP）、`a9ac757`（insights）、`44aae9e`（workflow）。测试 213 → **296 项全过**。
+
+### 1. 沙箱根按会话可变（安全边界改动，做法与取舍）
+
+- **不能用模块级可变变量**：并发回合之间会串味（会话 A 切了 worktree，会话 B 的 safePath 也跟着变）
+  → 那是越界读写的口子。改用 **AsyncLocalStorage**。
+- 好处：`safePath(p)` / `isInsideWorkspace(p)` 的**签名一个都不用改** ⇒ 不可能漏掉调用点。
+- 作用域只在两处进入：协议边界（每条 WS 消息，按 sessionId）与回合边界（`runTurn`）。
+- `WORKSPACE_ROOT` 常量保留但标 deprecate，全部调用点改成 `workspaceRoot()`；
+  `config.mjs` 不再导出它（导出会诱导误用）。
+- **项目级设置固定从进程默认根读，不跟 worktree 漂移** —— 刻意的安全选择：
+  git worktree 只检出受版本控制的文件，新根里没有 `.limkenion/settings.json`，
+  跟着漂移会让用户的 `permissions.deny` **静默失效**。
+- 文件规则匹配（`matchFileSpecifier`）相对**每个根各算一份**，任一命中即命中
+  （`deny` 漏判是安全问题，误判只是多弹一次确认）。
+- 文件索引缓存改成**按根分别缓存**（否则 A 会话切根后 B 会看到 A 的目录树）。
+- 沙箱根**随会话落盘**；恢复时若目录已不存在则回落默认根并告警。
+
+`worktree.mjs` 的实现要点：
+- 路径 `<仓库主根>/.limkenion/worktrees/<扁平化 slug>`（`git rev-parse --git-common-dir` 求主根，
+  linked worktree 也能拿到）；分支放自己的命名空间 `limkenion-wt/*`
+  （`-B` 重置是必要的：目录删过会留孤儿分支；但绝不能重置到用户已有分支）。
+- `remove` 不带 `--force`：有未提交改动时 git 会拒绝，**不替用户丢东西**。
+- **只在当前沙箱内建**：否则"创建 worktree"就是绕过沙箱写文件的通道。
+- 两个工具都进 `DANGEROUS_TOOLS`（一次授权 = 换掉之后所有文件工具的作用范围）。
+- 进入后**原目录不再可访问**（隔离本意）；要同时访问两处用 `additionalDirectories`。
+- 退出后 `session.workspaceRoot = null`（不要 `delete`，字段形状要一致）。
+
+### 2. hooks（command 类型 + 8 个事件）
+
+- 事件：PreToolUse / PostToolUse / PostToolUseFailure / UserPromptSubmit / SessionStart /
+  SessionEnd / Stop / SubagentStop。**未做**：其余 19 种事件、`prompt`/`agent`/`http` 三种执行方式
+  （http 要配 SSRF 防护，半做 = 内网可打穿）。
+- 优先级（**最容易被改乱的地方**，注释里写死了）：
+  ① PreToolUse 钩子**先跑**（审计类钩子要能看到每一次调用，含之后被 deny 挡下的）
+  ② 设置 `permissions.deny` 硬拦截 —— **钩子的 allow 不能覆盖它**
+  ③ shell 守卫硬拦截 ④ 钩子的 deny → 直接拒 ⑤ 权限判定：钩子 allow 可免确认，但**不能绕过 escalate**；
+  设置里的 `ask` 也压过钩子的 allow（用户手写的规则比脚本判定更该被信任）。
+- 配置缓存 3s TTL（一次工具调用要问两遍 Pre/Post，不必每次读盘；改了配置也不至于要重启）。
+- 退出码 2 = 阻断（理由取 stderr，与 CLI 一致）；stdout 取**最后一行**能解析成对象的（钩子会打日志）。
+- 新增 `/hooks`：列出**生效**与**配置了但不会生效**的钩子（后者刻意保留 —— 静默忽略一个
+  用户以为在生效的钩子比报错更难查）、已接线/未接线事件、实际使用的 shell。
+
+踩的两个坑（都写进注释了）：
+1. **自己拼 `cmd.exe /d /s /c "..."` 会拆坏带引号的可执行路径** → 用 `spawn(cmd, { shell })`。
+2. **钩子超时不能用 `child.kill()`**：那只杀 shell，脚本进程活下来继续占着 stdout 管道 →
+   `close` 永不触发 → 整个回合挂死。超时后**不等 close 直接结算** + `taskkill /T /F`。
+3. `UserPromptSubmit` 的附加上下文在"没有用户消息"时（定时任务/程序化 `runTurn`）会被静默丢掉
+   → 现在回落挂到系统提示后面。
+
+### 3. MCP 客户端
+
+- 传输：`stdio`（子进程，newline-delimited JSON-RPC）+ `http`（Streamable HTTP，
+  响应体 JSON 或 SSE 流都认）。**未做**：`sse`（旧版双端点）、OAuth（`McpAuth` 保持降级，
+  文案指向"用 headers 传固定 token"）、服务端反向请求（elicitation/sampling/roots）、
+  prompt 模板、registry。
+- **服务端反向请求一律回 -32601**，绝不挂着不回（挂着会让服务器一直等，表现为"工具调用卡住"）。
+- 连接失败**不阻塞启动**：后台连，失败只记状态；`/mcp` 能看到原因（含子进程 stderr 尾巴）。
+- 工具命名与 CLI 一致：`mcp__<规范化服务器名>__<工具名>`。**工具名也要规范化** ——
+  OpenAI 的函数名规范是 `^[a-zA-Z0-9_-]{1,64}$`，而 MCP 服务器可能起名 `read file`；
+  调用时按规范化名找回真名（`callMcpTool` 里做）。
+- 接线：`tools.mjs` **不 import** `mcp.mjs`，经 `ctx.callMcpTool/listMcpResources/readMcpResource`。
+  `executeTool` 认 `mcp__` 前缀分派（运行时发现的工具进不了静态 switch）。
+- `registerMcpTools()` 是**替换式**注册（重连后清单会变，只追加会让消失的工具一直留着）。
+- **`DEFERRED_TOOL_NAMES` 从常量改成函数**：它是模块加载时的快照，运行时注册的 MCP 工具
+  永远进不了延迟清单（ToolSearch 搜不到、模型不知道它们存在）。
+- MCP 工具默认算**危险工具**（`isDangerousTool`）；**子代理/只读通道不给 MCP**。
+- 新增 `/mcp`（含 `/mcp reload`）。
+
+踩的两个 bug：
+1. **超时回调里的 `reject` 不在作用域**（`ReferenceError`）→ 超时路径整个失效，请求永不结算。
+2. **子进程起不来要干等 20 秒超时** → 现在 `closedPromise` 与 initialize 竞速，进程一退出就失败。
+
+### 4. /insights
+
+- 统计全部来自真实会话数据；洞察由强模型写，**无 key / 调用失败时降级为纯统计并在报告顶部说明原因**。
+- 自包含 HTML（内联样式、零外部资源、零脚本），落在 `<state>/insights/`；
+  新增只读路由 `/insights`（最新）与 `/insights/<name>`。
+- **这是唯一一条"从磁盘读文件回给浏览器"的路**：文件名走严格白名单正则
+  （`^insights-[0-9T-]+\.html$`）+ 落在目录内检查，不接受任何路径拼接；
+  测试用真 HTTP 请求打了编码穿越与 POST。报告插值全部 HTML 转义（会话标题用户可控）。
+- 顺带修：`chatCompletion` 的 `onDelta` 是可选参数却直接调用 → 没传就在流解析中途抛
+  `onDelta is not a function`，表现为"模型调用失败"。现在给了默认空实现。
+
+### 5. WorkflowTool
+
+- 原语：`agent(prompt, opts)`（**只读**子代理，复用 Agent 工具同一套机制）/ `parallel([fn…])` /
+  `pipeline(items, ...stages)` / `phase(name)` / `log(...)`；`args` 逐字暴露。
+- 沙箱：`node:vm` 干净上下文，只有上述原语 —— 没有 `require`/`process`/`fs`/`fetch`。
+- 预算：`agent()` 硬上限（默认 12，最多 50）+ 并发上限 4；超限**明确报错并说怎么提高上限**。
+- journal 落盘 `<state>/workflows/<runId>.json`；`resumeFromRunId` 按 prompt 复用已完成的 agent。
+- **已知限制（写在文件头+对外文案）**：`node:vm` 不是安全边界；同步死循环会卡住服务 ——
+  只有顶层同步段能用 `runInContext({timeout})`（5s）兜住，`await` 之后的兜不住（CLI 也一样）。
+- 两个坑：① CLI 脚本以 `export const meta = …` 开头，包进 async 函数是**语法错误** → 去掉 `export ` 并抓出 meta；
+  ② 抓 meta 不能用惰性正则（`[\s\S]*?\n\}` 碰单行匹配不上）→ 改成花括号配平扫描。
+- `Workflow` 进工具集（43 → 44）并列入 `DANGEROUS_TOOLS`；`scriptPath` 走 `safePath`；
+  子代理里不允许再派工作流（防嵌套爆炸）；drift 测试里它的 feature 门控豁免已删除。
+- 真实 API e2e：模型自己写了 meta + phase + parallel 三子代理的脚本 → 3/3 完成 →
+  汇总出 58 个子目录 / 22 个 .mjs / 1 个 .md，journal 完整。
+
+### 本轮新增/改动的文件
+
+新增：`web/server/{worktree,hooks,mcp,insights,workflow}.mjs`、
+`web/test/{hooks,mcp,insights,workflow}.test.mjs`、`web/test/fixtures/mcp-stub-server.mjs`。
+改动核心：`paths.mjs`（ALS 沙箱）、`engine.mjs`（代次/钩子/ctx 注入）、`settings.mjs`、
+`tools.mjs`（前缀分派 + 动态注册 + 三处真实现）、`toolindex.mjs`（快照→函数）、
+`interactions.mjs`（`isDangerousTool` + hook 判定）、`static.mjs`（/insights 路由）、
+`commands.mjs`（`/hooks` `/mcp` `/insights` `/workflows`）、`index.mjs`（MCP 连接 + SessionEnd）、
+`sessions.mjs`（沙箱根字段）、`deepseek.mjs`（onDelta 默认值）。
