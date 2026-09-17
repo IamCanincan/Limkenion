@@ -227,7 +227,7 @@ Generate a fresh lowercase UUID for \`events[].data.uuid\` yourself.
 
 ## Available MCP Connectors
 
-These are the user's currently connected limkenion.ai MCP connectors:
+These are the user's currently connected remote MCP connectors:
 
 ${connectorsInfo}
 
@@ -338,7 +338,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
         return [
           {
             type: 'text',
-            text: 'You need to authenticate with a limkenion.ai account first. API accounts are not supported. Run /login, then try /schedule again.',
+            text: 'You need to authenticate with a remote account first. API accounts are not supported. Run /login, then try /schedule again.',
           },
         ]
       }
@@ -353,7 +353,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
         return [
           {
             type: 'text',
-            text: "We're having trouble connecting with your remote limkenion.ai account to set up a scheduled task. Please try /schedule again in a few minutes.",
+            text: "We're having trouble connecting with your remote account to set up a scheduled task. Please try /schedule again in a few minutes.",
           },
         ]
       }

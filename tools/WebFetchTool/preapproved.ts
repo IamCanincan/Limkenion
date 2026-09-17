@@ -12,11 +12,8 @@
 // test/utils/sandbox/webfetch-preapproved-separation.test.ts。
 
 export const PREAPPROVED_HOSTS = new Set([
-  // Limkenion
-  'platform.limkenion.com',
-  'code.limkenion.com',
+  // 协议与技能规范
   'modelcontextprotocol.io',
-  'github.com/limkenions',
   'agentskills.io',
 
   // 主流编程语言

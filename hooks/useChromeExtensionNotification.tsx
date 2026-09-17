@@ -24,7 +24,7 @@ async function _temp() {
   if (true && !isLimkenionAISubscriber()) {
     return {
       key: "chrome-requires-subscription",
-      jsx: <Text color="error">Limkenion in Chrome requires a limkenion.ai subscription</Text>,
+      jsx: <Text color="error">Limkenion in Chrome 需要远端订阅，本构建不可用</Text>,
       priority: "immediate",
       timeoutMs: 5000
     };

@@ -532,7 +532,7 @@ export function getAssistantMessageFromError(
     // 以及基础设施容量 429 都会落在这里。
     if (error.message.includes('Extra usage is required for long context')) {
       const hint = getIsNonInteractiveSession()
-        ? '在 limkenion.ai/settings/usage 启用 extra usage，或使用 --model 切换到标准上下文'
+        ? '启用 extra usage，或使用 --model 切换到标准上下文'
         : '运行 /extra-usage 开启，或使用 /model 切换到标准上下文'
       return createAssistantAPIErrorMessage({
         content: `${API_ERROR_MESSAGE_PREFIX}: 使用 1M 上下文需要 Extra usage · ${hint}`,
@@ -545,7 +545,7 @@ export function getAssistantMessageFromError(
     const innerMessage = stripped.match(/"message"\s*:\s*"([^"]*)"/)?.[1]
     const detail = innerMessage || stripped
     return createAssistantAPIErrorMessage({
-      content: `${API_ERROR_MESSAGE_PREFIX}: 请求被拒绝（429）· ${detail || '这可能是临时性的容量问题 —— 请查看 status.limkenion.com'}`,
+      content: `${API_ERROR_MESSAGE_PREFIX}: 请求被拒绝（429）· ${detail || '这可能是临时性的容量问题，请稍后重试'}`,
       error: 'rate_limit',
     })
   }

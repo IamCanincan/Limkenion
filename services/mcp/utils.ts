@@ -273,7 +273,7 @@ export function describeMcpConfigFilePath(scope: ConfigScope): string {
     case 'enterprise':
       return getEnterpriseMcpFilePath()
     case 'limkenionai':
-      return 'limkenion.ai'
+      return 'Limkenion 托管'
     default:
       return scope
   }
@@ -292,7 +292,7 @@ export function getScopeLabel(scope: ConfigScope): string {
     case 'enterprise':
       return 'Enterprise config (managed by your organization)'
     case 'limkenionai':
-      return 'limkenion.ai config'
+      return 'Limkenion 托管配置'
     default:
       return scope
   }

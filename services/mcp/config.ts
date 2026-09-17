@@ -299,7 +299,7 @@ export function dedupLimkenionAiMcpServers(
     const manualDup = sig !== null ? manualSigs.get(sig) : undefined
     if (manualDup !== undefined) {
       logForDebugging(
-        `Suppressing limkenion.ai connector "${name}": duplicates manually-configured "${manualDup}"`,
+        `抑制远端连接器 "${name}"：duplicates manually-configured "${manualDup}"`,
       )
       suppressed.push({ name, duplicateOf: manualDup })
       continue

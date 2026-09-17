@@ -223,7 +223,7 @@ export function gateChannelServer(
     return {
       action: 'skip',
       kind: 'auth',
-      reason: 'channels requires limkenion.ai authentication (run /login)',
+      reason: 'Channels 需要远端服务认证 (run /login)',
     }
   }
 

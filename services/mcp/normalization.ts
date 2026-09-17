@@ -3,21 +3,14 @@
  * This file has no dependencies to avoid circular imports.
  */
 
-// Limkenion.ai server names are prefixed with this string
-const LIMKENIONAI_SERVER_PREFIX = 'limkenion.ai '
-
 /**
- * Normalize server names to be compatible with the API pattern ^[a-zA-Z0-9_-]{1,64}$
- * Replaces any invalid characters (including dots and spaces) with underscores.
+ * 把 MCP 服务器名规范化成符合 API 模式 ^[a-zA-Z0-9_-]{1,64}$ 的形式：
+ * 把非法字符（含点和空格）替换成下划线。
  *
- * For 远端服务 servers (names starting with "远端服务 "), also collapses
- * consecutive underscores and strips leading/trailing underscores to prevent
- * interference with the __ delimiter used in MCP tool names.
+ * 原本这里还有一条"Limkenion 托管服务器"的特殊分支（按名字前缀识别，
+ * 额外折叠连续下划线）—— 本构建没有云端托管服务，那种服务器不会出现，
+ * 分支已移除。
  */
 export function normalizeNameForMCP(name: string): string {
-  let normalized = name.replace(/[^a-zA-Z0-9_-]/g, '_')
-  if (name.startsWith(LIMKENIONAI_SERVER_PREFIX)) {
-    normalized = normalized.replace(/_+/g, '_').replace(/^_|_$/g, '')
-  }
-  return normalized
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_')
 }

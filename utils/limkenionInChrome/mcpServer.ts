@@ -108,11 +108,11 @@ export function createChromeContext(
     clientTypeId: 'limkenion',
     onAuthenticationError: () => {
       logger.warn(
-        'Authentication error occurred. Please ensure you are logged into the Limkenion browser extension with the same limkenion.ai account as Limkenion.',
+        'Authentication error occurred. Please ensure you are logged into the Limkenion browser extension with the same remote account as Limkenion.',
       )
     },
     onToolCallDisconnected: () => {
-      return `Browser extension is not connected. Please ensure the Limkenion browser extension is installed and running, and that you are logged into limkenion.ai with the same account as Limkenion. If this is your first time connecting to Chrome, you may need to restart Chrome for the installation to take effect. If you continue to experience issues, please report a bug: ${BUG_REPORT_URL}`
+      return `Browser extension is not connected. Please ensure the Limkenion browser extension is installed and running, and that you are logged into the remote service with the same account as Limkenion. If this is your first time connecting to Chrome, you may need to restart Chrome for the installation to take effect. If you continue to experience issues, please report a bug: ${BUG_REPORT_URL}`
     },
     onExtensionPaired: (deviceId: string, name: string) => {
       saveGlobalConfig(config => {

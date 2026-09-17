@@ -43,7 +43,7 @@ export function useMcpConnectivityStatus(t0) {
       if (failedLimkenionAiClients.length > 0) {
         addNotification({
           key: "mcp-limkenionai-failed",
-          jsx: <><Text color="error">{failedLimkenionAiClients.length} limkenion.ai{" "}{failedLimkenionAiClients.length === 1 ? "connector" : "connectors"}{" "}unavailable</Text><Text dimColor={true}> · /mcp</Text></>,
+          jsx: <><Text color="error">{failedLimkenionAiClients.length} 个远端{" "}{failedLimkenionAiClients.length === 1 ? "connector" : "connectors"}{" "}unavailable</Text><Text dimColor={true}> · /mcp</Text></>,
           priority: "medium"
         });
       }
@@ -57,7 +57,7 @@ export function useMcpConnectivityStatus(t0) {
       if (needsAuthLimkenionAiServers.length > 0) {
         addNotification({
           key: "mcp-limkenionai-needs-auth",
-          jsx: <><Text color="warning">{needsAuthLimkenionAiServers.length} limkenion.ai{" "}{needsAuthLimkenionAiServers.length === 1 ? "connector needs" : "connectors need"}{" "}auth</Text><Text dimColor={true}> · /mcp</Text></>,
+          jsx: <><Text color="warning">{needsAuthLimkenionAiServers.length} 个远端{" "}{needsAuthLimkenionAiServers.length === 1 ? "connector needs" : "connectors need"}{" "}auth</Text><Text dimColor={true}> · /mcp</Text></>,
           priority: "medium"
         });
       }

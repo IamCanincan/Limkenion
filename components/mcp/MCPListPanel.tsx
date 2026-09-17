@@ -396,7 +396,7 @@ export function MCPListPanel(t0) {
   }
   let t23;
   if ($[51] !== limkenionAiServers || $[52] !== renderServerItem) {
-    t23 = limkenionAiServers.length > 0 && <Box flexDirection="column" marginBottom={1}><Box paddingLeft={2}><Text bold={true}>limkenion.ai</Text></Box>{limkenionAiServers.map(server_5 => renderServerItem(server_5))}</Box>;
+    t23 = limkenionAiServers.length > 0 && <Box flexDirection="column" marginBottom={1}><Box paddingLeft={2}><Text bold={true}>远端托管</Text></Box>{limkenionAiServers.map(server_5 => renderServerItem(server_5))}</Box>;
     $[51] = limkenionAiServers;
     $[52] = renderServerItem;
     $[53] = t23;

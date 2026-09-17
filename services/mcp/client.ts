@@ -349,7 +349,7 @@ function handleRemoteAuthFailure(
   const label: Record<typeof transportType, string> = {
     sse: 'SSE',
     http: 'HTTP',
-    'limkenionai-proxy': 'limkenion.ai proxy',
+    'limkenionai-proxy': '远端代理',
   }
   logMCPDebug(
     name,
@@ -374,7 +374,7 @@ export function createLimkenionAiProxyFetch(innerFetch: FetchLike): FetchLike {
       await ensureLocalAuthAvailable()
       const currentTokens = getLimkenionAIOAuthTokens()
       if (!currentTokens) {
-        throw new Error('没有可用的 limkenion.ai OAuth 令牌')
+        throw new Error('没有可用的远端 OAuth 令牌')
       }
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
       const headers = new Headers(init?.headers)
@@ -867,18 +867,18 @@ export const connectToServer = memoize(
       } else if (serverRef.type === 'limkenionai-proxy') {
         logMCPDebug(
           name,
-          `Initializing limkenion.ai proxy transport for server ${serverRef.id}`,
+          `正在初始化远端代理传输，服务：server ${serverRef.id}`,
         )
 
         const tokens = getLimkenionAIOAuthTokens()
         if (!tokens) {
-          throw new Error('未找到 limkenion.ai OAuth 令牌')
+          throw new Error('未找到远端 OAuth 令牌')
         }
 
         const oauthConfig = getOauthConfig()
         const proxyUrl = `${oauthConfig.MCP_PROXY_URL}${oauthConfig.MCP_PROXY_PATH.replace('{server_id}', serverRef.id)}`
 
-        logMCPDebug(name, `Using limkenion.ai proxy at ${proxyUrl}`)
+        logMCPDebug(name, `使用远端代理：${proxyUrl}`)
 
         // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
         const fetchWithAuth = createLimkenionAiProxyFetch(globalThis.fetch)
@@ -900,7 +900,7 @@ export const connectToServer = memoize(
           new URL(proxyUrl),
           transportOptions,
         )
-        logMCPDebug(name, `limkenion.ai proxy transport created successfully`)
+        logMCPDebug(name, `远端代理传输已创建 successfully`)
       } else if (
         (serverRef.type === 'stdio' || !serverRef.type) &&
         isLimkenionInChromeMCPServer(name)
@@ -1125,7 +1125,7 @@ export const connectToServer = memoize(
         ) {
           logMCPDebug(
             name,
-            `limkenion.ai proxy connection failed after ${elapsed}ms: ${error.message}`,
+            `远端代理连接失败 after ${elapsed}ms: ${error.message}`,
           )
           logMCPError(name, error)
 

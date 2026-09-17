@@ -597,7 +597,7 @@ export function useManageMCPConnections(
                     gate.kind === 'disabled'
                       ? 'Channels are not currently available'
                       : gate.kind === 'auth'
-                        ? 'Channels require limkenion.ai authentication · run /login'
+                        ? 'Channels 需要远端服务认证 · run /login'
                         : gate.kind === 'policy'
                           ? 'Channels are not enabled for your org · have an administrator set channelsEnabled: true in managed settings'
                           : gate.reason
@@ -957,7 +957,7 @@ export function useManageMCPConnections(
           ).catch(error => {
             logMCPError(
               'useManageMcpConnections',
-              `Failed to get limkenion.ai MCP resources: ${errorMessage(error)}`,
+              `获取远端 MCP 资源失败：${errorMessage(error)}`,
             )
           })
         }

@@ -207,7 +207,7 @@ export function MCPSettings(t0) {
           t9 = $[25];
         }
         const serverTools_0 = t9;
-        const defaultTab = viewState.server.transport === "limkenionai-proxy" ? "limkenion.ai" : "Limkenion";
+        const defaultTab = viewState.server.transport === "limkenionai-proxy" ? "远端托管" : "Limkenion";
         if (viewState.server.transport === "stdio") {
           let t10;
           if ($[26] !== viewState.server) {

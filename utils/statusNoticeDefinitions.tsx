@@ -131,7 +131,7 @@ const bothAuthMethodsNotice: StatusNoticeDefinition = {
           </Text>
           <Text color="warning">
             · Trying to use {apiKeySource}?{' '}
-            {authTokenInfo.source === 'limkenion.ai' ? 'limkenion /logout to sign out of limkenion.ai.' : `Unset the ${authTokenInfo.source} environment variable.`}
+            {authTokenInfo.source === 'limkenion.ai' ? 'limkenion /logout to sign out of the remote service.' : `Unset the ${authTokenInfo.source} environment variable.`}
           </Text>
         </Box>
       </Box>;

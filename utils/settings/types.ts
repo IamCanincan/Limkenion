@@ -870,7 +870,7 @@ export const SettingsSchema = lazySchema(() =>
               .string()
               .optional()
               .describe(
-                'Display name for the assistant, shown in the limkenion.ai session list',
+                '助手显示名，会出现在会话列表里',
               ),
           }
         : {}),

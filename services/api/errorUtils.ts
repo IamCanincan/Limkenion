@@ -95,7 +95,7 @@ export function getSSLErrorHint(error: unknown): string | null {
   if (!details?.isSSLError) {
     return null
   }
-  return `SSL 证书错误（${details.code}）。如果你处于公司代理或 TLS 拦截防火墙之后，请将 NODE_EXTRA_CA_CERTS 设置为你的 CA 包路径，或请 IT 把 *.limkenion.com 加入白名单。运行 /doctor 可查看详情。`
+  return `SSL 证书错误（${details.code}）。如果你处于公司代理或 TLS 拦截防火墙之后，请将 NODE_EXTRA_CA_CERTS 设置为你的 CA 包路径，或请 IT 把服务域名加入白名单。运行 /doctor 可查看详情。`
 }
 
 /**

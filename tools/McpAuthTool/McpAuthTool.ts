@@ -87,7 +87,7 @@ export function createMcpAuthTool(
         return {
           data: {
             status: 'unsupported' as const,
-            message: `这是 limkenion.ai MCP 连接器。请让用户运行 /mcp 并选择“${serverName}”进行认证。`,
+            message: `这是远端托管的 MCP 连接器。请让用户运行 /mcp 并选择“${serverName}”进行认证。`,
           },
         }
       }

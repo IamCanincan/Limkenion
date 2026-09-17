@@ -79,7 +79,7 @@ export const RemoteTriggerTool = buildTool({
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken
     if (!accessToken) {
       throw new Error(
-        '尚未使用 limkenion.ai 账号登录。请运行 /login 后重试。',
+        '尚未使用远端账号登录。请运行 /login 后重试。',
       )
     }
     // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。

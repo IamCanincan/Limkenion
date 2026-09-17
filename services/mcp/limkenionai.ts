@@ -97,7 +97,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
       const usedNormalizedNames = new Set<string>()
 
       for (const server of response.data.data) {
-        const baseName = `limkenion.ai ${server.display_name}`
+        const baseName = `远端托管 ${server.display_name}`
 
         // Try without suffix first, then increment until we find an unused normalized name
         let finalName = baseName

@@ -1733,7 +1733,7 @@ async function run(): Promise<CommanderCommand> {
         blocked
       } = filterMcpServersByPolicy(configs);
       if (blocked.length > 0) {
-        process.stderr.write(`Warning: limkenion.ai MCP ${plural(blocked.length, 'server')} blocked by enterprise policy: ${blocked.join(', ')}\n`);
+        process.stderr.write(`Warning: 远端 MCP ${plural(blocked.length, 'server')} blocked by enterprise policy: ${blocked.join(', ')}\n`);
       }
       return allowed;
     }) : Promise.resolve({});
@@ -2668,7 +2668,7 @@ async function run(): Promise<CommanderCommand> {
             if (sig && limkenionaiSigs.has(sig)) suppressed.add(name);
           }
           if (suppressed.size > 0) {
-            logForDebugging(`[MCP] Lazy dedup: suppressing ${suppressed.size} plugin server(s) that duplicate limkenion.ai connectors: ${[...suppressed].join(', ')}`);
+            logForDebugging(`[MCP] Lazy dedup: suppressing ${suppressed.size} plugin server(s) that duplicate remote connectors: ${[...suppressed].join(', ')}`);
             // 在从状态过滤之前断开连接。只有已连接
             // 的服务器需要清理——对从未连接的服务器调用 clearServerCache
             // 会真触发一次连接只是为了杀掉它（记忆化
@@ -2721,7 +2721,7 @@ async function run(): Promise<CommanderCommand> {
       })]);
       if (limkenionaiTimer) clearTimeout(limkenionaiTimer);
       if (limkenionaiTimedOut) {
-        logForDebugging(`[MCP] limkenion.ai connectors not ready after ${LIMKENION_AI_MCP_TIMEOUT_MS}ms — proceeding; background connection continues`);
+        logForDebugging(`[MCP] 远端连接器未就绪 not ready after ${LIMKENION_AI_MCP_TIMEOUT_MS}ms — proceeding; background connection continues`);
       }
       profileCheckpoint('after_connectMcp_limkenionai');
 

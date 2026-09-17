@@ -1337,7 +1337,7 @@ export const SDKRateLimitInfoSchema = lazySchema(() =>
       isUsingOverage: z.boolean().optional(),
       surpassedThreshold: z.number().optional(),
     })
-    .describe('limkenion.ai 订阅用户的速率限制信息。'),
+    .describe('订阅用户的速率限制信息。'),
 )
 
 export const SDKAssistantMessageSchema = lazySchema(() =>

@@ -1,9 +1,9 @@
 export const REMOTE_TRIGGER_TOOL_NAME = 'RemoteTrigger'
 
 export const DESCRIPTION =
-  '通过 limkenion.ai CCR API 管理计划中的远程 Limkenion 智能体（触发器）。认证在进程内完成——令牌绝不会到达 shell。'
+  '通过远端 CCR API 管理计划中的远程 Limkenion 智能体（触发器）。认证在进程内完成——令牌绝不会到达 shell。'
 
-export const PROMPT = `调用 limkenion.ai 远程触发器 API。请用它代替 curl——OAuth 令牌会在进程内自动添加，且从不暴露。
+export const PROMPT = `调用远端远程触发器 API。请用它代替 curl——OAuth 令牌会在进程内自动添加，且从不暴露。
 
 操作：
 - list：GET /v1/code/triggers
