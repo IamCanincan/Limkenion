@@ -10,7 +10,9 @@
 > - 仓库**现已是 git 仓库**（分支 `master`）。下文若出现"无 git / 无 package.json"之类的表述，
 >   均指重建前的状态，以现状为准。
 > - 构建复核：`node scripts/build-cli.mjs` → `dist/cli.mjs`（27MB），**0 错误**。
-> - 品牌洁净度复核：产物中 `CC` / `上游兼容` / `内部代号` 命中数均为 **0**。
+> - 品牌洁净度复核：产物中已无任何上游品牌字样（`CC` / `上游兼容` / `内部代号` 命中数均为 **0**）。
+>   唯一的例外是 `scripts/build-cli.mjs` 里的 `BRAND_TOKENS` 清洗名单 —— 那是**故意保留**的，
+>   它本身就是用来把上游品牌 token 从产物中抹掉的机制，删掉它反而会留下痕迹。
 > - 源码侧已无品牌字样，仅 `scripts/build-cli.mjs` 的 `BRAND_TOKENS` 清洗名单保留这些 token
 >   （**故意保留**，它就是用来从产物里抹掉它们的）。
 > - 旧的注释中文化计划文档已移出仓库根 → `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md`（不进 git）。
