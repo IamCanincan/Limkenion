@@ -373,3 +373,37 @@ EnterWorktree、ExitWorktree —— 设计上"给明确说明而非静默失败"
 
 测试：全套 **180 项全过**（tools 62）。
 
+### 十三、浏览器完整回合实测 + 一个"重载后才暴露"的 bug（2026-09-18）
+把验证推进到**浏览器里的完整回合**（发消息 → 权限弹窗 → 允许 → 执行 → diff → 请求面板），
+跑通了，顺带抓到一个只有刷新后才暴露的 bug。
+
+**现象**：浏览器里写文件成功、模型答对；但**刷新页面后**那条工具调用永远转圈，
+没有结果/耗时/**没有 diff** —— "改动逐文件审阅"在重载后失效。
+落盘实锤：修复前 `Write | running | diff 0 字 | 耗时 None` → 修复后 `done | diff 66 字 | 4ms`。
+
+**原因**：`runTurn` 的 emit 包装器只在 `tool_call` 时 push，
+`tool_result` 时**不回填服务端那份 `toolCalls`**。前端有独立状态所以**实时界面完全正常**，
+只有从落盘数据恢复时才暴露。修复：`tool_result` 时按 `toolCallId` 回填
+`status`/`result`/`durationMs`/`diff`。
+
+**为什么测试没拦住**：`engine.test.mjs` 那条测试**只断言了 `toolCalls.length === 1`，
+没断言内容**。已补 status/diff/durationMs/result 四条断言 ——
+**关键是断言服务端那份记录，不是前端状态**（断言前端的话永远发现不了）。
+
+**通用教训：前端有独立状态时，只测实时界面会漏掉"持久化/重载后"的 bug。
+验证脚本必须加一次 `Page.reload` 再断言。**
+
+**UI 结构要点**（写自动化时会踩）：
+- 工具调用是**两层**折叠：`.turn-process-toggle`（分组，全完成时默认折叠）
+  → `.tool-call-header`（单个）→ 展开后才有 `.diff-file`/`.diff-add`。**只点一层看不到 diff。**
+- `.tool-duration` 只在 `durationMs !== undefined && status !== 'running'` 时渲染 ——
+  **它是"结果有没有回填"的探针**。
+- 等回合结束有竞态：`.stop` 在点「允许」后**尚未出现**，`until(!.stop)` 会立即返回 true
+  于是你在上一轮 DOM 上断言。**先等 `.stop` 出现，再等它消失。**
+- 别复用被上一轮污染的会话做断言（上一轮的工具调用还在 DOM 里）。
+
+**权限弹窗实测**：标题 `Write 请求执行`、有 `.permission-preview`、
+三个按钮 `允许一次 | 本会话总是允许 | 拒绝 (Esc)`。
+**请求追踪面板实测**：`共 3 次 · 成功 3 · 失败 0 · 平均 1.06s · 最慢 1.36s · 9.2k→414 token`。
+
+
