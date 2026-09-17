@@ -3,6 +3,18 @@
 > 最后更新：2026-09-16，WorkBuddy AI
 > 状态：**打包已打通（0 错误）**
 
+> **现状补充（2026-09-17 复核，commit dd8eb9c）**
+>
+> - 本文提到的"缺失 174/175 个模块"**已全部补齐**；恢复脚本仍在
+>   `scripts/restore-missing-files.mjs`，可重跑。
+> - 仓库**现已是 git 仓库**（分支 `master`）。下文若出现"无 git / 无 package.json"之类的表述，
+>   均指重建前的状态，以现状为准。
+> - 构建复核：`node scripts/build-cli.mjs` → `dist/cli.mjs`（27MB），**0 错误**。
+> - 品牌洁净度复核：产物中 `CC` / `上游兼容` / `内部代号` 命中数均为 **0**。
+> - 源码侧已无品牌字样，仅 `scripts/build-cli.mjs` 的 `BRAND_TOKENS` 清洗名单保留这些 token
+>   （**故意保留**，它就是用来从产物里抹掉它们的）。
+> - 旧的注释中文化计划文档已移出仓库根 → `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md`（不进 git）。
+
 ---
 
 ## 一、结论
