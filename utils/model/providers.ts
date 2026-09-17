@@ -3,6 +3,14 @@ import { isEnvTruthy } from '../envUtils.js'
 
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
 
+/** 是否运行在 OpenAI 兼容模式（DeepSeek / 任意 OpenAI 格式端点）。 */
+export function isOpenAICompat(): boolean {
+  return process.env.LIMKENION_API_PROVIDER === 'openai'
+}
+
+/** OpenAI 兼容模式下的默认主模型（与 services/api/openai-compat.ts 保持一致）。 */
+export const OPENAI_COMPAT_DEFAULT_MODEL = 'deepseek-flash'
+
 export function getAPIProvider(): APIProvider {
   return isEnvTruthy(process.env.LIMKENION_USE_BEDROCK)
     ? 'bedrock'
