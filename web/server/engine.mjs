@@ -474,6 +474,19 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     if (ev.type === 'assistant_delta') acc += ev.delta
     if (ev.type === 'assistant_reasoning') reasoning += ev.delta
     if (ev.type === 'tool_call') toolCalls.push(ev.toolCall)
+    // 工具跑完要把结果**回填到自己这份记录**上，否则落盘的 toolCalls 会永远停在
+    // status:'running'、没有 result / diff / durationMs —— 刷新页面或重启服务后，
+    // 整条执行轨迹（包括改动 diff）就丢了。前端有自己的一份状态，所以实时界面看不出问题，
+    // 只有"重载后"才暴露。
+    if (ev.type === 'tool_result') {
+      const tc = toolCalls.find(t => t.id === ev.toolCallId)
+      if (tc) {
+        tc.status = ev.ok ? 'done' : 'error'
+        tc.result = ev.result
+        tc.durationMs = ev.durationMs
+        tc.diff = ev.diff ?? tc.diff
+      }
+    }
     broadcast({ sessionId: session.id, messageId, ...ev })
   }
 

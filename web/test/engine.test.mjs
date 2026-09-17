@@ -108,6 +108,20 @@ describe('完整回合链路', () => {
     assert.equal(last.role, 'assistant')
     assert.match(last.text, /已经写好/)
     assert.equal(last.toolCalls.length, 1)
+
+    // 落盘的 toolCalls 必须是**回填过结果**的，不能停在 running。
+    //
+    // 回归防线：`runTurn` 的 emit 包装器原先只在 tool_call 时 push，
+    // tool_result 时不回填自己那份记录 —— 于是持久化的 toolCalls 永远
+    // status:'running'、没有 result / diff / durationMs。前端有独立状态，
+    // 所以**实时界面看不出问题**，只有刷新页面或重启服务后才暴露：
+    // 整条执行轨迹（含改动 diff）全丢。这里断言服务端那份记录。
+    const tc = last.toolCalls[0]
+    assert.equal(tc.name, 'Write')
+    assert.equal(tc.status, 'done', `落盘的 toolCall 状态应是 done，实际 ${tc.status}`)
+    assert.match(tc.diff ?? '', /\+hello/, '落盘要带 diff —— 否则刷新后看不到改动')
+    assert.equal(typeof tc.durationMs, 'number', '落盘要带耗时')
+    assert.match(tc.result ?? '', /已创建|已写入/, '落盘要带工具结果')
   })
 
   test('权限被拒 → 工具不执行，拒绝理由回灌', async () => {
