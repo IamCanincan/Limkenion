@@ -100,21 +100,24 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
 
 **待办（按优先级）**：
-1. **两处待用户拍板的行为变更**（我没动）：
-   - `utils/context.ts` 的 `MODEL_CONTEXT_WINDOW_DEFAULT = 200_000`，DeepSeek 官方是 **1M**
-   - 同文件 `MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000`，官方最大输出 **384K**
-2. **三处"保守但可能不对"的判定**（改造前就有，我没改行为）：
-   - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
-   - `utils/context.ts` 的上下文窗口与最大输出沿用上游保守值（见上）
-3. **两处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
+1. **三处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
+   - `@limkenion-ai/*`（41 处）—— **npm 包作用域**，改名等于给软件改名（分发决策）
    - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**出现在 SDK 输出 schema 里**
-     （`entrypoints/sdk/coreSchemas.ts`、`services/mcp/types.ts`），改名等于改 SDK 契约
    - `'limkenionai'`（10 处）—— MCP 配置作用域，且**出现在设置文件的 enum schema 里**
-     （`utils/settings/types.ts` 的 `forceLoginMethod`），改名可能让已有配置失效
-   - `@limkenion.com` —— 邮件地址（会写进 git 提交 trailer，3 处）
-   - **已处理**：`'limkenion-ai'`（availability 枚举）→ `'cloud-subscriber'`。
-     动手前先确认过它**不落盘**（全仓搜 `availability` × JSON/stringify/save 无命中），
-     并写了 5 项断言的小测试确认命令可见性没变。**这个"先验证是否落盘再改名"的方法值得复用。**
+2. **一处"保守但可能不对"的判定**（改造前就有，我没改行为）：
+   - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
+3. **两处功能缺口**（用户还没定做不做）：
+   - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
+     真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
+   - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
+
+**已完成（2026-09-18 用户拍板"修"）**：
+- `MODEL_CONTEXT_WINDOW_DEFAULT` 200K → **1M**（`utils/context.ts`）—— 长对话不再被过早压缩
+- `MAX_OUTPUT_TOKENS_UPPER_LIMIT` 64K → **384K**（`MAX_OUTPUT_TOKENS_DEFAULT` 保持 32K，那是策略值）
+- **图片输入打通**（`services/api/openai-compat.ts`）：新增 `imageBlockToOpenAIPart()` 与
+  `contentToOpenAIContent()`，把 image block 翻成 OpenAI 的 `image_url` part。
+  **实测**：`deepseek-flash` 能看见图（纯红图答"红色"），`deepseek-v4-pro` 看不见（答"白色"，且不报错）。
+  没图片时仍返回字符串，有图片时返回 content part 数组。
 4. **与参照实现的功能缺口**（用户还没定做不做）：
    - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
      真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
