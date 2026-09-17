@@ -3592,7 +3592,7 @@ function runHeadlessStreaming(
           // interrupts for the duration of the API roundtrip).
           const { description, persist } = message.request
           // Reuse the live controller only if it has not already been aborted
-          // (e.g. by interrupt()); an aborted signal would cause queryHaiku to
+          // (e.g. by interrupt()); an aborted signal would cause querySmallFastModel to
           // immediately throw APIUserAbortError → {title: null}.
           const titleSignal = (
             abortController && !abortController.signal.aborted

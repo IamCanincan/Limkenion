@@ -18,9 +18,9 @@ import { isModelAllowed } from './modelAllowlist.js'
 import {
   getCanonicalName,
   getLimkenionAiUserDefaultModelDescription,
-  getDefaultSonnetModel,
-  getDefaultOpusModel,
-  getDefaultHaikuModel,
+  getDefaultMainModel,
+  getDefaultStrongModel,
+  getDefaultSmallFastModel,
   getDefaultMainLoopModelSetting,
   getMarketingNameForModel,
   getUserSpecifiedModelSetting,
@@ -189,7 +189,7 @@ function getHaiku35Option(): ModelOption {
 
 function getHaikuOption(): ModelOption {
   // Return correct Haiku option based on provider
-  const haikuModel = getDefaultHaikuModel()
+  const haikuModel = getDefaultSmallFastModel()
   return haikuModel === getModelStrings().deepseekFlash
     ? getHaiku45Option()
     : getHaiku35Option()
@@ -366,7 +366,7 @@ function getModelFamilyInfo(
     canonical.includes('limkenion-3-7-sonnet') ||
     canonical.includes('limkenion-3-5-sonnet')
   ) {
-    const currentName = getMarketingNameForModel(getDefaultSonnetModel())
+    const currentName = getMarketingNameForModel(getDefaultMainModel())
     if (currentName) {
       return { alias: 'Sonnet', currentVersionName: currentName }
     }
@@ -374,7 +374,7 @@ function getModelFamilyInfo(
 
   // Opus family
   if (canonical.includes('limkenion-opus-4')) {
-    const currentName = getMarketingNameForModel(getDefaultOpusModel())
+    const currentName = getMarketingNameForModel(getDefaultStrongModel())
     if (currentName) {
       return { alias: 'Opus', currentVersionName: currentName }
     }
@@ -385,7 +385,7 @@ function getModelFamilyInfo(
     canonical.includes('limkenion-haiku') ||
     canonical.includes('limkenion-3-5-haiku')
   ) {
-    const currentName = getMarketingNameForModel(getDefaultHaikuModel())
+    const currentName = getMarketingNameForModel(getDefaultSmallFastModel())
     if (currentName) {
       return { alias: 'Haiku', currentVersionName: currentName }
     }

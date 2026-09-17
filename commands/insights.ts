@@ -25,7 +25,7 @@ import { toError } from '../utils/errors.js'
 import { execFileNoThrow } from '../utils/execFileNoThrow.js'
 import { logError } from '../utils/log.js'
 import { extractTextContent } from '../utils/messages.js'
-import { getDefaultOpusModel } from '../utils/model/model.js'
+import { getDefaultStrongModel } from '../utils/model/model.js'
 import {
   getProjectsDir,
   getSessionFilesWithMtime,
@@ -39,12 +39,12 @@ import { escapeXmlAttr as escapeHtml } from '../utils/xml.js'
 
 // 用于 facet 提取与摘要的模型（Opus —— 最佳质量）
 function getAnalysisModel(): string {
-  return getDefaultOpusModel()
+  return getDefaultStrongModel()
 }
 
 // 用于叙述式洞察的模型（Opus —— 最佳质量）
 function getInsightsModel(): string {
-  return getDefaultOpusModel()
+  return getDefaultStrongModel()
 }
 
 // ============================================================================

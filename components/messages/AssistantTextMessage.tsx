@@ -8,7 +8,7 @@ import { Box, NoSelect, Text } from '../../ink.js';
 import { API_ERROR_MESSAGE_PREFIX, API_TIMEOUT_ERROR_MESSAGE, CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE, CUSTOM_OFF_SWITCH_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE, INVALID_API_KEY_ERROR_MESSAGE_EXTERNAL, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY, ORG_DISABLED_ERROR_MESSAGE_ENV_KEY_WITH_OAUTH, PROMPT_TOO_LONG_ERROR_MESSAGE, startsWithApiErrorPrefix, TOKEN_REVOKED_ERROR_MESSAGE } from '../../services/api/errors.js';
 import { isEmptyMessageText, NO_RESPONSE_REQUESTED } from '../../utils/messages.js';
 import { getUpgradeMessage } from '../../utils/model/contextWindowUpgradeCheck.js';
-import { getDefaultSonnetModel, renderModelName } from '../../utils/model/model.js';
+import { getDefaultMainModel, renderModelName } from '../../utils/model/model.js';
 import { isMacOsKeychainLocked } from '../../utils/secureStorage/macOsKeychainStorage.js';
 import { CtrlOToExpand } from '../CtrlOToExpand.js';
 import { InterruptedByUser } from '../InterruptedByUser.js';
@@ -175,7 +175,7 @@ export function AssistantTextMessage(t0) {
         }
         let t3;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-          t3 = <MessageResponse><Box flexDirection="column" gap={1}>{t2}<Text>若要立即继续，请使用 /model 切换到{" "}{renderModelName(getDefaultSonnetModel())} 并继续编码。</Text></Box></MessageResponse>;
+          t3 = <MessageResponse><Box flexDirection="column" gap={1}>{t2}<Text>若要立即继续，请使用 /model 切换到{" "}{renderModelName(getDefaultMainModel())} 并继续编码。</Text></Box></MessageResponse>;
           $[13] = t3;
         } else {
           t3 = $[13];

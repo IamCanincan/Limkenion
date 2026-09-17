@@ -31,7 +31,7 @@ import {
   isFastModeEnabled,
   triggerFastModeCooldown,
 } from '../../utils/fastMode.js'
-import { isNonCustomOpusModel } from '../../utils/model/model.js'
+import { isNonCustomStrongModel } from '../../utils/model/model.js'
 import { disableKeepAlive } from '../../utils/proxy.js'
 import { sleep } from '../../utils/sleep.js'
 import type { ThinkingConfig } from '../../utils/thinking.js'
@@ -314,10 +314,10 @@ export async function* withRetry<T>(
       if (
         is529Error(error) &&
         // 若未设置 FALLBACK_FOR_ALL_PRIMARY_MODELS，则仅在主模型为非自定义 Opus 模型时继续。
-        // TODO: 重新审视 isNonCustomOpusModel 检查是否仍应存在，或者说
-        // isNonCustomOpusModel 是否只是 Limkenion 曾硬编码在 Opus 上时的过时产物。
+        // TODO: 重新审视 isNonCustomStrongModel 检查是否仍应存在，或者说
+        // isNonCustomStrongModel 是否只是 Limkenion 曾硬编码在 Opus 上时的过时产物。
         (process.env.FALLBACK_FOR_ALL_PRIMARY_MODELS ||
-          (!isLimkenionAISubscriber() && isNonCustomOpusModel(options.model)))
+          (!isLimkenionAISubscriber() && isNonCustomStrongModel(options.model)))
       ) {
         consecutive529Errors++
         if (consecutive529Errors >= MAX_529_RETRIES) {

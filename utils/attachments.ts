@@ -74,9 +74,9 @@ import { maybeResizeAndDownsampleImageBlock } from './imageResizer.js'
 import type { PastedContent } from './config.js'
 import { getGlobalConfig } from './config.js'
 import {
-  getDefaultSonnetModel,
-  getDefaultHaikuModel,
-  getDefaultOpusModel,
+  getDefaultMainModel,
+  getDefaultSmallFastModel,
+  getDefaultStrongModel,
 } from './model/model.js'
 import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
 import { getSkillToolCommands, getMcpSkillCommands } from '../commands.js'

@@ -25,7 +25,7 @@ import {
 } from 'src/utils/messages.js'
 import {
   getDefaultMainLoopModelSetting,
-  isNonCustomOpusModel,
+  isNonCustomStrongModel,
 } from 'src/utils/model/model.js'
 import { getModelStrings } from 'src/utils/model/modelStrings.js'
 import { getAPIProvider } from 'src/utils/model/providers.js'
@@ -723,7 +723,7 @@ export function getAssistantMessageFromError(
     error instanceof APIError &&
     error.status === 400 &&
     error.message.toLowerCase().includes('invalid model name') &&
-    (isNonCustomOpusModel(model) || model === 'opus')
+    (isNonCustomStrongModel(model) || model === 'opus')
   ) {
     return createAssistantAPIErrorMessage({
       content:

@@ -12,7 +12,7 @@ import { getOauthConfig } from '../constants/oauth.js';
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js';
 import type { Root } from '../ink.js';
 import { KeybindingSetup } from '../keybindings/KeybindingProviderSetup.js';
-import { queryHaiku } from '../services/api/limkenion.js';
+import { querySmallFastModel } from '../services/api/limkenion.js';
 import { getSessionLogsViaOAuth, getTeleportEvents } from '../services/api/sessionIngress.js';
 import { AppStateProvider } from '../state/AppState.js';
 import type { Message, SystemMessage } from '../types/message.js';
@@ -103,7 +103,7 @@ async function generateTitleAndBranch(description: string, signal: AbortSignal):
   const fallbackBranch = 'limkenion/task';
   try {
     const userPrompt = SESSION_TITLE_AND_BRANCH_PROMPT.replace('{description}', description);
-    const response = await queryHaiku({
+    const response = await querySmallFastModel({
       systemPrompt: asSystemPrompt([]),
       userPrompt,
       outputFormat: {

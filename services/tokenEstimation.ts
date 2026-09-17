@@ -16,7 +16,7 @@ import {
   isFoundationModel,
 } from '../utils/model/bedrock.js'
 import {
-  getDefaultSonnetModel,
+  getDefaultMainModel,
   getMainLoopModel,
   getSmallFastModel,
   normalizeModelStringForAPI,
@@ -311,7 +311,7 @@ export async function countTokensViaHaikuFallback(
   // with global inference profiles (see issue #10883).
   const model =
     isVertexGlobalEndpoint || isBedrockWithThinking || isVertexWithThinking
-      ? getDefaultSonnetModel()
+      ? getDefaultMainModel()
       : getSmallFastModel()
   const limkenion = await getLimkenionClient({
     maxRetries: 1,

@@ -84,10 +84,10 @@ import {
   stripToolReferenceBlocksFromUserMessage,
 } from '../../utils/messages.js'
 import {
-  getDefaultOpusModel,
-  getDefaultSonnetModel,
+  getDefaultStrongModel,
+  getDefaultMainModel,
   getSmallFastModel,
-  isNonCustomOpusModel,
+  isNonCustomStrongModel,
 } from '../../utils/model/model.js'
 import {
   asSystemPrompt,
@@ -341,13 +341,13 @@ export function getPromptCachingEnabled(model: string): boolean {
 
   // 检查是否应针对默认 Sonnet 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
-    const defaultSonnet = getDefaultSonnetModel()
+    const defaultSonnet = getDefaultMainModel()
     if (model === defaultSonnet) return false
   }
 
   // 检查是否应针对默认 Opus 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
-    const defaultOpus = getDefaultOpusModel()
+    const defaultOpus = getDefaultStrongModel()
     if (model === defaultOpus) return false
   }
 
@@ -1066,7 +1066,7 @@ async function* queryModel(
   // 订阅用户完全不会走到此路径。
   if (
     !isLimkenionAISubscriber() &&
-    isNonCustomOpusModel(options.model) &&
+    isNonCustomStrongModel(options.model) &&
     (
       await getDynamicConfig_BLOCKS_ON_INIT<{ activated: boolean }>(
         'limkenion-off-switch',
@@ -3247,7 +3247,7 @@ export function buildSystemPromptBlocks(
 
 type HaikuOptions = Omit<Options, 'model' | 'getToolPermissionContext'>
 
-export async function queryHaiku({
+export async function querySmallFastModel({
   systemPrompt = asSystemPrompt([]),
   userPrompt,
   outputFormat,

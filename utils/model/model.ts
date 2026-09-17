@@ -43,10 +43,10 @@ export function getSmallFastModel(): ModelName {
   if (isOpenAICompat()) {
     return getOpenAICompatSmallFastModel()
   }
-  return process.env.LIMKENION_SMALL_FAST_MODEL || getDefaultHaikuModel()
+  return process.env.LIMKENION_SMALL_FAST_MODEL || getDefaultSmallFastModel()
 }
 
-export function isNonCustomOpusModel(model: ModelName): boolean {
+export function isNonCustomStrongModel(model: ModelName): boolean {
   return (
     model === getModelStrings().deepseekV4Pro ||
     model === getModelStrings().deepseekV4Pro ||
@@ -107,11 +107,11 @@ export function getMainLoopModel(): ModelName {
 }
 
 export function getBestModel(): ModelName {
-  return getDefaultOpusModel()
+  return getDefaultStrongModel()
 }
 
 // @[MODEL LAUNCH]: Update the default Opus model (3P providers may lag so keep defaults unchanged).
-export function getDefaultOpusModel(): ModelName {
+export function getDefaultStrongModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_OPUS_MODEL) {
     return process.env.LIMKENION_DEFAULT_OPUS_MODEL
   }
@@ -125,7 +125,7 @@ export function getDefaultOpusModel(): ModelName {
 }
 
 // @[MODEL LAUNCH]: Update the default Sonnet model (3P providers may lag so keep defaults unchanged).
-export function getDefaultSonnetModel(): ModelName {
+export function getDefaultMainModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_SONNET_MODEL) {
     return process.env.LIMKENION_DEFAULT_SONNET_MODEL
   }
@@ -137,7 +137,7 @@ export function getDefaultSonnetModel(): ModelName {
 }
 
 // @[MODEL LAUNCH]: Update the default Haiku model (3P providers may lag so keep defaults unchanged).
-export function getDefaultHaikuModel(): ModelName {
+export function getDefaultSmallFastModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_HAIKU_MODEL) {
     return process.env.LIMKENION_DEFAULT_HAIKU_MODEL
   }
@@ -164,12 +164,12 @@ export function getRuntimeMainLoopModel(params: {
     permissionMode === 'plan' &&
     !exceeds200kTokens
   ) {
-    return getDefaultOpusModel()
+    return getDefaultStrongModel()
   }
 
   // sonnetplan by default
   if (getUserSpecifiedModelSetting() === 'haiku' && permissionMode === 'plan') {
-    return getDefaultSonnetModel()
+    return getDefaultMainModel()
   }
 
   return mainLoopModel
@@ -196,17 +196,17 @@ export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
 
   // Max users get Opus as default
   if (isMaxSubscriber()) {
-    return getDefaultOpusModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
+    return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
 
   // Team Premium gets Opus (same as Max)
   if (isTeamPremiumSubscriber()) {
-    return getDefaultOpusModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
+    return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
 
   // PAYG (1P and 3P), Enterprise, Team Standard, and Pro get Sonnet as default
   // Note that PAYG (3P) may default to an older Sonnet model
-  return getDefaultSonnetModel()
+  return getDefaultMainModel()
 }
 
 /**
@@ -431,13 +431,13 @@ export function parseUserSpecifiedModel(
   if (isModelAlias(modelString)) {
     switch (modelString) {
       case 'opusplan':
-        return getDefaultSonnetModel() + (has1mTag ? '[1m]' : '') // Sonnet is default, Opus in plan mode
+        return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // Sonnet is default, Opus in plan mode
       case 'sonnet':
-        return getDefaultSonnetModel() + (has1mTag ? '[1m]' : '')
+        return getDefaultMainModel() + (has1mTag ? '[1m]' : '')
       case 'haiku':
-        return getDefaultHaikuModel() + (has1mTag ? '[1m]' : '')
+        return getDefaultSmallFastModel() + (has1mTag ? '[1m]' : '')
       case 'opus':
-        return getDefaultOpusModel() + (has1mTag ? '[1m]' : '')
+        return getDefaultStrongModel() + (has1mTag ? '[1m]' : '')
       case 'best':
         return getBestModel()
       default:
@@ -454,7 +454,7 @@ export function parseUserSpecifiedModel(
     isLegacyOpusFirstParty(modelString) &&
     isLegacyModelRemapEnabled()
   ) {
-    return getDefaultOpusModel() + (has1mTag ? '[1m]' : '')
+    return getDefaultStrongModel() + (has1mTag ? '[1m]' : '')
   }
 
   
