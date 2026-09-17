@@ -57,6 +57,66 @@ Base：`https://api.deepseek.com`
 **key 存储**：`saveApiKey()`（`utils/auth.ts:1114`）已存在，写全局配置的 `primaryApiKey`，
 Windows 上就是写配置文件。不需要另造轮子。
 
+## 去痕迹工程（2026-09-17 用户下达，进行中）
+用户要求：**删去 CC / 上游 及其模型（Sonnet/Opus/Haiku）的痕迹；Limkenion 没有任何网站与云服务。**
+模型那层用户已明确 **"全部都改"**（含内部标识符）。网站/云服务那层用户要先看清单再定。
+
+### 实测规模（已排除 node_modules/dist/.git/web/node_modules/_backup）
+| 类别 | 规模 |
+|---|---|
+| `CC` / `上游兼容` | 16 处 / 2 文件 —— **已处理**（`build-cli.mjs` 的 BRAND_TOKENS 必须保留） |
+| `limkenion.ai` | 169 处 / 62 文件 |
+| `limkenion.com` | 86 处 / 54 文件 |
+| `github.com/limkenions/*` + `github.com/apps/limkenion` | 61 处 / 29 文件 |
+| `sonnet` / `opus` / `haiku` | **1442 处 / 125 文件** |
+
+**重要陷阱**：`github.com` 全仓 323 处，但**只有 61 处是痕迹**。其余是
+「用户自己仓库的链接」与「git remote 解析」（`utils/git.ts` 解析 `github.com/owner/repo.git`）
+—— **核心功能，绝不能动**。改之前必须抽样看，别按 host 一刀切。
+同理 `octopus` 是普通单词，别被 `opus` 误伤。
+
+### 自有服务端点清单（按服务分组）
+- `code.limkenion.com/docs/en/*`（~30）—— 各处帮助文本的文档链接：mcp、security、sandboxing、
+  keybindings、fast-mode、cli-reference、chrome、costs、hooks、memory、network-config、data-usage、overview
+- `limkenion.ai/*`（~40）—— Chrome 扩展、Web 版(code)、Desktop 交付、账户设置
+  （privacy / connectors / billing / usage）、OAuth 客户端元数据、下载、admin-settings
+- `platform.limkenion.com/*`（~10）—— OAuth 授权流（authorize / token / code callback）、
+  settings/keys、settings/billing、buy_credits、llms.txt、docs
+- `limkenion.com/legal/*`、`www.limkenion.com/news/*`（~8）—— 条款 / 隐私 / AUP
+- `support.limkenion.com/*`（3）—— 客服、guest passes
+- `console.statsig.com/*`（3）—— 功能开关动态配置（GrowthBook/Statsig）
+- `limkenion.slack.com/archives/*`（9）—— **源码注释里的内部讨论链接**
+- `limkenion.sentry.io`（1）—— 错误上报
+- `limkenion.fedstart.com` / `*-staging.fedstart.com`（2）—— 反馈调查
+- `mcp-proxy.limkenion.com`（1）—— 远程 MCP 代理
+- `storage.googleapis.com/limkenion-dist-*`、`limkenion-ci-sentinel`（3）—— 插件市场分发、CI 哨兵
+- `downloads.limkenion.ai/limkenion-releases/plugins/*`（1）—— 官方插件市场（已默认关闭）
+- `github.com/limkenions/*`、`github.com/apps/limkenion`（61）—— GitHub App 安装、GitHub Action、
+  issue 链接、CHANGELOG
+- `json.schemastore.org/limkenion-settings.json`、`www.schemastore.org/limkenion-keybindings.json`（3）
+  —— 编辑器 JSON schema 校验
+- `stickermule.com/limkenioncode`、`slack.com/marketplace/...`、`apps.apple.com/app/...`（3）—— 周边/Slack/iOS
+- `artifactory.infra.ant.dev/*`、`*.ant.dev`、`127.0.0.1/api/*`（~10）—— 内部构建/测试端点
+
+### 依赖这些服务、因而"光删链接会留空壳"的功能
+远程 agent（`skills/bundled/scheduleRemoteAgents.ts` 11 处）、GitHub App
+（`constants/github-app.ts` + `commands/install-github-app/*` 共 18 处）、Chrome 扩展
+（`components/LimkenionInChromeOnboarding.tsx`、`utils/limkenionInChrome/*`、`commands/chrome/chrome.tsx`）、
+Desktop 交付（`components/DesktopHandoff.tsx`、`utils/desktopDeepLink.ts`）、
+超额计费（`commands/extra-usage/*`、`commands/review/ultrareviewCommand.tsx`）、
+隐私设置（`commands/privacy-settings/*`）、遥测上报（`services/analytics/firstPartyEventLoggingExporter.ts`）、
+插件市场自动安装（`utils/plugins/officialMarketplaceGcs.ts`，已默认关闭）。
+
+### 模型层改名映射（计划，待执行）
+`ALL_MODEL_CONFIGS`（`utils/model/configs.ts`，118 行，11 个 ModelKey × 4 provider）
+→ 收敛为只有 `deepseekFlash` / `deepseekV4Pro`。ModelKey 引用只有 **32 处**，可控。
+- `getDefaultHaikuModel` → `getDefaultSmallFastModel`；`getDefaultSonnetModel` / `getDefaultOpusModel`
+  → `getDefaultMainModel`（各 16 处调用）
+- `isNonCustomOpusModel` → `isNonCustomMainModel`（9 处）
+- `queryHaiku` → `querySmallFastModel`（18 处）
+- `opusplan` / `sonnetplan` / `haiku` 别名 → 从别名表移除（13 处）
+- `seven_day_opus` / `seven_day_sonnet` 限流键、`migrateSonnet*` 迁移函数 → 纯服务端概念，删除
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
