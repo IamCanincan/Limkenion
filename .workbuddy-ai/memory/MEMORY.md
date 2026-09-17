@@ -189,6 +189,31 @@ DeepSeek 前缀缓存**自动**、不收写入费 → `promptCacheWriteTokens` �
 若要用上这个能力，得改适配器的图片翻译（OpenAI 协议走 `image_url`）。
 另外官方还给出：上下文 1M、最大输出 384K、thinking 可开关、上游 端点同样可用。
 
+### 定价：**已整体删除**（2026-09-17，commit 7ccfc45）
+用户："定价删了吧，ds 价格老是变。"
+- `utils/modelCost.ts` **整个文件已删**（ModelCosts / COST_* 档位 / MODEL_COSTS /
+  getModelCosts / calculateUSDCost / calculateCostFromTokens / formatModelPricing /
+  getModelPricingString / getDefaultModelCostTier）。
+- `/cost` 只报它真正知道的东西：API 时长、墙钟时长、代码增删行数、按模型的 token 用量。
+  **不要再往里加美元金额** —— DeepSeek 价格会变，写死就是错的。
+- 模型选择器 / `/fast` / 模型描述里的 " · $x/$y per Mtok" 后缀已移除。
+- `cost-tracker.ts` 的 `ModelUsage.costUSD` 字段**保留但恒为 0** —— 它是 SDK/会话输出契约
+  的一部分，删掉会破坏下游读取。
+- 遥测里的估算金额字段（classifierCostUSD 等）置为 `undefined`。
+
+### 模型相关函数改名（阶段二·第一批，commit a361330）
+| 现在 | 改成 | 处数 |
+|---|---|---|
+| `getDefaultHaikuModel` | `getDefaultSmallFastModel` | 7 |
+| `getDefaultSonnetModel` | `getDefaultMainModel` | 16 |
+| `getDefaultOpusModel` | `getDefaultStrongModel` | 16 |
+| `isNonCustomOpusModel` | `isNonCustomStrongModel` | 9 |
+| `queryHaiku` | `querySmallFastModel` | 18 |
+
+**阶段二剩余（未做）**：`opusplan` / `sonnetplan` / `haiku` 别名（13 处）、
+`seven_day_opus` / `seven_day_sonnet` 限流键（33 处）、`migrateSonnet*` 迁移函数（10 处），
+以及注释/字符串里零散的模型名。改名一律用 `\b` 边界，**别误伤 `octopus`**。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
