@@ -38,6 +38,25 @@ export function toPosix(p) {
   return p.split('\\').join('/')
 }
 
+/**
+ * 把 glob 模式编译成正则（`*` 不跨 `/`，`**` 跨 `/`，`?` 单字符）。
+ *
+ * 供 Glob 工具与权限规则的文件模式匹配共用 —— 之前只在 `toolGlob` 里内联了一份，
+ * 权限规则要用同样的语义，抽出来避免两处各写一套、语义漂移。
+ */
+export function globToRegExp(pattern) {
+  return new RegExp(
+    '^' +
+      pattern
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*/g, '\u0000')
+        .replace(/\*/g, '[^/]*')
+        .replace(/\u0000/g, '.*')
+        .replace(/\?/g, '.') +
+      '$',
+  )
+}
+
 /** 相对工作区的 POSIX 路径。 */
 export function relToWorkspace(p) {
   return toPosix(relative(WORKSPACE_ROOT, p))

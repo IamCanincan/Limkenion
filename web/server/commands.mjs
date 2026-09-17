@@ -33,6 +33,7 @@ import {
   WORKSPACE_ROOT,
 } from './config.mjs'
 import { chatCompletion, getApiKey } from './deepseek.mjs'
+import { bypassDisabled, getSettings, loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
 import { clearCronsForSession, cronCount, cronList, newMessageId, removeCron, runTurn } from './engine.mjs'
 import { pendingCounts } from './interactions.mjs'
 import {
@@ -384,15 +385,40 @@ export async function runCommand(session, rawName, argString, ws, registry) {
   }
   if (name === 'permissions') {
     if (PERMISSION_MODES.includes(arg)) {
-      applySessionSetting(session, 'permissionMode', arg)
+      if (!applySessionSetting(session, 'permissionMode', arg)) {
+        return `无法切换到 ${arg}：设置文件里写了 disableBypassPermissionsMode，bypassPermissions 被禁用。`
+      }
       return `权限模式已切换为 ${arg}（仅本会话）。`
     }
+    // 顺带重读设置文件 —— 改完 settings.json 不用重启服务
+    loadSettings()
+    const unhonored = unhonoredRules()
+    const rules = getSettings().permissions
+    const ruleLines =
+      rules.allow.length + rules.deny.length + rules.ask.length === 0
+        ? '（设置文件里没有权限规则）'
+        : [
+            rules.deny.length ? `- deny（硬拦截，不弹确认）：${rules.deny.join('、')}` : '',
+            rules.ask.length ? `- ask（强制确认）：${rules.ask.join('、')}` : '',
+            rules.allow.length ? `- allow（免确认）：${rules.allow.join('、')}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n')
     return (
-      `当前权限模式：${settings.permissionMode}\n可选：\n` +
+      `当前权限模式：${settings.permissionMode}\n\n` +
+      '可选模式：\n' +
       '- default：危险工具每次确认\n' +
       '- acceptEdits：自动放行文件编辑，执行类仍需确认\n' +
       '- plan：计划模式，禁止一切有副作用的操作\n' +
-      '- bypassPermissions：全部放行（注意：shell 守卫与不可信内容升级确认仍会生效）'
+      '- bypassPermissions：全部放行（注意：shell 守卫与不可信内容升级确认仍会生效）\n' +
+      (bypassDisabled() ? '（设置文件里已禁用 bypassPermissions）\n' : '') +
+      '\n设置文件里的权限规则（与 CLI 同一套 settings.json）：\n' +
+      ruleLines +
+      (unhonored.length > 0
+        ? `\n\n⚠️ 有 ${unhonored.length} 条规则在 web 端**不会生效**` +
+          `（该工具的 specifier 语义未实现）：${unhonored.map(u => `${u.kind}:${u.rule}`).join('、')}\n` +
+          '  尤其是 deny 规则 —— 别以为它在这里挡住了什么。'
+        : '')
     )
   }
   if (name === 'config') {
@@ -460,6 +486,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       `文件索引：${idx.count} 个文件${idx.ageMs === null ? '' : `（缓存 ${Math.round(idx.ageMs / 1000)}s 前）`}\n` +
       `会话：${session.title}（${session.messages.length} 条消息）\n` +
       `定时任务：${cronCount()} 个　待确认：${pending.permissions}　待作答：${pending.questions}\n` +
+      `${settingsSummary()}\n` +
       `运行时长：${Math.round((Date.now() - startedAt) / 1000)}s\n` +
       `服务版本：${SERVER_VERSION}，Node ${process.version}`
     )

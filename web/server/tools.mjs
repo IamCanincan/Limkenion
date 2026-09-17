@@ -21,7 +21,7 @@ import { execFile } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import vm from 'node:vm'
-import { CLI_ROOT, WORKSPACE_ROOT, relToWorkspace as rel, safePath, toPosix } from './paths.mjs'
+import { CLI_ROOT, WORKSPACE_ROOT, relToWorkspace as rel, safePath, toPosix, globToRegExp } from './paths.mjs'
 import { collectFiles, invalidateFileIndex } from './workspace.mjs'
 import { MAX_DIFF_CHARS } from './config.mjs'
 import { markUntrusted, wrapUntrusted } from './security.mjs'
@@ -455,16 +455,7 @@ async function toolGrep({ pattern, path, glob, head_limit, offset, output_mode, 
 }
 
 async function toolGlob({ pattern, path }) {
-  const re = new RegExp(
-    '^' +
-      pattern
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*\*/g, '\u0000')
-        .replace(/\*/g, '[^/]*')
-        .replace(/\u0000/g, '.*')
-        .replace(/\?/g, '.') +
-      '$',
-  )
+  const re = globToRegExp(pattern)
   const files = await collectFiles(path ? safePath(path) : undefined)
   const hits = files.map(f => rel(f)).filter(f => re.test(f)).slice(0, 200)
   return hits.length > 0 ? `${hits.length} 个匹配：\n${hits.join('\n')}` : `未找到匹配「${pattern}」`

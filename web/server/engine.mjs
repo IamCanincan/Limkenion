@@ -27,6 +27,7 @@ import {
   requestQuestions,
 } from './interactions.mjs'
 import { allSessions, broadcastSessions, schedulePersist } from './sessions.mjs'
+import { deniedBy } from './settings.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
@@ -240,6 +241,26 @@ async function runDeepSeekTurn(session, text, emit) {
         continue
       }
 
+      // ---- 0. 设置文件里的 deny 规则：硬拦截，不弹确认 ----
+      // 用户显式写了 `permissions.deny`，就该直接挡住 —— 给弹窗等于把决定权又还回去。
+      const denyReason = deniedBy(tc.name, input)
+      if (denyReason) {
+        const deniedId = 'tc_' + Math.random().toString(36).slice(2, 10)
+        emit({
+          type: 'tool_call',
+          toolCall: {
+            id: deniedId,
+            name: tc.name,
+            input: summarizeToolInput(tc.name, input),
+            inputDetail: tc.arguments,
+            status: 'error',
+          },
+        })
+        emit({ type: 'tool_result', toolCallId: deniedId, ok: false, result: denyReason, durationMs: 0 })
+        messages.push({ role: 'tool', tool_call_id: tc.id, content: denyReason })
+        continue
+      }
+
       // ---- 1. shell 守卫 ----
       const shellVerdict = analyzeShellCommand(tc.name, input.command ?? input.code ?? '')
       if (shellVerdict.block) {
@@ -265,7 +286,7 @@ async function runDeepSeekTurn(session, text, emit) {
       if (!escalate && hasUntrusted(session)) {
         escalate = `本回合接触过外部内容（${untrustedInfo(session)?.source ?? 'web'}），危险操作需重新确认`
       }
-      if (needsPermission(session, tc.name, { escalate })) {
+      if (needsPermission(session, tc.name, { escalate, input })) {
         const decision = await requestPermission(session, tc.name, input, { escalate })
         if (decision === 'always') {
           session.allowedTools = session.allowedTools || new Set()

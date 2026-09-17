@@ -27,6 +27,7 @@ import { loadCommandRegistry } from './commands.mjs'
 import { clearAllCrons, clearCronsForSession } from './engine.mjs'
 import { attachWebSocket } from './protocol.mjs'
 import { securityBanner } from './security.mjs'
+import { loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
 import {
   allSessionInfo,
   createSession,
@@ -43,6 +44,8 @@ onSessionDeleted(id => clearCronsForSession(id))
 const commandRegistry = await loadCommandRegistry()
 const restored = await loadPersisted()
 if (restored === 0) createSession()
+// 设置文件在启动时读一次（config.mjs 的默认权限模式依赖它，必须在建会话之前）
+loadSettings()
 
 const httpServer = createHttpServer()
 attachWebSocket(httpServer, commandRegistry)
@@ -57,6 +60,15 @@ httpServer.listen(PORT, HOST, () => {
   )
   console.log(`会话：${allSessionInfo().length} 个（本次恢复 ${restored} 个）`)
   if (restored > 0) console.log(`状态文件：${STATE_FILE}`)
+  // 设置文件（与 CLI 同一套路径）—— 权限规则在这里读一次
+  console.log(settingsSummary())
+  const unhonored = unhonoredRules()
+  if (unhonored.length > 0) {
+    console.warn(
+      `注意：${unhonored.length} 条权限规则在 web 端不会生效（该工具的 specifier 语义未实现）：` +
+        unhonored.map(u => `${u.kind}:${u.rule}`).join('、'),
+    )
+  }
   console.log(`版本：${SERVER_VERSION}`)
   for (const line of securityBanner()) console.log(line)
 })

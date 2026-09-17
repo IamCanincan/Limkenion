@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs'
 import { DEEPSEEK_MODELS, getApiKey } from './deepseek.mjs'
 import { CLI_ROOT, WORKSPACE_ROOT } from './paths.mjs'
 import { broadcast } from './bus.mjs'
+import { bypassDisabled, defaultPermissionMode } from './settings.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -90,7 +91,11 @@ export const MAX_DIFF_CHARS = 60_000
 /** 全局默认设置（新会话继承）。 */
 export const globalSettings = {
   theme: 'dark',
-  permissionMode: 'default',
+  // 默认权限模式取自设置文件（`permissions.defaultMode`），与 CLI 一致。
+  // 没配或配了非法值则回落到 'default'。
+  permissionMode: PERMISSION_MODES.includes(defaultPermissionMode())
+    ? defaultPermissionMode()
+    : 'default',
   model: MODELS[0].value,
   outputStyle: 'default',
   // null = 不显式指定，由 DeepSeek 服务端默认（思考链开着）。
@@ -106,7 +111,12 @@ export function settingsFor(session) {
 export function validateSetting(key, value) {
   if (key === 'model') return MODELS.some(m => m.value === value)
   if (key === 'theme') return THEMES.includes(value)
-  if (key === 'permissionMode') return PERMISSION_MODES.includes(value)
+  if (key === 'permissionMode') {
+    if (!PERMISSION_MODES.includes(value)) return false
+    // 设置文件里写了 `disableBypassPermissionsMode: "disable"` 时，bypass 不可选。
+    if (value === 'bypassPermissions' && bypassDisabled()) return false
+    return true
+  }
   if (key === 'outputStyle') return typeof value === 'string' && value.length > 0
   // null / '' 都表示"清除，回到服务端默认"
   if (key === 'effortLevel') return value === null || value === '' || EFFORT_LEVELS.includes(value)

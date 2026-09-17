@@ -11,6 +11,7 @@
 
 import { broadcast } from './bus.mjs'
 import { settingsFor } from './config.mjs'
+import { ruleDecision } from './settings.mjs'
 import { DANGEROUS_TOOLS } from './tools.mjs'
 
 const pendingPermissions = new Map()
@@ -40,8 +41,15 @@ export function needsPermission(session, toolName, opts = {}) {
   // 计划模式：只读放行，其余一律拒绝（由 requestPermission 直接返回 deny）
   if (mode === 'plan') return !PLAN_MODE_ALLOWED.has(toolName)
 
-  // 升级确认：shell 守卫或不可信内容触发，优先级高于一切
+  // 升级确认：shell 守卫或不可信内容触发，优先级高于一切 —— 包括设置文件里的 allow 规则
+  // （升级的意义就是"这次不算数，重新问一遍"）
   if (opts.escalate) return true
+
+  // 设置文件里的权限规则（与 CLI 同一套 settings.json）。
+  // `ask` 优先于 `allow`：更保守的一侧赢。
+  const rule = ruleDecision(toolName, opts.input)
+  if (rule === 'ask') return true
+  if (rule === 'allow') return false
 
   if (!DANGEROUS_TOOLS.has(toolName)) return false
   if (session.allowedTools?.has(toolName)) return false
