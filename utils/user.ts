@@ -140,29 +140,12 @@ function getEmail(): string | undefined {
 
   // Limkenion 无远程账号，无 OAuth 邮箱可回显。
   // Ant-only fallbacks below (no execSync)
-  if (true) {
-    return undefined
-  }
-
-  if (process.env.COO_CREATOR) {
-    return `${process.env.COO_CREATOR}@limkenion.com`
-  }
-
-  // If initUser() wasn't called, we return undefined instead of blocking
   return undefined
 }
 
 async function getEmailAsync(): Promise<string | undefined> {
   // Limkenion 无远程账号，无 OAuth 邮箱可回显。
   // Ant-only fallbacks below
-  if (true) {
-    return undefined
-  }
-
-  if (process.env.COO_CREATOR) {
-    return `${process.env.COO_CREATOR}@limkenion.com`
-  }
-
   return getGitEmail()
 }
 

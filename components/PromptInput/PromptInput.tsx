@@ -301,14 +301,7 @@ function PromptInput({
   const viewingAgentTaskId = useAppState(s => s.viewingAgentTaskId);
   const viewSelectionMode = useAppState(s => s.viewSelectionMode);
   const showSpinnerTree = useAppState(s => s.expandedView) === 'teammates';
-  const {
-    companion: _companion,
-    companionMuted
-  } = feature('BUDDY') ? getGlobalConfig() : {
-    companion: undefined,
-    companionMuted: undefined
-  };
-  const companionFooterVisible = !!_companion && !companionMuted;
+  // 桌宠（companion）功能已移除。
   // 简洁模式：BriefSpinner/BriefIdleStatus 负责输入框上方 2 行的空间。
   // 在这里去掉 marginTop 可以让 spinner 紧贴输入栏。viewingAgentTaskId
   // 镜像了两者的门控（Spinner.tsx、REPL.tsx）——队友视图回退到自带
@@ -449,7 +442,7 @@ function PromptInput({
   // 面板有行，弹丸就必须保持可导航——而不仅仅是某物运行中时。
   const tasksFooterVisible = (runningTaskCount > 0 || false) && !shouldHideTasksFooter(tasks, showSpinnerTree);
   const teamsFooterVisible = cachedTeams.length > 0;
-  const footerItems = useMemo(() => [tasksFooterVisible && 'tasks', tmuxFooterVisible && 'tmux', bagelFooterVisible && 'bagel', teamsFooterVisible && 'teams', bridgeFooterVisible && 'bridge', companionFooterVisible && 'companion'].filter(Boolean) as FooterItem[], [tasksFooterVisible, tmuxFooterVisible, bagelFooterVisible, teamsFooterVisible, bridgeFooterVisible, companionFooterVisible]);
+  const footerItems = useMemo(() => [tasksFooterVisible && 'tasks', tmuxFooterVisible && 'tmux', bagelFooterVisible && 'bagel', teamsFooterVisible && 'teams', bridgeFooterVisible && 'bridge'].filter(Boolean) as FooterItem[], [tasksFooterVisible, tmuxFooterVisible, bagelFooterVisible, teamsFooterVisible, bridgeFooterVisible]);
 
   // 有效选中：如果被选中的弹丸停止渲染（桥接断开、任务完成），则为 null。
   // 此推导立即让 UI 正确；下面的 useEffect 清除原始状态，使同一弹丸
@@ -1768,12 +1761,6 @@ function PromptInput({
         return;
       }
       switch (footerItemSelected) {
-        case 'companion':
-          if (feature('BUDDY')) {
-            selectFooterItem(null);
-            void onSubmit('/buddy');
-          }
-          break;
         case 'tasks':
           if (isTeammateMode) {
             // 回车切换到所选中代理的视图

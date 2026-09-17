@@ -13,7 +13,6 @@ import {
   type AttributionData,
   calculateCommitAttribution,
   isInternalModelRepo,
-  isInternalModelRepoCached,
   sanitizeModelName,
 } from './commitAttribution.js'
 import { logForDebugging } from './debug.js'
@@ -22,7 +21,6 @@ import { logError } from './log.js'
 import {
   getCanonicalName,
   getMainLoopModel,
-  getPublicModelDisplayName,
   getPublicModelName,
 } from './model/model.js'
 import { isMemoryFileAccess } from './sessionFileAccessHooks.js'
@@ -61,16 +59,10 @@ export function getAttributionTexts(): AttributionTexts {
   }
 
   // @[MODEL LAUNCH]: Update the hardcoded fallback model name below (guards against codename leaks).
-  // For internal repos, use the real model name. For external repos,
-  // 无法识别的模型名统一兜底成 "Limkenion"，避免泄露内部代号。
-  const model = getMainLoopModel()
-  const isKnownPublicModel = getPublicModelDisplayName(model) !== null
-  const modelName =
-    isInternalModelRepoCached() || isKnownPublicModel
-      ? getPublicModelName(model)
-      : 'Limkenion'
   const defaultAttribution = `🤖 Generated with ${LIMKENION_NAME}`
-  const defaultCommit = `Co-Authored-By: ${modelName} <noreply@limkenion.com>`
+  // 本构建没有邮箱域名，所以不加 Co-Authored-By trailer
+  // （git trailer 需要合法的 <email> 格式，编一个假域名比不加更糟）。
+  const defaultCommit = ''
 
   const settings = getInitialSettings()
 
