@@ -18,6 +18,30 @@
 9. **不要桌宠**（2026-09-18 用户明确："桌宠不要了"）—— `buddy/` 与 `commands/buddy/`
    已整块删除，`feature('BUDDY')` 的守卫点也清了。
 
+### 源码冗余清理（2026-09-18 用户下达"源码中多余的都删掉"）
+**已删：8 个零引用的死文件**
+`cli/transports/ccrClient.ts`、`cli/transports/transportUtils.ts`、
+`services/api/firstTokenDate.ts`、`utils/model/check1mAccess.ts`、`utils/taggedId.ts`、
+`utils/workflows/ultracode.ts`、`constants/sessionIdCompat.ts`、`utils/sessionIdCompat.ts`。
+（后两个的调用方是已删除的 `constants/product.ts`；`check1mAccess` 的调用方在早前清理中被移除。）
+
+**扫描方法（踩了两个坑，都修了）**
+1. 非相对路径（`src/` 别名）的说明符要归一到 basename，否则大量误判
+2. **正则的 `[^'"]+` 会跨行** —— 注释里出现的 `from` 会一路吞到很后面的引号，
+   把中间的 import 行整个吃掉。这让 `cli/print.ts`（5261 行，被 main.tsx 用）被误判成孤儿。
+   必须用 `[^'"\n]+`。**这个坑很隐蔽，以后写类似的导入扫描要直接排除换行。**
+
+**刻意保留的"疑似孤儿"**：`bun-bundle-stub.ts`（build 脚本 alias）、
+`entrypoints/cli.tsx`（package.json bin 入口）、`stubs/{chrome-mcp,computer-use-mcp-*}.ts`
+（tsconfig paths）、`services/remoteManagedSettings/securityCheck.tsx`（被 `'./securityCheck.jsx'` 导入，
+扩展名不同导致误判）、`.workbuddy-ai/i18n/`（34MB，暂停中的注释中文化工程产物，删了流水线没法恢复）。
+
+**待用户拍板：378 个"导出了但没人用"的符号**
+分布：`utils/` 212、`services/` 38、`entrypoints/` 24、`ink/` 21、`tools/` 18 …
+其中 `entrypoints/sdk/` 23 个（SDK 输出格式定义，**属有意公开的 API，建议保留**）、
+测试专用辅助 41 个（**仓库里 0 个测试文件**，理论上是纯死代码，但上游测试套件可能会用到）。
+**注意**：仓库里没有 `.test.ts` / `.spec.ts`，所以"测试专用"的导出目前确实无人调用。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` = **CLI（React/ink REPL）+ web 界面** 的双端 agent harness。
 
