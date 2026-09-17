@@ -49,7 +49,7 @@ export function renderToolUseErrorMessage(result: ToolResultBlockParam['content'
   return <FallbackToolUseErrorMessage result={result} verbose={verbose} />;
 }
 
-// Note: GlobTool reuses GrepTool's renderToolResultMessage
+// 注意：GlobTool 复用 GrepTool 的 renderToolResultMessage
 export const renderToolResultMessage = GrepTool.renderToolResultMessage;
 export function getToolUseSummary(input: Partial<{
   pattern: string;

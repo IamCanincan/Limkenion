@@ -24,7 +24,7 @@ import { OFFICIAL_MARKETPLACE_NAME } from '../../utils/plugins/officialMarketpla
 import { loadAllPlugins } from '../../utils/plugins/pluginLoader.js';
 import { installSelectedPlugins } from '../../utils/plugins/pluginStartupCheck.js';
 
-// Marketplace and plugin identifiers - varies by user type
+// marketplace 和插件标识符 —— 因用户类型而异
 const INTERNAL_MARKETPLACE_NAME = 'limkenion-marketplace';
 const INTERNAL_MARKETPLACE_REPO = 'limkenions/limkenion-marketplace';
 const OFFICIAL_MARKETPLACE_REPO = 'limkenions/limkenion-plugins-official';
@@ -40,7 +40,7 @@ function getPluginId(): string {
 const SKILL_NAME = 'thinkback';
 
 /**
- * Get the thinkback skill directory from the installed plugin's cache path
+ * 从已安装插件的缓存路径获取 thinkback 技能目录
  */
 async function getThinkbackSkillDir(): Promise<string | null> {
   const {
@@ -63,14 +63,14 @@ export async function playAnimation(skillDir: string): Promise<{
   const dataPath = join(skillDir, 'year_in_review.js');
   const playerPath = join(skillDir, 'player.js');
 
-  // Both files are prerequisites for the node subprocess. Read them here
-  // (not at call sites) so all callers get consistent error messaging. The
-  // subprocess runs with reject: false, so a missing file would otherwise
-  // silently return success. Using readFile (not access) per LIMKENION.md.
+  // 这两个文件都是 node 子进程的前置条件。在这里读取
+  //（而不是在调用点），以便所有调用方获得一致的错误消息。
+  // 子进程以 reject: false 运行，否则文件缺失时会
+  // 静默返回成功。按 LIMKENION.md 使用 readFile（而非 access）。
   //
-  // Non-ENOENT errors (EACCES etc) are logged and returned as failures rather
-  // than thrown — the old pathExists-based code never threw, and one caller
-  // (handleSelect) uses `void playAnimation().then(...)` without a .catch().
+  // 非 ENOENT 错误（EACCES 等）会记录并作为失败返回，而不是
+  // 抛出 —— 旧的基于 pathExists 的代码从不抛出，且有一个调用方
+  //（handleSelect）使用 `void playAnimation().then(...)` 而没有 .catch()。
   try {
     await readFile(dataPath);
   } catch (e: unknown) {
@@ -102,7 +102,7 @@ export async function playAnimation(skillDir: string): Promise<{
     };
   }
 
-  // Get ink instance for terminal takeover
+  // 获取 ink 实例以接管终端
   const inkInstance = instances.get(process.stdout);
   if (!inkInstance) {
     return {
@@ -118,12 +118,12 @@ export async function playAnimation(skillDir: string): Promise<{
       reject: false
     });
   } catch {
-    // Animation may have been interrupted (e.g., Ctrl+C)
+    // 动画可能已被中断（例如 Ctrl+C）
   } finally {
     inkInstance.exitAlternateScreen();
   }
 
-  // Open the HTML file in browser for video download
+  // 在浏览器中打开该 HTML 文件以下载视频
   const htmlPath = join(skillDir, 'year_in_review.html');
   if (await pathExists(htmlPath)) {
     const platform = getPlatform();
@@ -163,17 +163,17 @@ function ThinkbackInstaller({
   useEffect(() => {
     async function checkAndInstall(): Promise<void> {
       try {
-        // Check if marketplace is installed
+        // 检查 marketplace 是否已安装
         const knownMarketplaces = await loadKnownMarketplacesConfig();
         const marketplaceName = getMarketplaceName();
         const marketplaceRepo = getMarketplaceRepo();
         const pluginId = getPluginId();
         const marketplaceInstalled = marketplaceName in knownMarketplaces;
 
-        // Check if plugin is already installed first
+        // 先检查插件是否已经安装
         const pluginAlreadyInstalled = isPluginInstalled(pluginId);
         if (!marketplaceInstalled) {
-          // Install the marketplace
+          // 安装该 marketplace
           setState({
             phase: 'installing-marketplace'
           });
@@ -187,8 +187,8 @@ function ThinkbackInstaller({
           clearAllCaches();
           logForDebugging(`Marketplace ${marketplaceName} installed`);
         } else if (!pluginAlreadyInstalled) {
-          // Marketplace installed but plugin not installed - refresh to get latest plugins
-          // Only refresh when needed to avoid potentially destructive git operations
+          // marketplace 已安装但插件未安装 —— 刷新以获取最新插件
+          // 仅在需要时刷新，以避免可能具有破坏性的 git 操作
           setState({
             phase: 'installing-marketplace'
           });
@@ -202,7 +202,7 @@ function ThinkbackInstaller({
           logForDebugging(`Marketplace ${marketplaceName} refreshed`);
         }
         if (!pluginAlreadyInstalled) {
-          // Install the plugin
+          // 安装该插件
           setState({
             phase: 'installing-plugin'
           });
@@ -215,13 +215,13 @@ function ThinkbackInstaller({
           clearAllCaches();
           logForDebugging(`Plugin ${pluginId} installed`);
         } else {
-          // Plugin is installed, check if it's enabled
+          // 插件已安装，检查它是否已启用
           const {
             disabled
           } = await loadAllPlugins();
           const isDisabled = disabled.some(p => p.name === 'thinkback' || p.source?.includes(pluginId));
           if (isDisabled) {
-            // Enable the plugin
+            // 启用该插件
             setState({
               phase: 'enabling-plugin'
             });

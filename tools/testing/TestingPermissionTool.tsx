@@ -1,6 +1,5 @@
 /**
- * This testing-only tool will always pop up a permission dialog when called by
- * the model.
+ * 这个仅用于测试的工具在被模型调用时，总会弹出权限对话框。
  */
 import { z } from 'zod/v4';
 import type { Tool } from '../../Tool.js';
@@ -34,7 +33,7 @@ export const TestingPermissionTool: Tool<InputSchema, string> = buildTool({
     return true;
   },
   async checkPermissions() {
-    // This tool always requires permission
+    // 此工具始终需要权限
     return {
       behavior: 'ask' as const,
       message: `Run test?`

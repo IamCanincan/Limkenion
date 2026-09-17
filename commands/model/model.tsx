@@ -148,7 +148,7 @@ function SetModelAndClose({
         return;
       }
 
-      // @[MODEL LAUNCH]: Update check for 1M access.
+      // @[MODEL LAUNCH]: 更新 1M 访问检查。
       if (model && isOpus1mUnavailable(model)) {
         onDone(`Opus 4.6 with 1M context is not available for your account. Learn more: https://code.limkenion.com/docs/en/model-config#extended-context-with-1m`, {
           display: 'system'
@@ -162,22 +162,22 @@ function SetModelAndClose({
         return;
       }
 
-      // Skip validation for default model
+      // 跳过默认模型的校验
       if (!model) {
         setModel(null);
         return;
       }
 
-      // Skip validation for known aliases - they're predefined and should work
+      // 跳过已知别名的校验 —— 它们是预定义的，应当可用
       if (isKnownAlias(model)) {
         setModel(model);
         return;
       }
 
-      // Validate and set custom model
+      // 校验并设置自定义模型
       try {
-        // Don't use parseUserSpecifiedModel for non-aliases since it lowercases the input
-        // and model names are case-sensitive
+        // 对非别名不要使用 parseUserSpecifiedModel，因为它会把输入转为小写，
+        // 而模型名称区分大小写
         const {
           valid,
           error: error_0
@@ -211,7 +211,7 @@ function SetModelAndClose({
             fastMode: false
           }));
           wasFastModeToggledOn = false;
-          // Do not update fast mode in settings since this is an automatic downgrade
+          // 不要在设置中更新快速模式，因为这是一次自动降级
         } else if (isFastModeSupportedByModel(modelValue) && isFastMode) {
           message += ` · Fast mode ON`;
           wasFastModeToggledOn = true;
@@ -221,7 +221,7 @@ function SetModelAndClose({
         message += ` · Billed as extra usage`;
       }
       if (wasFastModeToggledOn === false) {
-        // Fast mode was toggled off, show suffix after extra usage billing
+        // 快速模式已被关闭，在额外用量计费之后显示后缀
         message += ` · Fast mode OFF`;
       }
       onDone(message);
@@ -239,8 +239,8 @@ function isOpus1mUnavailable(model: string): boolean {
 }
 function isSonnet1mUnavailable(model: string): boolean {
   const m = model.toLowerCase();
-  // Warn about Sonnet and Sonnet 4.6, but not Sonnet 4.5 since that had
-  // a different access criteria.
+  // 对 Sonnet 和 Sonnet 4.6 给出警告，但不针对 Sonnet 4.5，因为后者
+  // 有不同的访问标准。
   return !checkSonnet1mAccess() && (m.includes('sonnet[1m]') || m.includes('sonnet-4-6[1m]'));
 }
 function ShowModelAndClose(t0) {

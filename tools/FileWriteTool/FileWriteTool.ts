@@ -123,8 +123,8 @@ export const FileWriteTool = buildTool({
     return input.file_path
   },
   backfillObservableInput(input) {
-    // hooks.mdx documents file_path as absolute; expand so hook allowlists
-    // can't be bypassed via ~ or relative paths.
+    // hooks.mdx 将 file_path 记录为绝对路径；此处做展开，使 hook 的允许列表
+    // 无法通过 ~ 或相对路径被绕过。
     if (typeof input.file_path === 'string') {
       input.file_path = expandPath(input.file_path)
     }
@@ -144,22 +144,22 @@ export const FileWriteTool = buildTool({
   renderToolUseErrorMessage,
   renderToolResultMessage,
   extractSearchText() {
-    // Transcript render shows either content (create, via HighlightedCode)
-    // or a structured diff (update). The heuristic's 'content' allowlist key
-    // would index the raw content string even in update mode where it's NOT
-    // shown — phantom. Under-count: tool_use already indexes file_path.
+    // 记录渲染要么显示 content（create，通过 HighlightedCode），
+    // 要么显示结构化 diff（update）。启发式的 'content' 允许列表键
+    // 即使在 update 模式下（content 并不显示）也会索引原始 content 字符串
+    // ——属于幻影。少计：tool_use 已索引 file_path。
     return ''
   },
   async validateInput({ file_path, content }, toolUseContext: ToolUseContext) {
     const fullFilePath = expandPath(file_path)
 
-    // Reject writes to team memory files that contain secrets
+    // 拒绝写入包含密钥的团队记忆文件
     const secretError = checkTeamMemSecrets(fullFilePath, content)
     if (secretError) {
       return { result: false, message: secretError, errorCode: 0 }
     }
 
-    // Check if path should be ignored based on permission settings
+    // 根据权限设置检查该路径是否应被忽略
     const appState = toolUseContext.getAppState()
     const denyRule = matchingRuleForInput(
       fullFilePath,
@@ -176,9 +176,9 @@ export const FileWriteTool = buildTool({
       }
     }
 
-    // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
-    // On Windows, fs.existsSync() on UNC paths triggers SMB authentication which could
-    // leak credentials to malicious servers. Let the permission check handle UNC paths.
+    // SECURITY: 对 UNC 路径跳过文件系统操作，以防 NTLM 凭据泄露。
+    // 在 Windows 上，对 UNC 路径调用 fs.existsSync() 会触发 SMB 认证，
+    // 可能将凭据泄露给恶意服务器。UNC 路径交由权限检查处理。
     if (fullFilePath.startsWith('\\\\') || fullFilePath.startsWith('//')) {
       return { result: true }
     }
@@ -205,9 +205,9 @@ export const FileWriteTool = buildTool({
       }
     }
 
-    // Reuse mtime from the stat above — avoids a redundant statSync via
-    // getFileModificationTime. The readTimestamp guard above ensures this
-    // block is always reached when the file exists.
+    // 复用上面 stat 得到的 mtime——避免通过 getFileModificationTime
+    // 再次执行冗余的 statSync。上面的 readTimestamp 守卫确保文件存在时
+    // 总能进入该分支。
     const lastWriteTime = Math.floor(fileMtimeMs)
     if (lastWriteTime > readTimestamp.timestamp) {
       return {
@@ -229,33 +229,33 @@ export const FileWriteTool = buildTool({
     const fullFilePath = expandPath(file_path)
     const dir = dirname(fullFilePath)
 
-    // Discover skills from this file's path (fire-and-forget, non-blocking)
+    // 从本文件路径发现技能（即发即忘，非阻塞）
     const cwd = getCwd()
     const newSkillDirs = await discoverSkillDirsForPaths([fullFilePath], cwd)
     if (newSkillDirs.length > 0) {
-      // Store discovered dirs for attachment display
+      // 存储发现的目录用于附件展示
       for (const dir of newSkillDirs) {
         dynamicSkillDirTriggers?.add(dir)
       }
-      // Don't await - let skill loading happen in the background
+      // 不要 await——让技能加载在后台进行
       addSkillDirectories(newSkillDirs).catch(() => {})
     }
 
-    // Activate conditional skills whose path patterns match this file
+    // 激活路径模式匹配本文件的条件技能
     activateConditionalSkillsForPaths([fullFilePath], cwd)
 
     await diagnosticTracker.beforeFileEdited(fullFilePath)
 
-    // Ensure parent directory exists before the atomic read-modify-write section.
-    // Must stay OUTSIDE the critical section below (a yield between the staleness
-    // check and writeTextContent lets concurrent edits interleave), and BEFORE the
-    // write (lazy-mkdir-on-ENOENT would fire a spurious limkenion_atomic_write_error
-    // inside writeFileSyncAndFlush_DEPRECATED before ENOENT propagates back).
+    // 在原子读-改-写区段之前确保父目录存在。
+    // 必须留在下方临界区之外（在失效检查与 writeTextContent 之间的让出
+    // 会让并发编辑交错），且在写入之前（ENOENT 时惰性 mkdir 会在
+    // writeFileSyncAndFlush_DEPRECATED 内部触发虚假的 limkenion_atomic_write_error，
+    // 早于 ENOENT 向上传播）。
     await getFsImplementation().mkdir(dir)
     if (fileHistoryEnabled()) {
-      // Backup captures pre-edit content — safe to call before the staleness
-      // check (idempotent v1 backup keyed on content hash; if staleness fails
-      // later we just have an unused backup, not corrupt state).
+      // 备份捕获编辑前的内容——在失效检查之前调用是安全的
+      // （v1 备份以内容哈希为键且幂等；若后续失效检查失败，
+      // 只是多了一个未使用的备份，而不会导致状态损坏）。
       await fileHistoryTrackEdit(
         updateFileHistoryState,
         fullFilePath,
@@ -263,8 +263,8 @@ export const FileWriteTool = buildTool({
       )
     }
 
-    // Load current state and confirm no changes since last read.
-    // Please avoid async operations between here and writing to disk to preserve atomicity.
+    // 加载当前状态并确认自上次读取以来没有变更。
+    // 为保持原子性，请避免在此处与写入磁盘之间执行异步操作。
     let meta: ReturnType<typeof readFileSyncWithMetadata> | null
     try {
       meta = readFileSyncWithMetadata(fullFilePath)
@@ -280,14 +280,14 @@ export const FileWriteTool = buildTool({
       const lastWriteTime = getFileModificationTime(fullFilePath)
       const lastRead = readFileState.get(fullFilePath)
       if (!lastRead || lastWriteTime > lastRead.timestamp) {
-        // Timestamp indicates modification, but on Windows timestamps can change
-        // without content changes (cloud sync, antivirus, etc.). For full reads,
-        // compare content as a fallback to avoid false positives.
+        // 时间戳表明有修改，但在 Windows 上时间戳可能在没有内容变更的情况下
+        // 变化（云同步、杀毒软件等）。对于完整读取，
+        // 回退到内容比较以避免误判。
         const isFullRead =
           lastRead &&
           lastRead.offset === undefined &&
           lastRead.limit === undefined
-        // meta.content is CRLF-normalized — matches readFileState's normalized form.
+        // meta.content 已做 CRLF 归一化——与 readFileState 的归一化形式一致。
         if (!isFullRead || meta.content !== lastRead.content) {
           throw new Error(FILE_UNEXPECTEDLY_MODIFIED_ERROR)
         }
@@ -297,26 +297,26 @@ export const FileWriteTool = buildTool({
     const enc = meta?.encoding ?? 'utf8'
     const oldContent = meta?.content ?? null
 
-    // Write is a full content replacement — the model sent explicit line endings
-    // in `content` and meant them. Do not rewrite them. Previously we preserved
-    // the old file's line endings (or sampled the repo via ripgrep for new
-    // files), which silently corrupted e.g. bash scripts with \r on Linux when
-    // overwriting a CRLF file or when binaries in cwd poisoned the repo sample.
+    // Write 是完整内容替换——模型在 `content` 中显式给出了换行符，
+    // 是刻意为之，不要改写。此前我们会保留旧文件的换行符
+    // （或对新文件用 ripgrep 采样仓库），这会在覆盖 CRLF 文件时，
+    // 或因工作目录中的二进制文件污染仓库采样时，悄悄破坏例如 Linux 上
+    // 带 \r 的 bash 脚本。
     writeTextContent(fullFilePath, content, enc, 'LF')
 
-    // Notify LSP servers about file modification (didChange) and save (didSave)
+    // 通知 LSP 服务器文件已修改（didChange）和已保存（didSave）
     const lspManager = getLspServerManager()
     if (lspManager) {
-      // Clear previously delivered diagnostics so new ones will be shown
+      // 清除此前投递的诊断信息，以便显示新的诊断
       clearDeliveredDiagnosticsForFile(`file://${fullFilePath}`)
-      // didChange: Content has been modified
+      // didChange：内容已修改
       lspManager.changeFile(fullFilePath, content).catch((err: Error) => {
         logForDebugging(
           `LSP: Failed to notify server of file change for ${fullFilePath}: ${err.message}`,
         )
         logError(err)
       })
-      // didSave: File has been saved to disk (triggers diagnostics in TypeScript server)
+      // didSave：文件已保存到磁盘（在 TypeScript 服务器中触发诊断）
       lspManager.saveFile(fullFilePath).catch((err: Error) => {
         logForDebugging(
           `LSP: Failed to notify server of file save for ${fullFilePath}: ${err.message}`,
@@ -325,10 +325,10 @@ export const FileWriteTool = buildTool({
       })
     }
 
-    // Notify VSCode about the file change for diff view
+    // 将文件变更通知 VSCode 以显示 diff 视图
     notifyVscodeFileUpdated(fullFilePath, oldContent, content)
 
-    // Update read timestamp, to invalidate stale writes
+    // 更新读取时间戳，使过期写入失效
     readFileState.set(fullFilePath, {
       content,
       timestamp: getFileModificationTime(fullFilePath),
@@ -336,7 +336,7 @@ export const FileWriteTool = buildTool({
       limit: undefined,
     })
 
-    // Log when writing to LIMKENION.md
+    // 写入 LIMKENION.md 时记录日志
     if (fullFilePath.endsWith(`${sep}LIMKENION.md`)) {
       logEvent('limkenion_write_limkenionmd', {})
     }
@@ -377,7 +377,7 @@ export const FileWriteTool = buildTool({
         originalFile: oldContent,
         ...(gitDiff && { gitDiff }),
       }
-      // Track lines added and removed for file updates, right before yielding result
+      // 在产出结果前，统计文件更新中新增和删除的行数
       countLinesChanged(patch)
 
       logFileOperation({
@@ -401,7 +401,7 @@ export const FileWriteTool = buildTool({
       ...(gitDiff && { gitDiff }),
     }
 
-    // For creation of new files, count all lines as additions, right before yielding the result
+    // 对于新建文件，在产出结果前将所有行计为新增
     countLinesChanged([], content)
 
     logFileOperation({

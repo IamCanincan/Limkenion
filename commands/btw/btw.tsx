@@ -181,19 +181,19 @@ function BtwSideQuestion(t0) {
 }
 
 /**
- * Build CacheSafeParams for the side question fork.
+ * 为侧问分支构建 CacheSafeParams。
  *
- * The preferred source is getLastCacheSafeParams — the exact
- * systemPrompt/userContext/systemContext bytes the main thread sent on its
- * last request (captured in stopHooks). Reusing them guarantees a byte-
- * identical prefix and thus a prompt cache hit. We pair these with the
- * current toolUseContext (for thinkingConfig/tools) and current messages
- * (for up-to-date context).
+ * 首选来源是 getLastCacheSafeParams —— 即主线程在上一次请求中
+ * 发送的 systemPrompt/userContext/systemContext 原始字节（在
+ * stopHooks 中捕获）。复用它们可保证前缀逐字节一致，从而命中
+ * 提示词缓存。我们将其与当前的 toolUseContext（用于
+ * thinkingConfig/tools）以及当前消息（用于最新的上下文）配对
+ * 使用。
  *
- * Fallback (first turn before stop hooks fire, or prompt-suggestion
- * disabled): rebuild from scratch. This may miss the cache if the main loop
- * applied buildEffectiveSystemPrompt extras (--agent, --system-prompt,
- * --append-system-prompt, coordinator mode).
+ * 降级方案（stop 钩子触发前的首个回合，或提示词建议被禁用时）：
+ * 从零重建。若主循环应用了 buildEffectiveSystemPrompt 的额外项
+ * （--agent、--system-prompt、--append-system-prompt、coordinator
+ * 模式），则可能无法命中缓存。
  */
 function _temp(f) {
   return f + 1;

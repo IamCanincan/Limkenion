@@ -29,9 +29,9 @@ function setEffortValue(effortValue: EffortValue): EffortCommandResult {
     effort: effortValue as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
   });
 
-  // Env var wins at resolveAppliedEffort time. Only flag it when it actually
-  // conflicts — if env matches what the user just asked for, the outcome is
-  // the same, so "Set effort to X" is true and the note is noise.
+  // 环境变量在 resolveAppliedEffort 时优先生效。仅当确实
+  // 冲突时才提示 —— 若环境变量与用户刚请求的值一致，结果
+  // 相同，因此 “Set effort to X” 属实，该提示就是噪音。
   const envOverride = getEffortEnvOverride();
   if (envOverride !== undefined && envOverride !== effortValue) {
     const envRaw = process.env.LIMKENION_EFFORT_LEVEL;
@@ -85,8 +85,8 @@ function unsetEffortLevel(): EffortCommandResult {
   logEvent('limkenion_effort_command', {
     effort: 'auto' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
   });
-  // env=auto/unset (null) matches what /effort auto asks for, so only warn
-  // when env is pinning a specific level that will keep overriding.
+  // env=auto/unset（null）与 /effort auto 的请求一致，因此仅当
+  // 环境变量钉住了某个会持续覆盖的具体级别时才警告。
   const envOverride = getEffortEnvOverride();
   if (envOverride !== undefined && envOverride !== null) {
     const envRaw = process.env.LIMKENION_EFFORT_LEVEL;

@@ -35,7 +35,7 @@ const inputSchema = lazySchema(() => z.strictObject({
 type InputSchema = ReturnType<typeof inputSchema>;
 type TaskOutputToolInput = z.infer<InputSchema>;
 
-// Unified output type covering all task types
+// 覆盖所有任务类型的统一输出类型
 type TaskOutput = {
   task_id: string;
   task_type: TaskType;
@@ -44,7 +44,7 @@ type TaskOutput = {
   output: string;
   exitCode?: number | null;
   error?: string;
-  // For agents
+  // 用于 agent
   prompt?: string;
   result?: string;
 };
@@ -53,10 +53,10 @@ type TaskOutputToolOutput = {
   task: TaskOutput | null;
 };
 
-// Re-export Progress from centralized types to break import cycles
+// 从集中式类型重新导出 Progress 以打破导入循环
 export type { TaskOutputProgress as Progress } from '../../types/tools.js';
 
-// Get output for any task type
+// 获取任意任务类型的输出
 async function getTaskOutputData(task: TaskState): Promise<TaskOutput> {
   let output: string;
   if (task.type === 'local_bash') {
@@ -80,7 +80,7 @@ async function getTaskOutputData(task: TaskState): Promise<TaskOutput> {
     output
   };
 
-  // Add type-specific fields
+  // 添加类型特有的字段
   if (task.type === 'local_bash') {
     const bashTask = task as LocalShellTaskState;
     return {
@@ -90,11 +90,11 @@ async function getTaskOutputData(task: TaskState): Promise<TaskOutput> {
   }
   if (task.type === 'local_agent') {
     const agentTask = task as LocalAgentTaskState;
-    // Prefer the clean final answer from the in-memory result over the raw
-    // JSONL transcript on disk. The disk output is a symlink to the full
-    // session transcript (every message, tool use, etc.), not just the
-    // subagent's answer. The in-memory result contains only the final
-    // assistant text content blocks.
+    // 优先使用内存结果中干净的最终答案，而非磁盘上的原始
+    // JSONL transcript。磁盘输出是指向完整会话 transcript
+    // （每条消息、每次工具调用等）的符号链接，而不只是
+    // 子代理的答案。内存结果只包含最终的
+    // assistant 文本内容块。
     const cleanResult = agentTask.result ? extractTextContent(agentTask.result.content, '\n') : undefined;
     return {
       ...baseOutput,
@@ -114,13 +114,13 @@ async function getTaskOutputData(task: TaskState): Promise<TaskOutput> {
   return baseOutput;
 }
 
-// Wait for task to complete
+// 等待任务完成
 async function waitForTaskCompletion(taskId: string, getAppState: () => {
   tasks?: Record<string, TaskState>;
 }, timeoutMs: number, abortController?: AbortController): Promise<TaskState | null> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeoutMs) {
-    // Check abort signal
+    // 检查中止信号
     if (abortController?.signal.aborted) {
       throw new AbortError();
     }
@@ -133,11 +133,11 @@ async function waitForTaskCompletion(taskId: string, getAppState: () => {
       return task;
     }
 
-    // Wait before polling again
+    // 再次轮询前先等待
     await sleep(100);
   }
 
-  // Timeout - return current state
+  // 超时 - 返回当前状态
   const finalState = getAppState();
   return finalState.tasks?.[taskId] as TaskState ?? null;
 }
@@ -146,7 +146,7 @@ export const TaskOutputTool: Tool<InputSchema, TaskOutputToolOutput> = buildTool
   searchHint: 'read output/logs from a background task',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
-  // Backwards-compatible aliases for renamed tools
+  // 为已改名工具提供的向后兼容别名
   aliases: ['AgentOutputTool', 'BashOutputTool'],
   userFacingName() {
     return 'Task Output';
@@ -217,9 +217,9 @@ export const TaskOutputTool: Tool<InputSchema, TaskOutputToolOutput> = buildTool
       throw new Error(`No task found with ID: ${task_id}`);
     }
     if (!block) {
-      // Non-blocking: return current state
+      // 非阻塞：返回当前状态
       if (task.status !== 'running' && task.status !== 'pending') {
-        // Mark as notified
+        // 标记为已通知
         updateTaskState(task_id, toolUseContext.setAppState, t => ({
           ...t,
           notified: true
@@ -239,7 +239,7 @@ export const TaskOutputTool: Tool<InputSchema, TaskOutputToolOutput> = buildTool
       };
     }
 
-    // Blocking: wait for completion
+    // 阻塞：等待完成
     if (onProgress) {
       onProgress({
         toolUseID: `task-output-waiting-${Date.now()}`,
@@ -268,7 +268,7 @@ export const TaskOutputTool: Tool<InputSchema, TaskOutputToolOutput> = buildTool
       };
     }
 
-    // Mark as notified
+    // 标记为已通知
     updateTaskState(task_id, toolUseContext.setAppState, t => ({
       ...t,
       notified: true

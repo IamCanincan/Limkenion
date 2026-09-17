@@ -7,9 +7,9 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js'
 const DEFAULT_PORT = 8788
 
 /**
- * /web — start the local web UI server (web/server/index.mjs) in the
- * background and report the URL. The server serves web/dist (built by
- * `cd web && npm run build`) and exposes the WebSocket chat API.
+ * /web —— 在后台启动本地 Web UI 服务器（web/server/index.mjs），
+ * 并报告 URL。该服务器提供 web/dist（由
+ * `cd web && npm run build` 构建）并暴露 WebSocket 聊天 API。
  */
 export async function call(onDone: LocalJSXCommandOnDone): Promise<null> {
   const port = Number(process.env.LIMKENION_WEB_PORT ?? DEFAULT_PORT)

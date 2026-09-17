@@ -54,7 +54,7 @@ export function AddMarketplace({
       return;
     }
 
-    // Check if parseMarketplaceInput returned an error
+    // 检查 parseMarketplaceInput 是否返回了错误
     if ('error' in parsed) {
       setError(parsed.error);
       return;
@@ -86,10 +86,10 @@ export function AddMarketplace({
       setProgressMessage('');
       setLoading(false);
       if (cliMode) {
-        // In CLI mode, set result to trigger completion
+        // CLI 模式下，设置结果以触发完成
         setResult(`Successfully added marketplace: ${name}`);
       } else {
-        // In interactive mode, switch to browse view
+        // 交互模式下，切换到浏览视图
         setViewState({
           type: 'browse-marketplace',
           targetMarketplace: name
@@ -102,7 +102,7 @@ export function AddMarketplace({
       setProgressMessage('');
       setLoading(false);
       if (cliMode) {
-        // In CLI mode, set result with error to trigger completion
+        // CLI 模式下，设置带错误的结果以触发完成
         setResult(`Error: ${error.message}`);
       } else {
         setResult(null);
@@ -110,7 +110,7 @@ export function AddMarketplace({
     }
   };
 
-  // Auto-add if inputValue is provided
+  // 若提供了 inputValue 则自动添加
   useEffect(() => {
     if (inputValue && !hasAttemptedAutoAdd.current && !error && !result) {
       hasAttemptedAutoAdd.current = true;
@@ -118,7 +118,7 @@ export function AddMarketplace({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
-  }, []); // Only run once on mount
+  }, []); // 仅在挂载时运行一次
 
   return <Box flexDirection="column">
       <Box flexDirection="column" paddingX={1} borderStyle="round">

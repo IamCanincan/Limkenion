@@ -203,15 +203,15 @@ export default createMovedToPluginCommand({
   pluginName: 'security-review',
   pluginCommand: 'security-review',
   async getPromptWhileMarketplaceIsPrivate(_args, context) {
-    // Parse frontmatter from the markdown
+    // 解析 markdown 中的 frontmatter
     const parsed = parseFrontmatter(SECURITY_REVIEW_MARKDOWN)
 
-    // Parse allowed tools from frontmatter
+    // 从 frontmatter 中解析允许的工具
     const allowedTools = parseSlashCommandToolsFromFrontmatter(
       parsed.frontmatter['allowed-tools'],
     )
 
-    // Execute bash commands in the prompt
+    // 执行提示词中的 bash 命令
     const processedContent = await executeShellCommandsInPrompt(
       parsed.content,
       {

@@ -12,7 +12,7 @@ import { FILE_NOT_FOUND_CWD_NOTE, getDisplayPath } from '../../utils/file.js';
 import { truncate } from '../../utils/format.js';
 import { extractTag } from '../../utils/messages.js';
 
-// Reusable component for search result summaries
+// 可复用的搜索结果摘要组件
 function SearchResultSummary(t0) {
   const $ = _c(26);
   const {
@@ -121,8 +121,8 @@ type Output = {
   numFiles: number;
   filenames: string[];
   content?: string;
-  numLines?: number; // For content mode
-  numMatches?: number; // For count mode
+  numLines?: number; // 用于 content 模式
+  numMatches?: number; // 用于 count 模式
 };
 export function renderToolUseMessage({
   pattern,
@@ -181,7 +181,7 @@ export function renderToolResultMessage({
     return <SearchResultSummary count={numMatches ?? 0} countLabel="matches" secondaryCount={numFiles} secondaryLabel="files" content={content} verbose={verbose} />;
   }
 
-  // files_with_matches mode
+  // files_with_matches 模式
   const fileListContent = filenames.map(filename => filename).join('\n');
   return <SearchResultSummary count={numFiles} countLabel="files" content={fileListContent} verbose={verbose} />;
 }

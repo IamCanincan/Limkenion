@@ -66,7 +66,7 @@ function webFetchToolInputToPermissionRuleContent(input: {
 export const WebFetchTool = buildTool({
   name: WEB_FETCH_TOOL_NAME,
   searchHint: 'fetch and extract content from a URL',
-  // 100K chars - tool result persistence threshold
+  // 100K 字符 - 工具结果持久化阈值
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   async description(input) {
@@ -105,7 +105,7 @@ export const WebFetchTool = buildTool({
     const appState = context.getAppState()
     const permissionContext = appState.toolPermissionContext
 
-    // Check if the hostname is in the preapproved list
+    // 检查主机名是否在预批准列表中
     try {
       const { url } = input as { url: string }
       const parsedUrl = new URL(url)
@@ -117,10 +117,10 @@ export const WebFetchTool = buildTool({
         }
       }
     } catch {
-      // If URL parsing fails, continue with normal permission checks
+      // 若 URL 解析失败，继续执行常规权限检查
     }
 
-    // Check for a rule specific to the tool input (matching hostname)
+    // 检查是否有针对该工具输入的规则（匹配主机名）
     const ruleContent = webFetchToolInputToPermissionRuleContent(input)
 
     const denyRule = getRuleByContentsForTool(
@@ -179,12 +179,12 @@ export const WebFetchTool = buildTool({
     }
   },
   async prompt(_options) {
-    // Always include the auth warning regardless of whether ToolSearch is
-    // currently in the tools list. Conditionally toggling this prefix based
-    // on ToolSearch availability caused the tool description to flicker
-    // between SDK query() calls (when ToolSearch enablement varies due to
-    // MCP tool count thresholds), invalidating the Limkenion API prompt
-    // cache on each toggle — two consecutive cache misses per flicker event.
+    // 无论 ToolSearch 当前是否在工具列表中，都始终包含认证警告。
+    // 依据 ToolSearch 可用性有条件地切换该前缀，会导致工具描述在
+    // 多次 SDK query() 调用之间闪烁
+    // （当 ToolSearch 的启用状态因 MCP 工具数量阈值而变化时），
+    // 从而在每次切换时使 Limkenion API 提示词缓存失效 ——
+    // 每次闪烁事件都会造成连续两次缓存未命中。
     return `IMPORTANT: WebFetch WILL FAIL for authenticated or private URLs. Before using this tool, check if the URL points to an authenticated service (e.g. Google Docs, Confluence, Jira, GitHub). If so, look for a specialized MCP tool that provides authenticated access.
 ${DESCRIPTION}`
   },
@@ -213,7 +213,7 @@ ${DESCRIPTION}`
 
     const response = await getURLMarkdownContent(url, abortController)
 
-    // Check if we got a redirect to a different host
+    // 检查是否收到了指向不同主机的重定向
     if ('type' in response && response.type === 'redirect') {
       const statusText =
         response.statusCode === 301
@@ -277,9 +277,9 @@ To complete your request, I need to fetch content from the redirected URL. Pleas
       )
     }
 
-    // Binary content (PDFs, etc.) was additionally saved to disk with a
-    // mime-derived extension. Note it so Limkenion can inspect the raw file
-    // if the Haiku summary above isn't enough.
+    // 二进制内容（PDF 等）还以 mime 推导的扩展名额外保存到了磁盘。
+    // 在此说明，以便在上面的 Haiku 摘要不够时，
+    // Limkenion 可以检查原始文件。
     if (persistedPath) {
       result += `\n\n[Binary content (${contentType}, ${formatFileSize(persistedSize ?? bytes)}) also saved to ${persistedPath}]`
     }

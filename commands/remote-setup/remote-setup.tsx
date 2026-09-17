@@ -38,8 +38,8 @@ async function checkLoginState(): Promise<CheckResult> {
     };
   }
 
-  // ghStatus === 'authenticated'. getGhAuthStatus spawns with stdout:'ignore'
-  // (telemetry-safe); spawn once more with stdout:'pipe' to read the token.
+  // ghStatus === 'authenticated'。getGhAuthStatus 以 stdout:'ignore' 启动
+  //（对遥测安全）；再用 stdout:'pipe' 启动一次以读取 token。
   const {
     stdout
   } = await execa('gh', ['auth', 'token'], {
@@ -115,7 +115,7 @@ function Web({
           });
       }
     });
-    // onDone is stable across renders; intentionally not in deps.
+    // onDone 在各次渲染之间保持稳定；有意不放进 deps。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const handleCancel = () => {
@@ -138,9 +138,9 @@ function Web({
       return;
     }
 
-    // Token import succeeded. Environment creation is best-effort — if it
-    // fails, the web state machine routes to env-setup on landing, which is
-    // one extra click but still better than the OAuth dance.
+    // token 导入成功。环境创建是尽力而为的 —— 如果失败，
+    // web 状态机在落地时会转到 env-setup，这多一次点击，
+    // 但仍好过走一遍 OAuth 流程。
     await createDefaultEnvironment();
     const url = getCodeWebUrl();
     await openBrowser(url);

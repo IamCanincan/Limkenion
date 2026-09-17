@@ -12,9 +12,9 @@ function getRandomGoodbyeMessage(): string {
   return sample(GOODBYE_MESSAGES) ?? 'Goodbye!';
 }
 export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNode> {
-  // Inside a `limkenion --bg` tmux session: detach instead of kill. The REPL
-  // keeps running; `limkenion attach` can reconnect. Covers /exit, /quit,
-  // ctrl+c, ctrl+d — all funnel through here via REPL's handleExit.
+  // 在 `limkenion --bg` 的 tmux 会话中：分离而非终止。REPL
+  // 会继续运行；`limkenion attach` 可重新连接。覆盖 /exit、/quit、
+  // ctrl+c、ctrl+d —— 它们都经由 REPL 的 handleExit 汇聚到这里。
   if (feature('BG_SESSIONS') && isBgSession()) {
     onDone();
     spawnSync('tmux', ['detach-client'], {

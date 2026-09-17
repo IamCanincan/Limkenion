@@ -28,7 +28,7 @@ import { parseEnvVars } from '../../utils/envUtils.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 
 /**
- * Registers the `mcp add` subcommand on the given Commander command.
+ * 在给定的 Commander 命令上注册 `mcp add` 子命令。
  */
 export function registerMcpAddCommand(mcp: Command): void {
   mcp
@@ -121,10 +121,10 @@ export function registerMcpAddCommand(mcp: Command): void {
           }
         }
 
-        // Check if transport was explicitly provided
+        // 检查是否显式提供了传输层
         const transportExplicit = options.transport !== undefined
 
-        // Check if the command looks like a URL (likely incorrect usage)
+        // 检查该命令是否看起来像 URL（很可能是用法错误）
         const looksLikeUrl =
           actualCommand.startsWith('http://') ||
           actualCommand.startsWith('https://') ||
@@ -248,7 +248,7 @@ export function registerMcpAddCommand(mcp: Command): void {
             )
           }
 
-          // Warn if this looks like a URL but transport wasn't explicitly specified
+          // 若看起来像 URL 但未显式指定传输层，则给出警告
           if (!transportExplicit && looksLikeUrl) {
             process.stderr.write(
               `\nWarning: The command "${actualCommand}" looks like a URL, but is being interpreted as a stdio server as --transport was not specified.\n`,

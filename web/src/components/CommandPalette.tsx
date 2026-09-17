@@ -3,19 +3,19 @@ import type { CommandInfo } from '../types'
 
 interface Props {
   commands: CommandInfo[]
-  /** Current "/" input, e.g. "/mo" or "/model sonnet". */
+  /** 当前的 "/" 输入，例如 "/mo" 或 "/model sonnet"。 */
   query: string
-  /** Complete the command into the input (Tab / Enter-with-args). */
+  /** 把命令补全进输入框（Tab / 带参数的 Enter）。 */
   onSelect: (command: CommandInfo) => void
-  /** Complete and immediately run the command (Enter). */
+  /** 补全并立即执行该命令（Enter）。 */
   onRun: (command: CommandInfo) => void
   onClose: () => void
 }
 
 /**
- * Slash command palette — mirrors the CLI's slash-command completion:
- * typing "/" in the composer opens a filtered list; ↑↓ to navigate,
- * Enter/Tab to complete, Esc to dismiss.
+ * 斜杠命令面板 —— 镜像 CLI 的斜杠命令补全：
+ * 在输入框中键入 "/" 会打开一个过滤后的列表；↑↓ 用于导航，
+ * Enter/Tab 用于补全，Esc 用于关闭。
  */
 export function CommandPalette({ commands, query, onSelect, onRun, onClose }: Props) {
   const [index, setIndex] = useState(0)
@@ -32,12 +32,12 @@ export function CommandPalette({ commands, query, onSelect, onRun, onClose }: Pr
     )
   }, [commands, term])
 
-  // Reset selection whenever the filter changes.
+  // 过滤条件变化时重置选中项。
   useEffect(() => {
     setIndex(0)
   }, [term])
 
-  // Keep the selected item in view.
+  // 保持选中项在可视区域内。
   useEffect(() => {
     listRef.current
       ?.querySelectorAll('[data-selected="true"]')[0]

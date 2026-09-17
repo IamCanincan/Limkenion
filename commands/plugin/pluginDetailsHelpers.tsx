@@ -1,8 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 /**
- * Shared helper functions and types for plugin details views
+ * 插件详情视图共用的辅助函数和类型
  *
- * Used by both DiscoverPlugins and BrowseMarketplace components.
+ * DiscoverPlugins 和 BrowseMarketplace 组件都会用到。
  */
 
 import * as React from 'react';
@@ -12,7 +12,7 @@ import { Box, Text } from '../../ink.js';
 import type { PluginMarketplaceEntry } from '../../utils/plugins/schemas.js';
 
 /**
- * Represents a plugin available for installation from a marketplace
+ * 表示可从某个 marketplace 安装的插件
  */
 export type InstallablePlugin = {
   entry: PluginMarketplaceEntry;
@@ -22,7 +22,7 @@ export type InstallablePlugin = {
 };
 
 /**
- * Menu option for plugin details view
+ * 插件详情视图的菜单选项
  */
 export type PluginDetailsMenuOption = {
   label: string;
@@ -30,7 +30,7 @@ export type PluginDetailsMenuOption = {
 };
 
 /**
- * Extract GitHub repo info from a plugin's source
+ * 从插件的 source 中提取 GitHub 仓库信息
  */
 export function extractGitHubRepo(plugin: InstallablePlugin): string | null {
   const isGitHub = plugin.entry.source && typeof plugin.entry.source === 'object' && 'source' in plugin.entry.source && plugin.entry.source.source === 'github';
@@ -41,7 +41,7 @@ export function extractGitHubRepo(plugin: InstallablePlugin): string | null {
 }
 
 /**
- * Build menu options for plugin details view with scoped installation options
+ * 为插件详情视图构建菜单选项，包含按作用域区分的安装选项
  */
 export function buildPluginDetailsMenuOptions(hasHomepage: string | undefined, githubRepo: string | null): PluginDetailsMenuOption[] {
   const options: PluginDetailsMenuOption[] = [{
@@ -74,7 +74,7 @@ export function buildPluginDetailsMenuOptions(hasHomepage: string | undefined, g
 }
 
 /**
- * Key hint component for plugin selection screens
+ * 插件选择界面的按键提示组件
  */
 export function PluginSelectionKeyHint(t0) {
   const $ = _c(7);

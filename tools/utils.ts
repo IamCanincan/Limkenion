@@ -6,8 +6,8 @@ import type {
 } from 'src/types/message.js'
 
 /**
- * Tags user messages with a sourceToolUseID so they stay transient until the tool resolves.
- * This prevents the "is running" message from being duplicated in the UI.
+ * 用 sourceToolUseID 标记用户消息，使它们在工具解析完成前保持临时状态。
+ * 这可以防止 "is running" 消息在 UI 中重复出现。
  */
 export function tagMessagesWithToolUseID(
   messages: (UserMessage | AttachmentMessage | SystemMessage)[],
@@ -25,7 +25,7 @@ export function tagMessagesWithToolUseID(
 }
 
 /**
- * Extracts the tool use ID from a parent message for a given tool name.
+ * 从父消息中为给定工具名提取工具使用 ID。
  */
 export function getToolUseIDFromParentMessage(
   parentMessage: AssistantMessage,

@@ -557,7 +557,7 @@ export function stripSafeHeredocSubstitutions(command: string): string | null {
   return result
 }
 
-/** Detection-only check: does the command contain a safe heredoc substitution? */
+/** 仅检测用途的检查：命令是否包含安全的 heredoc 替换？ */
 export function hasSafeHeredocSubstitution(command: string): boolean {
   return stripSafeHeredocSubstitutions(command) !== null
 }

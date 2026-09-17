@@ -58,16 +58,16 @@ export type Output = {
 export type Input = z.infer<InputSchema>
 
 /**
- * Generates a unique team name by checking if the provided name already exists.
- * If the name already exists, generates a new word slug.
+ * 通过检查所提供的名称是否已存在来生成唯一团队名称。
+ * 若名称已存在，则生成新的词 slug。
  */
 function generateUniqueTeamName(providedName: string): string {
-  // If the team doesn't exist, use the provided name
+  // 若团队不存在，则使用所提供的名称
   if (!readTeamFile(providedName)) {
     return providedName
   }
 
-  // Team exists, generate a new unique name
+  // 团队已存在，生成新的唯一名称
   return generateWordSlug()
 }
 
@@ -129,7 +129,7 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
     const { setAppState, getAppState } = context
     const { team_name, description: _description, agent_type } = input
 
-    // Check if already in a team - restrict to one team per leader
+    // 检查是否已在某个团队中 - 每个 leader 只允许一个团队
     const appState = getAppState()
     const existingTeam = appState.teamContext?.teamName
 
@@ -139,13 +139,13 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
       )
     }
 
-    // If team already exists, generate a unique name instead of failing
+    // 若团队已存在，则生成唯一名称而不是失败
     const finalTeamName = generateUniqueTeamName(team_name)
 
-    // Generate a deterministic agent ID for the team lead
+    // 为团队 leader 生成确定性的 agent ID
     const leadAgentId = formatAgentId(TEAM_LEAD_NAME, finalTeamName)
     const leadAgentType = agent_type || TEAM_LEAD_NAME
-    // Get the team lead's current model from AppState (handles session model, settings, CLI override)
+    // 从 AppState 获取团队 leader 的当前模型（处理会话模型、设置、CLI 覆盖）
     const leadModel = parseUserSpecifiedModel(
       appState.mainLoopModelForSession ??
         appState.mainLoopModel ??
@@ -159,7 +159,7 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
       description: _description,
       createdAt: Date.now(),
       leadAgentId,
-      leadSessionId: getSessionId(), // Store actual session ID for team discovery
+      leadSessionId: getSessionId(), // 存储实际会话 ID 用于团队发现
       members: [
         {
           agentId: leadAgentId,
@@ -175,22 +175,22 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
     }
 
     await writeTeamFileAsync(finalTeamName, teamFile)
-    // Track for session-end cleanup — teams were left on disk forever
-    // unless explicitly TeamDelete'd (gh-32730).
+    // 跟踪以便会话结束时清理 —— 团队此前会永远留在磁盘上，
+    // 除非显式执行 TeamDelete（gh-32730）。
     registerTeamForSessionCleanup(finalTeamName)
 
-    // Reset and create the corresponding task list directory (Team = Project = TaskList)
-    // This ensures task numbering starts fresh at 1 for each new swarm
+    // 重置并创建对应的任务列表目录（Team = Project = TaskList）
+    // 这确保每个新 swarm 的任务编号都从 1 重新开始
     const taskListId = sanitizeName(finalTeamName)
     await resetTaskList(taskListId)
     await ensureTasksDir(taskListId)
 
-    // Register the team name so getTaskListId() returns it for the leader.
-    // Without this, the leader falls through to getSessionId() and writes tasks
-    // to a different directory than tmux/iTerm2 teammates expect.
+    // 注册团队名称，使 getTaskListId() 为 leader 返回它。
+    // 否则 leader 会落到 getSessionId()，从而把任务写到
+    // 与 tmux/iTerm2 teammate 期望不同的目录。
     setLeaderTeamName(sanitizeName(finalTeamName))
 
-    // Update AppState with team context
+    // 用团队上下文更新 AppState
     setAppState(prev => ({
       ...prev,
       teamContext: {
@@ -221,11 +221,11 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
         getResolvedTeammateMode() as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
 
-    // Note: We intentionally don't set LIMKENION_AGENT_ID for the team lead because:
-    // 1. The lead is not a "teammate" - isTeammate() should return false for them
-    // 2. Their ID is deterministic (team-lead@teamName) and can be derived when needed
-    // 3. Setting it would cause isTeammate() to return true, breaking inbox polling
-    // Team name is stored in AppState.teamContext, not process.env
+    // 注意：我们有意不为团队 leader 设置 LIMKENION_AGENT_ID，因为：
+    // 1. leader 不是 "teammate" - isTeammate() 对它们应返回 false
+    // 2. 它们的 ID 是确定性的（team-lead@teamName），需要时可推导得出
+    // 3. 设置它会导致 isTeammate() 返回 true，破坏收件箱轮询
+    // 团队名称存储在 AppState.teamContext 中，而非 process.env
 
     return {
       data: {

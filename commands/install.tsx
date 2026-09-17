@@ -16,7 +16,7 @@ interface InstallProps {
     display?: CommandResultDisplay;
   }) => void;
   force?: boolean;
-  target?: string; // 'latest', 'stable', or version like '1.0.34'
+  target?: string; // 'latest'、'stable'，或类似 '1.0.34' 的版本号
 }
 type InstallState = {
   type: 'checking';
@@ -43,9 +43,9 @@ function getInstallationPath(): string {
   const isWindows = env.platform === 'win32';
   const homeDir = homedir();
   if (isWindows) {
-    // Convert to Windows-style path
+    // 转换为 Windows 风格路径
     const windowsPath = join(homeDir, '.local', 'bin', 'limkenion.exe');
-    // Replace forward slashes with backslashes for Windows display
+    // 为 Windows 显示将正斜杠替换为反斜杠
     return windowsPath.replace(/\//g, '\\');
   }
   return '~/.local/bin/limkenion';
@@ -99,24 +99,24 @@ function Install({
       try {
         logForDebugging(`Install: Starting installation process (force=${force}, target=${target})`);
 
-        // Install native build first
+        // 先安装原生构建
         const channelOrVersion = target || getInitialSettings()?.autoUpdatesChannel || 'latest';
         setState({
           type: 'installing',
           version: channelOrVersion
         });
 
-        // Pass force flag to trigger reinstall even if up to date
+        // 传入 force 标志，即使已是最新也触发重装
         logForDebugging(`Install: Calling installLatest(channelOrVersion=${channelOrVersion}, forceReinstall=${force})`);
         const result = await installLatest(channelOrVersion, force);
         logForDebugging(`Install: installLatest returned version=${result.latestVersion}, wasUpdated=${result.wasUpdated}, lockFailed=${result.lockFailed}`);
 
-        // Check specifically for lock failure
+        // 专门检查锁失败
         if (result.lockFailed) {
           throw new Error('Could not install - another process is currently installing Limkenion. Please try again in a moment.');
         }
 
-        // If we couldn't get the version, there might be an issue
+        // 若无法获取版本号，可能存在问题
         if (!result.latestVersion) {
           logForDebugging('Install: Failed to retrieve version information during install', {
             level: 'error'
@@ -126,7 +126,7 @@ function Install({
           logForDebugging('Install: Already up to date');
         }
 
-        // Set up launcher and shell integration
+        // 配置启动器与 shell 集成
         setState({
           type: 'setting-up'
         });
@@ -136,7 +136,7 @@ function Install({
           setupMessages.forEach(msg => logForDebugging(`Install: Setup message: ${msg.message}`));
         }
 
-        // Now that native installation succeeded, clean up old npm installations
+        // 原生安装已成功，现在清理旧的 npm 安装
         logForDebugging('Install: Cleaning up npm installations after successful install');
         const {
           removed,
@@ -148,22 +148,22 @@ function Install({
         }
         if (errors.length > 0) {
           logForDebugging(`Cleanup errors: ${errors.join(', ')}`);
-          // Continue despite cleanup errors - native install already succeeded
+          // 忽略清理错误继续执行 —— 原生安装已经成功
         }
 
-        // Clean up old shell aliases
+        // 清理旧的 shell 别名
         const aliasMessages = await cleanupShellAliases();
         if (aliasMessages.length > 0) {
           logForDebugging(`Shell alias cleanup: ${aliasMessages.map(m => m.message).join('; ')}`);
         }
 
-        // Log success event
+        // 记录成功事件
         logEvent('limkenion_limkenion_install_command', {
           has_version: result.latestVersion ? 1 : 0,
           forced: force ? 1 : 0
         });
 
-        // If user explicitly specified a channel, save it to settings
+        // 若用户显式指定了渠道，则将其保存到设置中
         if (target === 'latest' || target === 'stable') {
           updateSettingsForSource('userSettings', {
             autoUpdatesChannel: target
@@ -171,23 +171,23 @@ function Install({
           logForDebugging(`Install: Saved autoUpdatesChannel=${target} to user settings`);
         }
 
-        // Combine all warning/info messages (convert SetupMessage to string)
+        // 合并所有警告/信息消息（将 SetupMessage 转为字符串）
         const allWarnings = [...warnings, ...aliasMessages.map(m_0 => m_0.message)];
 
-        // Check if there were any setup errors or notes
+        // 检查是否存在任何安装错误或提示
         if (setupMessages.length > 0) {
           setState({
             type: 'set-up',
             messages: setupMessages.map(m_1 => m_1.message)
           });
-          // Still mark as success but show both setup messages and cleanup warnings
+          // 仍标记为成功，但同时显示安装消息与清理警告
           setTimeout(setState, 2000, {
             type: 'success' as const,
             version: result.latestVersion || 'current',
             setupMessages: [...setupMessages.map(m_2 => m_2.message), ...allWarnings]
           });
         } else {
-          // No setup messages, go straight to success (but still show cleanup warnings if any)
+          // 没有安装消息，直接进入成功状态（但若有清理警告仍会显示）
           logForDebugging('Install: Shell PATH already configured');
           setState({
             type: 'success',
@@ -209,12 +209,12 @@ function Install({
   }, [force, target]);
   useEffect(() => {
     if (state.type === 'success') {
-      // Give success message time to render before exiting
+      // 留出时间让成功消息渲染后再退出
       setTimeout(onDone, 2000, 'Limkenion installation completed successfully', {
         display: 'system' as const
       });
     } else if (state.type === 'error') {
-      // Give error message time to render before exiting
+      // 留出时间让错误消息渲染后再退出
       setTimeout(onDone, 3000, 'Limkenion installation failed', {
         display: 'system' as const
       });
@@ -275,7 +275,7 @@ function Install({
     </Box>;
 }
 
-// This is only used from cli.tsx, not as a slash command
+// 仅从 cli.tsx 使用，不作为斜杠命令
 export const install = {
   type: 'local-jsx' as const,
   name: 'install',
@@ -284,10 +284,10 @@ export const install = {
   async call(onDone: (result: string, options?: {
     display?: CommandResultDisplay;
   }) => void, _context: unknown, args: string[]) {
-    // Parse arguments
+    // 解析参数
     const force = args.includes('--force');
     const nonFlagArgs = args.filter(arg => !arg.startsWith('--'));
-    const target = nonFlagArgs[0]; // 'latest', 'stable', or version like '1.0.34'
+    const target = nonFlagArgs[0]; // 'latest'、'stable'，或类似 '1.0.34' 的版本号
 
     const {
       unmount

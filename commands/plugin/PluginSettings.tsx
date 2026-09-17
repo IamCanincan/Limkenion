@@ -107,8 +107,8 @@ type ErrorRow = {
 };
 
 /**
- * Determine which settings sources define an extraKnownMarketplace entry.
- * Returns the editable sources (user/project/local) and whether policy also has it.
+ * 判断哪些设置来源定义了 extraKnownMarketplace 条目。
+ * 返回可编辑的来源（user/project/local）以及 policy 是否也包含它。
  */
 function getExtraMarketplaceSourceInfo(name: string): {
   editableSources: Array<{
@@ -169,8 +169,8 @@ function buildMarketplaceAction(name: string): ErrorRowAction {
     };
   }
 
-  // Marketplace is in known_marketplaces.json but not in extraKnownMarketplaces
-  // (e.g. previously installed manually) — route to ManageMarketplaces
+  // 该 marketplace 存在于 known_marketplaces.json 中，但不在
+  // extraKnownMarketplaces 里（例如之前手动安装的）—— 转到 ManageMarketplaces
   return {
     kind: 'navigate',
     tab: 'marketplaces',
@@ -198,13 +198,13 @@ function isTransientError(error: PluginError): boolean {
 }
 
 /**
- * Extract the plugin name from a PluginError, checking explicit fields first,
- * then falling back to the source field (format: "pluginName@marketplace").
+ * 从 PluginError 中提取插件名，先检查显式字段，
+ * 再降级到 source 字段（格式：“pluginName@marketplace”）。
  */
 function getPluginNameFromError(error: PluginError): string | undefined {
   if ('pluginId' in error && error.pluginId) return error.pluginId;
   if ('plugin' in error && error.plugin) return error.plugin;
-  // Fallback: source often contains "pluginName@marketplace"
+  // 降级：source 通常包含 “pluginName@marketplace”
   if (error.source.includes('@')) return error.source.split('@')[0];
   return undefined;
 }
@@ -217,7 +217,7 @@ function buildErrorRows(failedMarketplaces: Array<{
 }>, transientErrors: PluginError[], pluginScopes: Map<string, string>): ErrorRow[] {
   const rows: ErrorRow[] = [];
 
-  // --- Transient errors at the top (restart to retry) ---
+  // --- 顶部为瞬时错误（重启后重试） ---
   for (const error of transientErrors) {
     const pluginName = 'pluginId' in error ? error.pluginId : 'plugin' in error ? error.plugin : undefined;
     rows.push({
@@ -230,8 +230,8 @@ function buildErrorRows(failedMarketplaces: Array<{
     });
   }
 
-  // --- Marketplace errors ---
-  // Track shown marketplace names to avoid duplicates across sources
+  // --- Marketplace 错误 ---
+  // 记录已显示的 marketplace 名称，避免跨来源重复
   const shownMarketplaceNames = new Set<string>();
   for (const m of failedMarketplaces) {
     shownMarketplaceNames.add(m.name);
@@ -262,7 +262,7 @@ function buildErrorRows(failedMarketplaces: Array<{
     });
   }
 
-  // Installed marketplaces that fail to load data (from known_marketplaces.json)
+  // 加载数据失败的已安装 marketplace（来自 known_marketplaces.json）
   for (const m of brokenInstalledMarketplaces) {
     if (shownMarketplaceNames.has(m.name)) continue;
     shownMarketplaceNames.add(m.name);
@@ -276,14 +276,14 @@ function buildErrorRows(failedMarketplaces: Array<{
     });
   }
 
-  // --- Plugin errors ---
+  // --- 插件错误 ---
   const shownPluginNames = new Set<string>();
   for (const error of pluginLoadingErrors) {
     const pluginName = getPluginNameFromError(error);
     if (pluginName && shownPluginNames.has(pluginName)) continue;
     if (pluginName) shownPluginNames.add(pluginName);
     const marketplace = 'marketplace' in error ? error.marketplace : undefined;
-    // Try pluginId@marketplace format first, then just pluginName
+    // 先尝试 pluginId@marketplace 格式，再只试 pluginName
     const scope = pluginName ? pluginScopes.get(error.source) ?? pluginScopes.get(pluginName) : undefined;
     rows.push({
       label: pluginName ? marketplace ? `${pluginName} @ ${marketplace}` : pluginName : error.source,
@@ -296,7 +296,7 @@ function buildErrorRows(failedMarketplaces: Array<{
     });
   }
 
-  // --- Other errors (non-marketplace, non-plugin-specific) ---
+  // --- 其他错误（非 marketplace、非插件专属） ---
   for (const error of otherErrors) {
     rows.push({
       label: error.source,
@@ -311,8 +311,8 @@ function buildErrorRows(failedMarketplaces: Array<{
 }
 
 /**
- * Remove a marketplace from extraKnownMarketplaces in the given settings sources,
- * and also remove any associated enabled plugins.
+ * 从给定设置来源的 extraKnownMarketplaces 中移除某个 marketplace，
+ * 同时移除任何关联的已启用插件。
  */
 function removeExtraMarketplace(name: string, sources: Array<{
   source: EditableSettingSource;
@@ -324,7 +324,7 @@ function removeExtraMarketplace(name: string, sources: Array<{
     if (!settings) continue;
     const updates: Record<string, unknown> = {};
 
-    // Remove from extraKnownMarketplaces
+    // 从 extraKnownMarketplaces 中移除
     if (settings.extraKnownMarketplaces?.[name]) {
       updates.extraKnownMarketplaces = {
         ...settings.extraKnownMarketplaces,
@@ -332,7 +332,7 @@ function removeExtraMarketplace(name: string, sources: Array<{
       };
     }
 
-    // Remove associated enabled plugins (format: "plugin@marketplace")
+    // 移除关联的已启用插件（格式：“plugin@marketplace”）
     if (settings.enabledPlugins) {
       const suffix = `@${name}`;
       let removedPlugins = false;
@@ -714,7 +714,7 @@ function getInitialViewState(parsedCommand: ParsedCommand): ViewState {
       };
     case 'menu':
     default:
-      // Default to discover view showing all plugins
+      // 默认进入 discover 视图，显示所有插件
       return {
         type: 'discover-plugins'
       };

@@ -1,8 +1,8 @@
 import type { Command } from '../../commands.js'
 import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 
-// Hidden command that just plays the animation
-// Called by the thinkback skill after generation is complete
+// 隐藏命令，仅用于播放动画
+// 由 thinkback 技能在生成完成后调用
 const thinkbackPlay = {
   type: 'local',
   name: 'thinkback-play',

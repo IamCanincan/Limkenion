@@ -1,8 +1,8 @@
 /**
- * STUB — built-in bundled workflows.
- * Upstream upstream-ref-impl does not ship this file either; it is a codegen artifact
- * in the real build (bundled workflow definitions compiled into the binary).
- * Safe no-op: registering zero bundled workflows.
+ * 桩实现 —— 内置工作流。
+ * 上游 upstream-ref-impl 也没有提供该文件；它在真实构建中是代码生成产物
+ * （内置工作流定义会被编译进二进制）。
+ * 安全的空操作：注册零个内置工作流。
  */
 export function initBundledWorkflows() {
   return []

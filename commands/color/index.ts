@@ -1,6 +1,6 @@
 /**
- * Color command - minimal metadata only.
- * Implementation is lazy-loaded from color.ts to reduce startup time.
+ * color 命令 —— 仅含最小元数据。
+ * 实现从 color.ts 惰性加载，以减少启动时间。
  */
 import type { Command } from '../../commands.js'
 

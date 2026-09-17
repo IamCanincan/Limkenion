@@ -90,8 +90,8 @@ const inputSchema = lazySchema(() =>
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
-// Version control system directories to exclude from searches
-// These are excluded automatically because they create noise in search results
+// 搜索时排除的版本控制系统目录
+// 这些目录会被自动排除，因为它们会在搜索结果中产生噪声
 const VCS_DIRECTORIES_TO_EXCLUDE = [
   '.git',
   '.svn',
@@ -101,10 +101,10 @@ const VCS_DIRECTORIES_TO_EXCLUDE = [
   '.sl',
 ] as const
 
-// Default cap on grep results when head_limit is unspecified. Unbounded content-mode
-// greps can fill up to the 20KB persist threshold (~6-24K tokens/grep-heavy session).
-// 250 is generous enough for exploratory searches while preventing context bloat.
-// Pass head_limit=0 explicitly for unlimited.
+// head_limit 未指定时 grep 结果的默认上限。无限制的 content 模式
+// grep 可能填满 20KB 的持久化阈值（在 grep 密集的会话中约 6-24K token/次）。
+// 250 对探索性搜索足够宽裕，同时可防止上下文膨胀。
+// 显式传入 head_limit=0 表示不限制。
 const DEFAULT_HEAD_LIMIT = 250
 
 function applyHeadLimit<T>(
@@ -112,14 +112,14 @@ function applyHeadLimit<T>(
   limit: number | undefined,
   offset: number = 0,
 ): { items: T[]; appliedLimit: number | undefined } {
-  // Explicit 0 = unlimited escape hatch
+  // 显式传入 0 = 无限制的逃生通道
   if (limit === 0) {
     return { items: items.slice(offset), appliedLimit: undefined }
   }
   const effectiveLimit = limit ?? DEFAULT_HEAD_LIMIT
   const sliced = items.slice(offset, offset + effectiveLimit)
-  // Only report appliedLimit when truncation actually occurred, so the model
-  // knows there may be more results and can paginate with offset.
+  // 仅在确实发生截断时才报告 appliedLimit，使模型
+  // 知道可能还有更多结果，并可用 offset 分页。
   const wasTruncated = items.length - offset > effectiveLimit
   return {
     items: sliced,
@@ -127,10 +127,10 @@ function applyHeadLimit<T>(
   }
 }
 
-// Format limit/offset information for display in tool results.
-// appliedLimit is only set when truncation actually occurred (see applyHeadLimit),
-// so it may be undefined even when appliedOffset is set — build parts conditionally
-// to avoid "limit: undefined" appearing in user-visible output.
+// 格式化 limit/offset 信息，用于在工具结果中展示。
+// appliedLimit 仅在确实发生截断时才会设置（见 applyHeadLimit），
+// 因此即使设置了 appliedOffset，它也可能为 undefined——有条件地拼接各部分，
+// 以避免 "limit: undefined" 出现在用户可见输出中。
 function formatLimitInfo(
   appliedLimit: number | undefined,
   appliedOffset: number | undefined,
@@ -147,10 +147,10 @@ const outputSchema = lazySchema(() =>
     numFiles: z.number(),
     filenames: z.array(z.string()),
     content: z.string().optional(),
-    numLines: z.number().optional(), // For content mode
-    numMatches: z.number().optional(), // For count mode
-    appliedLimit: z.number().optional(), // The limit that was applied (if any)
-    appliedOffset: z.number().optional(), // The offset that was applied
+    numLines: z.number().optional(), // 用于 content 模式
+    numMatches: z.number().optional(), // 用于 count 模式
+    appliedLimit: z.number().optional(), // 实际应用的上限（若有）
+    appliedOffset: z.number().optional(), // 实际应用的偏移量
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -160,7 +160,7 @@ type Output = z.infer<OutputSchema>
 export const GrepTool = buildTool({
   name: GREP_TOOL_NAME,
   searchHint: 'search file contents with regex (ripgrep)',
-  // 20K chars - tool result persistence threshold
+  // 20K 字符——工具结果持久化阈值
   maxResultSizeChars: 20_000,
   strict: true,
   async description() {
@@ -199,12 +199,12 @@ export const GrepTool = buildTool({
     return rulePattern => matchWildcardPattern(rulePattern, pattern)
   },
   async validateInput({ path }): Promise<ValidationResult> {
-    // If path is provided, validate that it exists
+    // 若提供了 path，则校验其存在
     if (path) {
       const fs = getFsImplementation()
       const absolutePath = expandPath(path)
 
-      // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+      // SECURITY: 对 UNC 路径跳过文件系统操作，以防 NTLM 凭据泄露。
       if (absolutePath.startsWith('\\\\') || absolutePath.startsWith('//')) {
         return { result: true }
       }
@@ -244,9 +244,9 @@ export const GrepTool = buildTool({
   renderToolUseMessage,
   renderToolUseErrorMessage,
   renderToolResultMessage,
-  // SearchResultSummary shows content (mode=content) or filenames.join.
-  // numFiles/numLines/numMatches are chrome ("Found 3 files") — fine to
-  // skip (under-count, not phantom). Glob reuses this via UI.tsx:65.
+  // SearchResultSummary 显示 content（mode=content）或 filenames.join。
+  // numFiles/numLines/numMatches 是装饰信息（"Found 3 files"）——跳过没问题
+  // （少计，而非幻影）。Glob 通过 UI.tsx:65 复用此处。
   extractSearchText({ mode, content, filenames }) {
     if (mode === 'content' && content) return content
     return filenames.join('\n')
@@ -290,7 +290,7 @@ export const GrepTool = buildTool({
       }
     }
 
-    // files_with_matches mode
+    // files_with_matches 模式
     const limitInfo = formatLimitInfo(appliedLimit, appliedOffset)
     if (numFiles === 0) {
       return {
@@ -299,7 +299,7 @@ export const GrepTool = buildTool({
         content: 'No files found',
       }
     }
-    // head_limit has already been applied in call() method, so just show all filenames
+    // head_limit 已在 call() 方法中应用，因此直接显示全部文件名
     const result = `Found ${numFiles} ${plural(numFiles, 'file')}${limitInfo ? ` ${limitInfo}` : ''}\n${filenames.join('\n')}`
     return {
       tool_use_id: toolUseID,
@@ -329,37 +329,37 @@ export const GrepTool = buildTool({
     const absolutePath = path ? expandPath(path) : getCwd()
     const args = ['--hidden']
 
-    // Exclude VCS directories to avoid noise from version control metadata
+    // 排除 VCS 目录，避免版本控制元数据带来噪声
     for (const dir of VCS_DIRECTORIES_TO_EXCLUDE) {
       args.push('--glob', `!${dir}`)
     }
 
-    // Limit line length to prevent base64/minified content from cluttering output
+    // 限制行长度，防止 base64/压缩内容扰乱输出
     args.push('--max-columns', '500')
 
-    // Only apply multiline flags when explicitly requested
+    // 仅在显式请求时应用 multiline 标志
     if (multiline) {
       args.push('-U', '--multiline-dotall')
     }
 
-    // Add optional flags
+    // 添加可选标志
     if (case_insensitive) {
       args.push('-i')
     }
 
-    // Add output mode flags
+    // 添加输出模式标志
     if (output_mode === 'files_with_matches') {
       args.push('-l')
     } else if (output_mode === 'count') {
       args.push('-c')
     }
 
-    // Add line numbers if requested
+    // 若请求则添加行号
     if (show_line_numbers && output_mode === 'content') {
       args.push('-n')
     }
 
-    // Add context flags (-C/context takes precedence over context_before/context_after)
+    // 添加上下文标志（-C/context 优先于 context_before/context_after）
     if (output_mode === 'content') {
       if (context !== undefined) {
         args.push('-C', context.toString())
@@ -375,30 +375,30 @@ export const GrepTool = buildTool({
       }
     }
 
-    // If pattern starts with dash, use -e flag to specify it as a pattern
-    // This prevents ripgrep from interpreting it as a command-line option
+    // 若 pattern 以短横线开头，使用 -e 标志将其指定为模式
+    // 这可以防止 ripgrep 将其解释为命令行选项
     if (pattern.startsWith('-')) {
       args.push('-e', pattern)
     } else {
       args.push(pattern)
     }
 
-    // Add type filter if specified
+    // 若指定则添加类型过滤
     if (type) {
       args.push('--type', type)
     }
 
     if (glob) {
-      // Split on commas and spaces, but preserve patterns with braces
+      // 按逗号和空格切分，但保留带花括号的 pattern
       const globPatterns: string[] = []
       const rawPatterns = glob.split(/\s+/)
 
       for (const rawPattern of rawPatterns) {
-        // If pattern contains braces, don't split further
+        // 若 pattern 含花括号，则不再切分
         if (rawPattern.includes('{') && rawPattern.includes('}')) {
           globPatterns.push(rawPattern)
         } else {
-          // Split on commas for patterns without braces
+          // 对不含花括号的 pattern 按逗号切分
           globPatterns.push(...rawPattern.split(',').filter(Boolean))
         }
       }
@@ -408,45 +408,45 @@ export const GrepTool = buildTool({
       }
     }
 
-    // Add ignore patterns
+    // 添加忽略模式
     const appState = getAppState()
     const ignorePatterns = normalizePatternsToPath(
       getFileReadIgnorePatterns(appState.toolPermissionContext),
       getCwd(),
     )
     for (const ignorePattern of ignorePatterns) {
-      // Note: ripgrep only applies gitignore patterns relative to the working directory
-      // So for non-absolute paths, we need to prefix them with '**'
-      // See: https://github.com/BurntSushi/ripgrep/discussions/2156#discussioncomment-2316335
+      // 注意：ripgrep 只相对于工作目录应用 gitignore 模式
+      // 因此对于非绝对路径，需要给它们加上 '**' 前缀
+      // 参见：https://github.com/BurntSushi/ripgrep/discussions/2156#discussioncomment-2316335
       //
-      // We also need to negate the pattern with `!` to exclude it
+      // 还需要用 `!` 取反模式以将其排除
       const rgIgnorePattern = ignorePattern.startsWith('/')
         ? `!${ignorePattern}`
         : `!**/${ignorePattern}`
       args.push('--glob', rgIgnorePattern)
     }
 
-    // Exclude orphaned plugin version directories
+    // 排除孤立的插件版本目录
     for (const exclusion of await getGlobExclusionsForPluginCache(
       absolutePath,
     )) {
       args.push('--glob', exclusion)
     }
 
-    // WSL has severe performance penalty for file reads (3-5x slower on WSL2)
-    // The timeout is handled by ripgrep itself via execFile timeout option
-    // We don't use AbortController for timeout to avoid interrupting the agent loop
-    // If ripgrep times out, it throws RipgrepTimeoutError which propagates up
-    // so Limkenion knows the search didn't complete (rather than thinking there were no matches)
+    // WSL 下文件读取有严重性能损耗（WSL2 上慢 3-5 倍）
+    // 超时由 ripgrep 自身通过 execFile 的 timeout 选项处理
+    // 我们不用 AbortController 做超时，以免打断 agent 循环
+    // 若 ripgrep 超时，会抛出 RipgrepTimeoutError 并向上传播，
+    // 使 Limkenion 知道搜索并未完成（而不是认为没有匹配）
     const results = await ripGrep(args, absolutePath, abortController.signal)
 
     if (output_mode === 'content') {
-      // For content mode, results are the actual content lines
-      // Convert absolute paths to relative paths to save tokens
+      // 对于 content 模式，结果是实际的内容行
+      // 将绝对路径转为相对路径以节省 token
 
-      // Apply head_limit first — relativize is per-line work, so
-      // avoid processing lines that will be discarded (broad patterns can
-      // return 10k+ lines with head_limit keeping only ~30-100).
+      // 先应用 head_limit——相对化是逐行的工作，因此
+      // 避免处理将被丢弃的行（宽泛的 pattern 可能
+      // 返回 1 万多行，而 head_limit 只保留约 30-100 行）。
       const { items: limitedResults, appliedLimit } = applyHeadLimit(
         results,
         head_limit,
@@ -454,7 +454,7 @@ export const GrepTool = buildTool({
       )
 
       const finalLines = limitedResults.map(line => {
-        // Lines have format: /absolute/path:line_content or /absolute/path:num:content
+        // 行的格式为：/absolute/path:line_content 或 /absolute/path:num:content
         const colonIndex = line.indexOf(':')
         if (colonIndex > 0) {
           const filePath = line.substring(0, colonIndex)
@@ -465,7 +465,7 @@ export const GrepTool = buildTool({
       })
       const output = {
         mode: 'content' as const,
-        numFiles: 0, // Not applicable for content mode
+        numFiles: 0, // 不适用于 content 模式
         filenames: [],
         content: finalLines.join('\n'),
         numLines: finalLines.length,
@@ -476,17 +476,17 @@ export const GrepTool = buildTool({
     }
 
     if (output_mode === 'count') {
-      // For count mode, pass through raw ripgrep output (filename:count format)
-      // Apply head_limit first to avoid relativizing entries that will be discarded.
+      // 对于 count 模式，直接透传 ripgrep 原始输出（filename:count 格式）
+      // 先应用 head_limit，避免对将被丢弃的条目做相对化。
       const { items: limitedResults, appliedLimit } = applyHeadLimit(
         results,
         head_limit,
         offset,
       )
 
-      // Convert absolute paths to relative paths to save tokens
+      // 将绝对路径转为相对路径以节省 token
       const finalCountLines = limitedResults.map(line => {
-        // Lines have format: /absolute/path:count
+        // 行的格式为：/absolute/path:count
         const colonIndex = line.lastIndexOf(':')
         if (colonIndex > 0) {
           const filePath = line.substring(0, colonIndex)
@@ -496,7 +496,7 @@ export const GrepTool = buildTool({
         return line
       })
 
-      // Parse count output to extract total matches and file count
+      // 解析 count 输出以提取总匹配数和文件数
       let totalMatches = 0
       let fileCount = 0
       for (const line of finalCountLines) {
@@ -523,14 +523,14 @@ export const GrepTool = buildTool({
       return { data: output }
     }
 
-    // For files_with_matches mode (default)
-    // Use allSettled so a single ENOENT (file deleted between ripgrep's scan
-    // and this stat) does not reject the whole batch. Failed stats sort as mtime 0.
+    // 对于 files_with_matches 模式（默认）
+    // 使用 allSettled，使单个 ENOENT（文件在 ripgrep 扫描与
+    // 此次 stat 之间被删除）不会导致整批失败。失败的 stat 按 mtime 0 排序。
     const stats = await Promise.allSettled(
       results.map(_ => getFsImplementation().stat(_)),
     )
     const sortedMatches = results
-      // Sort by modification time
+      // 按修改时间排序
       .map((_, i) => {
         const r = stats[i]!
         return [
@@ -540,26 +540,26 @@ export const GrepTool = buildTool({
       })
       .sort((a, b) => {
         if (process.env.NODE_ENV === 'test') {
-          // In tests, we always want to sort by filename, so that results are deterministic
+          // 在测试中我们始终按文件名排序，以保证结果确定性
           return a[0].localeCompare(b[0])
         }
         const timeComparison = b[1] - a[1]
         if (timeComparison === 0) {
-          // Sort by filename as a tiebreaker
+          // 以文件名作为并列时的排序依据
           return a[0].localeCompare(b[0])
         }
         return timeComparison
       })
       .map(_ => _[0])
 
-    // Apply head_limit to sorted file list (like "| head -N")
+    // 对排序后的文件列表应用 head_limit（类似 "| head -N"）
     const { items: finalMatches, appliedLimit } = applyHeadLimit(
       sortedMatches,
       head_limit,
       offset,
     )
 
-    // Convert absolute paths to relative paths to save tokens
+    // 将绝对路径转为相对路径以节省 token
     const relativeMatches = finalMatches.map(toRelativePath)
 
     const output = {

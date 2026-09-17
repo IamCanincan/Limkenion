@@ -55,16 +55,16 @@ export function DiscoverPlugins({
   onSearchModeChange,
   targetPlugin
 }: Props): React.ReactNode {
-  // View state
+  // 视图状态
   const [viewState, setViewState] = useState<ViewState>('plugin-list');
   const [selectedPlugin, setSelectedPlugin] = useState<InstallablePlugin | null>(null);
 
-  // Data state
+  // 数据状态
   const [availablePlugins, setAvailablePlugins] = useState<InstallablePlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [installCounts, setInstallCounts] = useState<Map<string, number> | null>(null);
 
-  // Search state
+  // 搜索状态
   const [isSearchMode, setIsSearchModeRaw] = useState(false);
   const setIsSearchMode = useCallback((active: boolean) => {
     setIsSearchModeRaw(active);
@@ -85,53 +85,53 @@ export function DiscoverPlugins({
     columns: terminalWidth
   } = useTerminalSize();
 
-  // Filter plugins based on search query
+  // 根据搜索词过滤插件
   const filteredPlugins = useMemo(() => {
     if (!searchQuery) return availablePlugins;
     const lowerQuery = searchQuery.toLowerCase();
     return availablePlugins.filter(plugin => plugin.entry.name.toLowerCase().includes(lowerQuery) || plugin.entry.description?.toLowerCase().includes(lowerQuery) || plugin.marketplaceName.toLowerCase().includes(lowerQuery));
   }, [availablePlugins, searchQuery]);
 
-  // Selection state
+  // 选中状态
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedForInstall, setSelectedForInstall] = useState<Set<string>>(new Set());
   const [installingPlugins, setInstallingPlugins] = useState<Set<string>>(new Set());
 
-  // Pagination for plugin list (continuous scrolling)
+  // 插件列表分页（连续滚动）
   const pagination = usePagination<InstallablePlugin>({
     totalItems: filteredPlugins.length,
     selectedIndex
   });
 
-  // Reset selection when search query changes
+  // 搜索词变化时重置选中项
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchQuery]);
 
-  // Details view state
+  // 详情视图状态
   const [detailsMenuIndex, setDetailsMenuIndex] = useState(0);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
 
-  // Warning state for non-critical errors
+  // 非致命错误的警告状态
   const [warning, setWarning] = useState<string | null>(null);
 
-  // Empty state reason
+  // 空状态原因
   const [emptyReason, setEmptyReason] = useState<EmptyMarketplaceReason | null>(null);
 
-  // Load all plugins from all marketplaces
+  // 从所有市场加载全部插件
   useEffect(() => {
     async function loadAllPlugins() {
       try {
         const config = await loadKnownMarketplacesConfig();
 
-        // Load marketplaces with graceful degradation
+        // 以优雅降级的方式加载各市场
         const {
           marketplaces,
           failures
         } = await loadMarketplacesWithGracefulDegradation(config);
 
-        // Collect all plugins from all marketplaces
+        // 从所有市场收集全部插件
         const allPlugins: InstallablePlugin[] = [];
         for (const {
           name,
@@ -144,24 +144,24 @@ export function DiscoverPlugins({
                 entry,
                 marketplaceName: name,
                 pluginId,
-                // Only block when globally installed (user/managed scope).
-                // Project/local-scope installs don't block — user may want to
-                // promote to user scope so it's available everywhere (gh-29997).
+                // 仅在全局安装（user/managed 作用域）时才阻止。
+                // project/local 作用域的安装不会阻止 —— 用户可能想
+                // 提升为 user 作用域，使其在各处都可用（gh-29997）。
                 isInstalled: isPluginGloballyInstalled(pluginId)
               });
             }
           }
         }
 
-        // Filter out installed and policy-blocked plugins
+        // 过滤掉已安装及被策略阻止的插件
         const uninstalledPlugins = allPlugins.filter(p => !p.isInstalled && !isPluginBlockedByPolicy(p.pluginId));
 
-        // Fetch install counts and sort by popularity
+        // 获取安装次数并按热度排序
         try {
           const counts = await getInstallCounts();
           setInstallCounts(counts);
           if (counts) {
-            // Sort by install count (descending), then alphabetically
+            // 按安装次数降序排序，次数相同则按字母序
             uninstalledPlugins.sort((a_0, b_0) => {
               const countA = counts.get(a_0.pluginId) ?? 0;
               const countB = counts.get(b_0.pluginId) ?? 0;
@@ -169,17 +169,17 @@ export function DiscoverPlugins({
               return a_0.entry.name.localeCompare(b_0.entry.name);
             });
           } else {
-            // No counts available - sort alphabetically
+            // 无次数数据 —— 按字母序排序
             uninstalledPlugins.sort((a_1, b_1) => a_1.entry.name.localeCompare(b_1.entry.name));
           }
         } catch (error_0) {
-          // Log the error, then gracefully degrade to alphabetical sort
+          // 记录错误，然后优雅降级为字母序排序
           logForDebugging(`Failed to fetch install counts: ${errorMessage(error_0)}`);
           uninstalledPlugins.sort((a, b) => a.entry.name.localeCompare(b.entry.name));
         }
         setAvailablePlugins(uninstalledPlugins);
 
-        // Detect empty reason if no plugins available
+        // 若无可用插件则判定空状态原因
         const configuredCount = Object.keys(config).length;
         if (uninstalledPlugins.length === 0) {
           const reason = await detectEmptyMarketplaceReason({
@@ -189,7 +189,7 @@ export function DiscoverPlugins({
           setEmptyReason(reason);
         }
 
-        // Handle marketplace loading errors/warnings
+        // 处理市场加载错误/警告
         const successCount = count(marketplaces, m => m.data !== null);
         const errorResult = formatMarketplaceLoadingErrors(failures, successCount);
         if (errorResult) {
@@ -200,8 +200,8 @@ export function DiscoverPlugins({
           }
         }
 
-        // Handle targetPlugin - navigate directly to plugin details
-        // Search in allPlugins (before filtering) to handle installed plugins gracefully
+        // 处理 targetPlugin —— 直接导航到插件详情
+        // 在 allPlugins 中搜索（过滤之前），以便优雅处理已安装的插件
         if (targetPlugin) {
           const foundPlugin = allPlugins.find(p_0 => p_0.entry.name === targetPlugin);
           if (foundPlugin) {
@@ -224,7 +224,7 @@ export function DiscoverPlugins({
     void loadAllPlugins();
   }, [setError, targetPlugin]);
 
-  // Install selected plugins
+  // 安装所选插件
   const installSelectedPlugins = async () => {
     if (selectedForInstall.size === 0) return;
     const pluginsToInstall = availablePlugins.filter(p_1 => selectedForInstall.has(p_1.pluginId));
@@ -256,7 +256,7 @@ export function DiscoverPlugins({
     setSelectedForInstall(new Set());
     clearAllCaches();
 
-    // Handle installation results
+    // 处理安装结果
     if (failureCount === 0) {
       const message = `✓ Installed ${successCount_0} ${plural(successCount_0, 'plugin')}. ` + `Run /reload-plugins to activate.`;
       setResult(message);
@@ -276,7 +276,7 @@ export function DiscoverPlugins({
     });
   };
 
-  // Install single plugin from details view
+  // 从详情视图安装单个插件
   const handleSinglePluginInstall = async (plugin_1: InstallablePlugin, scope: 'user' | 'project' | 'local' = 'user') => {
     setIsInstalling(true);
     setInstallError(null);
@@ -310,14 +310,14 @@ export function DiscoverPlugins({
     }
   };
 
-  // Handle error state
+  // 处理错误状态
   useEffect(() => {
     if (error) {
       setResult(error);
     }
   }, [error, setResult]);
 
-  // Escape in plugin-details view - go back to plugin-list
+  // 在 plugin-details 视图中按 Escape —— 返回 plugin-list
   useKeybinding('confirm:no', () => {
     setViewState('plugin-list');
     setSelectedPlugin(null);
@@ -326,7 +326,7 @@ export function DiscoverPlugins({
     isActive: viewState === 'plugin-details'
   });
 
-  // Escape in plugin-list view (not search mode) - exit to parent menu
+  // 在 plugin-list 视图中按 Escape（非搜索模式）—— 退出到上级菜单
   useKeybinding('confirm:no', () => {
     setParentViewState({
       type: 'menu'
@@ -336,16 +336,16 @@ export function DiscoverPlugins({
     isActive: viewState === 'plugin-list' && !isSearchMode
   });
 
-  // Handle entering search mode (non-escape keys)
+  // 处理进入搜索模式（非 Escape 键）
   useInput((input, _key) => {
     const keyIsNotCtrlOrMeta = !_key.ctrl && !_key.meta;
     if (!isSearchMode) {
-      // Enter search mode with '/' or any printable character
+      // 用 '/' 或任意可打印字符进入搜索模式
       if (input === '/' && keyIsNotCtrlOrMeta) {
         setIsSearchMode(true);
         setSearchQuery('');
       } else if (keyIsNotCtrlOrMeta && input.length > 0 && !/^\s+$/.test(input) &&
-      // Don't enter search mode for navigation keys
+      // 导航键不进入搜索模式
       input !== 'j' && input !== 'k' && input !== 'i') {
         setIsSearchMode(true);
         setSearchQuery(input);
@@ -355,7 +355,7 @@ export function DiscoverPlugins({
     isActive: viewState === 'plugin-list' && !loading
   });
 
-  // Plugin-list navigation (non-search mode)
+  // plugin-list 导航（非搜索模式）
   useKeybindings({
     'select:previous': () => {
       if (selectedIndex === 0) {
@@ -419,7 +419,7 @@ export function DiscoverPlugins({
     isActive: viewState === 'plugin-list' && !isSearchMode
   });
 
-  // Plugin-details navigation
+  // plugin-details 导航
   const detailsMenuOptions = React.useMemo(() => {
     if (!selectedPlugin) return [];
     const hasHomepage = selectedPlugin.entry.homepage;
@@ -490,17 +490,17 @@ export function DiscoverPlugins({
     }} />;
   }
 
-  // Loading state
+  // 加载状态
   if (loading) {
     return <Text>Loading…</Text>;
   }
 
-  // Error state
+  // 错误状态
   if (error) {
     return <Text color="error">{error}</Text>;
   }
 
-  // Plugin details view
+  // 插件详情视图
   if (viewState === 'plugin-details' && selectedPlugin) {
     const hasHomepage_1 = selectedPlugin.entry.homepage;
     const githubRepo_1 = extractGitHubRepo(selectedPlugin);
@@ -552,7 +552,7 @@ export function DiscoverPlugins({
       </Box>;
   }
 
-  // Empty state
+  // 空状态
   if (availablePlugins.length === 0) {
     return <Box flexDirection="column">
         <Box marginBottom={1}>
@@ -567,7 +567,7 @@ export function DiscoverPlugins({
       </Box>;
   }
 
-  // Get visible plugins from pagination
+  // 从分页中获取可见的插件
   const visiblePlugins = pagination.getVisibleItems(filteredPlugins);
   return <Box flexDirection="column">
       <Box>
@@ -579,29 +579,29 @@ export function DiscoverPlugins({
           </Text>}
       </Box>
 
-      {/* Search box */}
+      {/* 搜索框 */}
       <Box marginBottom={1}>
         <SearchBox query={searchQuery} isFocused={isSearchMode} isTerminalFocused={isTerminalFocused} width={terminalWidth - 4} cursorOffset={searchCursorOffset} />
       </Box>
 
-      {/* Warning banner */}
+      {/* 警告横幅 */}
       {warning && <Box marginBottom={1}>
           <Text color="warning">
             {figures.warning} {warning}
           </Text>
         </Box>}
 
-      {/* No search results */}
+      {/* 无搜索结果 */}
       {filteredPlugins.length === 0 && searchQuery && <Box marginBottom={1}>
           <Text dimColor>No plugins match &quot;{searchQuery}&quot;</Text>
         </Box>}
 
-      {/* Scroll up indicator */}
+      {/* 向上滚动指示器 */}
       {pagination.scrollPosition.canScrollUp && <Box>
           <Text dimColor> {figures.arrowUp} more above</Text>
         </Box>}
 
-      {/* Plugin list - use startIndex in key to force re-render on scroll */}
+      {/* 插件列表 —— 在 key 中使用 startIndex 以在滚动时强制重新渲染 */}
       {visiblePlugins.map((plugin_5, visibleIndex) => {
       const actualIndex = pagination.toActualIndex(visibleIndex);
       const isSelected = selectedIndex === actualIndex;
@@ -633,12 +633,12 @@ export function DiscoverPlugins({
           </Box>;
     })}
 
-      {/* Scroll down indicator */}
+      {/* 向下滚动指示器 */}
       {pagination.scrollPosition.canScrollDown && <Box>
           <Text dimColor> {figures.arrowDown} more below</Text>
         </Box>}
 
-      {/* Error messages */}
+      {/* 错误消息 */}
       {error && <Box marginTop={1}>
           <Text color="error">
             {figures.cross} {error}
@@ -701,7 +701,7 @@ function DiscoverPluginsKeyHint(t0) {
 }
 
 /**
- * Context-aware empty state message for the Discover screen
+ * Discover 屏幕的上下文感知空状态提示
  */
 function EmptyStateMessage(t0) {
   const $ = _c(6);

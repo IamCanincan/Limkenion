@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Dev server proxies the WebSocket API to the local Limkenion server,
-// so `npm run dev` (Vite) + `npm run serve` (server) work together.
-// Production builds are served statically by server/index.mjs.
+// 开发服务器把 WebSocket API 代理到本地 Limkenion 服务，
+// 这样 `npm run dev`（Vite）与 `npm run serve`（server）可以协同工作。
+// 生产构建由 server/index.mjs 以静态方式提供。
 export default defineConfig({
   plugins: [react()],
   server: {

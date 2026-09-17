@@ -19,7 +19,7 @@ import { logError } from './utils/log.js'
 
 const MAX_STATUS_CHARS = 2000
 
-// System prompt injection for cache breaking (ant-only, ephemeral debugging state)
+// 用于击穿缓存的 system 提示词注入（仅 ant，临时调试状态）
 let systemPromptInjection: string | null = null
 
 export function getSystemPromptInjection(): string | null {
@@ -28,14 +28,14 @@ export function getSystemPromptInjection(): string | null {
 
 export function setSystemPromptInjection(value: string | null): void {
   systemPromptInjection = value
-  // Clear context caches immediately when injection changes
+  // 注入内容变化时立即清空 context 缓存
   getUserContext.cache.clear?.()
   getSystemContext.cache.clear?.()
 }
 
 export const getGitStatus = memoize(async (): Promise<string | null> => {
   if (process.env.NODE_ENV === 'test') {
-    // Avoid cycles in tests
+    // 避免测试中产生循环依赖
     return null
   }
 
@@ -81,7 +81,7 @@ export const getGitStatus = memoize(async (): Promise<string | null> => {
       status_length: status.length,
     })
 
-    // Check if status exceeds character limit
+    // 检查状态是否超出字符数上限
     const truncatedStatus =
       status.length > MAX_STATUS_CHARS
         ? status.substring(0, MAX_STATUS_CHARS) +
@@ -111,7 +111,7 @@ export const getGitStatus = memoize(async (): Promise<string | null> => {
 })
 
 /**
- * This context is prepended to each conversation, and cached for the duration of the conversation.
+ * 该 context 会被前置到每一次对话中，并在对话存续期间被缓存。
  */
 export const getSystemContext = memoize(
   async (): Promise<{
@@ -120,14 +120,14 @@ export const getSystemContext = memoize(
     const startTime = Date.now()
     logForDiagnosticsNoPII('info', 'system_context_started')
 
-    // Skip git status in CCR (unnecessary overhead on resume) or when git instructions are disabled
+    // 在 CCR 中跳过 git status（恢复时是不必要的开销），或在禁用 git 指令时跳过
     const gitStatus =
       isEnvTruthy(process.env.LIMKENION_REMOTE) ||
       !shouldIncludeGitInstructions()
         ? null
         : await getGitStatus()
 
-    // Include system prompt injection if set (for cache breaking, ant-only)
+    // 若设置了 system 提示词注入则包含它（用于击穿缓存，仅 ant）
     const injection = feature('BREAK_CACHE_COMMAND')
       ? getSystemPromptInjection()
       : null
@@ -150,7 +150,7 @@ export const getSystemContext = memoize(
 )
 
 /**
- * This context is prepended to each conversation, and cached for the duration of the conversation.
+ * 该 context 会被前置到每一次对话中，并在对话存续期间被缓存。
  */
 export const getUserContext = memoize(
   async (): Promise<{
@@ -159,20 +159,20 @@ export const getUserContext = memoize(
     const startTime = Date.now()
     logForDiagnosticsNoPII('info', 'user_context_started')
 
-    // LIMKENION_DISABLE_LIMKENION_MDS: hard off, always.
-    // --bare: skip auto-discovery (cwd walk), BUT honor explicit --add-dir.
-    // --bare means "skip what I didn't ask for", not "ignore what I asked for".
+    // LIMKENION_DISABLE_LIMKENION_MDS：硬性关闭，始终如此。
+    // --bare：跳过自动发现（cwd 遍历），但会遵循显式的 --add-dir。
+    // --bare 的含义是「跳过我没有要求的」，而不是「忽略我要求的」。
     const shouldDisableLimkenionMd =
       isEnvTruthy(process.env.LIMKENION_DISABLE_LIMKENION_MDS) ||
       (isBareMode() && getAdditionalDirectoriesForLimkenionMd().length === 0)
-    // Await the async I/O (readFile/readdir directory walk) so the event
-    // loop yields naturally at the first fs.readFile.
+    // 等待异步 I/O（readFile / readdir 目录遍历）完成，好让事件
+    // 循环在第一个 fs.readFile 处自然让出。
     const limkenionMd = shouldDisableLimkenionMd
       ? null
       : getLimkenionMds(filterInjectedMemoryFiles(await getMemoryFiles()))
-    // Cache for the auto-mode classifier (yoloClassifier.ts reads this
-    // instead of importing limkenionmd.ts directly, which would create a
-    // cycle through permissions/filesystem → permissions → yoloClassifier).
+    // 供 auto 模式分类器使用的缓存（yoloClassifier.ts 读这个，
+    // 而不是直接 import limkenionmd.ts —— 那会经由
+    // permissions/filesystem → permissions → yoloClassifier 形成循环）。
     setCachedLimkenionMdContent(limkenionMd || null)
 
     logForDiagnosticsNoPII('info', 'user_context_completed', {

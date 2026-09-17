@@ -5,7 +5,7 @@ const statusline = {
   type: 'prompt',
   description: "设置 Limkenion 的状态栏界面",
   contentLength: 0,
-  // Dynamic content
+  // 动态内容
   aliases: [],
   name: 'statusline',
   progressMessage: 'setting up statusLine',

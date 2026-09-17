@@ -75,7 +75,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
       destination
     };
 
-    // Apply to session context
+    // 应用到会话上下文
     const latestAppState = context.getAppState();
     const updatedContext = applyPermissionUpdate(latestAppState.toolPermissionContext, permissionUpdate);
     context.setAppState(prev => ({

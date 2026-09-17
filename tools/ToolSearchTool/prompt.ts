@@ -4,7 +4,7 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/gr
 import type { Tool } from '../../Tool.js'
 import { AGENT_TOOL_NAME } from '../AgentTool/constants.js'
 
-// Dead code elimination: Brief tool name only needed when KAIROS or KAIROS_BRIEF is on
+// 死代码消除：仅在 KAIROS 或 KAIROS_BRIEF 开启时才需要 Brief 工具名
 /* eslint-disable @typescript-eslint/no-require-imports */
 const BRIEF_TOOL_NAME: string | null =
   feature('KAIROS') || feature('KAIROS_BRIEF')
@@ -28,10 +28,10 @@ const PROMPT_HEAD = `Fetches full schema definitions for deferred tools so they 
 
 `
 
-// Matches isDeferredToolsDeltaEnabled in toolSearch.ts (not imported —
-// toolSearch.ts imports from this file). When enabled: tools announced
-// via system-reminder attachments. When disabled: prepended
-// <available-deferred-tools> block (pre-gate behavior).
+// 与 toolSearch.ts 中的 isDeferredToolsDeltaEnabled 保持一致（未导入 ——
+// toolSearch.ts 从本文件导入）。启用时：工具通过
+// system-reminder 附件公布。禁用时：前置
+// <available-deferred-tools> 块（门控前的行为）。
 function getToolLocationHint(): string {
   const deltaEnabled =
     (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_glacier_2xr', false))
@@ -50,28 +50,28 @@ Query forms:
 - "+slack send" — require "slack" in the name, rank by remaining terms`
 
 /**
- * Check if a tool should be deferred (requires ToolSearch to load).
- * A tool is deferred if:
- * - It's an MCP tool (always deferred - workflow-specific)
- * - It has shouldDefer: true
+ * 检查某个工具是否应被延迟（需要 ToolSearch 加载）。
+ * 工具被延迟的条件：
+ * - 它是 MCP 工具（总是延迟 - 特定于工作流）
+ * - 它有 shouldDefer: true
  *
- * A tool is NEVER deferred if it has alwaysLoad: true (MCP tools set this via
- * _meta['limkenion/alwaysLoad']). This check runs first, before any other rule.
+ * 如果工具有 alwaysLoad: true，则绝不延迟（MCP 工具通过
+ * _meta['limkenion/alwaysLoad'] 设置）。该检查最先运行，先于其他任何规则。
  */
 export function isDeferredTool(tool: Tool): boolean {
-  // Explicit opt-out via _meta['limkenion/alwaysLoad'] — tool appears in the
-  // initial prompt with full schema. Checked first so MCP tools can opt out.
+  // 通过 _meta['limkenion/alwaysLoad'] 显式退出 —— 工具会带着完整 schema
+  // 出现在初始提示词中。最先检查，以便 MCP 工具能够退出。
   if (tool.alwaysLoad === true) return false
 
-  // MCP tools are always deferred (workflow-specific)
+  // MCP 工具总是延迟（特定于工作流）
   if (tool.isMcp === true) return true
 
-  // Never defer ToolSearch itself — the model needs it to load everything else
+  // 绝不延迟 ToolSearch 本身 —— 模型需要它来加载其他所有工具
   if (tool.name === TOOL_SEARCH_TOOL_NAME) return false
 
-  // Fork-first experiment: Agent must be available turn 1, not behind ToolSearch.
-  // Lazy require: static import of forkSubagent → coordinatorMode creates a cycle
-  // through constants/tools.ts at module init.
+  // Fork 优先实验：Agent 必须在第 1 回合就可用，而不是藏在 ToolSearch 之后。
+  // 惰性 require：静态导入 forkSubagent → coordinatorMode 会在模块初始化时
+  // 经由 constants/tools.ts 形成循环。
   if (feature('FORK_SUBAGENT') && tool.name === AGENT_TOOL_NAME) {
     type ForkMod = typeof import('../AgentTool/forkSubagent.js')
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -79,11 +79,11 @@ export function isDeferredTool(tool: Tool): boolean {
     if (m.isForkSubagentEnabled()) return false
   }
 
-  // Brief is the primary communication channel whenever the tool is present.
-  // Its prompt contains the text-visibility contract, which the model must
-  // see without a ToolSearch round-trip. No runtime gate needed here: this
-  // tool's isEnabled() IS isBriefEnabled(), so being asked about its deferral
-  // status implies the gate already passed.
+  // 只要该工具存在，Brief 就是主要的通信渠道。
+  // 它的提示词包含文本可见性契约，模型必须在没有
+  // ToolSearch 往返的情况下看到它。此处无需运行时门控：该
+  // 工具的 isEnabled() 就是 isBriefEnabled()，因此被询问其延迟
+  // 状态就意味着门控已通过。
   if (
     (feature('KAIROS') || feature('KAIROS_BRIEF')) &&
     BRIEF_TOOL_NAME &&
@@ -92,8 +92,8 @@ export function isDeferredTool(tool: Tool): boolean {
     return false
   }
 
-  // SendUserFile is a file-delivery communication channel (sibling of Brief).
-  // Must be immediately available without a ToolSearch round-trip.
+  // SendUserFile 是文件投递通信渠道（与 Brief 同级）。
+  // 必须无需 ToolSearch 往返即可立即使用。
   if (
     feature('KAIROS') &&
     SEND_USER_FILE_TOOL_NAME &&
@@ -107,9 +107,9 @@ export function isDeferredTool(tool: Tool): boolean {
 }
 
 /**
- * Format one deferred-tool line for the <available-deferred-tools> user
- * message. Search hints (tool.searchHint) are not rendered — the
- * hints A/B (exp_xenhnnmn0smrx4, stopped Mar 21) showed no benefit.
+ * 为 <available-deferred-tools> 用户消息格式化一行延迟工具。
+ * 搜索提示（tool.searchHint）不会被渲染 ——
+ * 提示 A/B 测试（exp_xenhnnmn0smrx4，已于 3 月 21 日停止）显示无收益。
  */
 export function formatDeferredToolLine(tool: Tool): string {
   return tool.name

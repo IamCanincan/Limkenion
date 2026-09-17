@@ -23,12 +23,12 @@ import { WORKFLOW_TOOL_NAME } from './constants.js'
 type WorkflowOptionValue = 'yes' | 'yes-always' | 'view' | 'no'
 
 /**
- * Approval dialog shown before a dynamic workflow starts.
+ * 在动态工作流启动前显示的批准对话框。
  *
- * The point of the dialog is the phase list: it is the only preview the user
- * gets of how many agents are about to run and what they will do, and it is
- * the last decision point — once the run starts, its subagents' file edits are
- * auto-approved.
+ * 该对话框的重点是阶段列表：它是用户对即将运行多少个
+ * agent 以及它们会做什么的唯一预览，也是
+ * 最后一个决策点 —— 一旦运行开始，其子代理的文件编辑
+ * 就会自动获批。
  */
 export function WorkflowPermissionRequest(
   props: PermissionRequestProps,
@@ -92,8 +92,8 @@ export function WorkflowPermissionRequest(
 
   const handleSelect = useCallback(
     (value: WorkflowOptionValue, feedback?: string) => {
-      // In auto mode a Yes of either kind is the one-time consent — after this
-      // the launch prompt stops appearing.
+      // 在自动模式下，任一形式的 Yes 即为一次性同意 —— 此后
+      // 启动提示词不再出现。
       if (isAutoMode && (value === 'yes' || value === 'yes-always')) {
         recordWorkflowAutoModeConsent()
       }
@@ -116,8 +116,8 @@ export function WorkflowPermissionRequest(
           onDone()
           break
         case 'view':
-          // Stay in the dialog: the whole point is to read the script and then
-          // decide, so this must not resolve the permission either way.
+          // 停留在对话框中：重点就是先读脚本再
+          // 决定，因此这不能以任何方式了结权限。
           setShowScript(true)
           break
         case 'no':
@@ -189,7 +189,7 @@ export function WorkflowPermissionRequest(
 
 const SCRIPT_PREVIEW_LINES = 60
 
-/** Long scripts are clipped: the dialog must stay smaller than the terminal. */
+/** 过长的脚本会被裁剪：对话框必须保持小于终端窗口。 */
 function clipScript(script: string): string {
   const lines = script.split('\n')
   if (lines.length <= SCRIPT_PREVIEW_LINES) return script
@@ -201,11 +201,11 @@ function clipScript(script: string): string {
 }
 
 /**
- * Read the script's `meta` for the preview.
+ * 读取脚本的 `meta` 用于预览。
  *
- * Parsing can fail here — the tool has not validated the script yet — and a
- * bad script should still reach the tool so the model sees the real parse
- * error, not a silent refusal in the dialog.
+ * 这里解析可能失败 —— 工具尚未校验该脚本 —— 而有问题的
+ * 脚本仍应送达工具，以便模型看到真正的解析
+ * 错误，而不是对话框中的静默拒绝。
  */
 function readMeta(script: string | undefined): WorkflowMeta | undefined {
   if (!script) return undefined

@@ -92,12 +92,12 @@ export const GlobTool = buildTool({
     return rulePattern => matchWildcardPattern(rulePattern, pattern)
   },
   async validateInput({ path }): Promise<ValidationResult> {
-    // If path is provided, validate that it exists and is a directory
+    // 若提供了 path，则校验其存在且为目录
     if (path) {
       const fs = getFsImplementation()
       const absolutePath = expandPath(path)
 
-      // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+      // SECURITY: 对 UNC 路径跳过文件系统操作，以防 NTLM 凭据泄露。
       if (absolutePath.startsWith('\\\\') || absolutePath.startsWith('//')) {
         return { result: true }
       }
@@ -146,8 +146,8 @@ export const GlobTool = buildTool({
   renderToolUseMessage,
   renderToolUseErrorMessage,
   renderToolResultMessage,
-  // Reuses Grep's render (UI.tsx:65) — shows filenames.join. durationMs/
-  // numFiles are "Found 3 files in 12ms" chrome (under-count, fine).
+  // 复用 Grep 的渲染（UI.tsx:65）——显示 filenames.join。durationMs/
+  // numFiles 是 "Found 3 files in 12ms" 之类的装饰信息（少计，可接受）。
   extractSearchText({ filenames }) {
     return filenames.join('\n')
   },
@@ -162,7 +162,7 @@ export const GlobTool = buildTool({
       abortController.signal,
       appState.toolPermissionContext,
     )
-    // Relativize paths under cwd to save tokens (same as GrepTool)
+    // 将工作目录下的路径转为相对路径以节省 token（与 GrepTool 相同）
     const filenames = files.map(toRelativePath)
     const output: Output = {
       filenames,

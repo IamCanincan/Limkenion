@@ -23,11 +23,11 @@ import type { DeepImmutable } from '../../types/utils.js'
 import { saveWorkflowScript } from '../../utils/workflows/save.js'
 
 /**
- * `/workflows` — list this session's dynamic workflow runs and open one.
+ * `/workflows` —— 列出本会话的动态 workflow 运行并打开其中一个。
  *
- * Separate from `/tasks` on purpose: a workflow's interesting state is its
- * phase/agent tree, which the generic background-task list cannot show, and
- * during a large run the workflow rows would bury every other task.
+ * 有意与 `/tasks` 分开：workflow 值得关注的状态是它的
+ * 阶段/agent 树，这是通用的后台任务列表无法展示的，而且
+ * 在一次大型运行中，workflow 行会淹没其他所有任务。
  */
 export async function call(
   onDone: LocalJSXCommandOnDone,
@@ -54,8 +54,8 @@ function WorkflowsDialog({
       (task): task is DeepImmutable<LocalWorkflowTaskState> =>
         task.type === 'local_workflow',
     )
-    // Newest first: during a long session the run you just started is the one
-    // you came here to watch.
+    // 最新的在前：在长时间的会话中，你刚启动的那次运行
+    // 才是你来这里想看的。
     return [...all].sort((a, b) => b.startTime - a.startTime)
   }, [appState.tasks])
 

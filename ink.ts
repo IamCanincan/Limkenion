@@ -9,8 +9,8 @@ import inkRender, {
 
 export type { RenderOptions, Instance, Root }
 
-// Wrap all CC render calls with ThemeProvider so ThemedBox/ThemedText work
-// without every call site having to mount it. Ink itself is theme-agnostic.
+// 把所有 CC 渲染调用都用 ThemeProvider 包起来，这样 ThemedBox/ThemedText
+// 无需每个调用点自己挂载即可生效。Ink 本身与主题无关。
 function withTheme(node: ReactNode): ReactNode {
   return createElement(ThemeProvider, null, node)
 }

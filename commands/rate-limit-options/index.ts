@@ -12,7 +12,7 @@ const rateLimitOptions = {
 
     return true
   },
-  isHidden: true, // Hidden from help - only used internally
+  isHidden: true, // 在帮助中隐藏 —— 仅供内部使用
   load: () => import('./rate-limit-options.js'),
 } satisfies Command
 

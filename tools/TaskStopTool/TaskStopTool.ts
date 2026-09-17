@@ -39,8 +39,8 @@ export type Output = z.infer<OutputSchema>
 export const TaskStopTool = buildTool({
   name: TASK_STOP_TOOL_NAME,
   searchHint: 'kill a running background task',
-  // KillShell is the deprecated name - kept as alias for backward compatibility
-  // with existing transcripts and SDK users
+  // KillShell 是已弃用的名称 - 作为别名保留，以向后兼容
+  // 现有 transcript 和 SDK 用户
   aliases: ['KillShell'],
   maxResultSizeChars: 100_000,
   userFacingName: () => ('Stop Task'),
@@ -58,7 +58,7 @@ export const TaskStopTool = buildTool({
     return input.task_id ?? input.shell_id ?? ''
   },
   async validateInput({ task_id, shell_id }, { getAppState }) {
-    // Support both task_id and shell_id (deprecated KillShell compat)
+    // 同时支持 task_id 和 shell_id（兼容已弃用的 KillShell）
     const id = task_id ?? shell_id
     if (!id) {
       return {
@@ -108,7 +108,7 @@ export const TaskStopTool = buildTool({
     { task_id, shell_id },
     { getAppState, setAppState, abortController },
   ) {
-    // Support both task_id and shell_id (deprecated KillShell compat)
+    // 同时支持 task_id 和 shell_id（兼容已弃用的 KillShell）
     const id = task_id ?? shell_id
     if (!id) {
       throw new Error('Missing required parameter: task_id')

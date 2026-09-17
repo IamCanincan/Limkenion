@@ -70,7 +70,7 @@ export async function collectContextData(
       'options'
     >,
     undefined, // mainThreadAgentDefinition
-    apiView, // original messages for API usage extraction
+    apiView, // 供 API 用量提取的原始消息
   )
 }
 

@@ -165,9 +165,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
   },
   shouldDefer: true,
   isEnabled() {
-    // When --channels is active the user is likely on Telegram/Discord, not
-    // watching the TUI. The plan-approval dialog would hang. Paired with the
-    // same gate on EnterPlanMode so plan mode isn't a trap.
+    // 当 --channels 生效时，用户很可能在 Telegram/Discord 上，
+    // 而不是盯着 TUI。计划审批对话框会挂起。与 EnterPlanMode 上的
+    // 同一门控配对，以免计划模式成为陷阱。
     if (
       (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
       getAllowedChannels().length > 0
@@ -180,27 +180,27 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     return true
   },
   isReadOnly() {
-    return false // Now writes to disk
+    return false // 现在写入磁盘
   },
   requiresUserInteraction() {
-    // For ALL teammates, no local user interaction needed:
-    // - If isPlanModeRequired(): team lead approves via mailbox
-    // - Otherwise: exits locally without approval (voluntary plan mode)
+    // 对所有 teammate 都无需本地用户交互：
+    // - 若 isPlanModeRequired()：由团队负责人通过邮箱审批
+    // - 否则：本地直接退出，无需审批（自愿计划模式）
     if (isTeammate()) {
       return false
     }
-    // For non-teammates, require user confirmation to exit plan mode
+    // 对非 teammate，退出计划模式需要用户确认
     return true
   },
   async validateInput(_input, { getAppState, options }) {
-    // Teammate AppState may show leader's mode (runAgent.ts skips override in
-    // acceptEdits/bypassPermissions/auto); isPlanModeRequired() is the real source
+    // teammate 的 AppState 可能显示负责人的模式（runAgent.ts 在
+    // acceptEdits/bypassPermissions/auto 下跳过覆盖）；isPlanModeRequired() 才是真正的依据
     if (isTeammate()) {
       return { result: true }
     }
-    // The deferred-tool list announces this tool regardless of mode, so the
-    // model can call it after plan approval (fresh delta on compact/clear).
-    // Reject before checkPermissions to avoid showing the approval dialog.
+    // 延迟工具列表无论模式如何都会声明此工具，因此
+    // 模型可在计划获批后调用它（在上下文压缩/清空时重新下发增量）。
+    // 在 checkPermissions 之前拒绝，以免展示审批对话框。
     const mode = getAppState().toolPermissionContext.mode
     if (mode !== 'plan') {
       logEvent('limkenion_exit_plan_mode_called_outside_plan', {
@@ -219,10 +219,10 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     return { result: true }
   },
   async checkPermissions(input, context) {
-    // For ALL teammates, bypass the permission UI to avoid sending permission_request
-    // The call() method handles the appropriate behavior:
-    // - If isPlanModeRequired(): sends plan_approval_request to leader
-    // - Otherwise: exits plan mode locally (voluntary plan mode)
+    // 对所有 teammate 都绕过权限 UI，以免发送 permission_request
+    // call() 方法会处理相应的行为：
+    // - 若 isPlanModeRequired()：向负责人发送 plan_approval_request
+    // - 否则：本地退出计划模式（自愿计划模式）
     if (isTeammate()) {
       return {
         behavior: 'allow' as const,
@@ -230,7 +230,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       }
     }
 
-    // For non-teammates, require user confirmation to exit plan mode
+    // 对非 teammate，退出计划模式需要用户确认
     return {
       behavior: 'ask' as const,
       message: 'Exit plan mode?',
@@ -244,25 +244,25 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     const isAgent = !!context.agentId
 
     const filePath = getPlanFilePath(context.agentId)
-    // CCR web UI may send an edited plan via permissionResult.updatedInput.
-    // queryHelpers.ts full-replaces finalInput, so when CCR sends {} (no edit)
-    // input.plan is undefined -> disk fallback. The internal inputSchema omits
-    // `plan` (normally injected by normalizeToolInput), hence the narrowing.
+    // CCR Web UI 可能通过 permissionResult.updatedInput 发送编辑过的计划。
+    // queryHelpers.ts 会整体替换 finalInput，因此当 CCR 发送 {}（无编辑）时
+    // input.plan 为 undefined -> 降级到磁盘。内部 inputSchema 省略了
+    // `plan`（通常由 normalizeToolInput 注入），故需此处收窄类型。
     const inputPlan =
       'plan' in input && typeof input.plan === 'string' ? input.plan : undefined
     const plan = inputPlan ?? getPlan(context.agentId)
 
-    // Sync disk so VerifyPlanExecution / Read see the edit. Re-snapshot
-    // after: the only other persistFileSnapshotIfRemote call (api.ts) runs
-    // in normalizeToolInput, pre-permission — it captured the old plan.
+    // 同步磁盘，使 VerifyPlanExecution / Read 能看到该编辑。之后
+    // 重新生成快照：另一个 persistFileSnapshotIfRemote 调用（api.ts）
+    // 运行于 normalizeToolInput 中、权限检查之前——它捕获的是旧计划。
     if (inputPlan !== undefined && filePath) {
       await writeFile(filePath, inputPlan, 'utf-8').catch(e => logError(e))
       void persistFileSnapshotIfRemote()
     }
 
-    // Check if this is a teammate that requires leader approval
+    // 检查这是否是需要负责人审批的 teammate
     if (isTeammate() && isPlanModeRequired()) {
-      // Plan is required for plan_mode_required teammates
+      // 对 plan_mode_required 的 teammate 而言计划是必需的
       if (!plan) {
         throw new Error(
           `No plan file found at ${filePath}. Please write your plan to this file before calling ExitPlanMode.`,
@@ -294,7 +294,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
         teamName,
       )
 
-      // Update task state to show awaiting approval (for in-process teammates)
+      // 更新任务状态以显示等待审批（适用于进程内 teammate）
       const appState = context.getAppState()
       const agentTaskId = findInProcessTeammateTaskId(agentName, appState)
       if (agentTaskId) {
@@ -312,18 +312,18 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       }
     }
 
-    // Note: Background verification hook is registered in REPL.tsx AFTER context clear
-    // via registerPlanVerificationHook(). Registering here would be cleared during context clear.
+    // 注意：后台校验钩子是在上下文清空之后于 REPL.tsx 中通过
+    // registerPlanVerificationHook() 注册的。在此处注册会在上下文清空时被清除。
 
-    // Ensure mode is changed when exiting plan mode.
-    // This handles cases where permission flow didn't set the mode
-    // (e.g., when PermissionRequest hook auto-approves without providing updatedPermissions).
+    // 确保退出计划模式时模式被更改。
+    // 这处理了权限流程未设置模式的情况
+    // （例如 PermissionRequest 钩子自动批准但未提供 updatedPermissions 时）。
     const appState = context.getAppState()
-    // Compute gate-off fallback before setAppState so we can notify the user.
-    // Circuit breaker defense: if prePlanMode was an auto-like mode but the
-    // gate is now off (circuit breaker or settings disable), restore to
-    // 'default' instead. Without this, ExitPlanMode would bypass the circuit
-    // breaker by calling setAutoModeActive(true) directly.
+    // 在 setAppState 之前计算门控关闭时的降级方案，以便通知用户。
+    // 熔断器防御：若 prePlanMode 是类 auto 模式但
+    // 门控现已关闭（熔断器或设置禁用），则改为恢复为
+    // 'default'。否则 ExitPlanMode 会直接调用 setAutoModeActive(true)
+    // 从而绕过熔断器。
     let gateFallbackNotification: string | null = null
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       const prePlanRaw = appState.toolPermissionContext.prePlanMode ?? 'default'
@@ -367,9 +367,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
           restoreMode = 'default'
         }
         const finalRestoringAuto = restoreMode === 'auto'
-        // Capture pre-restore state — isAutoModeActive() is the authoritative
-        // signal (prePlanMode/strippedDangerousRules are stale after
-        // transitionPlanAutoMode deactivates mid-plan).
+        // 捕获恢复前的状态——isAutoModeActive() 是权威
+        // 信号（在 transitionPlanAutoMode 于计划中途停用后，
+        // prePlanMode/strippedDangerousRules 已失效）。
         const autoWasUsedDuringPlan =
           autoModeStateModule?.isAutoModeActive() ?? false
         autoModeStateModule?.setAutoModeActive(finalRestoringAuto)
@@ -377,9 +377,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
           setNeedsAutoModeExitAttachment(true)
         }
       }
-      // If restoring to a non-auto mode and permissions were stripped (either
-      // from entering plan from auto, or from shouldPlanUseAutoMode),
-      // restore them. If restoring to auto, keep them stripped.
+      // 若恢复到非 auto 模式且权限已被剥离（无论是
+      // 从 auto 进入计划模式，还是由 shouldPlanUseAutoMode 导致），
+      // 则恢复它们。若恢复到 auto，则保持剥离状态。
       const restoringToAuto = restoreMode === 'auto'
       let baseContext = prev.toolPermissionContext
       if (restoringToAuto) {
@@ -428,7 +428,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     },
     toolUseID,
   ) {
-    // Handle teammate awaiting leader approval
+    // 处理等待负责人审批的 teammate
     if (awaitingLeaderApproval) {
       return {
         type: 'tool_result',
@@ -458,7 +458,7 @@ Request ID: ${requestId}`,
       }
     }
 
-    // Handle empty plan
+    // 处理空计划
     if (!plan || plan.trim() === '') {
       return {
         type: 'tool_result',
@@ -471,9 +471,9 @@ Request ID: ${requestId}`,
       ? `\n\nIf this plan can be broken down into multiple independent tasks, consider using the ${TEAM_CREATE_TOOL_NAME} tool to create a team and parallelize the work.`
       : ''
 
-    // Always include the plan — extractApprovedPlan() in the Ultraplan CCR
-    // flow parses the tool_result to retrieve the plan text for the local CLI.
-    // Label edited plans so the model knows the user changed something.
+    // 始终包含计划——Ultraplan CCR 流程中的 extractApprovedPlan()
+    // 会解析 tool_result 以取回计划文本供本地 CLI 使用。
+    // 为编辑过的计划打标签，让模型知道用户做了修改。
     const planLabel = planWasEdited
       ? 'Approved Plan (edited by user)'
       : 'Approved Plan'

@@ -46,11 +46,11 @@ type OutputSchema = ReturnType<typeof outputSchema>
 
 export type Output = z.infer<OutputSchema>
 
-// Track deferred tool names to detect when cache should be cleared
+// 跟踪延迟工具名称，以检测何时应清除缓存
 let cachedDeferredToolNames: string | null = null
 
 /**
- * Get a cache key representing the current set of deferred tools.
+ * 获取表示当前延迟工具集合的缓存键。
  */
 function getDeferredToolsCacheKey(deferredTools: Tools): string {
   return deferredTools
@@ -60,8 +60,8 @@ function getDeferredToolsCacheKey(deferredTools: Tools): string {
 }
 
 /**
- * Get tool description, memoized by tool name.
- * Used for keyword search scoring.
+ * 获取工具描述，按工具名称记忆化。
+ * 用于关键词搜索打分。
  */
 const getToolDescriptionMemoized = memoize(
   async (toolName: string, tools: Tools): Promise<string> => {
@@ -86,7 +86,7 @@ const getToolDescriptionMemoized = memoize(
 )
 
 /**
- * Invalidate the description cache if deferred tools have changed.
+ * 若延迟工具发生变化，则使描述缓存失效。
  */
 function maybeInvalidateCache(deferredTools: Tools): void {
   const currentKey = getDeferredToolsCacheKey(deferredTools)
@@ -105,7 +105,7 @@ export function clearToolSearchDescriptionCache(): void {
 }
 
 /**
- * Build the search result output structure.
+ * 构建搜索结果输出结构。
  */
 function buildSearchResult(
   matches: string[],
@@ -126,15 +126,15 @@ function buildSearchResult(
 }
 
 /**
- * Parse tool name into searchable parts.
- * Handles both MCP tools (mcp__server__action) and regular tools (CamelCase).
+ * 将工具名称解析为可搜索的部分。
+ * 同时处理 MCP 工具（mcp__server__action）和普通工具（CamelCase）。
  */
 function parseToolName(name: string): {
   parts: string[]
   full: string
   isMcp: boolean
 } {
-  // Check if it's an MCP tool
+  // 检查它是否为 MCP 工具
   if (name.startsWith('mcp__')) {
     const withoutPrefix = name.replace(/^mcp__/, '').toLowerCase()
     const parts = withoutPrefix.split('__').flatMap(p => p.split('_'))
@@ -145,9 +145,9 @@ function parseToolName(name: string): {
     }
   }
 
-  // Regular tool - split by CamelCase and underscores
+  // 普通工具 - 按 CamelCase 和下划线切分
   const parts = name
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // CamelCase to spaces
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // 将 CamelCase 转为空格
     .replace(/_/g, ' ')
     .toLowerCase()
     .split(/\s+/)
@@ -161,8 +161,8 @@ function parseToolName(name: string): {
 }
 
 /**
- * Pre-compile word-boundary regexes for all search terms.
- * Called once per search instead of tools×terms×2 times.
+ * 为所有搜索词预编译词边界正则。
+ * 每次搜索只调用一次，而不是 tools×terms×2 次。
  */
 function compileTermPatterns(terms: string[]): Map<string, RegExp> {
   const patterns = new Map<string, RegExp>()
@@ -175,13 +175,13 @@ function compileTermPatterns(terms: string[]): Map<string, RegExp> {
 }
 
 /**
- * Keyword-based search over tool names and descriptions.
- * Handles both MCP tools (mcp__server__action) and regular tools (CamelCase).
+ * 基于关键词在工具名称和描述中搜索。
+ * 同时处理 MCP 工具（mcp__server__action）和普通工具（CamelCase）。
  *
- * The model typically queries with:
- * - Server names when it knows the integration (e.g., "slack", "github")
- * - Action words when looking for functionality (e.g., "read", "list", "create")
- * - Tool-specific terms (e.g., "notebook", "shell", "kill")
+ * 模型通常使用以下方式查询：
+ * - 已知集成时使用服务名（例如 "slack"、"github"）
+ * - 寻找功能时使用动作词（例如 "read"、"list"、"create"）
+ * - 工具特有术语（例如 "notebook"、"shell"、"kill"）
  */
 async function searchToolsWithKeywords(
   query: string,
@@ -191,11 +191,11 @@ async function searchToolsWithKeywords(
 ): Promise<string[]> {
   const queryLower = query.toLowerCase().trim()
 
-  // Fast path: if query matches a tool name exactly, return it directly.
-  // Handles models using a bare tool name instead of select: prefix (seen
-  // from subagents/post-compaction). Checks deferred first, then falls back
-  // to the full tool set — selecting an already-loaded tool is a harmless
-  // no-op that lets the model proceed without retry churn.
+  // 快速路径：如果查询与某个工具名称完全匹配，直接返回它。
+  // 用于处理模型使用裸工具名而非 select: 前缀的情况（在
+  // 子代理/压缩后出现过）。先检查延迟工具，再降级
+  // 到完整工具集 —— 选择已加载的工具是无害的
+  // 空操作，可让模型无需反复重试即可继续。
   const exactMatch =
     deferredTools.find(t => t.name.toLowerCase() === queryLower) ??
     tools.find(t => t.name.toLowerCase() === queryLower)
@@ -203,8 +203,8 @@ async function searchToolsWithKeywords(
     return [exactMatch.name]
   }
 
-  // If query looks like an MCP tool prefix (mcp__server), find matching tools.
-  // Handles models searching by server name with mcp__ prefix.
+  // 如果查询看起来像 MCP 工具前缀（mcp__server），则查找匹配的工具。
+  // 用于处理模型以 mcp__ 前缀按服务名搜索的情况。
   if (queryLower.startsWith('mcp__') && queryLower.length > 5) {
     const prefixMatches = deferredTools
       .filter(t => t.name.toLowerCase().startsWith(queryLower))
@@ -217,7 +217,7 @@ async function searchToolsWithKeywords(
 
   const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 0)
 
-  // Partition into required (+prefixed) and optional terms
+  // 划分为必需（含 + 前缀）和可选词项
   const requiredTerms: string[] = []
   const optionalTerms: string[] = []
   for (const term of queryTerms) {
@@ -232,7 +232,7 @@ async function searchToolsWithKeywords(
     requiredTerms.length > 0 ? [...requiredTerms, ...optionalTerms] : queryTerms
   const termPatterns = compileTermPatterns(allScoringTerms)
 
-  // Pre-filter to tools matching ALL required terms in name or description
+  // 预筛选出在名称或描述中匹配所有必需词项的工具
   let candidateTools = deferredTools
   if (requiredTerms.length > 0) {
     const matches = await Promise.all(
@@ -267,24 +267,24 @@ async function searchToolsWithKeywords(
       for (const term of allScoringTerms) {
         const pattern = termPatterns.get(term)!
 
-        // Exact part match (high weight for MCP server names, tool name parts)
+        // 精确部分匹配（对 MCP 服务名、工具名部分给予高权重）
         if (parsed.parts.includes(term)) {
           score += parsed.isMcp ? 12 : 10
         } else if (parsed.parts.some(part => part.includes(term))) {
           score += parsed.isMcp ? 6 : 5
         }
 
-        // Full name fallback (for edge cases)
+        // 全名降级匹配（用于边缘情况）
         if (parsed.full.includes(term) && score === 0) {
           score += 3
         }
 
-        // searchHint match — curated capability phrase, higher signal than prompt
+        // searchHint 匹配 —— 精选的能力短语，信号强于提示词
         if (hintNormalized && pattern.test(hintNormalized)) {
           score += 4
         }
 
-        // Description match - use word boundary to avoid false positives
+        // 描述匹配 - 使用词边界避免误报
         if (pattern.test(descNormalized)) {
           score += 2
         }
@@ -331,14 +331,14 @@ export const ToolSearchTool = buildTool({
     const deferredTools = tools.filter(isDeferredTool)
     maybeInvalidateCache(deferredTools)
 
-    // Check for MCP servers still connecting
+    // 检查仍在连接中的 MCP 服务
     function getPendingServerNames(): string[] | undefined {
       const appState = getAppState()
       const pending = appState.mcp.clients.filter(c => c.type === 'pending')
       return pending.length > 0 ? pending.map(s => s.name) : undefined
     }
 
-    // Helper to log search outcome
+    // 用于记录搜索结果的辅助函数
     function logSearchOutcome(
       matches: string[],
       queryType: 'select' | 'keyword',
@@ -355,11 +355,11 @@ export const ToolSearchTool = buildTool({
       })
     }
 
-    // Check for select: prefix — direct tool selection.
-    // Supports comma-separated multi-select: `select:A,B,C`.
-    // If a name isn't in the deferred set but IS in the full tool set,
-    // we still return it — the tool is already loaded, so "selecting" it
-    // is a harmless no-op that lets the model proceed without retry churn.
+    // 检查 select: 前缀 —— 直接选择工具。
+    // 支持逗号分隔的多选：`select:A,B,C`。
+    // 如果某个名称不在延迟集合中但在完整工具集中，
+    // 我们仍会返回它 —— 该工具已加载，因此"选择"它
+    // 是无害的空操作，可让模型无需反复重试即可继续。
     const selectMatch = query.match(/^select:(.+)$/i)
     if (selectMatch) {
       const requested = selectMatch[1]!
@@ -405,7 +405,7 @@ export const ToolSearchTool = buildTool({
       return buildSearchResult(found, query, deferredTools.length)
     }
 
-    // Keyword search
+    // 关键词搜索
     const matches = await searchToolsWithKeywords(
       query,
       deferredTools,
@@ -419,7 +419,7 @@ export const ToolSearchTool = buildTool({
 
     logSearchOutcome(matches, 'keyword')
 
-    // Include pending server info when search finds no matches
+    // 搜索无匹配时包含待定服务信息
     if (matches.length === 0) {
       const pendingServers = getPendingServerNames()
       return buildSearchResult(
@@ -437,9 +437,9 @@ export const ToolSearchTool = buildTool({
   },
   userFacingName: () => '',
   /**
-   * Returns a tool_result with tool_reference blocks.
-   * This format works on 1P/Foundry. Bedrock/Vertex may not support
-   * client-side tool_reference expansion yet.
+   * 返回带 tool_reference 块的 tool_result。
+   * 该格式在 1P/Foundry 上可用。Bedrock/Vertex 可能尚不支持
+   * 客户端侧的 tool_reference 展开。
    */
   mapToolResultToToolResultBlockParam(
     content: Output,

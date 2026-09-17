@@ -74,16 +74,16 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
     const teamName = appState.teamContext?.teamName
 
     if (teamName) {
-      // Read team config to check for active members
+      // 读取团队配置以检查活跃成员
       const teamFile = readTeamFile(teamName)
       if (teamFile) {
-        // Filter out the team lead - only count non-lead members
+        // 过滤掉团队 leader - 只统计非 leader 成员
         const nonLeadMembers = teamFile.members.filter(
           m => m.name !== TEAM_LEAD_NAME,
         )
 
-        // Separate truly active members from idle/dead ones
-        // Members with isActive === false are idle (finished their turn or crashed)
+        // 将真正活跃的成员与空闲/已死成员区分开
+        // isActive === false 的成员处于空闲（已结束回合或已崩溃）
         const activeMembers = nonLeadMembers.filter(m => m.isActive !== false)
 
         if (activeMembers.length > 0) {
@@ -99,13 +99,13 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
       }
 
       await cleanupTeamDirectories(teamName)
-      // Already cleaned — don't try again on gracefulShutdown.
+      // 已清理 —— 不要在 gracefulShutdown 时重试。
       unregisterTeamForSessionCleanup(teamName)
 
-      // Clear color assignments so new teams start fresh
+      // 清除颜色分配，让新团队从零开始
       clearTeammateColors()
 
-      // Clear leader team name so getTaskListId() falls back to session ID
+      // 清除 leader 的团队名称，使 getTaskListId() 回退到会话 ID
       clearLeaderTeamName()
 
       logEvent('limkenion_team_deleted', {
@@ -114,12 +114,12 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
       })
     }
 
-    // Clear team context and inbox from app state
+    // 从应用状态中清除团队上下文和收件箱
     setAppState(prev => ({
       ...prev,
       teamContext: undefined,
       inbox: {
-        messages: [], // Clear any queued messages
+        messages: [], // 清除所有已排队消息
       },
     }))
 

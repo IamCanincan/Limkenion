@@ -19,8 +19,8 @@ export async function call(): Promise<{ type: 'text'; value: string }> {
 
   const keybindingsPath = getKeybindingsPath()
 
-  // Write template with 'wx' flag (exclusive create) — fails with EEXIST if
-  // the file already exists. Avoids a stat pre-check (TOCTOU race + extra syscall).
+  // 以 'wx' 标志写入模板（独占创建）—— 若文件已存在则会以 EEXIST
+  // 失败。这样可避免 stat 预检查（TOCTOU 竞态 + 额外的系统调用）。
   let fileExists = false
   await mkdir(dirname(keybindingsPath), { recursive: true })
   try {
@@ -36,7 +36,7 @@ export async function call(): Promise<{ type: 'text'; value: string }> {
     }
   }
 
-  // Open in editor
+  // 在编辑器中打开
   const result = await editFileInEditor(keybindingsPath)
   if (result.error) {
     return {

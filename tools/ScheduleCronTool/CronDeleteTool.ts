@@ -68,7 +68,7 @@ export const CronDeleteTool = buildTool({
         errorCode: 1,
       }
     }
-    // Teammates may only delete their own crons.
+    // teammate 只能删除自己的 cron。
     const ctx = getTeammateContext()
     if (ctx && task.agentId !== ctx.agentId) {
       return {

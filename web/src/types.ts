@@ -1,10 +1,10 @@
-/** Shared protocol + view types for the Limkenion web client. */
+/** Limkenion web 客户端共用的协议类型与视图类型。 */
 
 // ---------------------------------------------------------------------------
-// Wire protocol (client ⇄ server over WebSocket)
+// 线上协议（客户端 ⇄ 服务端，走 WebSocket）
 // ---------------------------------------------------------------------------
 
-/** Client → server messages. */
+/** 客户端 → 服务端消息。 */
 export type ClientMessage =
   | { type: 'new_session' }
   | { type: 'select_session'; sessionId: string }
@@ -23,7 +23,7 @@ export type ClientMessage =
   | { type: 'permission_response'; requestId: string; decision: 'allow' | 'always' | 'deny' }
   | { type: 'question_response'; requestId: string; answers: QuestionAnswer[] }
 
-/** Server → client messages. */
+/** 服务端 → 客户端消息。 */
 export type ServerMessage =
   | { type: 'hello'; sessions: SessionInfo[]; serverVersion: string }
   | { type: 'session_messages'; sessionId: string; messages: ChatMessage[] }
@@ -89,7 +89,7 @@ export type ServerMessage =
   | { type: 'error'; message: string }
 
 // ---------------------------------------------------------------------------
-// View models
+// 视图模型
 // ---------------------------------------------------------------------------
 
 export interface TokenUsage {
@@ -115,10 +115,10 @@ export type ToolCallStatus = 'running' | 'done' | 'error'
 export interface ToolCall {
   id: string
   name: string
-  /** Compact one-line summary of the tool input, e.g. a file path or command. */
+  /** 工具输入的紧凑单行摘要，例如文件路径或命令。 */
   input: string
   status: ToolCallStatus
-  /** Full input payload (JSON-ish text), shown when expanded. */
+  /** 完整输入载荷（类 JSON 文本），展开时展示。 */
   inputDetail?: string
   result?: string
   durationMs?: number
@@ -140,11 +140,11 @@ export interface ChatMessage {
   images?: ImageAttachment[]
   /** DeepSeek 思维链（reasoning_content），思考模型回台时存在。 */
   reasoning?: string
-  /** True while the assistant text is still streaming in. */
+  /** 助手正文仍在流式输出时为 true。 */
   streaming?: boolean
-  /** True while the reasoning chain is still streaming in. */
+  /** 思维链仍在流式输出时为 true。 */
   reasoningStreaming?: boolean
-  /** Tool calls that happened inside this assistant turn ("turn process"). */
+  /** 本助手回合内发生的工具调用（即「回合过程」）。 */
   toolCalls?: ToolCall[]
   usage?: TokenUsage
   timestamp: number
@@ -159,12 +159,12 @@ export interface SessionInfo {
   tags?: string[]
 }
 
-/** A CLI slash command, mirrored from the commands registry index files. */
+/** 一条 CLI 斜杠命令，镜像自命令注册表的索引文件。 */
 export interface CommandInfo {
   name: string
   description: string
   aliases: string[]
-  /** Short usage hint, e.g. "[model]". */
+  /** 简短用法提示，例如 "[model]"。 */
   argumentHint?: string
 }
 
@@ -189,9 +189,9 @@ export interface QuestionAnswer {
 }
 
 export interface UsageStats {
-  /** Tokens aggregated over all sessions this server run. */
+  /** 本次服务运行期间所有会话累计的 token。 */
   total: TokenUsage
-  /** Tokens for the given (last queried) session. */
+  /** 给定（最近一次查询的）会话的 token。 */
   session: TokenUsage
   sessionCount: number
   turnCount: number

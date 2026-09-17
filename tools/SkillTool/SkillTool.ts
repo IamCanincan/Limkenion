@@ -75,14 +75,14 @@ import {
 } from './UI.js'
 
 /**
- * Gets all commands including MCP skills/prompts from AppState.
- * SkillTool needs this because getCommands() only returns local/bundled skills.
+ * 从 AppState 获取所有命令，包括 MCP 技能/提示词。
+ * SkillTool 需要它，因为 getCommands() 只返回本地/内置技能。
  */
 async function getAllCommands(context: ToolUseContext): Promise<Command[]> {
-  // Only include MCP skills (loadedFrom === 'mcp'), not plain MCP prompts.
-  // Before this filter, the model could invoke MCP prompts via SkillTool
-  // if it guessed the mcp__server__prompt name — they weren't discoverable
-  // but were technically reachable.
+  // 只包含 MCP 技能（loadedFrom === 'mcp'），不包含普通的 MCP 提示词。
+  // 在此过滤之前，模型若猜到 mcp__server__prompt 名称，
+  // 就能通过 SkillTool 调用 MCP 提示词 —— 它们不可被发现，
+  // 但技术上可达。
   const mcpSkills = context
     .getAppState()
     .mcp.commands.filter(
@@ -93,17 +93,17 @@ async function getAllCommands(context: ToolUseContext): Promise<Command[]> {
   return uniqBy([...localCommands, ...mcpSkills], 'name')
 }
 
-// Re-export Progress from centralized types to break import cycles
+// 从集中式类型重新导出 Progress 以打破导入循环
 export type { SkillToolProgress as Progress } from '../../types/tools.js'
 
 import type { SkillToolProgress as Progress } from '../../types/tools.js'
 
-// Conditional require for remote skill modules — static imports here would
-// pull in akiBackend.ts (via remoteSkillLoader → akiBackend), which has
-// module-level memoize()/lazySchema() consts that survive tree-shaking as
-// side-effecting initializers. All usages are inside
-// feature('EXPERIMENTAL_SKILL_SEARCH') guards, so remoteSkillModules is
-// non-null at every call site.
+// 对远程技能模块使用条件式 require —— 这里的静态导入会
+// 引入 akiBackend.ts（经由 remoteSkillLoader → akiBackend），其中
+// 模块级的 memoize()/lazySchema() 常量会作为有副作用的初始化器
+// 在 tree-shaking 中存活。所有使用点都在
+// feature('EXPERIMENTAL_SKILL_SEARCH') 守卫内，因此在每个调用点
+// remoteSkillModules 都非空。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const remoteSkillModules = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? {
@@ -116,8 +116,8 @@ const remoteSkillModules = feature('EXPERIMENTAL_SKILL_SEARCH')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
- * Executes a skill in a forked sub-agent context.
- * This runs the skill prompt in an isolated agent with its own token budget.
+ * 在 fork 出的子 agent 上下文中执行技能。
+ * 这会在拥有独立 token 预算的隔离 agent 中运行技能提示词。
  */
 async function executeForkedSkill(
   command: Command & { type: 'prompt' },
@@ -152,9 +152,9 @@ async function executeForkedSkill(
   logEvent('limkenion_skill_tool_invocation', {
     command_name:
       forkedSanitizedName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    // _PROTO_skill_name routes to the privileged skill_name BQ column
-    // (unredacted, all users); command_name stays in additional_metadata as
-    // the redacted variant for general-access dashboards.
+    // _PROTO_skill_name 路由到有权限的 skill_name BQ 列
+    // （未脱敏，面向所有用户）；command_name 保留在 additional_metadata 中
+    // 作为供通用访问看板使用的脱敏变体。
     _PROTO_skill_name:
       commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
     execution_context:
@@ -170,9 +170,9 @@ async function executeForkedSkill(
     ...wasDiscoveredField,
     
     ...(command.pluginInfo && {
-      // _PROTO_* routes to PII-tagged plugin_name/marketplace_name BQ columns
-      // (unredacted, all users); plugin_name/plugin_repository stay in
-      // additional_metadata as redacted variants.
+      // _PROTO_* 路由到带 PII 标记的 plugin_name/marketplace_name BQ 列
+      // （未脱敏，面向所有用户）；plugin_name/plugin_repository 保留在
+      // additional_metadata 中作为脱敏变体。
       _PROTO_plugin_name: command.pluginInfo.pluginManifest
         .name as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       ...(pluginMarketplace && {
@@ -192,13 +192,13 @@ async function executeForkedSkill(
   const { modifiedGetAppState, baseAgent, promptMessages, skillContent } =
     await prepareForkedCommandContext(command, args || '', context)
 
-  // Merge skill's effort into the agent definition so runAgent applies it
+  // 将技能的 effort 合并进 agent 定义，以便 runAgent 应用它
   const agentDefinition =
     command.effort !== undefined
       ? { ...baseAgent, effort: command.effort }
       : baseAgent
 
-  // Collect messages from the forked agent
+  // 收集来自 fork 出的 agent 的消息
   const agentMessages: Message[] = []
 
   logForDebugging(
@@ -206,7 +206,7 @@ async function executeForkedSkill(
   )
 
   try {
-    // Run the sub-agent
+    // 运行子代理
     for await (const message of runAgent({
       agentDefinition,
       promptMessages,
@@ -223,7 +223,7 @@ async function executeForkedSkill(
     })) {
       agentMessages.push(message)
 
-      // Report progress for tool uses (like AgentTool does)
+      // 为工具调用上报进度（与 AgentTool 的做法一致）
       if (
         (message.type === 'assistant' || message.type === 'user') &&
         onProgress
@@ -252,7 +252,7 @@ async function executeForkedSkill(
       agentMessages,
       'Skill execution completed',
     )
-    // Release message memory after extracting result
+    // 提取结果后释放消息内存
     agentMessages.length = 0
 
     const durationMs = Date.now() - startTime
@@ -270,7 +270,7 @@ async function executeForkedSkill(
       },
     }
   } finally {
-    // Release skill content from invokedSkills state
+    // 从 invokedSkills 状态中释放技能内容
     clearInvokedSkillsForAgent(agentId)
   }
 }
@@ -330,16 +330,16 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
 
   prompt: async () => getPrompt(getProjectRoot()),
 
-  // Only one skill/command should run at a time, since the tool expands the
-  // command into a full prompt that Limkenion must process before continuing.
-  // Skill-coach needs the skill name to avoid false-positive "you could have
-  // used skill X" suggestions when X was actually invoked. Backseat classifies
-  // downstream tool calls from the expanded prompt, not this wrapper, so the
-  // name alone is sufficient — it just records that the skill fired.
+  // 同一时间只应运行一个技能/命令，因为该工具会把
+  // 命令展开为完整提示词，Limkenion 必须先处理完才能继续。
+  // Skill-coach 需要技能名称，以避免在 X 确实被调用时
+  // 误报 "you could have used skill X" 建议。Backseat 会从展开后的
+  // 提示词（而非这个包装器）归类下游工具调用，因此
+  // 仅凭名称就足够了 —— 它只是记录技能被触发过。
   toAutoClassifierInput: ({ skill }) => skill ?? '',
 
   async validateInput({ skill }, context): Promise<ValidationResult> {
-    // Skills are just skill names, no arguments
+    // 技能只是技能名称，没有参数
     const trimmed = skill.trim()
     if (!trimmed) {
       return {
@@ -349,7 +349,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Remove leading slash if present (for compatibility)
+    // 若存在前导斜杠则移除（为兼容性）
     const hasLeadingSlash = trimmed.startsWith('/')
     if (hasLeadingSlash) {
       logEvent('limkenion_skill_tool_slash_prefix', {})
@@ -358,9 +358,9 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       ? trimmed.substring(1)
       : trimmed
 
-    // Remote canonical skill handling (ant-only experimental). Intercept
-    // `_canonical_<slug>` names before local command lookup since remote
-    // skills are not in the local command registry.
+    // 远程规范技能处理（仅 ant 的实验特性）。在本地命令查找之前
+    // 拦截 `_canonical_<slug>` 名称，因为远程
+    // 技能不在本地命令注册表中。
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
       false
@@ -377,15 +377,15 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
             errorCode: 6,
           }
         }
-        // Discovered remote skill — valid. Loading happens in call().
+        // 发现远程技能 —— 有效。加载发生在 call() 中。
         return { result: true }
       }
     }
 
-    // Get available commands (including MCP skills)
+    // 获取可用命令（包括 MCP 技能）
     const commands = await getAllCommands(context)
 
-    // Check if command exists
+    // 检查命令是否存在
     const foundCommand = findCommand(normalizedCommandName, commands)
     if (!foundCommand) {
       return {
@@ -395,7 +395,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Check if command has model invocation disabled
+    // 检查命令是否禁用了模型调用
     if (foundCommand.disableModelInvocation) {
       return {
         result: false,
@@ -404,7 +404,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Check if command is a prompt-based command
+    // 检查命令是否为基于提示词的命令
     if (foundCommand.type !== 'prompt') {
       return {
         result: false,
@@ -420,40 +420,40 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     { skill, args },
     context,
   ): Promise<PermissionDecision> {
-    // Skills are just skill names, no arguments
+    // 技能只是技能名称，没有参数
     const trimmed = skill.trim()
 
-    // Remove leading slash if present (for compatibility)
+    // 若存在前导斜杠则移除（为兼容性）
     const commandName = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed
 
     const appState = context.getAppState()
     const permissionContext = appState.toolPermissionContext
 
-    // Look up the command object to pass as metadata
+    // 查找命令对象以作为元数据传入
     const commands = await getAllCommands(context)
     const commandObj = findCommand(commandName, commands)
 
-    // Helper function to check if a rule matches the skill
-    // Normalizes both inputs by stripping leading slashes for consistent matching
+    // 用于检查规则是否匹配该技能的辅助函数
+    // 通过剥离前导斜杠来规范化两个输入，以保证匹配一致
     const ruleMatches = (ruleContent: string): boolean => {
-      // Normalize rule content by stripping leading slash
+      // 通过剥离前导斜杠规范化规则内容
       const normalizedRule = ruleContent.startsWith('/')
         ? ruleContent.substring(1)
         : ruleContent
 
-      // Check exact match (using normalized commandName)
+      // 检查精确匹配（使用规范化后的 commandName）
       if (normalizedRule === commandName) {
         return true
       }
-      // Check prefix match (e.g., "review:*" matches "review-pr 123")
+      // 检查前缀匹配（例如 "review:*" 匹配 "review-pr 123"）
       if (normalizedRule.endsWith(':*')) {
-        const prefix = normalizedRule.slice(0, -2) // Remove ':*'
+        const prefix = normalizedRule.slice(0, -2) // 移除 ':*'
         return commandName.startsWith(prefix)
       }
       return false
     }
 
-    // Check for deny rules
+    // 检查拒绝规则
     const denyRules = getRuleByContentsForTool(
       permissionContext,
       SkillTool as Tool,
@@ -472,10 +472,10 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Remote canonical skills are ant-only experimental — auto-grant.
-    // Placed AFTER the deny loop so a user-configured Skill(_canonical_:*)
-    // deny rule is honored (same pattern as safe-properties auto-allow below).
-    // The skill content itself is canonical/curated, not user-authored.
+    // 远程规范技能是仅 ant 的实验特性 —— 自动授权。
+    // 放在拒绝循环之后，以便用户配置的 Skill(_canonical_:*)
+    // 拒绝规则得到尊重（与下方安全属性自动允许的模式相同）。
+    // 技能内容本身是规范/精选的，而非用户编写。
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
       false
@@ -490,7 +490,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Check for allow rules
+    // 检查允许规则
     const allowRules = getRuleByContentsForTool(
       permissionContext,
       SkillTool as Tool,
@@ -509,10 +509,10 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Auto-allow skills that only use safe properties.
-    // This is an allowlist: if a skill has any property NOT in this set with a
-    // meaningful value, it requires permission. This ensures new properties added
-    // in the future default to requiring permission.
+    // 自动允许仅使用安全属性的技能。
+    // 这是一个允许列表：如果技能有任何一个不在该集合中且
+    // 具有实际值的属性，就需要权限。这确保未来新增的属性
+    // 默认需要权限。
     if (
       commandObj?.type === 'prompt' &&
       skillHasOnlySafeProperties(commandObj)
@@ -524,10 +524,10 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Prepare suggestions for exact skill and prefix
-    // Use normalized commandName (without leading slash) for consistent rules
+    // 为精确技能和前缀准备建议
+    // 使用规范化后的 commandName（不带前导斜杠）以保证规则一致
     const suggestions = [
-      // Exact skill suggestion
+      // 精确技能建议
       {
         type: 'addRules' as const,
         rules: [
@@ -539,7 +539,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
         behavior: 'allow' as const,
         destination: 'localSettings' as const,
       },
-      // Prefix suggestion to allow any args
+      // 允许任意参数的前缀建议
       {
         type: 'addRules' as const,
         rules: [
@@ -553,7 +553,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       },
     ]
 
-    // Default behavior: ask user for permission
+    // 默认行为：向用户请求权限
     return {
       behavior: 'ask',
       message: `Execute skill: ${commandName}`,
@@ -571,24 +571,24 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     parentMessage,
     onProgress?,
   ): Promise<ToolResult<Output>> {
-    // At this point, validateInput has already confirmed:
-    // - Skill format is valid
-    // - Skill exists
-    // - Skill can be loaded
-    // - Skill doesn't have disableModelInvocation
-    // - Skill is a prompt-based skill
+    // 此时 validateInput 已确认：
+    // - 技能格式有效
+    // - 技能存在
+    // - 技能可加载
+    // - 技能没有 disableModelInvocation
+    // - 技能是基于提示词的技能
 
-    // Skills are just names, with optional arguments
+    // 技能只是名称，可带可选参数
     const trimmed = skill.trim()
 
-    // Remove leading slash if present (for compatibility)
+    // 若存在前导斜杠则移除（为兼容性）
     const commandName = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed
 
-    // Remote canonical skill execution (ant-only experimental). Intercepts
-    // `_canonical_<slug>` before local command lookup — loads SKILL.md from
-    // AKI/GCS (with local cache), injects content directly as a user message.
-    // Remote skills are declarative markdown so no slash-command expansion
-    // (no !command substitution, no $ARGUMENTS interpolation) is needed.
+    // 远程规范技能执行（仅 ant 的实验特性）。在本地命令查找之前
+    // 拦截 `_canonical_<slug>` —— 从 AKI/GCS 加载 SKILL.md
+    // （带本地缓存），将内容直接作为用户消息注入。
+    // 远程技能是声明式 markdown，因此无需斜杠命令展开
+    // （无需 !command 替换，也无需 $ARGUMENTS 插值）。
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
       false
@@ -602,10 +602,10 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     const commands = await getAllCommands(context)
     const command = findCommand(commandName, commands)
 
-    // Track skill usage for ranking
+    // 跟踪技能使用情况用于排序
     recordSkillUsage(commandName)
 
-    // Check if skill should run as a forked sub-agent
+    // 检查技能是否应作为 fork 的子 agent 运行
     if (command?.type === 'prompt' && command.context === 'fork') {
       return executeForkedSkill(
         command,
@@ -618,13 +618,13 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       )
     }
 
-    // Process the skill with optional args
+    // 处理带可选参数的技能
     const { processPromptSlashCommand } = await import(
       'src/utils/processUserInput/processSlashCommand.js'
     )
     const processedCommand = await processPromptSlashCommand(
       commandName,
-      args || '', // Pass args if provided
+      args || '', // 若提供了参数则传入
       commands,
       context,
     )
@@ -633,7 +633,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       throw new Error('Command processing failed')
     }
 
-    // Extract metadata from the command
+    // 从命令中提取元数据
     const allowedTools = processedCommand.allowedTools || []
     const model = processedCommand.model
     const effort = command?.type === 'prompt' ? command.effort : undefined
@@ -662,9 +662,9 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     logEvent('limkenion_skill_tool_invocation', {
       command_name:
         sanitizedCommandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      // _PROTO_skill_name routes to the privileged skill_name BQ column
-      // (unredacted, all users); command_name stays in additional_metadata as
-      // the redacted variant for general-access dashboards.
+      // _PROTO_skill_name 路由到有权限的 skill_name BQ 列
+      // （未脱敏，面向所有用户）；command_name 保留在 additional_metadata 中
+      // 作为供通用访问看板使用的脱敏变体。
       _PROTO_skill_name:
         commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       execution_context:
@@ -697,20 +697,20 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
         }),
     })
 
-    // Get the tool use ID from the parent message for linking newMessages
+    // 从父消息中获取工具调用 ID，用于关联 newMessages
     const toolUseID = getToolUseIDFromParentMessage(
       parentMessage,
       SKILL_TOOL_NAME,
     )
 
-    // Tag user messages with sourceToolUseID so they stay transient until this tool resolves
+    // 用 sourceToolUseID 标记用户消息，使其在本工具完成前保持瞬态
     const newMessages = tagMessagesWithToolUseID(
       processedCommand.messages.filter(
         (m): m is UserMessage | AttachmentMessage | SystemMessage => {
           if (m.type === 'progress') {
             return false
           }
-          // Filter out command-message since SkillTool handles display
+          // 过滤掉 command-message，因为 SkillTool 负责展示
           if (m.type === 'user' && 'message' in m) {
             const content = m.message.content
             if (
@@ -730,12 +730,12 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       `SkillTool returning ${newMessages.length} newMessages for skill ${commandName}`,
     )
 
-    // Note: addInvokedSkill and registerSkillHooks are called inside
-    // processPromptSlashCommand (via getMessagesForPromptSlashCommand), so
-    // calling them again here would double-register hooks and rebuild
-    // skillContent redundantly.
+    // 注意：addInvokedSkill 和 registerSkillHooks 会在
+    // processPromptSlashCommand 内部调用（经由 getMessagesForPromptSlashCommand），
+    // 因此在这里再次调用会重复注册钩子并多余地重建
+    // skillContent。
 
-    // Return success with newMessages and contextModifier
+    // 返回带有 newMessages 和 contextModifier 的成功结果
     return {
       data: {
         success: true,
@@ -747,15 +747,15 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       contextModifier(ctx) {
         let modifiedContext = ctx
 
-        // Update allowed tools if specified
+        // 若指定了允许的工具则更新
         if (allowedTools.length > 0) {
-          // Capture the current getAppState to chain modifications properly
+          // 捕获当前的 getAppState，以便正确串联修改
           const previousGetAppState = modifiedContext.getAppState
           modifiedContext = {
             ...modifiedContext,
             getAppState() {
-              // Use the previous getAppState, not the closure's context.getAppState,
-              // to properly chain context modifications
+              // 使用上一次的 getAppState，而不是闭包中的 context.getAppState，
+              // 以正确串联上下文修改
               const appState = previousGetAppState()
               return {
                 ...appState,
@@ -777,8 +777,8 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
           }
         }
 
-        // Carry [1m] suffix over — otherwise a skill with `model: opus` on an
-        // opus[1m] session drops the effective window to 200K and trips autocompact.
+        // 保留 [1m] 后缀 —— 否则在 opus[1m] 会话上使用 `model: opus` 的技能
+        // 会把有效窗口降到 200K 并触发自动压缩。
         if (model) {
           modifiedContext = {
             ...modifiedContext,
@@ -792,7 +792,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
           }
         }
 
-        // Override effort level if skill specifies one
+        // 若技能指定了 effort 级别则覆盖
         if (effort !== undefined) {
           const previousGetAppState = modifiedContext.getAppState
           modifiedContext = {
@@ -816,7 +816,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     result: Output,
     toolUseID: string,
   ): ToolResultBlockParam {
-    // Handle forked skill result
+    // 处理 fork 的技能结果
     if ('status' in result && result.status === 'forked') {
       return {
         type: 'tool_result' as const,
@@ -825,7 +825,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
       }
     }
 
-    // Inline skill result (default)
+    // 内联技能结果（默认）
     return {
       type: 'tool_result' as const,
       tool_use_id: toolUseID,
@@ -840,12 +840,12 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
   renderToolUseErrorMessage,
 } satisfies ToolDef<InputSchema, Output, Progress>)
 
-// Allowlist of PromptCommand property keys that are safe and don't require permission.
-// If a skill has any property NOT in this set with a meaningful value, it requires
-// permission. This ensures new properties added to PromptCommand in the future
-// default to requiring permission until explicitly reviewed and added here.
+// 安全且不需要权限的 PromptCommand 属性键允许列表。
+// 如果技能有任何一个不在该集合中且具有实际值的属性，就需要
+// 权限。这确保未来新增到 PromptCommand 的属性
+// 默认需要权限，直到被显式审查并加入此处。
 const SAFE_SKILL_PROPERTIES = new Set([
-  // PromptCommand properties
+  // PromptCommand 属性
   'type',
   'progressMessage',
   'contentLength',
@@ -860,7 +860,7 @@ const SAFE_SKILL_PROPERTIES = new Set([
   'agent',
   'getPromptForCommand',
   'frontmatterKeys',
-  // CommandBase properties
+  // CommandBase 属性
   'name',
   'description',
   'hasUserSpecifiedDescription',
@@ -884,7 +884,7 @@ function skillHasOnlySafeProperties(command: Command): boolean {
     if (SAFE_SKILL_PROPERTIES.has(key)) {
       continue
     }
-    // Property not in safe allowlist - check if it has a meaningful value
+    // 属性不在安全允许列表中 - 检查它是否有实际值
     const value = (command as Record<string, unknown>)[key]
     if (value === undefined || value === null) {
       continue
@@ -914,9 +914,9 @@ function isOfficialMarketplaceSkill(command: PromptCommand): boolean {
 }
 
 /**
- * Extract URL scheme for telemetry. Defaults to 'gs' for unrecognized schemes
- * since the AKI backend is the only production path and the loader throws on
- * unknown schemes before we reach telemetry anyway.
+ * 提取 URL scheme 用于遥测。对于无法识别的 scheme 默认使用 'gs'，
+ * 因为 AKI 后端是唯一的生产路径，而且加载器在我们到达遥测之前
+ * 就已经对未知 scheme 抛错。
  */
 function extractUrlScheme(url: string): 'gs' | 'http' | 'https' | 's3' {
   if (url.startsWith('gs://')) return 'gs'
@@ -927,16 +927,16 @@ function extractUrlScheme(url: string): 'gs' | 'http' | 'https' | 's3' {
 }
 
 /**
- * Load a remote canonical skill and inject its SKILL.md content into the
- * conversation. Unlike local skills (which go through processPromptSlashCommand
- * for !command / $ARGUMENTS expansion), remote skills are declarative markdown
- * — we wrap the content directly in a user message.
+ * 加载远程规范技能并将其 SKILL.md 内容注入
+ * 会话。与本地技能不同（本地技能会经过 processPromptSlashCommand
+ * 做 !command / $ARGUMENTS 展开），远程技能是声明式 markdown
+ * —— 我们直接把内容包装进一条用户消息。
  *
- * The skill is also registered with addInvokedSkill so it survives compaction
- * (same as local skills).
+ * 该技能也会通过 addInvokedSkill 注册，以便在上下文压缩后依然保留
+ * （与本地技能相同）。
  *
- * Only called from within a feature('EXPERIMENTAL_SKILL_SEARCH') guard in
- * call() — remoteSkillModules is non-null here.
+ * 仅在 call() 中的 feature('EXPERIMENTAL_SKILL_SEARCH') 守卫内
+ * 调用 —— 此处 remoteSkillModules 非空。
  */
 async function executeRemoteSkill(
   slug: string,
@@ -947,9 +947,9 @@ async function executeRemoteSkill(
   const { getDiscoveredRemoteSkill, loadRemoteSkill, logRemoteSkillLoaded } =
     remoteSkillModules!
 
-  // validateInput already confirmed this slug is in session state, but we
-  // re-fetch here to get the URL. If it's somehow gone (e.g., state cleared
-  // mid-session), fail with a clear error rather than crashing.
+  // validateInput 已确认该 slug 存在于会话状态中，但我们
+  // 在此重新获取以拿到 URL。如果它不知何故消失了（例如状态在
+  // 会话中途被清除），则给出明确错误而不是崩溃。
   const meta = getDiscoveredRemoteSkill(slug)
   if (!meta) {
     throw new Error(
@@ -993,17 +993,17 @@ async function executeRemoteSkill(
     fetchMethod,
   })
 
-  // Remote skills are always model-discovered (never in static skill_listing),
-  // so was_discovered is always true. is_remote lets BQ queries separate
-  // remote from local invocations without joining on skill name prefixes.
+  // 远程技能总是由模型发现的（从不出现在静态 skill_listing 中），
+  // 因此 was_discovered 始终为 true。is_remote 让 BQ 查询能够区分
+  // 远程与本地调用，而无需按技能名前缀做连接。
   const queryDepth = context.queryTracking?.depth ?? 0
   const parentAgentId = getAgentContext()?.agentId
   logEvent('limkenion_skill_tool_invocation', {
     command_name:
       'remote_skill' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    // _PROTO_skill_name routes to the privileged skill_name BQ column
-    // (unredacted, all users); command_name stays in additional_metadata as
-    // the redacted variant.
+    // _PROTO_skill_name 路由到有权限的 skill_name BQ 列
+    // （未脱敏，面向所有用户）；command_name 保留在 additional_metadata 中
+    // 作为脱敏变体。
     _PROTO_skill_name:
       commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
     execution_context:
@@ -1029,14 +1029,14 @@ async function executeRemoteSkill(
     `SkillTool loaded remote skill ${slug} (cacheHit=${cacheHit}, ${latencyMs}ms, ${content.length} chars)`,
   )
 
-  // Strip YAML frontmatter (---\nname: x\n---) before prepending the header
-  // (matches loadSkillsDir.ts:333). parseFrontmatter returns the original
-  // content unchanged if no frontmatter is present.
+  // 在添加头部之前剥离 YAML frontmatter（---\nname: x\n---）
+  // （与 loadSkillsDir.ts:333 一致）。若不存在 frontmatter，
+  // parseFrontmatter 会原样返回内容。
   const { content: bodyContent } = parseFrontmatter(content, skillPath)
 
-  // Inject base directory header + ${LIMKENION_SKILL_DIR}/${LIMKENION_SESSION_ID}
-  // substitution (matches loadSkillsDir.ts) so the model can resolve relative
-  // refs like ./schemas/foo.json against the cache dir.
+  // 注入基础目录头部 + ${LIMKENION_SKILL_DIR}/${LIMKENION_SESSION_ID}
+  // 替换（与 loadSkillsDir.ts 一致），以便模型能够针对缓存目录
+  // 解析诸如 ./schemas/foo.json 的相对引用。
   const skillDir = dirname(skillPath)
   const normalizedDir =
     process.platform === 'win32' ? skillDir.replace(/\\/g, '/') : skillDir
@@ -1047,11 +1047,11 @@ async function executeRemoteSkill(
     getSessionId(),
   )
 
-  // Register with compaction-preservation state. Use the cached file path so
-  // post-compact restoration knows where the content came from. Must use
-  // finalContent (not raw content) so the base directory header and
-  // ${LIMKENION_SKILL_DIR} substitutions survive compaction — matches how local
-  // skills store their already-transformed content via processSlashCommand.
+  // 注册到上下文压缩保留状态。使用缓存的文件路径，以便
+  // 压缩后恢复时知道内容来自何处。必须使用
+  // finalContent（而非原始内容），这样基础目录头部和
+  // ${LIMKENION_SKILL_DIR} 替换才能在压缩后保留 —— 与本地
+  // 技能通过 processSlashCommand 存储已转换内容的方式一致。
   addInvokedSkill(
     commandName,
     skillPath,
@@ -1059,8 +1059,8 @@ async function executeRemoteSkill(
     getAgentContext()?.agentId ?? null,
   )
 
-  // Direct injection — wrap SKILL.md content in a meta user message. Matches
-  // the shape of what processPromptSlashCommand produces for simple skills.
+  // 直接注入 —— 将 SKILL.md 内容包装进一条 meta 用户消息。与
+  // processPromptSlashCommand 为简单技能产出的结构一致。
   const toolUseID = getToolUseIDFromParentMessage(
     parentMessage,
     SKILL_TOOL_NAME,

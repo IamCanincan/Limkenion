@@ -76,11 +76,11 @@ export const ListMcpResourcesTool = buildTool({
       )
     }
 
-    // fetchResourcesForClient is LRU-cached (by server name) and already
-    // warm from startup prefetch. Cache is invalidated on onclose and on
-    // resources/list_changed notifications, so results are never stale.
-    // ensureConnectedClient is a no-op when healthy (memoize hit), but after
-    // onclose it returns a fresh connection so the re-fetch succeeds.
+    // fetchResourcesForClient 有 LRU 缓存（按服务器名），且已
+    // 因启动预取而处于热态。缓存在 onclose 和
+    // resources/list_changed 通知时失效，因此结果永不过期。
+    // ensureConnectedClient 在健康时是空操作（命中记忆化），但在
+    // onclose 之后会返回新连接，使重新抓取能够成功。
     const results = await Promise.all(
       clientsToProcess.map(async client => {
         if (client.type !== 'connected') return []
@@ -88,7 +88,7 @@ export const ListMcpResourcesTool = buildTool({
           const fresh = await ensureConnectedClient(client)
           return await fetchResourcesForClient(fresh)
         } catch (error) {
-          // One server's reconnect failure shouldn't sink the whole result.
+          // 单个服务器的重连失败不应拖垮整个结果。
           logMCPError(client.name, errorMessage(error))
           return []
         }

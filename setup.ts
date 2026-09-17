@@ -66,7 +66,7 @@ export async function setup(
 ): Promise<void> {
   logForDiagnosticsNoPII('info', 'setup_started')
 
-  // Check for Node.js version < 18
+  // 检查 Node.js 版本是否低于 18
   const nodeVersion = process.version.match(/^v(\d+)\./)?.[1]
   if (!nodeVersion || parseInt(nodeVersion) < 18) {
     // biome-ignore lint/suspicious/noConsole:: intentional console output
@@ -78,20 +78,20 @@ export async function setup(
     process.exit(1)
   }
 
-  // Set custom session ID if provided
+  // 若提供了自定义会话 ID 则进行设置
   if (customSessionId) {
     switchSession(asSessionId(customSessionId))
   }
 
-  // --bare / SIMPLE: skip UDS messaging server and teammate snapshot.
-  // Scripted calls don't receive injected messages and don't use swarm teammates.
-  // Explicit --messaging-socket-path is the escape hatch (per #23222 gate pattern).
+  // --bare / SIMPLE：跳过 UDS 消息服务与 teammate 快照。
+  // 脚本化调用不会收到注入消息，也不使用 swarm teammate。
+  // 显式传入 --messaging-socket-path 是逃生舱（沿用 #23222 的门禁模式）。
   if (!isBareMode() || messagingSocketPath !== undefined) {
-    // Start UDS messaging server (Mac/Linux only).
-    // Enabled by default for ants — creates a socket in tmpdir if no
-    // --messaging-socket-path is passed. Awaited so the server is bound
-    // and $LIMKENION_MESSAGING_SOCKET is exported before any hook
-    // (SessionStart in particular) can spawn and snapshot process.env.
+    // 启动 UDS 消息服务（仅 Mac/Linux）。
+    // 对 ant 默认启用 —— 若未传 --messaging-socket-path，就在 tmpdir 中
+    // 创建一个 socket。这里要 await，确保在任何钩子（尤其是 SessionStart）
+    // 派生子进程并快照 process.env 之前，服务已绑定且
+    // $LIMKENION_MESSAGING_SOCKET 已导出。
     if (feature('UDS_INBOX')) {
       const m = await import('./utils/udsMessaging.js')
       await m.startUdsMessaging(
@@ -101,7 +101,7 @@ export async function setup(
     }
   }
 
-  // Teammate snapshot — SIMPLE-only gate (no escape hatch, swarm not used in bare)
+  // Teammate 快照 —— 仅 SIMPLE 的门禁（没有逃生舱，bare 下不使用 swarm）
   if (!isBareMode() && isAgentSwarmsEnabled()) {
     const { captureTeammateModeSnapshot } = await import(
       './utils/swarm/backends/teammateModeSnapshot.js'
@@ -109,11 +109,10 @@ export async function setup(
     captureTeammateModeSnapshot()
   }
 
-  // Terminal backup restoration — interactive only. Print mode doesn't
-  // interact with terminal settings; the next interactive session will
-  // detect and restore any interrupted setup.
+  // 终端备份恢复 —— 仅交互模式。print 模式不与终端设置交互；
+  // 下一次交互式会话会检测并恢复任何被中断的设置。
   if (!getIsNonInteractiveSession()) {
-    // iTerm2 backup check only when swarms enabled
+    // 仅在启用 swarm 时检查 iTerm2 备份
     if (isAgentSwarmsEnabled()) {
       const restoredIterm2Backup = await checkAndRestoreITerm2Backup()
       if (restoredIterm2Backup.status === 'restored') {
@@ -133,7 +132,7 @@ export async function setup(
       }
     }
 
-    // Check and restore Terminal.app backup if setup was interrupted
+    // 若设置过程曾被中断，则检查并恢复 Terminal.app 备份
     try {
       const restoredTerminalBackup = await checkAndRestoreTerminalBackup()
       if (restoredTerminalBackup.status === 'restored') {
@@ -152,30 +151,30 @@ export async function setup(
         )
       }
     } catch (error) {
-      // Log but don't crash if Terminal.app backup restoration fails
+      // 若 Terminal.app 备份恢复失败则记录日志，但不要崩溃
       logError(error)
     }
   }
 
-  // IMPORTANT: setCwd() must be called before any other code that depends on the cwd
+  // 重要：setCwd() 必须在任何其他依赖 cwd 的代码之前调用
   setCwd(cwd)
 
-  // Capture hooks configuration snapshot to avoid hidden hook modifications.
-  // IMPORTANT: Must be called AFTER setCwd() so hooks are loaded from the correct directory
+  // 捕获钩子配置的快照，以避免隐藏的钩子修改。
+  // 重要：必须在 setCwd() 之后调用，好让钩子从正确的目录加载
   const hooksStart = Date.now()
   captureHooksConfigSnapshot()
   logForDiagnosticsNoPII('info', 'setup_hooks_captured', {
     duration_ms: Date.now() - hooksStart,
   })
 
-  // Initialize FileChanged hook watcher — sync, reads hook config snapshot
+  // 初始化 FileChanged 钩子监听器 —— 同步执行，读取钩子配置快照
   initializeFileChangedWatcher(cwd)
 
-  // Handle worktree creation if requested
-  // IMPORTANT: this must be called befiore getCommands(), otherwise /eject won't be available.
+  // 若请求了则处理 worktree 创建
+  // 重要：这必须在 getCommands() 之前调用，否则 /eject 将不可用。
   if (worktreeEnabled) {
-    // Mirrors bridgeMain.ts: hook-configured sessions can proceed without git
-    // so createWorktreeForSession() can delegate to the hook (non-git VCS).
+    // 与 bridgeMain.ts 对应：由钩子配置的会话可以在没有 git 的情况下继续，
+    // 这样 createWorktreeForSession() 才能委派给钩子（非 git 的 VCS）。
     const hasHook = hasWorktreeCreateHook()
     const inGit = await getIsGit()
     if (!hasHook && !inGit) {
@@ -192,14 +191,14 @@ export async function setup(
       ? `pr-${worktreePRNumber}`
       : (worktreeName ?? getPlanSlug())
 
-    // Git preamble runs whenever we're in a git repo — even if a hook is
-    // configured — so --tmux keeps working for git users who also have a
-    // WorktreeCreate hook. Only hook-only (non-git) mode skips it.
+    // 只要我们在 git 仓库中，就会执行 git preamble —— 即使配置了钩子 ——
+    // 这样 --tmux 对同时配置了 WorktreeCreate 钩子的 git 用户仍然可用。
+    // 只有纯钩子（非 git）模式才会跳过它。
     let tmuxSessionName: string | undefined
     if (inGit) {
-      // Resolve to main repo root (handles being invoked from within a worktree).
-      // findCanonicalGitRoot is sync/filesystem-only/memoized; the underlying
-      // findGitRoot cache was already warmed by getIsGit() above, so this is ~free.
+      // 解析到主仓库根目录（处理从 worktree 内部被调用的情况）。
+      // findCanonicalGitRoot 是同步的、只访问文件系统、且带记忆化；
+      // 底层的 findGitRoot 缓存已由上面的 getIsGit() 预热，因此这里几乎免费。
       const mainRepoRoot = findCanonicalGitRoot(getCwd())
       if (!mainRepoRoot) {
         process.stderr.write(
@@ -210,7 +209,7 @@ export async function setup(
         process.exit(1)
       }
 
-      // If we're inside a worktree, switch to the main repo for worktree creation
+      // 如果我们在 worktree 内部，就切到主仓库去创建 worktree
       if (mainRepoRoot !== (findGitRoot(getCwd()) ?? getCwd())) {
         logForDiagnosticsNoPII('info', 'worktree_resolved_to_main_repo')
         process.chdir(mainRepoRoot)
@@ -221,8 +220,8 @@ export async function setup(
         ? generateTmuxSessionName(mainRepoRoot, worktreeBranchName(slug))
         : undefined
     } else {
-      // Non-git hook mode: no canonical root to resolve, so name the tmux
-      // session from cwd — generateTmuxSessionName only basenames the path.
+      // 非 git 钩子模式：没有规范根目录可解析，因此用 cwd 命名
+      // tmux 会话 —— generateTmuxSessionName 只取路径的最后一段。
       tmuxSessionName = tmuxEnabled
         ? generateTmuxSessionName(getCwd(), worktreeBranchName(slug))
         : undefined
@@ -245,7 +244,7 @@ export async function setup(
 
     logEvent('limkenion_worktree_created', { tmux_enabled: tmuxEnabled })
 
-    // Create tmux session for the worktree if enabled
+    // 若已启用，则为 worktree 创建 tmux 会话
     if (tmuxEnabled && tmuxSessionName) {
       const tmuxResult = await createTmuxSessionForWorktree(
         tmuxSessionName,
@@ -271,27 +270,29 @@ export async function setup(
     process.chdir(worktreeSession.worktreePath)
     setCwd(worktreeSession.worktreePath)
     setOriginalCwd(getCwd())
-    // --worktree means the worktree IS the session's project, so skills/hooks/
-    // cron/etc. should resolve here. (EnterWorktreeTool mid-session does NOT
-    // touch projectRoot — that's a throwaway worktree, project stays stable.)
+    // --worktree 意味着该 worktree 就是本次会话的项目，
+    // 因此技能/钩子/cron 等都应在此解析。（会话中途的
+    // EnterWorktreeTool 不会改动 projectRoot —— 那是一次性的
+    // worktree，项目保持不变。）
     setProjectRoot(getCwd())
     saveWorktreeState(worktreeSession)
-    // Clear memory files cache since originalCwd has changed
+    // 清空记忆文件缓存，因为 originalCwd 已改变
     clearMemoryFileCaches()
-    // Settings cache was populated in init() (via applySafeConfigEnvironmentVariables)
-    // and again at captureHooksConfigSnapshot() above, both from the original dir's
-    // .limkenion/settings.json. Re-read from the worktree and re-capture hooks.
+    // 设置缓存已在 init() 中（通过 applySafeConfigEnvironmentVariables）
+    // 以及上面 captureHooksConfigSnapshot() 时填充过，两者都来自
+    // 原目录的 .limkenion/settings.json。现在从 worktree 重新读取
+    // 并重新捕获钩子。
     updateHooksConfigSnapshot()
   }
 
-  // Background jobs - only critical registrations that must happen before first query
+  // 后台任务 —— 只保留必须在首次查询之前完成的关键注册
   logForDiagnosticsNoPII('info', 'setup_background_jobs_starting')
-  // Bundled skills/plugins are registered in main.tsx before the parallel
-  // getCommands() kick — see comment there. Moved out of setup() because
-  // the await points above (startUdsMessaging, ~20ms) meant getCommands()
-  // raced ahead and memoized an empty bundledSkills list.
+  // 内置技能/插件在 main.tsx 中、于并行的 getCommands() 启动之前注册
+  // —— 参见那里的注释。从 setup() 中移出是因为上面的 await 点
+  // （startUdsMessaging，约 20ms）会让 getCommands() 抢跑并
+  // 记忆化出一个空的 bundledSkills 列表。
   if (!isBareMode()) {
-    initSessionMemory() // Synchronous - registers hook, gate check happens lazily
+    initSessionMemory() // 同步执行 —— 注册钩子，门禁检查延迟进行
     if (feature('CONTEXT_COLLAPSE')) {
       /* eslint-disable @typescript-eslint/no-require-imports */
       ;(
@@ -300,77 +301,77 @@ export async function setup(
       /* eslint-enable @typescript-eslint/no-require-imports */
     }
   }
-  void lockCurrentVersion() // Lock current version to prevent deletion by other processes
+  void lockCurrentVersion() // 锁定当前版本，防止被其他进程删除
   logForDiagnosticsNoPII('info', 'setup_background_jobs_launched')
 
   profileCheckpoint('setup_before_prefetch')
-  // Pre-fetch promises - only items needed before render
+  // 预取 promise —— 只保留渲染前需要的项
   logForDiagnosticsNoPII('info', 'setup_prefetch_starting')
-  // When LIMKENION_SYNC_PLUGIN_INSTALL is set, skip all plugin prefetch.
-  // The sync install path in print.ts calls refreshPluginState() after
-  // installing, which reloads commands, hooks, and agents. Prefetching here
-  // races with the install (concurrent copyPluginToVersionedCache / cachePlugin
-  // on the same directories), and the hot-reload handler fires clearPluginCache()
-  // mid-install when policySettings arrives.
+  // 当设置了 LIMKENION_SYNC_PLUGIN_INSTALL 时，跳过所有插件预取。
+  // print.ts 中的同步安装路径会在安装后调用 refreshPluginState()，
+  // 重新加载命令、钩子与 agent。在这里预取会与安装产生竞态
+  // （对同一目录并发执行 copyPluginToVersionedCache / cachePlugin），
+  // 而且热重载处理器会在 policySettings 到达时触发
+  // clearPluginCache()，打断安装过程。
   const skipPluginPrefetch =
     (getIsNonInteractiveSession() &&
       isEnvTruthy(process.env.LIMKENION_SYNC_PLUGIN_INSTALL)) ||
-    // --bare: loadPluginHooks → loadAllPlugins is filesystem work that's
-    // wasted when executeHooks early-returns under --bare anyway.
+    // --bare：loadPluginHooks → loadAllPlugins 是文件系统操作，
+    // 而 --bare 下 executeHooks 本来就会提前返回，做了也是白做。
     isBareMode()
   if (!skipPluginPrefetch) {
     void getCommands(getProjectRoot())
   }
   void import('./utils/plugins/loadPluginHooks.js').then(m => {
     if (!skipPluginPrefetch) {
-      void m.loadPluginHooks() // Pre-load plugin hooks (consumed by processSessionStartHooks before render)
-      m.setupPluginHookHotReload() // Set up hot reload for plugin hooks when settings change
+      void m.loadPluginHooks() // 预加载插件钩子（在渲染前由 processSessionStartHooks 消费）
+      m.setupPluginHookHotReload() // 当设置变化时，为插件钩子设置热重载
     }
   })
-  // --bare: skip attribution hook install + repo classification +
-  // session-file-access analytics + team memory watcher. These are background
-  // bookkeeping for commit attribution + usage metrics — scripted calls don't
-  // commit code, and the 49ms attribution hook stat check (measured) is pure
-  // overhead. NOT an early-return: the --dangerously-skip-permissions safety
-  // gate, limkenion_started beacon, and apiKeyHelper prefetch below must still run.
+  // --bare：跳过归属钩子安装 + 仓库分类 +
+  // 会话文件访问统计 + 团队记忆监听器。这些是为提交归属与用量指标
+  // 做的后台记账 —— 脚本化调用不会提交代码，而且归属钩子那
+  // 49ms 的 stat 检查（实测）纯属开销。这里不是提前返回：
+  // --dangerously-skip-permissions 的安全门禁、limkenion_started
+  // 信标，以及下面的 apiKeyHelper 预取仍然必须执行。
   if (!isBareMode()) {
     
     if (feature('COMMIT_ATTRIBUTION')) {
-      // Dynamic import to enable dead code elimination (module contains excluded strings).
-      // Defer to next tick so the git subprocess spawn runs after first render
-      // rather than during the setup() microtask window.
+      // 用动态导入以启用死代码消除（该模块含有被排除的字符串）。
+      // 推迟到下一个 tick，好让 git 子进程的派发发生在首次渲染之后，
+      // 而不是在 setup() 的微任务窗口内。
       setImmediate(() => {
         void import('./utils/attributionHooks.js').then(
           ({ registerAttributionHooks }) => {
-            registerAttributionHooks() // Register attribution tracking hooks (ant-only feature)
+            registerAttributionHooks() // 注册归属跟踪钩子（仅 ant 特性）
           },
         )
       })
     }
     void import('./utils/sessionFileAccessHooks.js').then(m =>
       m.registerSessionFileAccessHooks(),
-    ) // Register session file access analytics hooks
+    ) // 注册会话文件访问统计钩子
     if (feature('TEAMMEM')) {
       void import('./services/teamMemorySync/watcher.js').then(m =>
         m.startTeamMemoryWatcher(),
-      ) // Start team memory sync watcher
+      ) // 启动团队记忆同步监听器
     }
   }
-  initSinks() // Attach error log + analytics sinks and drain queued events
+  initSinks() // 挂上错误日志与遥测 sink，并排空排队的事件
 
-  // Session-success-rate denominator. Emit immediately after the analytics
-  // sink is attached — before any parsing, fetching, or I/O that could throw.
-  // inc-3694 (P0 CHANGELOG crash) threw at checkForReleaseNotes below; every
-  // event after this point was dead. This beacon is the earliest reliable
-  // "process started" signal for release health monitoring.
+  // 会话成功率的分母。在遥测 sink 挂上之后立即上报 ——
+  // 放在任何可能抛错的解析、请求或 I/O 之前。
+  // inc-3694（P0 CHANGELOG 崩溃）就是在下面的
+  // checkForReleaseNotes 处抛错的；此后每个事件都发不出来。
+  // 这个信标是发布健康监控中最早可靠的「进程已启动」信号。
   logEvent('limkenion_started', {})
 
-  void prefetchApiKeyFromApiKeyHelperIfSafe(getIsNonInteractiveSession()) // Prefetch safely - only executes if trust already confirmed
+  void prefetchApiKeyFromApiKeyHelperIfSafe(getIsNonInteractiveSession()) // 安全预取 —— 只有在信任已确认后才执行
   profileCheckpoint('setup_after_prefetch')
 
-  // Pre-fetch data for Logo v2 - await to ensure it's ready before logo renders.
-  // --bare / SIMPLE: skip — release notes are interactive-UI display data,
-  // and getRecentActivity() reads up to 10 session JSONL files.
+  // 为 Logo v2 预取数据 —— await 以确保在 logo 渲染前就绪。
+  // --bare / SIMPLE：跳过 —— 发布说明是交互式 UI 的展示数据，
+  // 而 getRecentActivity() 会读取多达 10 个会话 JSONL 文件。
   if (!isBareMode()) {
     const { hasReleaseNotes } = await checkForReleaseNotes(
       getGlobalConfig().lastReleaseNotesSeen,
@@ -380,13 +381,13 @@ export async function setup(
     }
   }
 
-  // If permission mode is set to bypass, verify we're in a safe environment
+  // 如果权限模式设为 bypass，则校验我们处于安全环境中
   if (
     permissionMode === 'bypassPermissions' ||
     allowDangerouslySkipPermissions
   ) {
-    // Check if running as root/sudo on Unix-like systems
-    // Allow root if in a sandbox (e.g., TPU devspaces that require root)
+    // 检查在类 Unix 系统上是否以 root/sudo 运行
+    // 若在沙箱中则允许 root（例如需要 root 的 TPU devspaces）
     if (
       process.platform !== 'win32' &&
       typeof process.getuid === 'function' &&
@@ -408,7 +409,7 @@ export async function setup(
     return
   }
 
-  // Log limkenion_exit event from the last session?
+  // 记录上一个会话的 limkenion_exit 事件？
   const projectConfig = getCurrentProjectConfig()
   if (
     projectConfig.lastCost !== undefined &&

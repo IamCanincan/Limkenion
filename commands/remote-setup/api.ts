@@ -7,11 +7,11 @@ import { fetchEnvironments } from '../../utils/teleport/environments.js'
 const CCR_BYOC_BETA_HEADER = 'ccr-byoc-2025-07-29'
 
 /**
- * Wraps a raw GitHub token so that its string representation is redacted.
- * `String(token)`, template literals, `JSON.stringify(token)`, and any
- * attached error messages will show `[REDACTED:gh-token]` instead of the
- * token value. Call `.reveal()` only at the single point where the raw
- * value is placed into an HTTP body.
+ * 包装原始 GitHub token，使其字符串表示被脱敏。
+ * `String(token)`、模板字面量、`JSON.stringify(token)` 以及任何
+ * 附带的消息中都会显示 `[REDACTED:gh-token]`，而不是
+ * token 的真实值。仅在把原始值放入 HTTP 请求体的那一处
+ * 调用 `.reveal()`。
  */
 export class RedactedGithubToken {
   readonly #value: string
@@ -43,10 +43,10 @@ export type ImportTokenError =
   | { kind: 'network' }
 
 /**
- * POSTs a GitHub token to the CCR backend, which validates it against
- * GitHub's /user endpoint and stores it Fernet-encrypted in sync_user_tokens.
- * The stored token satisfies the same read paths as an OAuth token, so
- * clone/push in limkenion.ai/code works immediately after this succeeds.
+ * 将 GitHub token POST 到 CCR 后端，后端会用 GitHub 的 /user
+ * 端点校验它，并以 Fernet 加密形式存入 sync_user_tokens。
+ * 存储后的 token 满足与 OAuth token 相同的读取路径，因此
+ * 成功后 limkenion.ai/code 中的 clone/push 可立即使用。
  */
 export async function importGithubToken(
   token: RedactedGithubToken,
@@ -89,8 +89,8 @@ export async function importGithubToken(
     return { ok: false, error: { kind: 'server', status: response.status } }
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      // err.config.data would contain the POST body with the raw token.
-      // Do not include it in any log. The error code alone is enough.
+      // err.config.data 会包含带有原始 token 的 POST 请求体。
+      // 不要把它写进任何日志。仅错误码就足够了。
       logForDebugging(`import-token network error: ${err.code ?? 'unknown'}`, {
         level: 'error',
       })
@@ -109,12 +109,12 @@ async function hasExistingEnvironment(): Promise<boolean> {
 }
 
 /**
- * Best-effort default environment creation. Mirrors the web onboarding's
- * DEFAULT_CLOUD_ENVIRONMENT_REQUEST so a first-time user lands on the
- * composer instead of env-setup. Checks for existing environments first
- * so re-running /web-setup doesn't pile up duplicates. Failures are
- * non-fatal — the token import already succeeded, and the web state
- * machine falls back to env-setup on next load.
+ * 尽力而为地创建默认环境。与 web 端引导流程的
+ * DEFAULT_CLOUD_ENVIRONMENT_REQUEST 保持一致，让首次使用的用户
+ * 直接进入 composer 而不是 env-setup。会先检查是否已有环境，
+ * 避免重复运行 /web-setup 时堆积重复项。失败不致命 ——
+ * token 导入已经成功，且 web 状态机在下次加载时会
+ * 降级到 env-setup。
  */
 export async function createDefaultEnvironment(): Promise<boolean> {
   let accessToken: string, orgUUID: string
@@ -128,9 +128,9 @@ export async function createDefaultEnvironment(): Promise<boolean> {
     return true
   }
 
-  // The /private/organizations/{org}/ path rejects CLI OAuth tokens (wrong
-  // auth dep). The public path uses build_flexible_auth — same path
-  // fetchEnvironments() uses. Org is passed via x-organization-uuid header.
+  // /private/organizations/{org}/ 路径会拒绝 CLI OAuth token（auth
+  // 依赖不对）。公开路径使用 build_flexible_auth —— 与
+  // fetchEnvironments() 使用的路径相同。org 通过 x-organization-uuid 请求头传递。
   const url = `${getOauthConfig().BASE_API_URL}/v1/environment_providers/cloud/create`
   const headers = {
     ...getOAuthHeaders(accessToken),
@@ -167,7 +167,7 @@ export async function createDefaultEnvironment(): Promise<boolean> {
   }
 }
 
-/** Returns true when the user has valid Limkenion OAuth credentials. */
+/** 当用户拥有有效的 Limkenion OAuth 凭据时返回 true。 */
 export async function isSignedIn(): Promise<boolean> {
   try {
     await prepareApiRequest()

@@ -66,9 +66,9 @@ const inputSchema = lazySchema(() =>
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
-// Mirrors the official WorkflowOutput in the upstream limkenion-code's
-// sdk-tools.d.ts. Optional fields are optional there too, so a transcript
-// written before a field existed still replays without re-validation failing.
+// 与上游 limkenion-code 的 sdk-tools.d.ts 中官方 WorkflowOutput
+// 保持一致。可选字段在那里也是可选的，因此在某个字段存在之前
+// 写入的 transcript 仍可回放，而不会因重新校验失败。
 const outputSchema = lazySchema(() =>
   z.object({
     status: z.enum(['async_launched', 'remote_launched']),
@@ -114,10 +114,10 @@ export const WorkflowTool = buildTool({
     return input.script ?? input.scriptPath ?? input.name ?? ''
   },
   /**
-   * A run spawns many agents whose file edits are auto-approved, so the launch
-   * itself is the only place the user gets to say no. `bypassPermissions` and
-   * non-interactive runs have nobody to ask; everywhere else prompts unless the
-   * user has allow-listed this workflow name.
+   * 一次运行会派生许多 agent，其文件编辑会自动获批，因此启动
+   * 本身是用户唯一能拒绝的地方。`bypassPermissions` 和
+   * 非交互式运行无人可问；其他所有情况下都会提示，除非
+   * 用户已将这个工作流名称加入允许列表。
    */
   async checkPermissions(input, context) {
     const appState = context?.getAppState()
@@ -128,12 +128,12 @@ export const WorkflowTool = buildTool({
     ) {
       return { behavior: 'allow', updatedInput: input }
     }
-    // Ultracode is a standing instruction to orchestrate every task; prompting
-    // per run would mean prompting every turn.
+    // Ultracode 是对每个任务进行编排的常驻指令；每次运行都提示
+    // 就意味着每个回合都要提示。
     if (appState?.ultracode === true) {
       return { behavior: 'allow', updatedInput: input }
     }
-    // Auto mode asks once per machine, then remembers.
+    // 自动模式每台机器只询问一次，然后记住。
     if (permissionContext?.mode === 'auto' && hasAcceptedWorkflowsInAutoMode()) {
       return { behavior: 'allow', updatedInput: input }
     }
@@ -241,12 +241,12 @@ export const WorkflowTool = buildTool({
 } satisfies ToolDef<InputSchema, Output>)
 
 /**
- * Work out which script this call should run.
+ * 判断本次调用应运行哪个脚本。
  *
- * `scriptPath` wins so an edited run can be relaunched byte-for-byte, then a
- * saved `name`, then an inline `script`. Resolving by name here (rather than
- * making the model paste the script back) is what lets `/deep-research` and
- * saved workflows be one-line calls.
+ * `scriptPath` 优先，这样编辑过的运行可以逐字节重新启动，其次是
+ * 保存的 `name`，然后是内联的 `script`。在这里按名称解析（而不是
+ * 让模型把脚本再粘贴回来）正是 `/deep-research` 和
+ * 已保存的工作流能成为单行调用的原因。
  */
 export async function resolveScriptForTesting(input: {
   script?: string
@@ -284,10 +284,10 @@ async function resolveScript(input: {
         error: `Unknown workflow '${input.name}'.${available ? ` Available: ${available}` : ''}`,
       }
     }
-    // Deliberately no scriptPath: the run gets its own session copy. Pointing
-    // it at the saved workflow would make the run write back over the user's
-    // file, and would resume from whatever that file says later rather than
-    // from what actually ran.
+    // 有意不传 scriptPath：该运行会获得自己的会话副本。若指向
+    // 已保存的工作流，运行就会回写覆盖用户的
+    // 文件，并且之后会从该文件的当时内容恢复，而不是
+    // 从实际运行的内容恢复。
     return { script: workflow.script }
   }
 

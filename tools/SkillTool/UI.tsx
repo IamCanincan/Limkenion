@@ -18,7 +18,7 @@ type Input = z.infer<ReturnType<typeof inputSchema>>;
 const MAX_PROGRESS_MESSAGES_TO_SHOW = 3;
 const INITIALIZING_TEXT = 'Initializing…';
 export function renderToolResultMessage(output: Output): React.ReactNode {
-  // Handle forked skill result
+  // 处理 fork 的技能结果
   if ('status' in output && output.status === 'forked') {
     return <MessageResponse height={1}>
         <Text>
@@ -28,13 +28,13 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
   }
   const parts: string[] = ['Successfully loaded skill'];
 
-  // Show tools count (only for inline skills)
+  // 显示工具数量（仅内联技能）
   if ('allowedTools' in output && output.allowedTools && output.allowedTools.length > 0) {
     const count = output.allowedTools.length;
     parts.push(`${count} ${plural(count, 'tool')} allowed`);
   }
 
-  // Show model if non-default (only for inline skills)
+  // 若模型非默认则显示（仅内联技能）
   if ('model' in output && output.model) {
     parts.push(output.model);
   }
@@ -54,7 +54,7 @@ export function renderToolUseMessage({
   if (!skill) {
     return null;
   }
-  // Look up the command to check if it came from the legacy /commands folder
+  // 查找命令以检查它是否来自旧的 /commands 目录
   const command = commands?.find(c => c.name === skill);
   const displayName = command?.loadedFrom === 'commands_DEPRECATED' ? `/${skill}` : skill;
   return displayName;
@@ -72,7 +72,7 @@ export function renderToolUseProgressMessage(progressMessages: ProgressMessage<P
       </MessageResponse>;
   }
 
-  // Take only the last few messages for display in non-verbose mode
+  // 在非详细模式下只取最后几条消息用于展示
   const displayedMessages = verbose ? progressMessages : progressMessages.slice(-MAX_PROGRESS_MESSAGES_TO_SHOW);
   const hiddenCount = progressMessages.length - displayedMessages.length;
   const {

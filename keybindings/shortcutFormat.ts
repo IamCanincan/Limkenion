@@ -6,34 +6,34 @@ import { loadKeybindingsSync } from './loadUserBindings.js'
 import { getBindingDisplayText } from './resolver.js'
 import type { KeybindingContextName } from './types.js'
 
-// TODO(keybindings-migration): Remove fallback parameter after migration is
-// complete and we've confirmed no 'keybinding_fallback_used' events are being
-// logged. The fallback exists as a safety net during migration - if bindings
-// fail to load or an action isn't found, we fall back to hardcoded values.
-// Once stable, callers should be able to trust that getBindingDisplayText
-// always returns a value for known actions, and we can remove this defensive
-// pattern.
+// TODO(keybindings-migration): 迁移完成后，并确认不再记录
+// 'keybinding_fallback_used' 事件时，移除 fallback 参数。
+// fallback 是迁移期间的安全网——若绑定加载失败或找不到某个 action，
+// 则回退到硬编码值。待其稳定后，调用方应能信任
+// getBindingDisplayText 对已知 action 始终返回一个值，
+// 届时即可移除这一防御性
+// 写法。
 
-// Track which action+context pairs have already logged a fallback event
-// to avoid duplicate events from repeated calls in non-React contexts.
+// 记录哪些 action+context 组合已经上报过降级事件，
+// 以避免非 React 上下文中重复调用产生重复事件。
 const LOGGED_FALLBACKS = new Set<string>()
 
 /**
- * Get the display text for a configured shortcut without React hooks.
- * Use this in non-React contexts (commands, services, etc.).
+ * 在不使用 React hooks 的情况下获取已配置快捷键的显示文本。
+ * 在非 React 上下文中使用（命令、服务等）。
  *
- * This lives in its own module (not useShortcutDisplay.ts) so that
- * non-React callers like query/stopHooks.ts don't pull React into their
- * module graph via the sibling hook.
+ * 它单独放在一个模块中（而不是 useShortcutDisplay.ts），这样
+ * 像 query/stopHooks.ts 这样的非 React 调用方就不会通过同级的
+ * hook 把 React 引入它们的模块图。
  *
- * @param action - The action name (e.g., 'app:toggleTranscript')
- * @param context - The keybinding context (e.g., 'Global')
- * @param fallback - Fallback text if binding not found
- * @returns The configured shortcut display text
+ * @param action - 动作名称（例如 'app:toggleTranscript'）
+ * @param context - 键位绑定上下文（例如 'Global'）
+ * @param fallback - 未找到绑定时使用的降级文本
+ * @returns 已配置快捷键的显示文本
  *
  * @example
  * const expandShortcut = getShortcutDisplay('app:toggleTranscript', 'Global', 'ctrl+o')
- * // Returns the user's configured binding, or 'ctrl+o' as default
+ * // 返回用户配置的绑定，未配置时默认返回 'ctrl+o'
  */
 export function getShortcutDisplay(
   action: string,

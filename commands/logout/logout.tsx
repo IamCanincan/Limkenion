@@ -3,7 +3,7 @@ import { Text } from '../../ink.js';
 import { refreshGrowthBookAfterAuthChange } from '../../services/analytics/growthbook.js';
 import { getGroveNoticeConfig, getGroveSettings } from '../../services/api/grove.js';
 import { clearPolicyLimitsCache } from '../../services/policyLimits/index.js';
-// flushTelemetry is loaded lazily to avoid pulling in ~1.1MB of OpenTelemetry at startup
+// flushTelemetry 采用惰性加载，以避免启动时引入约 1.1MB 的 OpenTelemetry
 import { clearRemoteManagedSettingsCache } from '../../services/remoteManagedSettings/index.js';
 import { getLimkenionAIOAuthTokens, removeApiKey } from '../../utils/auth.js';
 import { clearBetasCaches } from '../../utils/betas.js';
@@ -15,14 +15,14 @@ import { resetUserCache } from '../../utils/user.js';
 export async function performLogout({
   clearOnboarding = false
 }): Promise<void> {
-  // Flush telemetry BEFORE clearing credentials to prevent org data leakage
+  // 在清除凭据之前先刷写遥测，以防组织数据泄漏
   const {
     flushTelemetry
   } = await import('../../utils/telemetry/instrumentation.js');
   await flushTelemetry();
   await removeApiKey();
 
-  // Wipe all secure storage data on logout
+  // 登出时清除所有安全存储数据
   const secureStorage = getSecureStorage();
   secureStorage.delete();
   await clearAuthRelatedCaches();
@@ -46,25 +46,25 @@ export async function performLogout({
   });
 }
 
-// clearing anything memoized that must be invalidated when user/session/auth changes
+// 清除所有必须在用户/会话/认证变化时失效的记忆化内容
 export async function clearAuthRelatedCaches(): Promise<void> {
-  // Clear the OAuth token cache
+  // 清除 OAuth 令牌缓存
   getLimkenionAIOAuthTokens.cache?.clear?.();
   clearBetasCaches();
   clearToolSchemaCache();
 
-  // Clear user data cache BEFORE GrowthBook refresh so it picks up fresh credentials
+  // 在 GrowthBook 刷新之前清除用户数据缓存，以便其读取到新的凭据
   resetUserCache();
   refreshGrowthBookAfterAuthChange();
 
-  // Clear Grove config cache
+  // 清除 Grove 配置缓存
   getGroveNoticeConfig.cache?.clear?.();
   getGroveSettings.cache?.clear?.();
 
-  // Clear remotely managed settings cache
+  // 清除远程托管设置缓存
   await clearRemoteManagedSettingsCache();
 
-  // Clear policy limits cache
+  // 清除策略限制缓存
   await clearPolicyLimitsCache();
 }
 export async function call(): Promise<React.ReactNode> {

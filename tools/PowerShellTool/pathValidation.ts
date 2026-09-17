@@ -381,9 +381,9 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
       '-readcount',
       '-totalcount',
       '-tail',
-      '-first', // alias for -TotalCount
-      '-head', // alias for -TotalCount
-      '-last', // alias for -Tail
+      '-first', // -TotalCount 的别名
+      '-head', // -TotalCount 的别名
+      '-last', // -Tail 的别名
       '-filter',
       '-include',
       '-exclude',

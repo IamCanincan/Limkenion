@@ -28,7 +28,7 @@ function CompanionCard({
   const trimmed = args.trim().toLowerCase()
   const companion = getCompanion()
 
-  // Handle keyboard input to dismiss
+  // 处理键盘输入以关闭
   const handleKeyDown = (e: any) => {
     if (e.key === 'q' || e.key === 'Enter') {
       e.preventDefault()
@@ -36,7 +36,7 @@ function CompanionCard({
     }
   }
 
-  // Handle subcommands
+  // 处理子命令
   React.useEffect(() => {
     if (trimmed === 'mute') {
       saveGlobalConfig(c => ({ ...c, companionMuted: true }))
@@ -74,7 +74,7 @@ function CompanionCard({
         )
         return
       }
-      // Hatch a new companion with a generated name and random seed
+      // 孵化一个带生成名称和随机种子的新伙伴
       const appearanceSeed = `hatch:${Date.now()}:${Math.random().toString(36).slice(2)}`
       const { bones } = rollWithSeed(appearanceSeed)
       const adjectives = [
@@ -118,7 +118,7 @@ function CompanionCard({
     }
   }, [])
 
-  // Render companion info
+  // 渲染伙伴信息
   if (!companion) {
     const { bones } = roll(companionUserId())
     const preview = renderSprite(bones, 0)

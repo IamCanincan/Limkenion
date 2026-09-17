@@ -20,7 +20,7 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    // No parameters needed
+    // 无需参数
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -54,9 +54,9 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
   },
   shouldDefer: true,
   isEnabled() {
-    // When --channels is active, ExitPlanMode is disabled (its approval
-    // dialog needs the terminal). Disable entry too so plan mode isn't a
-    // trap the model can enter but never leave.
+    // 当 --channels 生效时，ExitPlanMode 被禁用（其审批
+    // 对话框需要终端）。入口也一并禁用，以免计划模式成为
+    // 模型能进却出不来的陷阱。
     if (
       (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
       getAllowedChannels().length > 0
@@ -82,9 +82,9 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     const appState = context.getAppState()
     handlePlanModeTransition(appState.toolPermissionContext.mode, 'plan')
 
-    // Update the permission mode to 'plan'. prepareContextForPlanMode runs
-    // the classifier activation side effects when the user's defaultMode is
-    // 'auto' — see permissionSetup.ts for the full lifecycle.
+    // 将权限模式更新为 'plan'。当用户的 defaultMode 为
+    // 'auto' 时，prepareContextForPlanMode 会执行分类器激活的
+    // 副作用——完整生命周期见 permissionSetup.ts。
     context.setAppState(prev => ({
       ...prev,
       toolPermissionContext: applyPermissionUpdate(

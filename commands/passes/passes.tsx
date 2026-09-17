@@ -5,7 +5,7 @@ import { getCachedRemainingPasses } from '../../services/api/referral.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
 export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNode> {
-  // Mark that user has visited /passes so we stop showing the upsell
+  // 标记用户已访问过 /passes，从而不再显示推广提示
   const config = getGlobalConfig();
   const isFirstVisit = !config.hasVisitedPasses;
   if (isFirstVisit) {

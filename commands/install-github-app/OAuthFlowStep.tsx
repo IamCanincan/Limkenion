@@ -114,7 +114,7 @@ export function OAuthFlowStep({
         loginWithLimkenionAi: true,
         // 订阅 token 始终使用 Limkenion AI
         inferenceOnly: true,
-        expiresIn: 365 * 24 * 60 * 60 // 1 year
+        expiresIn: 365 * 24 * 60 * 60 // 1 年
       });
 
       // 显示处理中的状态

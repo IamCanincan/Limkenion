@@ -51,46 +51,46 @@ import { BackgroundHint, renderToolResultMessage, renderToolUseErrorMessage, ren
 import { buildImageToolResult, isImageOutput, resetCwdIfOutsideProject, resizeShellImageOutput, stdErrAppendShellResetMessage, stripEmptyLines } from './utils.js';
 const EOL = '\n';
 
-// Progress display constants
-const PROGRESS_THRESHOLD_MS = 2000; // Show progress after 2 seconds
-// In assistant mode, blocking bash auto-backgrounds after this many ms in the main agent
+// 进度显示常量
+const PROGRESS_THRESHOLD_MS = 2000; // 2 秒后展示进度
+// 在 assistant 模式下，主 agent 中的阻塞型 bash 在这么多毫秒后自动转入后台
 const ASSISTANT_BLOCKING_BUDGET_MS = 15_000;
 
-// Search commands for collapsible display (grep, find, etc.)
+// 用于可折叠展示的搜索命令（grep、find 等）
 const BASH_SEARCH_COMMANDS = new Set(['find', 'grep', 'rg', 'ag', 'ack', 'locate', 'which', 'whereis']);
 
-// Read/view commands for collapsible display (cat, head, etc.)
+// 用于可折叠展示的读取/查看命令（cat、head 等）
 const BASH_READ_COMMANDS = new Set(['cat', 'head', 'tail', 'less', 'more',
-// Analysis commands
+// 分析命令
 'wc', 'stat', 'file', 'strings',
-// Data processing — commonly used to parse/transform file content in pipes
+// 数据处理——常用于在管道中解析/转换文件内容
 'jq', 'awk', 'cut', 'sort', 'uniq', 'tr']);
 
-// Directory-listing commands for collapsible display (ls, tree, du).
-// Split from BASH_READ_COMMANDS so the summary says "Listed N directories"
-// instead of the misleading "Read N files".
+// 用于可折叠展示的目录列举命令（ls、tree、du）。
+// 从 BASH_READ_COMMANDS 中拆分出来，使摘要显示 "Listed N directories"
+// 而不是有误导性的 "Read N files"。
 const BASH_LIST_COMMANDS = new Set(['ls', 'tree', 'du']);
 
-// Commands that are semantic-neutral in any position — pure output/status commands
-// that don't change the read/search nature of the overall pipeline.
-// e.g. `ls dir && echo "---" && ls dir2` is still a read-only compound command.
-const BASH_SEMANTIC_NEUTRAL_COMMANDS = new Set(['echo', 'printf', 'true', 'false', ':' // bash no-op
+// 在任何位置都语义中立的命令——纯输出/状态命令，
+// 不改变整个管道的读取/搜索性质。
+// 例如 `ls dir && echo "---" && ls dir2` 仍是只读复合命令。
+const BASH_SEMANTIC_NEUTRAL_COMMANDS = new Set(['echo', 'printf', 'true', 'false', ':' // bash 空操作
 ]);
 
-// Commands that typically produce no stdout on success
+// 成功时通常不产生 stdout 的命令
 const BASH_SILENT_COMMANDS = new Set(['mv', 'cp', 'rm', 'mkdir', 'rmdir', 'chmod', 'chown', 'chgrp', 'touch', 'ln', 'cd', 'export', 'unset', 'wait']);
 
 /**
- * Checks if a bash command is a search or read operation.
- * Used to determine if the command should be collapsed in the UI.
- * Returns an object indicating whether it's a search or read operation.
+ * 检查 bash 命令是否为搜索或读取操作。
+ * 用于判断该命令在 UI 中是否应折叠。
+ * 返回一个对象，表明它是搜索还是读取操作。
  *
- * For pipelines (e.g., `cat file | bq`), ALL parts must be search/read commands
- * for the whole command to be considered collapsible.
+ * 对于管道（例如 `cat file | bq`），所有部分都必须是搜索/读取命令，
+ * 整个命令才被视为可折叠。
  *
- * Semantic-neutral commands (echo, printf, true, false, :) are skipped in any
- * position, as they're pure output/status commands that don't affect the read/search
- * nature of the pipeline (e.g. `ls dir && echo "---" && ls dir2` is still a read).
+ * 语义中立命令（echo、printf、true、false、:）在任何位置都被跳过，
+ * 因为它们是纯输出/状态命令，不影响管道的读取/搜索
+ * 性质（例如 `ls dir && echo "---" && ls dir2` 仍是读取）。
  */
 export function isSearchOrReadBashCommand(command: string): {
   isSearch: boolean;
@@ -101,8 +101,8 @@ export function isSearchOrReadBashCommand(command: string): {
   try {
     partsWithOperators = splitCommandWithOperators(command);
   } catch {
-    // If we can't parse the command due to malformed syntax,
-    // it's not a search/read command
+    // 如果因语法格式错误而无法解析该命令，
+    // 它就不是搜索/读取命令
     return {
       isSearch: false,
       isRead: false,
@@ -156,7 +156,7 @@ export function isSearchOrReadBashCommand(command: string): {
     if (isPartList) hasList = true;
   }
 
-  // Only neutral commands (e.g., just "echo foo") -- not collapsible
+  // 只有中立命令（例如仅 "echo foo"）——不可折叠
   if (!hasNonNeutralCommand) {
     return {
       isSearch: false,
@@ -172,8 +172,8 @@ export function isSearchOrReadBashCommand(command: string): {
 }
 
 /**
- * Checks if a bash command is expected to produce no stdout on success.
- * Used to show "Done" instead of "(No output)" in the UI.
+ * 检查 bash 命令在成功时是否预期不产生 stdout。
+ * 用于在 UI 中显示 "Done" 而不是 "(No output)"。
  */
 function isSilentBashCommand(command: string): boolean {
   let partsWithOperators: string[];
@@ -216,11 +216,11 @@ function isSilentBashCommand(command: string): boolean {
   return hasNonFallbackCommand;
 }
 
-// Commands that should not be auto-backgrounded
-const DISALLOWED_AUTO_BACKGROUND_COMMANDS = ['sleep' // Sleep should run in foreground unless explicitly backgrounded by user
+// 不应自动转入后台的命令
+const DISALLOWED_AUTO_BACKGROUND_COMMANDS = ['sleep' // 除非用户显式转入后台，sleep 应在前台运行
 ];
 
-// Check if background tasks are disabled at module load time
+// 在模块加载时检查后台任务是否被禁用
 const isBackgroundTasksDisabled =
 // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
 isEnvTruthy(process.env.LIMKENION_DISABLE_BACKGROUND_TASKS);
@@ -295,56 +295,56 @@ const outputSchema = lazySchema(() => z.object({
 type OutputSchema = ReturnType<typeof outputSchema>;
 export type Out = z.infer<OutputSchema>;
 
-// Re-export BashProgress from centralized types to break import cycles
+// 从集中式类型重新导出 BashProgress 以打破导入循环
 export type { BashProgress } from '../../types/tools.js';
 import type { BashProgress } from '../../types/tools.js';
 
 /**
- * Checks if a command is allowed to be automatically backgrounded
- * @param command The command to check
- * @returns false for commands that should not be auto-backgrounded (like sleep)
+ * 检查命令是否允许被自动转入后台
+ * @param command 要检查的命令
+ * @returns 对于不应自动转入后台的命令（如 sleep）返回 false
  */
 function isAutobackgroundingAllowed(command: string): boolean {
   const parts = splitCommand_DEPRECATED(command);
   if (parts.length === 0) return true;
 
-  // Get the first part which should be the base command
+  // 获取第一部分，即基础命令
   const baseCommand = parts[0]?.trim();
   if (!baseCommand) return true;
   return !DISALLOWED_AUTO_BACKGROUND_COMMANDS.includes(baseCommand);
 }
 
 /**
- * Detect standalone or leading `sleep N` patterns that should use Monitor
- * instead. Catches `sleep 5`, `sleep 5 && check`, `sleep 5; check` — but
- * not sleep inside pipelines, subshells, or scripts (those are fine).
+ * 检测应改用 Monitor 的独立或前置 `sleep N` 模式。
+ * 可捕获 `sleep 5`、`sleep 5 && check`、`sleep 5; check`——但
+ * 不捕获管道、子 shell 或脚本中的 sleep（那些没问题）。
  */
 export function detectBlockedSleepPattern(command: string): string | null {
   const parts = splitCommand_DEPRECATED(command);
   if (parts.length === 0) return null;
   const first = parts[0]?.trim() ?? '';
-  // Bare `sleep N` or `sleep N.N` as the first subcommand.
-  // Float durations (sleep 0.5) are allowed — those are legit pacing, not polls.
+  // 作为第一个子命令的裸 `sleep N` 或 `sleep N.N`。
+  // 浮点时长（sleep 0.5）是允许的——那是合理的节奏控制，而非轮询。
   const m = /^sleep\s+(\d+)\s*$/.exec(first);
   if (!m) return null;
   const secs = parseInt(m[1]!, 10);
-  if (secs < 2) return null; // sub-2s sleeps are fine (rate limiting, pacing)
+  if (secs < 2) return null; // 低于 2 秒的 sleep 没问题（限流、节奏控制）
 
-  // `sleep N` alone → "what are you waiting for?"
+  // 单独 `sleep N` → "what are you waiting for?"
   // `sleep N && check` → "use Monitor { command: check }"
   const rest = parts.slice(1).join(' ').trim();
   return rest ? `sleep ${secs} followed by: ${rest}` : `standalone sleep ${secs}`;
 }
 
 /**
- * Checks if a command contains tools that shouldn't run in sandbox
- * This includes:
- * - Dynamic config-based disabled commands and substrings (limkenion_sandbox_disabled_commands)
- * - User-configured commands from settings.json (sandbox.excludedCommands)
+ * 检查命令是否包含不应在沙箱中运行的工具
+ * 包括：
+ * - 基于动态配置的禁用命令和子串（limkenion_sandbox_disabled_commands）
+ * - 来自 settings.json 的用户配置命令（sandbox.excludedCommands）
  *
- * User-configured commands support the same pattern syntax as permission rules:
- * - Exact matches: "npm run lint"
- * - Prefix patterns: "npm run test:*"
+ * 用户配置的命令支持与权限规则相同的模式语法：
+ * - 精确匹配："npm run lint"
+ * - 前缀模式："npm run test:*"
  */
 
 type SimulatedSedEditResult = {
@@ -353,9 +353,9 @@ type SimulatedSedEditResult = {
 type SimulatedSedEditContext = Pick<ToolUseContext, 'readFileState' | 'updateFileHistoryState'>;
 
 /**
- * Applies a simulated sed edit directly instead of running sed.
- * This is used by the permission dialog to ensure what the user previews
- * is exactly what gets written to the file.
+ * 直接应用模拟的 sed 编辑，而不运行 sed。
+ * 权限对话框用它来确保用户预览的内容
+ * 与实际写入文件的内容完全一致。
  */
 async function applySedEdit(simulatedEdit: {
   filePath: string;
@@ -368,7 +368,7 @@ async function applySedEdit(simulatedEdit: {
   const absoluteFilePath = expandPath(filePath);
   const fs = getFsImplementation();
 
-  // Read original content for VS Code notification
+  // 读取原始内容以用于 VS Code 通知
   const encoding = detectFileEncoding(absoluteFilePath);
   let originalContent: string;
   try {
@@ -388,19 +388,19 @@ async function applySedEdit(simulatedEdit: {
     throw e;
   }
 
-  // Track file history before making changes (for undo support)
+  // 在修改前跟踪文件历史（以支持撤销）
   if (fileHistoryEnabled() && parentMessage) {
     await fileHistoryTrackEdit(toolUseContext.updateFileHistoryState, absoluteFilePath, parentMessage.uuid);
   }
 
-  // Detect line endings and write new content
+  // 检测行尾并写入新内容
   const endings = detectLineEndings(absoluteFilePath);
   writeTextContent(absoluteFilePath, newContent, encoding, endings);
 
-  // Notify VS Code about the file change
+  // 就文件变更通知 VS Code
   notifyVscodeFileUpdated(absoluteFilePath, originalContent, newContent);
 
-  // Update read timestamp to invalidate stale writes
+  // 更新读取时间戳，以阻止过期写入
   toolUseContext.readFileState.set(absoluteFilePath, {
     content: newContent,
     timestamp: getFileModificationTime(absoluteFilePath),
@@ -408,7 +408,7 @@ async function applySedEdit(simulatedEdit: {
     limit: undefined
   });
 
-  // Return success result matching sed output format (sed produces no output on success)
+  // 返回匹配 sed 输出格式的成功结果（sed 成功时不产生输出）
   return {
     data: {
       stdout: '',
@@ -420,7 +420,7 @@ async function applySedEdit(simulatedEdit: {
 export const BashTool = buildTool({
   name: BASH_TOOL_NAME,
   searchHint: 'execute shell commands',
-  // 30K chars - tool result persistence threshold
+  // 30K 字符——工具结果持久化阈值
   maxResultSizeChars: 30_000,
   strict: true,
   async description({
@@ -445,16 +445,16 @@ export const BashTool = buildTool({
   async preparePermissionMatcher({
     command
   }) {
-    // Hook `if` filtering is "no match → skip hook" (deny-like semantics), so
-    // compound commands must fire the hook if ANY subcommand matches. Without
-    // splitting, `ls && git push` would bypass a `Bash(git *)` security hook.
+    // 钩子的 `if` 过滤是“不匹配 → 跳过钩子”（类拒绝语义），因此
+    // 只要有任一子命令匹配，复合命令就必须触发钩子。若不
+    // 拆分，`ls && git push` 会绕过 `Bash(git *)` 安全钩子。
     const parsed = await parseForSecurity(command);
     if (parsed.kind !== 'simple') {
-      // parse-unavailable / too-complex: fail safe by running the hook.
+      // 无法解析/过于复杂：通过运行钩子来安全失败。
       return () => true;
     }
-    // Match on argv (strips leading VAR=val) so `FOO=bar git push` still
-    // matches `Bash(git *)`.
+    // 基于 argv 匹配（剥离前导 VAR=val），因此 `FOO=bar git push` 仍能
+    // 匹配 `Bash(git *)`。
     const subcommands = parsed.commands.map(c => c.argv.join(' '));
     return pattern => {
       const prefix = permissionRuleExtractPrefix(pattern);
@@ -485,7 +485,7 @@ export const BashTool = buildTool({
     if (!input) {
       return 'Bash';
     }
-    // Render sed in-place edits as file edits
+    // 将 sed 原地编辑渲染为文件编辑
     if (input.command) {
       const sedInfo = parseSedEditCommand(input.command);
       if (sedInfo) {
@@ -495,10 +495,10 @@ export const BashTool = buildTool({
         });
       }
     }
-    // Env var FIRST: shouldUseSandbox → splitCommand_DEPRECATED → shell-quote's
-    // `new RegExp` per call. userFacingName runs per-render for every bash
-    // message in history; with ~50 msgs + one slow-to-tokenize command, this
-    // exceeds the shimmer tick → transition abort → infinite retry (#21605).
+    // 先检查环境变量：shouldUseSandbox → splitCommand_DEPRECATED → shell-quote 的
+    // 每次调用 `new RegExp`。userFacingName 会为历史中每条 bash
+    // 消息逐次渲染运行；约 50 条消息加上一个难以分词的命令就会
+    // 超过 shimmer tick → 过渡中止 → 无限重试（#21605）。
     return isEnvTruthy(process.env.LIMKENION_BASH_SANDBOX_SHOW_INDICATOR) && shouldUseSandbox(input) ? 'SandboxedBash' : 'Bash';
   },
   getToolUseSummary(input) {
@@ -543,9 +543,9 @@ export const BashTool = buildTool({
   renderToolUseProgressMessage,
   renderToolUseQueuedMessage,
   renderToolResultMessage,
-  // BashToolResultMessage shows <OutputLine content={stdout}> + stderr.
-  // UI never shows persistedOutputPath wrapper, backgroundInfo — those are
-  // model-facing (mapToolResult... below).
+  // BashToolResultMessage 展示 <OutputLine content={stdout}> + stderr。
+  // UI 从不展示 persistedOutputPath 包装、backgroundInfo——那些是
+  // 面向模型的（下方的 mapToolResult...）。
   extractSearchText({
     stdout,
     stderr
@@ -564,7 +564,7 @@ export const BashTool = buildTool({
     persistedOutputPath,
     persistedOutputSize
   }, toolUseID): ToolResultBlockParam {
-    // Handle structured content
+    // 处理结构化内容
     if (structuredContent && structuredContent.length > 0) {
       return {
         tool_use_id: toolUseID,
@@ -573,21 +573,21 @@ export const BashTool = buildTool({
       };
     }
 
-    // For image data, format as image content block for Limkenion
+    // 对于图像数据，格式化为 Limkenion 的图像内容块
     if (isImage) {
       const block = buildImageToolResult(stdout, toolUseID);
       if (block) return block;
     }
     let processedStdout = stdout;
     if (stdout) {
-      // Replace any leading newlines or lines with only whitespace
+      // 替换任何前导换行或仅含空白的行
       processedStdout = stdout.replace(/^(\s*\n)+/, '');
-      // Still trim the end as before
+      // 仍像以前一样裁剪末尾
       processedStdout = processedStdout.trimEnd();
     }
 
-    // For large output that was persisted to disk, build <persisted-output>
-    // message for the model. The UI never sees this — it uses data.stdout.
+    // 对于已持久化到磁盘的大量输出，为模型构建 <persisted-output>
+    // 消息。UI 从不见到它——UI 使用 data.stdout。
     if (persistedOutputPath) {
       const preview = generatePreview(processedStdout, PREVIEW_SIZE_BYTES);
       processedStdout = buildLargeToolResultMessage({
@@ -622,8 +622,8 @@ export const BashTool = buildTool({
     };
   },
   async call(input: BashToolInput, toolUseContext, _canUseTool?: CanUseToolFn, parentMessage?: AssistantMessage, onProgress?: ToolCallProgress<BashProgress>) {
-    // Handle simulated sed edit - apply directly instead of running sed
-    // This ensures what the user previewed is exactly what gets written
+    // 处理模拟的 sed 编辑——直接应用而不运行 sed
+    // 这确保用户预览的内容与实际写入的内容完全一致
     if (input._simulatedSedEdit) {
       return applySedEdit(input._simulatedSedEdit, toolUseContext, parentMessage);
     }
@@ -642,12 +642,12 @@ export const BashTool = buildTool({
     const isMainThread = !toolUseContext.agentId;
     const preventCwdChanges = !isMainThread;
     try {
-      // Use the new async generator version of runShellCommand
+      // 使用 runShellCommand 的新的异步生成器版本
       const commandGenerator = runShellCommand({
         input,
         abortController,
-        // Use the always-shared task channel so async agents' background
-        // bash tasks are actually registered (and killable on agent exit).
+        // 使用始终共享的任务通道，使异步 agent 的后台
+        // bash 任务真正被注册（并可在 agent 退出时终止）。
         setAppState: toolUseContext.setAppStateForTasks ?? setAppState,
         setToolJSX,
         preventCwdChanges,
@@ -656,7 +656,7 @@ export const BashTool = buildTool({
         agentId: toolUseContext.agentId
       });
 
-      // Consume the generator and capture the return value
+      // 消费生成器并捕获返回值
       let generatorResult;
       do {
         generatorResult = await commandGenerator.next();
@@ -678,23 +678,23 @@ export const BashTool = buildTool({
         }
       } while (!generatorResult.done);
 
-      // Get the final result from the generator's return value
+      // 从生成器的返回值获取最终结果
       result = generatorResult.value;
       trackGitOperations(input.command, result.code, result.stdout);
       const isInterrupt = result.interrupted && abortController.signal.reason === 'interrupt';
 
-      // stderr is interleaved in stdout (merged fd) — result.stdout has both
+      // stderr 交错在 stdout 中（已合并 fd）——result.stdout 包含两者
       stdoutAccumulator.append((result.stdout || '').trimEnd() + EOL);
 
-      // Interpret the command result using semantic rules
+      // 使用语义规则解读命令结果
       interpretationResult = interpretCommandResult(input.command, result.code, result.stdout || '', '');
 
-      // Check for git index.lock error (stderr is in stdout now)
+      // 检查 git index.lock 错误（stderr 现在在 stdout 中）
       if (result.stdout && result.stdout.includes(".git/index.lock': File exists")) {
         logEvent('limkenion_git_index_lock_error', {});
       }
       if (interpretationResult.isError && !isInterrupt) {
-        // Only add exit code if it's actually an error
+        // 仅在确实是错误时才添加退出码
         if (result.code !== 0) {
           stdoutAccumulator.append(`Exit code ${result.code}`);
         }
@@ -706,15 +706,15 @@ export const BashTool = buildTool({
         }
       }
 
-      // Annotate output with sandbox violations if any (stderr is in stdout)
+      // 如有沙箱违规则标注到输出中（stderr 在 stdout 中）
       const outputWithSbFailures = SandboxManager.annotateStderrWithSandboxFailures(input.command, result.stdout || '');
       if (result.preSpawnError) {
         throw new Error(result.preSpawnError);
       }
       if (interpretationResult.isError && !isInterrupt) {
-        // stderr is merged into stdout (merged fd); outputWithSbFailures
-        // already has the full output. Pass '' for stdout to avoid
-        // duplication in getErrorParts() and processBashCommand.
+        // stderr 已合并到 stdout（合并 fd）；outputWithSbFailures
+        // 已包含完整输出。为 stdout 传 '' 以避免
+        // 在 getErrorParts() 和 processBashCommand 中重复。
         throw new ShellError('', outputWithSbFailures, result.code, result.interrupted);
       }
       wasInterrupted = result.interrupted;
@@ -722,13 +722,13 @@ export const BashTool = buildTool({
       if (setToolJSX) setToolJSX(null);
     }
 
-    // Get final string from accumulator
+    // 从累加器获取最终字符串
     const stdout = stdoutAccumulator.toString();
 
-    // Large output: the file on disk has more than getMaxOutputLength() bytes.
-    // stdout already contains the first chunk (from getStdout()). Copy the
-    // output file to the tool-results dir so the model can read it via
-    // FileRead. If > 64 MB, truncate after copying.
+    // 大量输出：磁盘上的文件超过 getMaxOutputLength() 字节。
+    // stdout 已包含第一块（来自 getStdout()）。将输出文件
+    // 复制到 tool-results 目录，以便模型通过 FileRead
+    // 读取。如果超过 64 MB，则在复制后截断。
     const MAX_PERSISTED_SIZE = 64 * 1024 * 1024;
     let persistedOutputPath: string | undefined;
     let persistedOutputSize: number | undefined;
@@ -748,7 +748,7 @@ export const BashTool = buildTool({
         }
         persistedOutputPath = dest;
       } catch {
-        // File may already be gone — stdout preview is sufficient
+        // 文件可能已不存在——stdout 预览已足够
       }
     }
     const commandType = input.command.split(' ')[0];
@@ -760,7 +760,7 @@ export const BashTool = buildTool({
       interrupted: wasInterrupted
     });
 
-    // Log code indexing tool usage
+    // 记录代码索引工具的使用
     const codeIndexingTool = detectCodeIndexingFromCommand(input.command);
     if (codeIndexingTool) {
       logEvent('limkenion_code_indexing_tool_used', {
@@ -771,12 +771,12 @@ export const BashTool = buildTool({
     }
     let strippedStdout = stripEmptyLines(stdout);
 
-    // Limkenion hints protocol: CLIs/SDKs gated on LIMKENIONCODE=1 emit a
-    // `<limkenion-hint />` tag to stderr (merged into stdout here). Scan,
-    // record for useLimkenionHintRecommendation to surface, then strip
-    // so the model never sees the tag — a zero-token side channel.
-    // Stripping runs unconditionally (subagent output must stay clean too);
-    // only the dialog recording is main-thread-only.
+    // Limkenion 提示协议：以 LIMKENIONCODE=1 为开关的 CLI/SDK 会向
+    // stderr（此处已合并到 stdout）发出 `<limkenion-hint />` 标签。扫描、
+    // 记录以供 useLimkenionHintRecommendation 展示，然后剥离，
+    // 使模型永远看不到该标签——一条零 token 的旁路通道。
+    // 剥离无条件执行（子代理的输出也必须保持干净）；
+    // 只有对话框记录是主线程专属的。
     const extracted = extractLimkenionHints(strippedStdout, input.command);
     strippedStdout = extracted.stripped;
     if (isMainThread && extracted.hints.length > 0) {
@@ -784,19 +784,19 @@ export const BashTool = buildTool({
     }
     let isImage = isImageOutput(strippedStdout);
 
-    // Cap image dimensions + size if present (CC-304 — see
-    // resizeShellImageOutput). Scope the decoded buffer so it can be reclaimed
-    // before we build the output Out object.
+    // 如果存在图像则限制其尺寸 + 大小（CC-304——见
+    // resizeShellImageOutput）。限定解码缓冲区的作用域，使其能在
+    // 我们构建输出 Out 对象之前被回收。
     let compressedStdout = strippedStdout;
     if (isImage) {
       const resized = await resizeShellImageOutput(strippedStdout, result.outputFilePath, persistedOutputSize);
       if (resized) {
         compressedStdout = resized;
       } else {
-        // Parse failed or file too large (e.g. exceeds MAX_IMAGE_FILE_SIZE).
-        // Keep isImage in sync with what we actually send so the UI label stays
-        // accurate — mapToolResultToToolResultBlockParam's defensive
-        // fallthrough will send text, not an image block.
+        // 解析失败或文件过大（例如超过 MAX_IMAGE_FILE_SIZE）。
+        // 让 isImage 与我们实际发送的内容保持同步，使 UI 标签保持
+        // 准确——mapToolResultToToolResultBlockParam 的防御性
+        // 兜底会发送文本，而不是图像块。
         isImage = false;
       }
     }
@@ -865,8 +865,8 @@ async function* runShellCommand({
   let backgroundShellId: string | undefined = undefined;
   let assistantAutoBackgrounded = false;
 
-  // Progress signal: resolved by onProgress callback from the shared poller,
-  // waking the generator to yield a progress update.
+  // 进度信号：由共享轮询器的 onProgress 回调兑现，
+  // 唤醒生成器以产出一条进度更新。
   let resolveProgress: (() => void) | null = null;
   function createProgressSignal(): Promise<null> {
     return new Promise<null>(resolve => {
@@ -874,9 +874,9 @@ async function* runShellCommand({
     });
   }
 
-  // Determine if auto-backgrounding should be enabled
-  // Only enable for commands that are allowed to be auto-backgrounded
-  // and when background tasks are not disabled
+  // 判断是否应启用自动转后台
+  // 仅对允许自动转后台的命令启用，
+  // 且后台任务未被禁用时启用
   const shouldAutoBackground = !isBackgroundTasksDisabled && isAutobackgroundingAllowed(command);
   const shellCommand = await exec(command, abortController.signal, 'bash', {
     timeout: timeoutMs,
@@ -885,7 +885,7 @@ async function* runShellCommand({
       fullOutput = allLines;
       lastTotalLines = totalLines;
       lastTotalBytes = isIncomplete ? totalBytes : 0;
-      // Wake the generator so it yields the new progress data
+      // 唤醒生成器以产出新的进度数据
       const resolve = resolveProgress;
       if (resolve) {
         resolveProgress = null;
@@ -897,10 +897,10 @@ async function* runShellCommand({
     shouldAutoBackground
   });
 
-  // Start the command execution
+  // 开始执行命令
   const resultPromise = shellCommand.result;
 
-  // Helper to spawn a background task and return its ID
+  // 派生后台任务并返回其 ID 的辅助函数
   async function spawnBackgroundTask(): Promise<string> {
     const handle = await spawnShellTask({
       command,
@@ -911,8 +911,8 @@ async function* runShellCommand({
     }, {
       abortController,
       getAppState: () => {
-        // We don't have direct access to getAppState here, but spawn doesn't
-        // actually use it during the spawn process
+        // 这里无法直接访问 getAppState，但 spawn
+        // 在派生过程中实际并不使用它
         throw new Error('getAppState not available in runShellCommand context');
       },
       setAppState
@@ -920,12 +920,12 @@ async function* runShellCommand({
     return handle.taskId;
   }
 
-  // Helper to start backgrounding with optional logging
+  // 启动转后台并可选记录的辅助函数
   function startBackgrounding(eventName: string, backgroundFn?: (shellId: string) => void): void {
-    // If a foreground task is already registered (via registerForeground in the
-    // progress loop), background it in-place instead of re-spawning. Re-spawning
-    // would overwrite tasks[taskId], emit a duplicate task_started SDK event,
-    // and leak the first cleanup callback.
+    // 如果已注册前台任务（通过进度循环中的 registerForeground），
+    // 则原地将其转入后台，而不是重新派生。重新派生
+    // 会覆盖 tasks[taskId]、发出重复的 task_started SDK 事件，
+    // 并泄漏第一个清理回调。
     if (foregroundTaskId) {
       if (!backgroundExistingForegroundTask(foregroundTaskId, shellCommand, description || command, setAppState, toolUseId)) {
         return;
@@ -938,16 +938,16 @@ async function* runShellCommand({
       return;
     }
 
-    // No foreground task registered — spawn a new background task
-    // Note: spawn is essentially synchronous despite being async
+    // 未注册前台任务——派生新的后台任务
+    // 注意：spawn 虽为异步，但本质上是同步的
     void spawnBackgroundTask().then(shellId => {
       backgroundShellId = shellId;
 
-      // Wake the generator's Promise.race so it sees backgroundShellId.
-      // Without this, if the poller has stopped ticking for this task
-      // (no output + shared-poller race with sibling stopPolling calls)
-      // and the process is hung on I/O, the race at line ~1357 never
-      // resolves and the generator deadlocks despite being backgrounded.
+      // 唤醒生成器的 Promise.race，使其看到 backgroundShellId。
+      // 否则，如果轮询器已停止为该任务计时
+      // （无输出 + 共享轮询器与相邻 stopPolling 调用的竞态）
+      // 且进程卡在 I/O 上，第 ~1357 行的竞态将永远
+      // 无法解决，生成器即使已转入后台也会死锁。
       const resolve = resolveProgress;
       if (resolve) {
         resolveProgress = null;
@@ -962,17 +962,17 @@ async function* runShellCommand({
     });
   }
 
-  // Set up auto-backgrounding on timeout if enabled
-  // Only background commands that are allowed to be auto-backgrounded (not sleep, etc.)
+  // 如启用则在超时时设置自动转后台
+  // 仅将允许自动转后台的命令转入后台（不包括 sleep 等）
   if (shellCommand.onTimeout && shouldAutoBackground) {
     shellCommand.onTimeout(backgroundFn => {
       startBackgrounding('limkenion_bash_command_timeout_backgrounded', backgroundFn);
     });
   }
 
-  // In assistant mode, the main agent should stay responsive. Auto-background
-  // blocking commands after ASSISTANT_BLOCKING_BUDGET_MS so the agent can keep
-  // coordinating instead of waiting. The command keeps running — no state loss.
+  // 在 assistant 模式下，主 agent 应保持响应。阻塞型命令在
+  // ASSISTANT_BLOCKING_BUDGET_MS 后自动转入后台，使 agent 能继续
+  // 协调而不是等待。命令继续运行——无状态丢失。
   if (feature('KAIROS') && getKairosActive() && isMainThread && !isBackgroundTasksDisabled && run_in_background !== true) {
     setTimeout(() => {
       if (shellCommand.status === 'running' && backgroundShellId === undefined) {
@@ -982,10 +982,10 @@ async function* runShellCommand({
     }, ASSISTANT_BLOCKING_BUDGET_MS).unref();
   }
 
-  // Handle Limkenion asking to run it in the background explicitly
-  // When explicitly requested via run_in_background, always honor the request
-  // regardless of the command type (isAutobackgroundingAllowed only applies to automatic backgrounding)
-  // Skip if background tasks are disabled - run in foreground instead
+  // 处理 Limkenion 明确要求后台运行的情况
+  // 当通过 run_in_background 显式请求时，始终遵从该请求，
+  // 无论命令类型如何（isAutobackgroundingAllowed 仅适用于自动转后台）
+  // 如果后台任务被禁用则跳过——改为在前台运行
   if (run_in_background === true && !isBackgroundTasksDisabled) {
     const shellId = await spawnBackgroundTask();
     logEvent('limkenion_bash_command_explicitly_backgrounded', {
@@ -1000,7 +1000,7 @@ async function* runShellCommand({
     };
   }
 
-  // Wait for the initial threshold before showing progress
+  // 等待初始阈值后再展示进度
   const startTime = Date.now();
   let foregroundTaskId: string | undefined = undefined;
   {
@@ -1024,34 +1024,34 @@ async function* runShellCommand({
     }
   }
 
-  // Start polling the output file for progress. The poller's #tick calls
-  // onProgress every second, which resolves progressSignal below.
+  // 开始轮询输出文件以获取进度。轮询器的 #tick 每秒
+  // 调用 onProgress，从而兑现下方的 progressSignal。
   TaskOutput.startPolling(shellCommand.taskOutput.taskId);
 
-  // Progress loop: wake is driven by the shared poller calling onProgress,
-  // which resolves the progressSignal.
+  // 进度循环：唤醒由共享轮询器调用 onProgress 驱动，
+  // 后者兑现 progressSignal。
   try {
     while (true) {
       const progressSignal = createProgressSignal();
       const result = await Promise.race([resultPromise, progressSignal]);
       if (result !== null) {
-        // Race: backgrounding fired (15s timer / onTimeout / Ctrl+B) but the
-        // command completed before the next poll tick. #handleExit sets
-        // backgroundTaskId but skips outputFilePath (it assumes the background
-        // message or <task_notification> will carry the path). Strip
-        // backgroundTaskId so the model sees a clean completed command,
-        // reconstruct outputFilePath for large outputs, and suppress the
-        // redundant <task_notification> from the .then() handler.
-        // Check result.backgroundTaskId (not the closure var) to also cover
-        // Ctrl+B, which calls shellCommand.background() directly.
+        // 竞态：转后台已触发（15 秒定时器 / onTimeout / Ctrl+B），但命令
+        // 在下一次轮询计时前就完成了。#handleExit 会设置
+        // backgroundTaskId 但跳过 outputFilePath（它假定后台
+        // 消息或 <task_notification> 会携带该路径）。剥离
+        // backgroundTaskId，使模型看到一条干净的已完成命令，
+        // 为大量输出重建 outputFilePath，并抑制来自 .then() 处理器的
+        // 冗余 <task_notification>。
+        // 检查 result.backgroundTaskId（而非闭包变量），以同时覆盖
+        // 直接调用 shellCommand.background() 的 Ctrl+B。
         if (result.backgroundTaskId !== undefined) {
           markTaskNotified(result.backgroundTaskId, setAppState);
           const fixedResult: ExecResult = {
             ...result,
             backgroundTaskId: undefined
           };
-          // Mirror ShellCommand.#handleExit's large-output branch that was
-          // skipped because #backgroundTaskId was set.
+          // 复刻 ShellCommand.#handleExit 中因设置了 #backgroundTaskId
+          // 而被跳过的大量输出分支。
           const {
             taskOutput
           } = shellCommand;
@@ -1063,18 +1063,18 @@ async function* runShellCommand({
           shellCommand.cleanup();
           return fixedResult;
         }
-        // Command has completed - return the actual result
-        // If we registered as a foreground task, unregister it
+        // 命令已完成——返回实际结果
+        // 如果我们注册为前台任务，则注销它
         if (foregroundTaskId) {
           unregisterForeground(foregroundTaskId, setAppState);
         }
-        // Clean up stream resources for foreground commands
-        // (backgrounded commands are cleaned up by LocalShellTask)
+        // 清理前台命令的流资源
+        // （后台化命令由 LocalShellTask 清理）
         shellCommand.cleanup();
         return result;
       }
 
-      // Check if command was backgrounded (either via old mechanism or new backgroundAll)
+      // 检查命令是否已转入后台（通过旧机制或新的 backgroundAll）
       if (backgroundShellId) {
         return {
           stdout: '',
@@ -1086,9 +1086,9 @@ async function* runShellCommand({
         };
       }
 
-      // Check if this foreground task was backgrounded via backgroundAll()
+      // 检查该前台任务是否通过 backgroundAll() 转入后台
       if (foregroundTaskId) {
-        // shellCommand.status becomes 'backgrounded' when background() is called
+        // 调用 background() 时 shellCommand.status 变为 'backgrounded'
         if (shellCommand.status === 'backgrounded') {
           return {
             stdout: '',
@@ -1101,14 +1101,14 @@ async function* runShellCommand({
         }
       }
 
-      // Time for a progress update
+      // 该更新进度了
       const elapsed = Date.now() - startTime;
       const elapsedSeconds = Math.floor(elapsed / 1000);
 
-      // Show minimal backgrounding UI if available
-      // Skip if background tasks are disabled
+      // 如可用则展示最简的转后台 UI
+      // 如果后台任务被禁用则跳过
       if (!isBackgroundTasksDisabled && backgroundShellId === undefined && elapsedSeconds >= PROGRESS_THRESHOLD_MS / 1000 && setToolJSX) {
-        // Register this command as a foreground task so it can be backgrounded via Ctrl+B
+        // 将该命令注册为前台任务，以便可通过 Ctrl+B 转入后台
         if (!foregroundTaskId) {
           foregroundTaskId = registerForeground({
             command,

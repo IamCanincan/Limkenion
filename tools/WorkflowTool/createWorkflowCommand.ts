@@ -6,12 +6,11 @@ import type { WorkflowDefinition } from '../../utils/workflows/types.js'
 import { WORKFLOW_TOOL_NAME } from './constants.js'
 
 /**
- * Turn every discovered workflow into a `/<name>` command.
+ * 把每个被发现的工作流都变成一个 `/<name>` 命令。
  *
- * The command is a prompt, not a direct tool call: whatever the user typed
- * after the name has to become the `args` value, and only the model can decide
- * whether "issues 1024, 1025" is a list of numbers or a sentence. The prompt
- * pins everything else so the model's only job is that conversion.
+ * 该命令是一段提示词，而不是直接的工具调用：用户在名称之后输入的任何内容
+ * 都必须成为 `args` 值，而只有模型才能判断 "issues 1024, 1025" 是一串数字
+ * 还是一句话。提示词把其余一切固定下来，让模型唯一的任务就是这次转换。
  */
 export async function getWorkflowCommands(cwd?: string): Promise<Command[]> {
   if (!areWorkflowsEnabled()) return []

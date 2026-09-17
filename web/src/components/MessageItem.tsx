@@ -37,9 +37,9 @@ function TodoList({ toolCall }: { toolCall: ToolCall }) {
 }
 
 /**
- * Minimal markdown-ish renderer: fenced code blocks, inline code,
- * bold, and paragraphs. Deliberately dependency-free; swap in a full
- * renderer (e.g. markdown-it) when richer output is needed.
+ * 极简的 markdown 式渲染器：围栏代码块、行内代码、
+ * 加粗与段落。刻意不引入依赖；需要更丰富的输出时
+ * 可换成完整的渲染器（例如 markdown-it）。
  */
 function renderInline(text: string): (string | JSX.Element)[] {
   const parts: (string | JSX.Element)[] = []
@@ -84,7 +84,7 @@ function Markdownish({ text }: { text: string }) {
           code.push(lines[i])
           i++
         }
-        i++ // skip closing fence
+        i++ // 跳过闭合围栏
         out.push({ type: 'code', content: code.join('\n'), lang })
       } else {
         buf.push(lines[i])
@@ -183,8 +183,8 @@ export function MessageItem({ message }: { message: ChatMessage }) {
       {todoCalls.map(tc => (
         <TodoList key={tc.id} toolCall={tc} />
       ))}
-      {/* Turn process: non-todo tool calls folded by default once complete
-          (learned from deepseek-harness's turn process folding). */}
+      {/* 回合处理：非 todo 的工具调用在完成后默认折叠
+          （借鉴自 deepseek-harness 的回合处理折叠）。 */}
       {otherCalls.length > 0 && (
         <div className="turn-process">
           <button className="turn-process-toggle" onClick={() => setToolsOpen(o => !o)}>

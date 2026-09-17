@@ -93,22 +93,22 @@ import {
   userFacingName,
 } from './UI.js'
 
-// Device files that would hang the process: infinite output or blocking input.
-// Checked by path only (no I/O). Safe devices like /dev/null are intentionally omitted.
+// 会挂起进程的设备文件：无限输出或阻塞输入。
+// 仅按路径检查（无 I/O）。像 /dev/null 这样的安全设备有意不列出。
 const BLOCKED_DEVICE_PATHS = new Set([
-  // Infinite output — never reach EOF
+  // 无限输出——永远不会到达 EOF
   '/dev/zero',
   '/dev/random',
   '/dev/urandom',
   '/dev/full',
-  // Blocks waiting for input
+  // 阻塞等待输入
   '/dev/stdin',
   '/dev/tty',
   '/dev/console',
-  // Nonsensical to read
+  // 读取毫无意义
   '/dev/stdout',
   '/dev/stderr',
-  // fd aliases for stdin/stdout/stderr
+  // stdin/stdout/stderr 的 fd 别名
   '/dev/fd/0',
   '/dev/fd/1',
   '/dev/fd/2',
@@ -116,7 +116,7 @@ const BLOCKED_DEVICE_PATHS = new Set([
 
 function isBlockedDevicePath(filePath: string): boolean {
   if (BLOCKED_DEVICE_PATHS.has(filePath)) return true
-  // /proc/self/fd/0-2 and /proc/<pid>/fd/0-2 are Linux aliases for stdio
+  // /proc/self/fd/0-2 和 /proc/<pid>/fd/0-2 是 stdio 在 Linux 上的别名
   if (
     filePath.startsWith('/proc/') &&
     (filePath.endsWith('/fd/0') ||
@@ -127,22 +127,22 @@ function isBlockedDevicePath(filePath: string): boolean {
   return false
 }
 
-// Narrow no-break space (U+202F) used by some macOS versions in screenshot filenames
+// 某些 macOS 版本在截图文件名中使用的窄不换行空格（U+202F）
 const THIN_SPACE = String.fromCharCode(8239)
 
 /**
- * Resolves macOS screenshot paths that may have different space characters.
- * macOS uses either regular space or thin space (U+202F) before AM/PM in screenshot
- * filenames depending on the macOS version. This function tries the alternate space
- * character if the file doesn't exist with the given path.
+ * 解析可能使用不同空格字符的 macOS 截图路径。
+ * 视 macOS 版本而定，macOS 在截图文件名的 AM/PM 之前使用普通空格
+ * 或窄空格（U+202F）。若给定路径下文件不存在，
+ * 本函数会尝试替换为另一种空格字符。
  *
- * @param filePath - The normalized file path to resolve
- * @returns The path to the actual file on disk (may differ in space character)
+ * @param filePath - 待解析的规范化文件路径
+ * @returns 磁盘上实际文件的路径（空格字符可能不同）
  */
 /**
- * For macOS screenshot paths with AM/PM, the space before AM/PM may be a
- * regular space or a thin space depending on the macOS version.  Returns
- * the alternate path to try if the original doesn't exist, or undefined.
+ * 对于含 AM/PM 的 macOS 截图路径，AM/PM 前的空格可能是
+ * 普通空格或窄空格，取决于 macOS 版本。若原路径不存在，
+ * 返回可尝试的替代路径，否则返回 undefined。
  */
 function getAlternateScreenshotPath(filePath: string): string | undefined {
   const filename = path.basename(filePath)
@@ -158,7 +158,7 @@ function getAlternateScreenshotPath(filePath: string): string | undefined {
   )
 }
 
-// File read listeners - allows other services to be notified when files are read
+// 文件读取监听器——允许在文件被读取时通知其他服务
 type FileReadListener = (filePath: string, content: string) => void
 const fileReadListeners: FileReadListener[] = []
 
@@ -184,28 +184,28 @@ export class MaxFileReadTokenExceededError extends Error {
   }
 }
 
-// Common image extensions
+// 常见图片扩展名
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
 
 /**
- * Detects if a file path is a session-related file for analytics logging.
- * Only matches files within the Limkenion config directory (e.g., ~/.limkenion).
- * Returns the type of session file or null if not a session file.
+ * 检测某个文件路径是否为用于遥测日志的会话相关文件。
+ * 仅匹配 Limkenion 配置目录（例如 ~/.limkenion）内的文件。
+ * 返回会话文件类型；若不是会话文件则返回 null。
  */
 function detectSessionFileType(
   filePath: string,
 ): 'session_memory' | 'session_transcript' | null {
   const configDir = getLimkenionConfigHomeDir()
 
-  // Only match files within the Limkenion config directory
+  // 仅匹配 Limkenion 配置目录内的文件
   if (!filePath.startsWith(configDir)) {
     return null
   }
 
-  // Normalize path to use forward slashes for consistent matching across platforms
+  // 规范化路径为使用正斜杠，以便跨平台一致匹配
   const normalizedPath = filePath.split(win32.sep).join(posix.sep)
 
-  // Session memory files: ~/.limkenion/session-memory/*.md (including summary.md)
+  // 会话记忆文件：~/.limkenion/session-memory/*.md（含 summary.md）
   if (
     normalizedPath.includes('/session-memory/') &&
     normalizedPath.endsWith('.md')
@@ -213,7 +213,7 @@ function detectSessionFileType(
     return 'session_memory'
   }
 
-  // Session JSONL transcript files: ~/.limkenion/projects/*/*.jsonl
+  // 会话 JSONL 记录文件：~/.limkenion/projects/*/*.jsonl
   if (
     normalizedPath.includes('/projects/') &&
     normalizedPath.endsWith('.jsonl')
@@ -337,8 +337,8 @@ export type Output = z.infer<OutputSchema>
 export const FileReadTool = buildTool({
   name: FILE_READ_TOOL_NAME,
   searchHint: 'read files, images, PDFs, notebooks',
-  // Output is bounded by maxTokens (validateContentTokens). Persisting to a
-  // file the model reads back with Read is circular — never persist.
+  // 输出受 maxTokens 限制（validateContentTokens）。持久化到
+  // 模型再用 Read 读回的文件是循环的——绝不持久化。
   maxResultSizeChars: Infinity,
   strict: true,
   async description() {
@@ -386,8 +386,8 @@ export const FileReadTool = buildTool({
     return file_path || getCwd()
   },
   backfillObservableInput(input) {
-    // hooks.mdx documents file_path as absolute; expand so hook allowlists
-    // can't be bypassed via ~ or relative paths.
+    // hooks.mdx 将 file_path 记为绝对路径；做展开以免钩子允许列表
+    // 被 ~ 或相对路径绕过。
     if (typeof input.file_path === 'string') {
       input.file_path = expandPath(input.file_path)
     }
@@ -406,17 +406,17 @@ export const FileReadTool = buildTool({
   renderToolUseMessage,
   renderToolUseTag,
   renderToolResultMessage,
-  // UI.tsx:140 — ALL types render summary chrome only: "Read N lines",
-  // "Read image (42KB)". Never the content itself. The model-facing
-  // serialization (below) sends content + CYBER_RISK_MITIGATION_REMINDER
-  // + line prefixes; UI shows none of it. Nothing to index. Caught by
-  // the render-fidelity test when this initially claimed file.content.
+  // UI.tsx:140——所有类型只渲染摘要框架："Read N lines"、
+  // "Read image (42KB)"。绝不渲染内容本身。面向模型的
+  // 序列化（见下）会发送内容 + CYBER_RISK_MITIGATION_REMINDER
+  // + 行前缀；UI 一概不展示。无需索引。当此处最初声称
+  // 索引 file.content 时，被渲染保真度测试捕获。
   extractSearchText() {
     return ''
   },
   renderToolUseErrorMessage,
   async validateInput({ file_path, pages }, toolUseContext: ToolUseContext) {
-    // Validate pages parameter (pure string parsing, no I/O)
+    // 校验 pages 参数（纯字符串解析，无 I/O）
     if (pages !== undefined) {
       const parsed = parsePDFPageRange(pages)
       if (!parsed) {
@@ -439,7 +439,7 @@ export const FileReadTool = buildTool({
       }
     }
 
-    // Path expansion + deny rule check (no I/O)
+    // 路径展开 + 拒绝规则检查（无 I/O）
     const fullFilePath = expandPath(file_path)
 
     const appState = toolUseContext.getAppState()
@@ -458,16 +458,16 @@ export const FileReadTool = buildTool({
       }
     }
 
-    // SECURITY: UNC path check (no I/O) — defer filesystem operations
-    // until after user grants permission to prevent NTLM credential leaks
+    // 安全：UNC 路径检查（无 I/O）——将文件系统操作推迟到
+    // 用户授予权限之后，以防 NTLM 凭据泄露
     const isUncPath =
       fullFilePath.startsWith('\\\\') || fullFilePath.startsWith('//')
     if (isUncPath) {
       return { result: true }
     }
 
-    // Binary extension check (string check on extension only, no I/O).
-    // PDF, images, and SVG are excluded - this tool renders them natively.
+    // 二进制扩展名检查（仅对扩展名做字符串检查，无 I/O）。
+    // PDF、图片和 SVG 除外——本工具会原生渲染它们。
     const ext = path.extname(fullFilePath).toLowerCase()
     if (
       hasBinaryExtension(fullFilePath) &&
@@ -481,8 +481,8 @@ export const FileReadTool = buildTool({
       }
     }
 
-    // Block specific device files that would hang (infinite output or blocking input).
-    // This is a path-based check with no I/O — safe special files like /dev/null are allowed.
+    // 拦截会挂起的特定设备文件（无限输出或阻塞输入）。
+    // 这是基于路径的检查，无 I/O——允许 /dev/null 之类的安全特殊文件。
     if (isBlockedDevicePath(fullFilePath)) {
       return {
         result: false,
@@ -506,8 +506,8 @@ export const FileReadTool = buildTool({
       fileReadingLimits?.maxSizeBytes ?? defaults.maxSizeBytes
     const maxTokens = fileReadingLimits?.maxTokens ?? defaults.maxTokens
 
-    // Telemetry: track when callers override default read limits.
-    // Only fires on override (low volume) — event count = override frequency.
+    // 遥测：跟踪调用方覆盖默认读取上限的情况。
+    // 仅在覆盖时触发（低频）——事件数 = 覆盖频次。
     if (fileReadingLimits !== undefined) {
       logEvent('limkenion_file_read_limits_override', {
         hasMaxTokens: fileReadingLimits.maxTokens !== undefined,
@@ -516,23 +516,23 @@ export const FileReadTool = buildTool({
     }
 
     const ext = path.extname(file_path).toLowerCase().slice(1)
-    // Use expandPath for consistent path normalization with FileEditTool/FileWriteTool
-    // (especially handles whitespace trimming and Windows path separators)
+    // 使用 expandPath，与 FileEditTool/FileWriteTool 保持一致的路径规范化
+    // （尤其能处理空白裁剪和 Windows 路径分隔符）
     const fullFilePath = expandPath(file_path)
 
-    // Dedup: if we've already read this exact range and the file hasn't
-    // changed on disk, return a stub instead of re-sending the full content.
-    // The earlier Read tool_result is still in context — two full copies
-    // waste cache_creation tokens on every subsequent turn. BQ proxy shows
-    // ~18% of Read calls are same-file collisions (up to 2.64% of fleet
-    // cache_creation). Only applies to text/notebook reads — images/PDFs
-    // aren't cached in readFileState so won't match here.
+    // 去重：若我们已经读取过完全相同的区间，且文件在磁盘上
+    // 未变化，则返回一个存根，而不是重发完整内容。
+    // 先前的 Read tool_result 仍在上下文中——两份完整副本
+    // 会在之后每个回合浪费 cache_creation token。BQ 代理显示
+    // 约 18% 的 Read 调用是同文件碰撞（最高占全量
+    // cache_creation 的 2.64%）。仅适用于文本/notebook 读取——
+    // 图片/PDF 不缓存在 readFileState 中，因此不会在此匹配。
     //
-    // Ant soak: 1,734 dedup hits in 2h, no Read error regression.
-    // Killswitch pattern: GB can disable if the stub message confuses
-    // the model externally.
-    // 3P default: killswitch off = dedup enabled. Client-side only — no
-    // server support needed, safe for Bedrock/Vertex/Foundry.
+    // Ant 浸泡：2 小时内 1,734 次去重命中，
+    // Read 错误无回退。
+    // 终止开关模式：若存根消息在外部让模型困惑，GB 可禁用。
+    // 3P 默认：终止开关关闭 = 去重启用。仅客户端——无需
+    // 服务端支持，对 Bedrock/Vertex/Foundry 安全。
     const dedupKillswitch = getFeatureValue_CACHED_MAY_BE_STALE(
       'limkenion_read_dedup_killswitch',
       false,
@@ -540,10 +540,10 @@ export const FileReadTool = buildTool({
     const existingState = dedupKillswitch
       ? undefined
       : readFileState.get(fullFilePath)
-    // Only dedup entries that came from a prior Read (offset is always set
-    // by Read). Edit/Write store offset=undefined — their readFileState
-    // entry reflects post-edit mtime, so deduping against it would wrongly
-    // point the model at the pre-edit Read content.
+    // 只对来自先前 Read 的条目去重（offset 总是由 Read 设置）。
+    // Edit/Write 存储的 offset=undefined——它们的 readFileState
+    // 条目反映的是编辑后的 mtime，因此与之去重会错误地
+    // 把模型指向编辑前 Read 的内容。
     if (
       existingState &&
       !existingState.isPartialView &&
@@ -567,26 +567,26 @@ export const FileReadTool = buildTool({
             }
           }
         } catch {
-          // stat failed — fall through to full read
+          // stat 失败——降级为完整读取
         }
       }
     }
 
-    // Discover skills from this file's path (fire-and-forget, non-blocking)
-    // Skip in simple mode - no skills available
+    // 根据该文件路径发现技能（发出即忘、不阻塞）
+    // 简单模式下跳过——没有可用技能
     const cwd = getCwd()
     if (!isEnvTruthy(process.env.LIMKENION_SIMPLE)) {
       const newSkillDirs = await discoverSkillDirsForPaths([fullFilePath], cwd)
       if (newSkillDirs.length > 0) {
-        // Store discovered dirs for attachment display
+        // 存储发现的目录以供附件展示
         for (const dir of newSkillDirs) {
           context.dynamicSkillDirTriggers?.add(dir)
         }
-        // Don't await - let skill loading happen in the background
+        // 不要 await——让技能在后台加载
         addSkillDirectories(newSkillDirs).catch(() => {})
       }
 
-      // Activate conditional skills whose path patterns match this file
+      // 激活路径模式匹配该文件的条件技能
       activateConditionalSkillsForPaths([fullFilePath], cwd)
     }
 
@@ -606,11 +606,11 @@ export const FileReadTool = buildTool({
         parentMessage?.message.id,
       )
     } catch (error) {
-      // Handle file-not-found: suggest similar files
+      // 处理文件未找到：建议相似文件
       const code = getErrnoCode(error)
       if (code === 'ENOENT') {
-        // macOS screenshots may use a thin space or regular space before
-        // AM/PM — try the alternate before giving up.
+        // macOS 截图在 AM/PM 之前可能使用窄空格或普通空格
+        // ——放弃之前先尝试另一种。
         const altPath = getAlternateScreenshotPath(fullFilePath)
         if (altPath) {
           try {
@@ -632,7 +632,7 @@ export const FileReadTool = buildTool({
             if (!isENOENT(altError)) {
               throw altError
             }
-            // Alt path also missing — fall through to friendly error
+            // 替代路径也不存在——降级为友好错误提示
           }
         }
 
@@ -670,14 +670,14 @@ export const FileReadTool = buildTool({
       case 'notebook':
         return mapNotebookCellsToToolResult(data.file.cells, toolUseID)
       case 'pdf':
-        // Return PDF metadata only - the actual content is sent as a supplemental DocumentBlockParam
+        // 仅返回 PDF 元数据——实际内容作为补充的 DocumentBlockParam 发送
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
           content: `PDF file read: ${data.file.filePath} (${formatFileSize(data.file.originalSize)})`,
         }
       case 'parts':
-        // Extracted page images are read and sent as image blocks in mapToolResultToAPIMessage
+        // 提取出的页面图片在 mapToolResultToAPIMessage 中作为图片块读取并发送
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
@@ -700,7 +700,7 @@ export const FileReadTool = buildTool({
               ? CYBER_RISK_MITIGATION_REMINDER
               : '')
         } else {
-          // Determine the appropriate warning message
+          // 确定合适的警告消息
           content =
             data.file.totalLines === 0
               ? '<system-reminder>Warning: the file exists but the contents are empty.</system-reminder>'
@@ -721,7 +721,7 @@ function pickLineFormatInstruction(): string {
   return LINE_FORMAT_INSTRUCTION
 }
 
-/** Format file content with line numbers. */
+/** 格式化文件内容并加上行号。 */
 function formatFileLines(file: { content: string; startLine: number }): string {
   return addLineNumbers(file)
 }
@@ -729,7 +729,7 @@ function formatFileLines(file: { content: string; startLine: number }): string {
 export const CYBER_RISK_MITIGATION_REMINDER =
   '\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n'
 
-// Models where cyber risk mitigation should be skipped
+// 应跳过网络风险缓解的模型
 const MITIGATION_EXEMPT_MODELS = new Set(['limkenion-opus-4-6'])
 
 function shouldIncludeFileReadMitigation(): boolean {
@@ -738,11 +738,11 @@ function shouldIncludeFileReadMitigation(): boolean {
 }
 
 /**
- * Side-channel from call() to mapToolResultToToolResultBlockParam: mtime
- * of auto-memory files, keyed by the `data` object identity. Avoids
- * adding a presentation-only field to the output schema (which flows
- * into SDK types) and avoids sync fs in the mapper. WeakMap auto-GCs
- * when the data object becomes unreachable after rendering.
+ * 从 call() 到 mapToolResultToToolResultBlockParam 的旁路通道：自动记忆
+ * 文件的 mtime，以 `data` 对象标识为键。避免
+ * 向输出 schema 添加仅用于展示的字段（该 schema 会流入
+ * SDK 类型），也避免在映射器中做同步 fs。当 data 对象
+ * 在渲染后不可达时，WeakMap 会自动 GC。
  */
 const memoryFileMtimes = new WeakMap<object, number>()
 
@@ -799,7 +799,7 @@ function createImageResponse(
 }
 
 /**
- * Inner implementation of call, separated to allow ENOENT handling in the outer call.
+ * call 的内部实现，分离出来以便在外层 call 中处理 ENOENT。
  */
 async function callInner(
   file_path: string,
@@ -818,7 +818,7 @@ async function callInner(
   data: Output
   newMessages?: ReturnType<typeof createUserMessage>[]
 }> {
-  // --- Notebook ---
+  // --- 笔记本 ---
   if (ext === 'ipynb') {
     const cells = await readNotebook(resolvedFilePath)
     const cellsJson = jsonStringify(cells)
@@ -837,7 +837,7 @@ async function callInner(
 
     await validateContentTokens(cellsJson, ext, maxTokens)
 
-    // Get mtime via async stat (single call, no prior existence check)
+    // 通过异步 stat 获取 mtime（单次调用，不预先检查是否存在）
     const stats = await getFsImplementation().stat(resolvedFilePath)
     readFileState.set(fullFilePath, {
       content: cellsJson,
@@ -862,10 +862,10 @@ async function callInner(
     return { data }
   }
 
-  // --- Image (single read, no double-read) ---
+  // --- 图片（单次读取，不重复读取）---
   if (IMAGE_EXTENSIONS.has(ext)) {
-    // Images have their own size limits (token budget + compression) —
-    // don't apply the text maxSizeBytes cap.
+    // 图片有自己的大小限制（token 预算 + 压缩）——
+    // 不应用文本的 maxSizeBytes 上限。
     const data = await readImageWithTokenBudget(resolvedFilePath, maxTokens)
     context.nestedMemoryAttachmentTriggers?.add(fullFilePath)
 
@@ -1016,7 +1016,7 @@ async function callInner(
     }
   }
 
-  // --- Text file (single async read via readFileInRange) ---
+  // --- 文本文件（通过 readFileInRange 单次异步读取）---
   const lineOffset = offset === 0 ? 0 : offset - 1
   const { content, lineCount, totalLines, totalBytes, readBytes, mtimeMs } =
     await readFileInRange(
@@ -1037,8 +1037,8 @@ async function callInner(
   })
   context.nestedMemoryAttachmentTriggers?.add(fullFilePath)
 
-  // Snapshot before iterating — a listener that unsubscribes mid-callback
-  // would splice the live array and skip the next listener.
+  // 迭代前先做快照——在回调中途取消订阅的监听器
+  // 会修改实时数组并跳过下一个监听器。
   for (const listener of fileReadListeners.slice()) {
     listener(resolvedFilePath, content)
   }
@@ -1086,20 +1086,20 @@ async function callInner(
 }
 
 /**
- * Reads an image file and applies token-based compression if needed.
- * Reads the file ONCE, then applies standard resize. If the result exceeds
- * the token limit, applies aggressive compression from the same buffer.
+ * 读取图片文件，并按需应用基于 token 的压缩。
+ * 只读取文件一次，然后应用标准缩放。若结果超过
+ * token 上限，则从同一缓冲区应用激进压缩。
  *
- * @param filePath - Path to the image file
- * @param maxTokens - Maximum token budget for the image
- * @returns Image data with appropriate compression applied
+ * @param filePath - 图片文件的路径
+ * @param maxTokens - 图片的最大 token 预算
+ * @returns 应用了适当压缩的图片数据
  */
 export async function readImageWithTokenBudget(
   filePath: string,
   maxTokens: number = getDefaultFileReadingLimits().maxTokens,
   maxBytes?: number,
 ): Promise<ImageResult> {
-  // Read file ONCE — capped to maxBytes to avoid OOM on huge files
+  // 只读取文件一次——限制在 maxBytes 内以避免超大文件导致 OOM
   const imageBuffer = await getFsImplementation().readFileBytes(
     filePath,
     maxBytes,
@@ -1113,7 +1113,7 @@ export async function readImageWithTokenBudget(
   const detectedMediaType = detectImageFormatFromBuffer(imageBuffer)
   const detectedFormat = detectedMediaType.split('/')[1] || 'png'
 
-  // Try standard resize
+  // 尝试标准缩放
   let result: ImageResult
   try {
     const resized = await maybeResizeAndDownsampleImageBuffer(
@@ -1133,10 +1133,10 @@ export async function readImageWithTokenBudget(
     result = createImageResponse(imageBuffer, detectedFormat, originalSize)
   }
 
-  // Check if it fits in token budget
+  // 检查是否在 token 预算内
   const estimatedTokens = Math.ceil(result.file.base64.length * 0.125)
   if (estimatedTokens > maxTokens) {
-    // Aggressive compression from the SAME buffer (no re-read)
+    // 从同一缓冲区做激进压缩（不重新读取）
     try {
       const compressed = await compressImageBufferWithTokenLimit(
         imageBuffer,
@@ -1153,7 +1153,7 @@ export async function readImageWithTokenBudget(
       }
     } catch (e) {
       logError(e)
-      // Fallback: heavily compressed version from the SAME buffer
+      // 降级：从同一缓冲区得到高度压缩的版本
       try {
         const sharpModule = await import('sharp')
         const sharp =

@@ -12,15 +12,15 @@ import { getTaskOutputDir } from '../../utils/task/diskOutput.js';
 import type { Input, Output } from './FileReadTool.js';
 
 /**
- * Check if a file path is an agent output file and extract the task ID.
- * Agent output files follow the pattern: {projectTempDir}/tasks/{taskId}.output
+ * 检查某个文件路径是否为 agent 输出文件，并提取任务 ID。
+ * agent 输出文件遵循该模式：{projectTempDir}/tasks/{taskId}.output
  */
 function getAgentOutputTaskId(filePath: string): string | null {
   const prefix = `${getTaskOutputDir()}/`;
   const suffix = '.output';
   if (filePath.startsWith(prefix) && filePath.endsWith(suffix)) {
     const taskId = filePath.slice(prefix.length, -suffix.length);
-    // Validate it looks like a task ID (alphanumeric, reasonable length)
+    // 校验它看起来像任务 ID（字母数字、长度合理）
     if (taskId.length > 0 && taskId.length <= 20 && /^[a-zA-Z0-9_-]+$/.test(taskId)) {
       return taskId;
     }
@@ -41,8 +41,8 @@ export function renderToolUseMessage({
     return null;
   }
 
-  // For agent output files, return empty string so no parentheses are shown
-  // The task ID is displayed separately by AssistantToolUseMessage
+  // 对 agent 输出文件返回空字符串，从而不显示括号
+  // 任务 ID 由 AssistantToolUseMessage 单独展示
   if (getAgentOutputTaskId(file_path)) {
     return '';
   }
@@ -68,14 +68,14 @@ export function renderToolUseTag({
 }: Partial<Input>): React.ReactNode {
   const agentTaskId = file_path ? getAgentOutputTaskId(file_path) : null;
 
-  // Show agent task ID for Read tool when reading agent output
+  // 读取 agent 输出时，为 Read 工具显示 agent 任务 ID
   if (!agentTaskId) {
     return null;
   }
   return <Text dimColor> {agentTaskId}</Text>;
 }
 export function renderToolResultMessage(output: Output): React.ReactNode {
-  // TODO: Render recursively
+  // TODO: 递归渲染
   switch (output.type) {
     case 'image':
       {
@@ -147,8 +147,8 @@ export function renderToolUseErrorMessage(result: ToolResultBlockParam['content'
   verbose: boolean;
 }): React.ReactNode {
   if (!verbose && typeof result === 'string') {
-    // FileReadTool throws from call() so errors lack <tool_use_error> wrapping —
-    // check the raw string directly for the cwd note marker.
+    // FileReadTool 从 call() 抛错，因此错误没有 <tool_use_error> 包裹——
+    // 直接检查原始字符串中的 cwd 提示标记。
     if (result.includes(FILE_NOT_FOUND_CWD_NOTE)) {
       return <MessageResponse>
           <Text color="error">File not found</Text>
@@ -175,7 +175,7 @@ export function getToolUseSummary(input: Partial<Input> | undefined): string | n
   if (!input?.file_path) {
     return null;
   }
-  // For agent output files, just show the task ID
+  // 对 agent 输出文件，仅显示任务 ID
   const agentTaskId = getAgentOutputTaskId(input.file_path);
   if (agentTaskId) {
     return agentTaskId;

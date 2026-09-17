@@ -75,12 +75,12 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
   renderToolUseMessage,
   renderToolResultMessage,
   async call(input) {
-    // Validate not already in a worktree created by this session
+    // 校验当前尚未处于本会话创建的 worktree 中
     if (getCurrentWorktreeSession()) {
       throw new Error('Already in a worktree session')
     }
 
-    // Resolve to main repo root so worktree creation works from within a worktree
+    // 解析到主仓库根目录，使在 worktree 内部也能创建 worktree
     const mainRepoRoot = findCanonicalGitRoot(getCwd())
     if (mainRepoRoot && mainRepoRoot !== getCwd()) {
       process.chdir(mainRepoRoot)
@@ -95,9 +95,9 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
     setCwd(worktreeSession.worktreePath)
     setOriginalCwd(getCwd())
     saveWorktreeState(worktreeSession)
-    // Clear cached system prompt sections so env_info_simple recomputes with worktree context
+    // 清空缓存的系统提示词段落，使 env_info_simple 结合 worktree 上下文重新计算
     clearSystemPromptSections()
-    // Clear memoized caches that depend on CWD
+    // 清空依赖 CWD 的记忆化缓存
     clearMemoryFileCaches()
     getPlansDirectory.cache.clear?.()
 

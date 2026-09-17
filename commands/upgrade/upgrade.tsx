@@ -8,7 +8,7 @@ import { logError } from '../../utils/log.js';
 import { Login } from '../login/login.js';
 export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXCommandContext): Promise<React.ReactNode | null> {
   try {
-    // Check if user is already on the highest Max plan (20x)
+    // 检查用户是否已处于最高的 Max 套餐（20x）
     if (isLimkenionAISubscriber()) {
       const tokens = getLimkenionAIOAuthTokens();
       let isMax20x = false;

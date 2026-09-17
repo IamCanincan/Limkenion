@@ -20,15 +20,15 @@ function MemoryCommand({
 }): React.ReactNode {
   const handleSelectMemoryFile = async (memoryPath: string) => {
     try {
-      // Create limkenion directory if it doesn't exist (idempotent with recursive)
+      // 若 limkenion 目录不存在则创建它（带 recursive 的幂等操作）
       if (memoryPath.includes(getLimkenionConfigHomeDir())) {
         await mkdir(getLimkenionConfigHomeDir(), {
           recursive: true
         });
       }
 
-      // Create file if it doesn't exist (wx flag fails if file exists,
-      // which we catch to preserve existing content)
+      // 文件不存在时创建它（若文件已存在，wx 标志会失败，
+      // 我们捕获该错误以保留现有内容）
       try {
         await writeFile(memoryPath, '', {
           encoding: 'utf8',
@@ -41,7 +41,7 @@ function MemoryCommand({
       }
       await editFileInEditor(memoryPath);
 
-      // Determine which environment variable controls the editor
+      // 确定由哪个环境变量控制编辑器
       let editorSource = 'default';
       let editorValue = '';
       if (process.env.VISUAL) {
@@ -81,8 +81,8 @@ function MemoryCommand({
     </Dialog>;
 }
 export const call: LocalJSXCommandCall = async onDone => {
-  // Clear + prime before rendering — Suspense handles the unprimed case,
-  // but awaiting here avoids a fallback flash on initial open.
+  // 渲染前先清理 + 预填 —— Suspense 会处理未预填的情况，
+  // 但在此处等待可避免首次打开时降级内容闪现。
   clearMemoryFileCaches();
   await getMemoryFiles();
   return <MemoryCommand onDone={onDone} />;

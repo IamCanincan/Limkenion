@@ -46,8 +46,8 @@ export function App() {
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
   const connectionRef = useRef(connection)
-  // Track the active session id so the stable message handler always reads
-  // the latest value without re-subscribing.
+  // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
+  // 也能始终读到最新值。
   const activeSessionIdRef = useRef<string | null>(null)
 
   const refreshStats = useCallback(() => {

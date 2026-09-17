@@ -87,8 +87,8 @@ Complete the user's request by providing accurate, documentation-based guidance.
 }
 
 function getFeedbackGuideline(): string {
-  // For 3P services (Bedrock/Vertex/Foundry), /feedback command is disabled
-  // Direct users to the appropriate feedback channel instead
+  // 对于 3P 服务（Bedrock/Vertex/Foundry），/feedback 命令被禁用
+  // 改为引导用户前往合适的反馈渠道
   if (isUsing3PServices()) {
     return `- When you cannot find an answer or the feature doesn't exist, direct the user to ${MACRO.ISSUES_EXPLAINER}`
   }
@@ -121,10 +121,10 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
   getSystemPrompt({ toolUseContext }) {
     const commands = toolUseContext.options.commands
 
-    // Build context sections
+    // 构建上下文分节
     const contextSections: string[] = []
 
-    // 1. Custom skills
+    // 1. 自定义技能
     const customCommands = commands.filter(cmd => cmd.type === 'prompt')
     if (customCommands.length > 0) {
       const commandList = customCommands
@@ -135,7 +135,7 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // 2. Custom agents from .limkenion/agents/
+    // 2. 来自 .limkenion/agents/ 的自定义 agent
     const customAgents =
       toolUseContext.options.agentDefinitions.activeAgents.filter(
         (a: AgentDefinition) => a.source !== 'built-in',
@@ -149,7 +149,7 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // 3. MCP servers
+    // 3. MCP 服务器
     const mcpClients = toolUseContext.options.mcpClients
     if (mcpClients && mcpClients.length > 0) {
       const mcpList = mcpClients
@@ -158,7 +158,7 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       contextSections.push(`**Configured MCP servers:**\n${mcpList}`)
     }
 
-    // 4. Plugin commands
+    // 4. 插件命令
     const pluginCommands = commands.filter(
       cmd => cmd.type === 'prompt' && cmd.source === 'plugin',
     )
@@ -169,7 +169,7 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       contextSections.push(`**Available plugin skills:**\n${pluginList}`)
     }
 
-    // 5. User settings
+    // 5. 用户设置
     const settings = getSettings_DEPRECATED()
     if (Object.keys(settings).length > 0) {
       // eslint-disable-next-line no-restricted-syntax -- human-facing UI, not tool_result
@@ -179,12 +179,12 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // Add the feedback guideline (conditional based on whether user is using 3P services)
+    // 添加反馈指引（是否添加取决于用户是否使用 3P 服务）
     const feedbackGuideline = getFeedbackGuideline()
     const basePromptWithFeedback = `${getLimkenionGuideBasePrompt()}
 ${feedbackGuideline}`
 
-    // If we have any context to add, append it to the base system prompt
+    // 如果有要添加的上下文，则追加到基础系统提示词
     if (contextSections.length > 0) {
       return `${basePromptWithFeedback}
 
@@ -199,7 +199,7 @@ ${contextSections.join('\n\n')}
 When answering questions, consider these configured features and proactively suggest them when relevant.`
     }
 
-    // Return the base prompt if no context to add
+    // 如果没有要添加的上下文，则返回基础提示词
     return basePromptWithFeedback
   },
 }

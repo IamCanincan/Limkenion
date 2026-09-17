@@ -20,30 +20,28 @@ const MAX_HISTORY_ITEMS = 100
 const MAX_PASTED_CONTENT_LENGTH = 1024
 
 /**
- * Stored paste content - either inline content or a hash reference to paste store.
+ * 存储的粘贴内容 —— 可以是内联内容，也可以是指向粘贴存储的哈希引用。
  */
 type StoredPastedContent = {
   id: number
   type: 'text' | 'image'
-  content?: string // Inline content for small pastes
-  contentHash?: string // Hash reference for large pastes stored externally
+  content?: string // 小段粘贴内容使用内联
+  contentHash?: string // 大段粘贴内容外部存储时的哈希引用
   mediaType?: string
   filename?: string
 }
 
 /**
- * Limkenion parses history for pasted content references to match back to
- * pasted content. The references look like:
+ * Limkenion 会解析历史记录中的粘贴内容引用，以便回溯到具体的粘贴内容。
+ * 这些引用形如：
  *   Text: [Pasted text #1 +10 lines]
  *   Image: [Image #2]
- * The numbers are expected to be unique within a single prompt but not across
- * prompts. We choose numeric, auto-incrementing IDs as they are more
- * user-friendly than other ID options.
+ * 这些编号在单次提示内应保证唯一，但跨提示不必唯一。
+ * 我们选择自增数字 ID，因为它比其他 ID 方案对用户更友好。
  */
 
-// Note: The original text paste implementation would consider input like
-// "line1\nline2\nline3" to have +2 lines, not 3 lines. We preserve that
-// behavior here.
+// 注意：最初的文本粘贴实现会把 "line1\nline2\nline3" 这样的输入
+// 视为 +2 行而不是 3 行。这里我们保留了该行为。
 export function getPastedTextRefNumLines(text: string): number {
   return (text.match(/\r\n|\r|\n/g) || []).length
 }
@@ -75,8 +73,8 @@ export function parseReferences(
 }
 
 /**
- * Replace [Pasted text #N] placeholders in input with their actual content.
- * Image refs are left alone — they become content blocks, not inlined text.
+ * 把输入中的 [Pasted text #N] 占位符替换为实际内容。
+ * 图片引用不作处理 —— 它们会变成内容块，而不是内联文本。
  */
 export function expandPastedTextRefs(
   input: string,
@@ -84,9 +82,9 @@ export function expandPastedTextRefs(
 ): string {
   const refs = parseReferences(input)
   let expanded = input
-  // Splice at the original match offsets so placeholder-like strings inside
-  // pasted content are never confused for real refs. Reverse order keeps
-  // earlier offsets valid after later replacements.
+  // 按原始匹配的偏移位置做拼接，这样粘贴内容里形似占位符的
+  // 字符串就不会被误当成真实引用。采用倒序，好让后面的替换
+  // 不会让前面的偏移失效。
   for (let i = refs.length - 1; i >= 0; i--) {
     const ref = refs[i]!
     const content = pastedContents[ref.id]
@@ -106,21 +104,21 @@ function deserializeLogEntry(line: string): LogEntry {
 async function* makeLogEntryReader(): AsyncGenerator<LogEntry> {
   const currentSession = getSessionId()
 
-  // Start with entries that have yet to be flushed to disk
+  // 从尚未落盘的条目开始
   for (let i = pendingEntries.length - 1; i >= 0; i--) {
     yield pendingEntries[i]!
   }
 
-  // Read from global history file (shared across all projects)
+  // 从全局历史文件读取（跨所有项目共享）
   const historyPath = join(getLimkenionConfigHomeDir(), 'history.jsonl')
 
   try {
     for await (const line of readLinesReverse(historyPath)) {
       try {
         const entry = deserializeLogEntry(line)
-        // removeLastFromHistory slow path: entry was flushed before removal,
-        // so filter here so both getHistory (Up-arrow) and makeHistoryReader
-        // (ctrl+r search) skip it consistently.
+        // removeLastFromHistory 的慢路径：该条目在移除之前已被落盘，
+        // 所以在这里过滤，好让 getHistory（向上箭头）与 makeHistoryReader
+        // （ctrl+r 搜索）都一致地跳过它。
         if (
           entry.sessionId === currentSession &&
           skippedTimestamps.has(entry.timestamp)
@@ -129,7 +127,7 @@ async function* makeLogEntryReader(): AsyncGenerator<LogEntry> {
         }
         yield entry
       } catch (error) {
-        // Not a critical error - just skip malformed lines
+        // 不是致命错误 —— 跳过格式错误的行即可
         logForDebugging(`Failed to parse history line: ${error}`)
       }
     }
@@ -155,9 +153,9 @@ export type TimestampedHistoryEntry = {
 }
 
 /**
- * Current-project history for the ctrl+r picker: deduped by display text,
- * newest first, with timestamps. Paste contents are resolved lazily via
- * `resolve()` — the picker only reads display+timestamp for the list.
+ * 供 ctrl+r 选择器使用的当前项目历史：按展示文本去重、
+ * 最新的排在最前，并带时间戳。粘贴内容通过 `resolve()` 惰性解析 ——
+ * 选择器在列表里只读取展示文本与时间戳。
  */
 export async function* getTimestampedHistory(): AsyncGenerator<TimestampedHistoryEntry> {
   const currentProject = getProjectRoot()
@@ -180,12 +178,12 @@ export async function* getTimestampedHistory(): AsyncGenerator<TimestampedHistor
 }
 
 /**
- * Get history entries for the current project, with current session's entries first.
+ * 获取当前项目的历史条目，当前会话的条目排在最前。
  *
- * Entries from the current session are yielded before entries from other sessions,
- * so concurrent sessions don't interleave their up-arrow history. Within each group,
- * order is newest-first. Scans the same MAX_HISTORY_ITEMS window as before —
- * entries are reordered within that window, not beyond it.
+ * 当前会话的条目会先于其他会话的条目产出，这样并发会话就不会
+ * 把各自的向上箭头历史交错在一起。每组内部按最新优先排序。
+ * 扫描范围与之前的 MAX_HISTORY_ITEMS 窗口相同 —— 条目只是在
+ * 该窗口内被重排，不会超出这个窗口。
  */
 export async function* getHistory(): AsyncGenerator<HistoryEntry> {
   const currentProject = getProjectRoot()
@@ -194,7 +192,7 @@ export async function* getHistory(): AsyncGenerator<HistoryEntry> {
   let yielded = 0
 
   for await (const entry of makeLogEntryReader()) {
-    // Skip malformed entries (corrupted file, old format, or invalid JSON structure)
+    // 跳过格式错误的条目（文件损坏、旧格式或 JSON 结构非法）
     if (!entry || typeof entry.project !== 'string') continue
     if (entry.project !== currentProject) continue
 
@@ -205,7 +203,7 @@ export async function* getHistory(): AsyncGenerator<HistoryEntry> {
       otherSessionEntries.push(entry)
     }
 
-    // Same MAX_HISTORY_ITEMS window as before — just reordered within it.
+    // 与之前相同的 MAX_HISTORY_ITEMS 窗口 —— 只是在窗口内做了重排。
     if (yielded + otherSessionEntries.length >= MAX_HISTORY_ITEMS) break
   }
 
@@ -225,12 +223,12 @@ type LogEntry = {
 }
 
 /**
- * Resolve stored paste content to full PastedContent by fetching from paste store if needed.
+ * 把存储的粘贴内容解析为完整的 PastedContent，必要时从粘贴存储中取回。
  */
 async function resolveStoredPastedContent(
   stored: StoredPastedContent,
 ): Promise<PastedContent | null> {
-  // If we have inline content, use it directly
+  // 若有内联内容则直接使用
   if (stored.content) {
     return {
       id: stored.id,
@@ -241,7 +239,7 @@ async function resolveStoredPastedContent(
     }
   }
 
-  // If we have a hash reference, fetch from paste store
+  // 若有哈希引用则从粘贴存储中取回
   if (stored.contentHash) {
     const content = await retrievePastedText(stored.contentHash)
     if (content) {
@@ -255,12 +253,12 @@ async function resolveStoredPastedContent(
     }
   }
 
-  // Content not available
+  // 内容不可用
   return null
 }
 
 /**
- * Convert LogEntry to HistoryEntry by resolving paste store references.
+ * 通过解析粘贴存储引用，把 LogEntry 转换为 HistoryEntry。
  */
 async function logEntryToHistoryEntry(entry: LogEntry): Promise<HistoryEntry> {
   const pastedContents: Record<number, PastedContent> = {}
@@ -283,12 +281,12 @@ let isWriting = false
 let currentFlushPromise: Promise<void> | null = null
 let cleanupRegistered = false
 let lastAddedEntry: LogEntry | null = null
-// Timestamps of entries already flushed to disk that should be skipped when
-// reading. Used by removeLastFromHistory when the entry has raced past the
-// pending buffer. Session-scoped (module state resets on process restart).
+// 已落盘、但读取时应被跳过的条目的时间戳。
+// 供 removeLastFromHistory 在该条目已越过待写缓冲区时使用。
+// 会话作用域（进程重启时模块状态会重置）。
 const skippedTimestamps = new Set<number>()
 
-// Core flush logic - writes pending entries to disk
+// 核心落盘逻辑 —— 把待写条目写入磁盘
 async function immediateFlushHistory(): Promise<void> {
   if (pendingEntries.length === 0) {
     return
@@ -298,7 +296,7 @@ async function immediateFlushHistory(): Promise<void> {
   try {
     const historyPath = join(getLimkenionConfigHomeDir(), 'history.jsonl')
 
-    // Ensure the file exists before acquiring lock (append mode creates if missing)
+    // 在加锁之前确保文件存在（append 模式会在文件缺失时创建）
     await writeFile(historyPath, '', {
       encoding: 'utf8',
       mode: 0o600,
@@ -331,7 +329,7 @@ async function flushPromptHistory(retries: number): Promise<void> {
     return
   }
 
-  // Stop trying to flush history until the next user prompt
+  // 在下一条用户提示之前，停止尝试落盘历史
   if (retries > 5) {
     return
   }
@@ -344,7 +342,7 @@ async function flushPromptHistory(retries: number): Promise<void> {
     isWriting = false
 
     if (pendingEntries.length > 0) {
-      // Avoid trying again in a hot loop
+      // 避免在热循环中反复重试
       await sleep(500)
 
       void flushPromptHistory(retries + 1)
@@ -363,12 +361,12 @@ async function addToPromptHistory(
   const storedPastedContents: Record<number, StoredPastedContent> = {}
   if (entry.pastedContents) {
     for (const [id, content] of Object.entries(entry.pastedContents)) {
-      // Filter out images (they're stored separately in image-cache)
+      // 过滤掉图片（它们单独存放在 image-cache 中）
       if (content.type === 'image') {
         continue
       }
 
-      // For small text content, store inline
+      // 小段文本内容直接内联存储
       if (content.content.length <= MAX_PASTED_CONTENT_LENGTH) {
         storedPastedContents[Number(id)] = {
           id: content.id,
@@ -378,8 +376,8 @@ async function addToPromptHistory(
           filename: content.filename,
         }
       } else {
-        // For large text content, compute hash synchronously and store reference
-        // The actual disk write happens async (fire-and-forget)
+        // 大段文本内容：同步计算哈希并存储引用
+        // 真正的磁盘写入是异步的（发后不管）
         const hash = hashPastedText(content.content)
         storedPastedContents[Number(id)] = {
           id: content.id,
@@ -388,7 +386,7 @@ async function addToPromptHistory(
           mediaType: content.mediaType,
           filename: content.filename,
         }
-        // Fire-and-forget disk write - don't block history entry creation
+        // 发后不管的磁盘写入 —— 不阻塞历史条目的创建
         void storePastedText(hash, content.content)
       }
     }
@@ -409,21 +407,21 @@ async function addToPromptHistory(
 }
 
 export function addToHistory(command: HistoryEntry | string): void {
-  // Skip history when running in a tmux session spawned by Limkenion's Tungsten tool.
-  // This prevents verification/test sessions from polluting the user's real command history.
+  // 在由 Limkenion 的 Tungsten 工具派生的 tmux 会话中运行时跳过历史记录。
+  // 这可以避免校验/测试会话污染用户真实的命令历史。
   if (isEnvTruthy(process.env.LIMKENION_SKIP_PROMPT_HISTORY)) {
     return
   }
 
-  // Register cleanup on first use
+  // 首次使用时注册清理逻辑
   if (!cleanupRegistered) {
     cleanupRegistered = true
     registerCleanup(async () => {
-      // If there's an in-progress flush, wait for it
+      // 若已有正在进行的落盘，则等待它完成
       if (currentFlushPromise) {
         await currentFlushPromise
       }
-      // If there are still pending entries after the flush completed, do one final flush
+      // 若落盘完成后仍有待写条目，则再执行一次最终落盘
       if (pendingEntries.length > 0) {
         await immediateFlushHistory()
       }
@@ -440,15 +438,15 @@ export function clearPendingHistoryEntries(): void {
 }
 
 /**
- * Undo the most recent addToHistory call. Used by auto-restore-on-interrupt:
- * when Esc rewinds the conversation before any response arrives, the submit is
- * semantically undone — the history entry should be too, otherwise Up-arrow
- * shows the restored text twice (once from the input box, once from disk).
+ * 撤销最近一次 addToHistory 调用。供「中断时自动恢复」使用：
+ * 当 Esc 在任何响应到达之前回退了对话时，这次提交在语义上就被撤销了 ——
+ * 对应的历史条目也应当撤销，否则向上箭头会把恢复出来的文本显示两次
+ * （一次来自输入框，一次来自磁盘）。
  *
- * Fast path pops from the pending buffer. If the async flush already won the
- * race (TTFT is typically >> disk write latency), the entry's timestamp is
- * added to a skip-set consulted by getHistory. One-shot: clears the tracked
- * entry so a second call is a no-op.
+ * 快速路径直接从待写缓冲区弹出。若异步落盘已抢先完成
+ * （TTFT 通常远大于磁盘写入延迟），该条目的时间戳会被加入一个
+ * 跳过集合，由 getHistory 查询。一次性：会清空被跟踪的条目，
+ * 因此第二次调用是空操作。
  */
 export function removeLastFromHistory(): void {
   if (!lastAddedEntry) return

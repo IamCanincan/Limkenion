@@ -96,7 +96,7 @@ export const ConfigTool = buildTool({
       : `${input.setting} = ${input.value}`
   },
   async checkPermissions(input: Input) {
-    // Auto-allow reading configs
+    // 自动允许读取配置
     if (input.value === undefined) {
       return { behavior: 'allow' as const, updatedInput: input }
     }
@@ -109,9 +109,9 @@ export const ConfigTool = buildTool({
   renderToolResultMessage,
   renderToolUseRejectedMessage,
   async call({ setting, value }: Input, context): Promise<{ data: Output }> {
-    // 1. Check if setting is supported
-    // (Voice mode removed — voiceEnabled falls through to the unknown-setting
-    // path below when it is no longer registered.)
+    // 1. 检查该设置是否受支持
+    // （语音模式已移除——voiceEnabled 不再注册后，会落入下方的
+    // 未知设置分支。）
     if (!isSupported(setting)) {
       return {
         data: { success: false, error: `Unknown setting: "${setting}"` },
@@ -121,7 +121,7 @@ export const ConfigTool = buildTool({
     const config = getConfig(setting)!
     const path = getPath(setting)
 
-    // 2. GET operation
+    // 2. GET 操作
     if (value === undefined) {
       const currentValue = getValue(config.source, path)
       const displayValue = config.formatOnRead
@@ -132,10 +132,10 @@ export const ConfigTool = buildTool({
       }
     }
 
-    // 3. SET operation
+    // 3. SET 操作
 
-    // Handle "default" — unset the config key so it falls back to the
-    // platform-aware default (determined by the bridge feature gate).
+    // 处理 "default"——取消该配置键，使其降级为
+    // 平台感知的默认值（由 bridge 功能门控决定）。
     if (
       setting === 'remoteControlAtStartup' &&
       typeof value === 'string' &&
@@ -148,7 +148,7 @@ export const ConfigTool = buildTool({
         return next
       })
       const resolved = getRemoteControlAtStartup()
-      // Sync to AppState so useReplBridge reacts immediately
+      // 同步到 AppState，使 useReplBridge 立即响应
       context.setAppState(prev => {
         if (prev.replBridgeEnabled === resolved && !prev.replBridgeOutboundOnly)
           return prev
@@ -170,7 +170,7 @@ export const ConfigTool = buildTool({
 
     let finalValue: unknown = value
 
-    // Coerce and validate boolean values
+    // 强制转换并校验布尔值
     if (config.type === 'boolean') {
       if (typeof value === 'string') {
         const lower = value.toLowerCase().trim()
@@ -189,7 +189,7 @@ export const ConfigTool = buildTool({
       }
     }
 
-    // Check options
+    // 检查选项
     const options = getOptionsForSetting(setting)
     if (options && !options.includes(String(finalValue))) {
       return {
@@ -202,7 +202,7 @@ export const ConfigTool = buildTool({
       }
     }
 
-    // Async validation (e.g., model API check)
+    // 异步校验（例如模型 API 检查）
     if (config.validateOnWrite) {
       const result = await config.validateOnWrite(finalValue)
       if (!result.valid) {
@@ -219,7 +219,7 @@ export const ConfigTool = buildTool({
 
     const previousValue = getValue(config.source, path)
 
-    // 4. Write to storage
+    // 4. 写入存储
     try {
       if (config.source === 'global') {
         const key = path[0]
@@ -252,9 +252,9 @@ export const ConfigTool = buildTool({
         }
       }
 
-      // 5a. Voice needs notifyChange so applySettingsChange resyncs
-      // AppState.settings (useVoiceEnabled reads settings.voiceEnabled)
-      // and the settings cache resets for the next /voice read.
+      // 5a. 语音需要 notifyChange，以便 applySettingsChange 重新同步
+      // AppState.settings（useVoiceEnabled 读取 settings.voiceEnabled）
+      // 并在下次 /voice 读取时重置设置缓存。
       if (feature('VOICE_MODE') && setting === 'voiceEnabled') {
         const { settingsChangeDetector } = await import(
           '../../utils/settings/changeDetector.js'
@@ -262,7 +262,7 @@ export const ConfigTool = buildTool({
         settingsChangeDetector.notifyChange('userSettings')
       }
 
-      // 5b. Sync to AppState if needed for immediate UI effect
+      // 5b. 如需立即产生 UI 效果，则同步到 AppState
       if (config.appStateKey) {
         const appKey = config.appStateKey
         context.setAppState(prev => {
@@ -271,9 +271,9 @@ export const ConfigTool = buildTool({
         })
       }
 
-      // Sync remoteControlAtStartup to AppState so the bridge reacts
-      // immediately (the config key differs from the AppState field name,
-      // so the generic appStateKey mechanism can't handle this).
+      // 将 remoteControlAtStartup 同步到 AppState，使 bridge 立即响应
+      // （该配置键与 AppState 字段名不同，
+      // 因此通用的 appStateKey 机制无法处理。）
       if (setting === 'remoteControlAtStartup') {
         const resolved = getRemoteControlAtStartup()
         context.setAppState(prev => {

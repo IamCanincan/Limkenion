@@ -68,7 +68,7 @@ type OutputSchema = ReturnType<typeof outputSchema>
 
 export type Output = z.infer<OutputSchema>
 
-// Re-export WebSearchProgress from centralized types to break import cycles
+// 从集中式类型重新导出 WebSearchProgress 以打破导入循环
 export type { WebSearchProgress } from '../../types/tools.js'
 
 import type { WebSearchProgress } from '../../types/tools.js'
@@ -79,7 +79,7 @@ function makeToolSchema(input: Input): BetaWebSearchTool20250305 {
     name: 'web_search',
     allowed_domains: input.allowed_domains,
     blocked_domains: input.blocked_domains,
-    max_uses: 8, // Hardcoded to 8 searches maximum
+    max_uses: 8, // 硬编码为最多 8 次搜索
   }
 }
 
@@ -88,13 +88,13 @@ function makeOutputFromSearchResponse(
   query: string,
   durationSeconds: number,
 ): Output {
-  // The result is a sequence of these blocks:
-  // - text to start -- always?
+  // 结果是这些块的序列：
+  // - 开头的 text —— 总是如此？
   // [
   //    - server_tool_use
   //    - web_search_tool_result
-  //    - text and citation blocks intermingled
-  //  ]+  (this block repeated for each search)
+  //    - text 和 citation 块交错出现
+  //  ]+  （每次搜索重复该块）
 
   const results: (SearchResult | string)[] = []
   let textAcc = ''
@@ -113,14 +113,14 @@ function makeOutputFromSearchResponse(
     }
 
     if (block.type === 'web_search_tool_result') {
-      // Handle error case - content is a WebSearchToolResultError
+      // 处理错误情况 - content 是 WebSearchToolResultError
       if (!Array.isArray(block.content)) {
         const errorMessage = `Web search error: ${block.content.error_code}`
         logError(new Error(errorMessage))
         results.push(errorMessage)
         continue
       }
-      // Success case - add results to our collection
+      // 成功情况 - 将结果加入我们的集合
       const hits = block.content.map(r => ({ title: r.title, url: r.url }))
       results.push({
         tool_use_id: block.tool_use_id,
@@ -169,12 +169,12 @@ export const WebSearchTool = buildTool({
     const provider = getAPIProvider()
     const model = getMainLoopModel()
 
-    // Enable for firstParty
+    // 对 firstParty 启用
     if (provider === 'firstParty') {
       return true
     }
 
-    // Enable for Vertex AI with supported models (Limkenion 4.0+)
+    // 对使用受支持模型的 Vertex AI 启用（Limkenion 4.0+）
     if (provider === 'vertex') {
       const supportsWebSearch =
         model.includes('limkenion-opus-4') ||
@@ -184,7 +184,7 @@ export const WebSearchTool = buildTool({
       return supportsWebSearch
     }
 
-    // Foundry only ships models that already support Web Search
+    // Foundry 只提供已支持 Web Search 的模型
     if (provider === 'foundry') {
       return true
     }
@@ -227,9 +227,9 @@ export const WebSearchTool = buildTool({
   renderToolUseProgressMessage,
   renderToolResultMessage,
   extractSearchText() {
-    // renderToolResultMessage shows only "Did N searches in Xs" chrome —
-    // the results[] content never appears on screen. Heuristic would index
-    // string entries in results[] (phantom match). Nothing to search.
+    // renderToolResultMessage 只显示 "Did N searches in Xs" 这类外壳 ——
+    // results[] 的内容从不出现在屏幕上。启发式会索引
+    // results[] 中的字符串条目（幻影匹配）。没有可搜索的内容。
     return ''
   },
   async validateInput(input) {
@@ -294,7 +294,7 @@ export const WebSearchTool = buildTool({
     let currentToolUseId = null
     let currentToolUseJson = ''
     let progressCounter = 0
-    const toolUseQueries = new Map() // Map of tool_use_id to query
+    const toolUseQueries = new Map() // tool_use_id 到 query 的映射
 
     for await (const event of queryStream) {
       if (event.type === 'assistant') {
@@ -302,7 +302,7 @@ export const WebSearchTool = buildTool({
         continue
       }
 
-      // Track tool use ID when server_tool_use starts
+      // server_tool_use 开始时跟踪工具调用 ID
       if (
         event.type === 'stream_event' &&
         event.event?.type === 'content_block_start'
@@ -311,13 +311,13 @@ export const WebSearchTool = buildTool({
         if (contentBlock && contentBlock.type === 'server_tool_use') {
           currentToolUseId = contentBlock.id
           currentToolUseJson = ''
-          // Note: The ServerToolUseBlock doesn't contain input.query
-          // The actual query comes through input_json_delta events
+          // 注意：ServerToolUseBlock 不包含 input.query
+          // 实际查询通过 input_json_delta 事件传入
           continue
         }
       }
 
-      // Accumulate JSON for current tool use
+      // 为当前工具调用累积 JSON
       if (
         currentToolUseId &&
         event.type === 'stream_event' &&
@@ -327,14 +327,14 @@ export const WebSearchTool = buildTool({
         if (delta?.type === 'input_json_delta' && delta.partial_json) {
           currentToolUseJson += delta.partial_json
 
-          // Try to extract query from partial JSON for progress updates
+          // 尝试从部分 JSON 中提取 query 以更新进度
           try {
-            // Look for a complete query field
+            // 查找完整的 query 字段
             const queryMatch = currentToolUseJson.match(
               /"query"\s*:\s*"((?:[^"\\]|\\.)*)"/,
             )
             if (queryMatch && queryMatch[1]) {
-              // The regex properly handles escaped characters
+              // 该正则能正确处理转义字符
               const query = jsonParse('"' + queryMatch[1] + '"')
 
               if (
@@ -355,19 +355,19 @@ export const WebSearchTool = buildTool({
               }
             }
           } catch {
-            // Ignore parsing errors for partial JSON
+            // 忽略部分 JSON 的解析错误
           }
         }
       }
 
-      // Yield progress when search results come in
+      // 搜索结果到达时产出进度
       if (
         event.type === 'stream_event' &&
         event.event?.type === 'content_block_start'
       ) {
         const contentBlock = event.event.content_block
         if (contentBlock && contentBlock.type === 'web_search_tool_result') {
-          // Get the actual query that was used for this search
+          // 获取本次搜索实际使用的 query
           const toolUseId = contentBlock.tool_use_id
           const actualQuery = toolUseQueries.get(toolUseId) || query
           const content = contentBlock.content
@@ -387,7 +387,7 @@ export const WebSearchTool = buildTool({
       }
     }
 
-    // Process the final result
+    // 处理最终结果
     const endTime = performance.now()
     const durationSeconds = (endTime - startTime) / 1000
 
@@ -403,18 +403,18 @@ export const WebSearchTool = buildTool({
 
     let formattedOutput = `Web search results for query: "${query}"\n\n`
 
-    // Process the results array - it can contain both string summaries and search result objects.
-    // Guard against null/undefined entries that can appear after JSON round-tripping
-    // (e.g., from compaction or transcript deserialization).
+    // 处理 results 数组 - 它可能同时包含字符串摘要和搜索结果对象。
+    // 防范 JSON 往返后可能出现的 null/undefined 条目
+    // （例如来自上下文压缩或 transcript 反序列化）。
     ;(results ?? []).forEach(result => {
       if (result == null) {
         return
       }
       if (typeof result === 'string') {
-        // Text summary
+        // 文本摘要
         formattedOutput += result + '\n\n'
       } else {
-        // Search result with links
+        // 带链接的搜索结果
         if (result.content?.length > 0) {
           formattedOutput += `Links: ${jsonStringify(result.content)}\n\n`
         } else {

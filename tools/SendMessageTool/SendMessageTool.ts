@@ -586,9 +586,9 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
         return {
           behavior: 'ask' as const,
           message: `Send a message to Remote Control session ${input.to}? It arrives as a user prompt on the receiving Limkenion (possibly another machine) via Limkenion's servers.`,
-          // safetyCheck (not mode) — permissions.ts guards this before both
-          // bypassPermissions (step 1g) and auto-mode's allowlist/classifier.
-          // Cross-machine prompt injection must stay bypass-immune.
+          // safetyCheck（而非 mode）—— permissions.ts 会在
+          // bypassPermissions（步骤 1g）和自动模式的允许列表/分类器之前进行防护。
+          // 跨机器的提示词注入必须保持对绕过免疫。
           decisionReason: {
             type: 'safetyCheck',
             reason:
@@ -628,9 +628,9 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
         }
       }
       if (feature('UDS_INBOX') && parseAddress(input.to).scheme === 'bridge') {
-        // Structured-message rejection first — it's the permanent constraint.
-        // Showing "not connected" first would make the user reconnect only to
-        // hit this error on retry.
+        // 先做结构化消息拒绝 —— 这是永久性约束。
+        // 若先显示 "not connected"，用户会重连后
+        // 在重试时才撞上这个错误。
         if (typeof input.message !== 'string') {
           return {
             result: false,
@@ -639,7 +639,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
             errorCode: 9,
           }
         }
-        // Bridge peer messaging was removed — bridge: targets are unsupported.
+        // Bridge 对等消息已移除 —— 不支持 bridge: 目标。
         if (true) {
           return {
             result: false,
@@ -655,9 +655,9 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
         parseAddress(input.to).scheme === 'uds' &&
         typeof input.message === 'string'
       ) {
-        // UDS cross-session send: summary isn't rendered (UI.tsx returns null
-        // for string messages), so don't require it. Structured messages fall
-        // through to the rejection below.
+        // UDS 跨会话发送：summary 不会被渲染（UI.tsx 对字符串消息
+        // 返回 null），因此不要求它。结构化消息会
+        // 落入下面的拒绝逻辑。
         return { result: true }
       }
       if (typeof input.message === 'string') {
@@ -738,7 +738,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
       if (feature('UDS_INBOX') && typeof input.message === 'string') {
         const addr = parseAddress(input.to)
         if (addr.scheme === 'bridge') {
-          // Bridge peer messaging removed — bridge: targets are unsupported.
+          // Bridge 对等消息已移除 —— 不支持 bridge: 目标。
           return {
             data: {
               success: false,
@@ -771,8 +771,8 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
         }
       }
 
-      // Route to in-process subagent by name or raw agentId before falling
-      // through to ambient-team resolution. Stopped agents are auto-resumed.
+      // 先按名称或原始 agentId 路由到进程内子代理，再
+      // 落入环境团队解析。已停止的 agent 会自动恢复。
       if (typeof input.message === 'string' && input.to !== '*') {
         const appState = context.getAppState()
         const registered = appState.agentNameRegistry.get(input.to)
@@ -793,7 +793,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
                 },
               }
             }
-            // task exists but stopped — auto-resume
+            // 任务存在但已停止 —— 自动恢复
             try {
               const result = await resumeAgentBackground({
                 agentId,
@@ -817,10 +817,10 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
               }
             }
           } else {
-            // task evicted from state — try resume from disk transcript.
-            // agentId is either a registered name or a format-matching raw ID
-            // (toAgentId validates the createAgentId format, so teammate names
-            // never reach this block).
+            // 任务已从状态中剔除 —— 尝试从磁盘 transcript 恢复。
+            // agentId 要么是已注册的名称，要么是格式匹配的原始 ID
+            // （toAgentId 会校验 createAgentId 格式，因此 teammate 名称
+            // 永远不会进入这个分支）。
             try {
               const result = await resumeAgentBackground({
                 agentId,

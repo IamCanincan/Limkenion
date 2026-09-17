@@ -7,7 +7,7 @@ interface Props {
   onSelect: (value: string) => void
 }
 
-/** Model selector — the web counterpart of the CLI's /model command. */
+/** 模型选择器 —— CLI 中 /model 命令的 web 对应物。 */
 export function ModelSelector({ models, current, onSelect }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)

@@ -37,18 +37,18 @@ import { countCharInString } from '../utils/stringUtils.js'
 import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { escapeXmlAttr as escapeHtml } from '../utils/xml.js'
 
-// Model for facet extraction and summarization (Opus - best quality)
+// 用于 facet 提取与摘要的模型（Opus —— 最佳质量）
 function getAnalysisModel(): string {
   return getDefaultOpusModel()
 }
 
-// Model for narrative insights (Opus - best quality)
+// 用于叙述式洞察的模型（Opus —— 最佳质量）
 function getInsightsModel(): string {
   return getDefaultOpusModel()
 }
 
 // ============================================================================
-// Homespace Data Collection
+// Homespace 数据采集
 // ============================================================================
 
 type RemoteHostInfo = {
@@ -78,7 +78,7 @@ const collectAllRemoteHostData: (destDir: string) => Promise<{
 /* eslint-enable custom-rules/no-process-env-top-level */
 
 // ============================================================================
-// Types
+// 类型
 // ============================================================================
 
 type SessionMeta = {
@@ -96,7 +96,7 @@ type SessionMeta = {
   output_tokens: number
   first_prompt: string
   summary?: string
-  // New stats
+  // 新增统计
   user_interruptions: number
   user_response_times: number[]
   tool_errors: number
@@ -105,12 +105,12 @@ type SessionMeta = {
   uses_mcp: boolean
   uses_web_search: boolean
   uses_web_fetch: boolean
-  // Additional stats
+  // 额外统计
   lines_added: number
   lines_removed: number
   files_modified: number
   message_hours: number[]
-  user_message_timestamps: string[] // ISO timestamps for multi-clauding detection
+  user_message_timestamps: string[] // 用于多会话并行检测的 ISO 时间戳
 }
 
 type SessionFacets = {
@@ -155,7 +155,7 @@ type AggregatedData = {
     summary: string
     goal?: string
   }>
-  // New aggregated stats
+  // 新增聚合统计
   total_interruptions: number
   total_tool_errors: number
   tool_error_categories: Record<string, number>
@@ -166,14 +166,14 @@ type AggregatedData = {
   sessions_using_mcp: number
   sessions_using_web_search: number
   sessions_using_web_fetch: number
-  // Additional stats from Python reference
+  // 来自 Python 参考实现的额外统计
   total_lines_added: number
   total_lines_removed: number
   total_files_modified: number
   days_active: number
   messages_per_day: number
-  message_hours: number[] // Hour of day for each user message (for time of day chart)
-  // Multi-clauding stats (matching Python reference)
+  message_hours: number[] // 每条用户消息所在的小时（用于时段图表）
+  // 多会话并行统计（与 Python 参考实现一致）
   multi_clauding: {
     overlap_events: number
     sessions_involved: number
@@ -182,7 +182,7 @@ type AggregatedData = {
 }
 
 // ============================================================================
-// Constants
+// 常量
 // ============================================================================
 
 const EXTENSION_TO_LANGUAGE: Record<string, string> = {
@@ -204,9 +204,9 @@ const EXTENSION_TO_LANGUAGE: Record<string, string> = {
   '.html': 'HTML',
 }
 
-// Label map for cleaning up category names (matching Python reference)
+// 用于清理类别名称的标签映射（与 Python 参考实现一致）
 const LABEL_MAP: Record<string, string> = {
-  // Goal categories
+  // 目标类别
   debug_investigate: 'Debug/Investigate',
   implement_feature: 'Implement Feature',
   fix_bug: 'Fix Bug',
@@ -220,7 +220,7 @@ const LABEL_MAP: Record<string, string> = {
   write_docs: 'Write Docs',
   deploy_infra: 'Deploy/Infra',
   warmup_minimal: 'Cache Warmup',
-  // Success factors
+  // 成功因素
   fast_accurate_search: 'Fast/Accurate Search',
   correct_code_edits: 'Correct Code Edits',
   good_explanations: 'Good Explanations',
@@ -228,7 +228,7 @@ const LABEL_MAP: Record<string, string> = {
   multi_file_changes: 'Multi-file Changes',
   handled_complexity: 'Multi-file Changes',
   good_debugging: 'Good Debugging',
-  // Friction types
+  // 摩擦类型
   misunderstood_request: 'Misunderstood Request',
   wrong_approach: 'Wrong Approach',
   buggy_code: 'Buggy Code',
@@ -241,7 +241,7 @@ const LABEL_MAP: Record<string, string> = {
   tool_failed: 'Tool Failed',
   user_unclear: 'User Unclear',
   external_issue: 'External Issue',
-  // Satisfaction labels
+  // 满意度标签
   frustrated: 'Frustrated',
   dissatisfied: 'Dissatisfied',
   likely_satisfied: 'Likely Satisfied',
@@ -250,19 +250,19 @@ const LABEL_MAP: Record<string, string> = {
   unsure: 'Unsure',
   neutral: 'Neutral',
   delighted: 'Delighted',
-  // Session types
+  // 会话类型
   single_task: 'Single Task',
   multi_task: 'Multi Task',
   iterative_refinement: 'Iterative Refinement',
   exploration: 'Exploration',
   quick_question: 'Quick Question',
-  // Outcomes
+  // 结果
   fully_achieved: 'Fully Achieved',
   mostly_achieved: 'Mostly Achieved',
   partially_achieved: 'Partially Achieved',
   not_achieved: 'Not Achieved',
   unclear_from_transcript: 'Unclear',
-  // Helpfulness
+  // 帮助程度
   unhelpful: 'Unhelpful',
   slightly_helpful: 'Slightly Helpful',
   moderately_helpful: 'Moderately Helpful',
@@ -270,9 +270,9 @@ const LABEL_MAP: Record<string, string> = {
   essential: 'Essential',
 }
 
-// Lazy getters: getLimkenionConfigHomeDir() is memoized and reads process.env.
-// Calling it at module scope would populate the memoize cache before
-// entrypoints can set LIMKENION_CONFIG_DIR, breaking all 150+ other callers.
+// 惰性 getter：getLimkenionConfigHomeDir() 带记忆化且会读取 process.env。
+// 在模块作用域调用它会在入口点设置 LIMKENION_CONFIG_DIR 之前就填充记忆化
+// 缓存，从而破坏其余 150 多个调用方。
 function getDataDir(): string {
   return join(getLimkenionConfigHomeDir(), 'usage-data')
 }
@@ -312,7 +312,7 @@ SESSION:
 `
 
 // ============================================================================
-// Helper Functions
+// 辅助函数
 // ============================================================================
 
 function getLanguageFromPath(filePath: string): string | null {
@@ -327,7 +327,7 @@ function extractToolStats(log: LogOption): {
   gitPushes: number
   inputTokens: number
   outputTokens: number
-  // New stats
+  // 新增统计
   userInterruptions: number
   userResponseTimes: number[]
   toolErrors: number
@@ -336,12 +336,12 @@ function extractToolStats(log: LogOption): {
   usesMcp: boolean
   usesWebSearch: boolean
   usesWebFetch: boolean
-  // Additional stats
+  // 额外统计
   linesAdded: number
   linesRemoved: number
   filesModified: Set<string>
   messageHours: number[]
-  userMessageTimestamps: string[] // ISO timestamps for multi-clauding detection
+  userMessageTimestamps: string[] // 用于多会话并行检测的 ISO 时间戳
 } {
   const toolCounts: Record<string, number> = {}
   const languages: Record<string, number> = {}
@@ -350,30 +350,30 @@ function extractToolStats(log: LogOption): {
   let inputTokens = 0
   let outputTokens = 0
 
-  // New stats
+  // 新增统计
   let userInterruptions = 0
   const userResponseTimes: number[] = []
   let toolErrors = 0
   const toolErrorCategories: Record<string, number> = {}
   let usesTaskAgent = false
 
-  // Additional stats
+  // 额外统计
   let linesAdded = 0
   let linesRemoved = 0
   const filesModified = new Set<string>()
   const messageHours: number[] = []
-  const userMessageTimestamps: string[] = [] // For multi-clauding detection
+  const userMessageTimestamps: string[] = [] // 用于多会话并行检测
   let usesMcp = false
   let usesWebSearch = false
   let usesWebFetch = false
   let lastAssistantTimestamp: string | null = null
 
   for (const msg of log.messages) {
-    // Get message timestamp for response time calculation
+    // 获取消息时间戳以计算响应时间
     const msgTimestamp = (msg as { timestamp?: string }).timestamp
 
     if (msg.type === 'assistant' && msg.message) {
-      // Track timestamp for response time calculation
+      // 记录时间戳以计算响应时间
       if (msgTimestamp) {
         lastAssistantTimestamp = msgTimestamp
       }
@@ -395,7 +395,7 @@ function extractToolStats(log: LogOption): {
             const toolName = block.name as string
             toolCounts[toolName] = (toolCounts[toolName] || 0) + 1
 
-            // Check for special tool usage
+            // 检查特殊工具的使用
             if (
               toolName === AGENT_TOOL_NAME ||
               toolName === LEGACY_AGENT_TOOL_NAME
@@ -414,7 +414,7 @@ function extractToolStats(log: LogOption): {
                 if (lang) {
                   languages[lang] = (languages[lang] || 0) + 1
                 }
-                // Track files modified by Edit/Write tools
+                // 记录被 Edit/Write 工具修改的文件
                 if (toolName === 'Edit' || toolName === 'Write') {
                   filesModified.add(filePath)
                 }
@@ -429,7 +429,7 @@ function extractToolStats(log: LogOption): {
                 }
               }
 
-              // Track lines from Write tool (all added)
+              // 记录来自 Write 工具的行数（全部为新增）
               if (toolName === 'Write') {
                 const writeContent = (input.content as string) || ''
                 if (writeContent) {
@@ -446,12 +446,12 @@ function extractToolStats(log: LogOption): {
       }
     }
 
-    // Check user messages
+    // 检查用户消息
     if (msg.type === 'user' && msg.message) {
       const content = msg.message.content
 
-      // Check if this is an actual human message (has text) vs just tool_result
-      // matching Python reference logic
+      // 检查这是真正的用户消息（含文本）还是仅 tool_result
+      // 与 Python 参考实现逻辑一致
       let isHumanMessage = false
       if (typeof content === 'string' && content.trim()) {
         isHumanMessage = true
@@ -464,41 +464,41 @@ function extractToolStats(log: LogOption): {
         }
       }
 
-      // Only track message hours and response times for actual human messages
+      // 仅为真正的用户消息记录消息小时和响应时间
       if (isHumanMessage) {
-        // Track message hour for time-of-day analysis and timestamp for multi-clauding
+        // 记录消息小时用于时段分析，并记录时间戳用于多会话并行检测
         if (msgTimestamp) {
           try {
             const msgDate = new Date(msgTimestamp)
-            const hour = msgDate.getHours() // Local hour 0-23
+            const hour = msgDate.getHours() // 本地小时 0-23
             messageHours.push(hour)
-            // Collect timestamp for multi-clauding detection (matching Python)
+            // 收集时间戳用于多会话并行检测（与 Python 一致）
             userMessageTimestamps.push(msgTimestamp)
           } catch {
-            // Skip invalid timestamps
+            // 跳过无效的时间戳
           }
         }
 
-        // Calculate response time (time from last assistant message to this user message)
-        // Only count gaps > 2 seconds (real user think time, not tool results)
+        // 计算响应时间（从上一条 assistant 消息到这条用户消息的时间）
+        // 只统计大于 2 秒的间隔（真实的用户思考时间，而非工具结果）
         if (lastAssistantTimestamp && msgTimestamp) {
           const assistantTime = new Date(lastAssistantTimestamp).getTime()
           const userTime = new Date(msgTimestamp).getTime()
           const responseTimeSec = (userTime - assistantTime) / 1000
-          // Only count reasonable response times (2s-1 hour) matching Python
+          // 只统计合理的响应时间（2 秒至 1 小时），与 Python 一致
           if (responseTimeSec > 2 && responseTimeSec < 3600) {
             userResponseTimes.push(responseTimeSec)
           }
         }
       }
 
-      // Process tool results (for error tracking)
+      // 处理工具结果（用于错误追踪）
       if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'tool_result' && 'content' in block) {
             const isError = (block as { is_error?: boolean }).is_error
 
-            // Count and categorize tool errors (matching Python reference logic)
+            // 统计并归类工具错误（与 Python 参考实现逻辑一致）
             if (isError) {
               toolErrors++
               const resultContent = (block as { content?: string }).content
@@ -538,7 +538,7 @@ function extractToolStats(log: LogOption): {
         }
       }
 
-      // Check for interruptions (matching Python reference)
+      // 检查中断情况（与 Python 参考实现一致）
       if (typeof content === 'string') {
         if (content.includes('[Request interrupted by user')) {
           userInterruptions++
@@ -565,7 +565,7 @@ function extractToolStats(log: LogOption): {
     gitPushes,
     inputTokens,
     outputTokens,
-    // New stats
+    // 新增统计
     userInterruptions,
     userResponseTimes,
     toolErrors,
@@ -574,7 +574,7 @@ function extractToolStats(log: LogOption): {
     usesMcp,
     usesWebSearch,
     usesWebFetch,
-    // Additional stats
+    // 额外统计
     linesAdded,
     linesRemoved,
     filesModified,
@@ -602,8 +602,8 @@ function logToSessionMeta(log: LogOption): SessionMeta {
   let assistantMessageCount = 0
   for (const msg of log.messages) {
     if (msg.type === 'assistant') assistantMessageCount++
-    // Only count user messages that have actual text content (human messages)
-    // not just tool_result messages (matching Python reference)
+    // 只统计含真实文本内容的用户消息（人类消息）
+    // 而非仅 tool_result 消息（与 Python 参考实现一致）
     if (msg.type === 'user' && msg.message) {
       const content = msg.message.content
       let isHumanMessage = false
@@ -638,7 +638,7 @@ function logToSessionMeta(log: LogOption): SessionMeta {
     output_tokens: stats.outputTokens,
     first_prompt: log.firstPrompt || '',
     summary: log.summary,
-    // New stats
+    // 新增统计
     user_interruptions: stats.userInterruptions,
     user_response_times: stats.userResponseTimes,
     tool_errors: stats.toolErrors,
@@ -647,7 +647,7 @@ function logToSessionMeta(log: LogOption): SessionMeta {
     uses_mcp: stats.usesMcp,
     uses_web_search: stats.usesWebSearch,
     uses_web_fetch: stats.usesWebFetch,
-    // Additional stats
+    // 额外统计
     lines_added: stats.linesAdded,
     lines_removed: stats.linesRemoved,
     files_modified: stats.filesModified.size,
@@ -657,13 +657,13 @@ function logToSessionMeta(log: LogOption): SessionMeta {
 }
 
 /**
- * Deduplicate conversation branches within the same session.
+ * 对同一会话内的对话分支去重。
  *
- * When a session file has multiple leaf messages (from retries or branching),
- * loadAllLogsFromSessionFile produces one LogOption per leaf. Each branch
- * shares the same root message, so its duration overlaps with sibling
- * branches. This keeps only the branch with the most user messages
- * (tie-break by longest duration) per session_id.
+ * 当会话文件存在多个叶子消息时（来自重试或分支），
+ * loadAllLogsFromSessionFile 会为每个叶子生成一个 LogOption。各分支
+ * 共享同一个根消息，因此其时长与兄弟分支重叠。这里对每个 session_id
+ * 只保留用户消息最多的分支
+ * （时长更长者优先）。
  */
 export function deduplicateSessionBranches(
   entries: Array<{ log: LogOption; meta: SessionMeta }>,
@@ -754,7 +754,7 @@ async function summarizeTranscriptChunk(chunk: string): Promise<string> {
     const text = extractTextContent(result.message.content)
     return text || chunk.slice(0, 2000)
   } catch {
-    // On error, just return truncated chunk
+    // 出错时，直接返回被截断的片段
     return chunk.slice(0, 2000)
   }
 }
@@ -764,12 +764,12 @@ async function formatTranscriptWithSummarization(
 ): Promise<string> {
   const fullTranscript = formatTranscriptForFacets(log)
 
-  // If under 30k chars, use as-is
+  // 若不足 3 万字符，则原样使用
   if (fullTranscript.length <= 30000) {
     return fullTranscript
   }
 
-  // For long transcripts, split into chunks and summarize in parallel
+  // 对于超长记录，拆分为多个分块并并行摘要
   const CHUNK_SIZE = 25000
   const chunks: string[] = []
 
@@ -777,10 +777,10 @@ async function formatTranscriptWithSummarization(
     chunks.push(fullTranscript.slice(i, i + CHUNK_SIZE))
   }
 
-  // Summarize all chunks in parallel
+  // 并行摘要所有分块
   const summaries = await Promise.all(chunks.map(summarizeTranscriptChunk))
 
-  // Combine summaries with session header
+  // 将各摘要与会话头部合并
   const meta = logToSessionMeta(log)
   const header = [
     `Session: ${meta.session_id.slice(0, 8)}`,
@@ -802,11 +802,11 @@ async function loadCachedFacets(
     const content = await readFile(facetPath, { encoding: 'utf-8' })
     const parsed: unknown = jsonParse(content)
     if (!isValidSessionFacets(parsed)) {
-      // Delete corrupted cache file so it gets re-extracted next run
+      // 删除损坏的缓存文件，以便下次运行时重新提取
       try {
         await unlink(facetPath)
       } catch {
-        // Ignore deletion errors
+        // 忽略删除错误
       }
       return null
     }
@@ -820,7 +820,7 @@ async function saveFacets(facets: SessionFacets): Promise<void> {
   try {
     await mkdir(getFacetsDir(), { recursive: true })
   } catch {
-    // Directory may already exist
+    // 目录可能已存在
   }
   const facetPath = join(getFacetsDir(), `${facets.session_id}.json`)
   await writeFile(facetPath, jsonStringify(facets, null, 2), {
@@ -845,7 +845,7 @@ async function saveSessionMeta(meta: SessionMeta): Promise<void> {
   try {
     await mkdir(getSessionMetaDir(), { recursive: true })
   } catch {
-    // Directory may already exist
+    // 目录可能已存在
   }
   const metaPath = join(getSessionMetaDir(), `${meta.session_id}.json`)
   await writeFile(metaPath, jsonStringify(meta, null, 2), {
@@ -859,10 +859,10 @@ async function extractFacetsFromAPI(
   sessionId: string,
 ): Promise<SessionFacets | null> {
   try {
-    // Use summarization for long transcripts
+    // 对超长记录使用摘要
     const transcript = await formatTranscriptWithSummarization(log)
 
-    // Build prompt asking for JSON directly (no tool use)
+    // 构建直接要求 JSON 的提示词（不使用工具）
     const jsonPrompt = `${FACET_EXTRACTION_PROMPT}${transcript}
 
 RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
@@ -896,7 +896,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
 
     const text = extractTextContent(result.message.content)
 
-    // Parse JSON from response
+    // 从响应中解析 JSON
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return null
 
@@ -911,9 +911,9 @@ RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
 }
 
 /**
- * Detects multi-clauding (using multiple Limkenion sessions concurrently).
- * Uses a sliding window to find the pattern: session1 -> session2 -> session1
- * within a 30-minute window.
+ * 检测多会话并行（同时使用多个 Limkenion 会话）。
+ * 使用滑动窗口在 30 分钟窗口内查找该模式：
+ * session1 -> session2 -> session1。
  */
 export function detectMultiClauding(
   sessions: Array<{
@@ -934,7 +934,7 @@ export function detectMultiClauding(
         const ts = new Date(timestamp).getTime()
         allSessionMessages.push({ ts, sessionId: session.session_id })
       } catch {
-        // Skip invalid timestamps
+        // 跳过无效的时间戳
       }
     }
   }
@@ -944,14 +944,14 @@ export function detectMultiClauding(
   const multiLimkenionSessionPairs = new Set<string>()
   const messagesDuringMultilimkenion = new Set<string>()
 
-  // Sliding window: sessionLastIndex tracks the most recent index for each session
+  // 滑动窗口：sessionLastIndex 记录每个会话最近一次出现的索引
   let windowStart = 0
   const sessionLastIndex = new Map<string, number>()
 
   for (let i = 0; i < allSessionMessages.length; i++) {
     const msg = allSessionMessages[i]!
 
-    // Shrink window from the left
+    // 从左侧收缩窗口
     while (
       windowStart < i &&
       msg.ts - allSessionMessages[windowStart]!.ts > OVERLAP_WINDOW_MS
@@ -963,7 +963,7 @@ export function detectMultiClauding(
       windowStart++
     }
 
-    // Check if this session appeared earlier in the window (pattern: s1 -> s2 -> s1)
+    // 检查该会话是否在窗口中出现过（模式：s1 -> s2 -> s1）
     const prevIndex = sessionLastIndex.get(msg.sessionId)
     if (prevIndex !== undefined) {
       for (let j = prevIndex + 1; j < i; j++) {
@@ -1023,7 +1023,7 @@ function aggregateData(
     friction: {},
     success: {},
     session_summaries: [],
-    // New stats
+    // 新增统计
     total_interruptions: 0,
     total_tool_errors: 0,
     tool_error_categories: {},
@@ -1034,14 +1034,14 @@ function aggregateData(
     sessions_using_mcp: 0,
     sessions_using_web_search: 0,
     sessions_using_web_fetch: 0,
-    // Additional stats
+    // 额外统计
     total_lines_added: 0,
     total_lines_removed: 0,
     total_files_modified: 0,
     days_active: 0,
     messages_per_day: 0,
     message_hours: [],
-    // Multi-clauding stats (matching Python reference)
+    // 多会话并行统计（与 Python 参考实现一致）
     multi_clauding: {
       overlap_events: 0,
       sessions_involved: 0,
@@ -1062,7 +1062,7 @@ function aggregateData(
     result.git_commits += session.git_commits
     result.git_pushes += session.git_pushes
 
-    // New stats aggregation
+    // 新增统计聚合
     result.total_interruptions += session.user_interruptions
     result.total_tool_errors += session.tool_errors
     for (const [cat, count] of Object.entries(session.tool_error_categories)) {
@@ -1075,7 +1075,7 @@ function aggregateData(
     if (session.uses_web_search) result.sessions_using_web_search++
     if (session.uses_web_fetch) result.sessions_using_web_fetch++
 
-    // Additional stats aggregation
+    // 额外统计聚合
     result.total_lines_added += session.lines_added
     result.total_lines_removed += session.lines_removed
     result.total_files_modified += session.files_modified
@@ -1096,7 +1096,7 @@ function aggregateData(
 
     const sessionFacets = facets.get(session.session_id)
     if (sessionFacets) {
-      // Goal categories
+      // 目标类别
       for (const [cat, count] of safeEntries(sessionFacets.goal_categories)) {
         if (count > 0) {
           result.goal_categories[cat] =
@@ -1104,11 +1104,11 @@ function aggregateData(
         }
       }
 
-      // Outcomes
+      // 结果
       result.outcomes[sessionFacets.outcome] =
         (result.outcomes[sessionFacets.outcome] || 0) + 1
 
-      // Satisfaction counts
+      // 满意度计数
       for (const [level, count] of safeEntries(
         sessionFacets.user_satisfaction_counts,
       )) {
@@ -1117,22 +1117,22 @@ function aggregateData(
         }
       }
 
-      // Helpfulness
+      // 帮助程度
       result.helpfulness[sessionFacets.limkenion_helpfulness] =
         (result.helpfulness[sessionFacets.limkenion_helpfulness] || 0) + 1
 
-      // Session types
+      // 会话类型
       result.session_types[sessionFacets.session_type] =
         (result.session_types[sessionFacets.session_type] || 0) + 1
 
-      // Friction counts
+      // 摩擦计数
       for (const [type, count] of safeEntries(sessionFacets.friction_counts)) {
         if (count > 0) {
           result.friction[type] = (result.friction[type] || 0) + count
         }
       }
 
-      // Success factors
+      // 成功因素
       if (sessionFacets.primary_success !== 'none') {
         result.success[sessionFacets.primary_success] =
           (result.success[sessionFacets.primary_success] || 0) + 1
@@ -1153,7 +1153,7 @@ function aggregateData(
   result.date_range.start = dates[0]?.split('T')[0] || ''
   result.date_range.end = dates[dates.length - 1]?.split('T')[0] || ''
 
-  // Calculate response time stats
+  // 计算响应时间统计
   result.user_response_times = allResponseTimes
   if (allResponseTimes.length > 0) {
     const sorted = [...allResponseTimes].sort((a, b) => a - b)
@@ -1162,7 +1162,7 @@ function aggregateData(
       allResponseTimes.reduce((a, b) => a + b, 0) / allResponseTimes.length
   }
 
-  // Calculate days active and messages per day
+  // 计算活跃天数与每日消息数
   const uniqueDays = new Set(dates.map(d => d.split('T')[0]))
   result.days_active = uniqueDays.size
   result.messages_per_day =
@@ -1170,7 +1170,7 @@ function aggregateData(
       ? Math.round((result.total_messages / result.days_active) * 10) / 10
       : 0
 
-  // Store message hours for time-of-day chart
+  // 存储消息小时用于时段图表
   result.message_hours = allMessageHours
 
   result.multi_clauding = detectMultiClauding(sessions)
@@ -1179,7 +1179,7 @@ function aggregateData(
 }
 
 // ============================================================================
-// Parallel Insights Generation (6 sections)
+// 并行洞察生成（6 个板块）
 // ============================================================================
 
 type InsightSection = {
@@ -1188,7 +1188,7 @@ type InsightSection = {
   maxTokens: number
 }
 
-// Sections that run in parallel first
+// 先并行运行的板块
 const INSIGHT_SECTIONS: InsightSection[] = [
   {
     name: 'project_areas',
@@ -1417,7 +1417,7 @@ async function generateSectionInsight(
     const text = extractTextContent(result.message.content)
 
     if (text) {
-      // Parse JSON from response
+      // 从响应中解析 JSON
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         try {
@@ -1438,7 +1438,7 @@ async function generateParallelInsights(
   data: AggregatedData,
   facets: Map<string, SessionFacets>,
 ): Promise<InsightResults> {
-  // Build data context string
+  // 构建数据上下文字符串
   const facetSummaries = Array.from(facets.values())
     .slice(0, 50)
     .map(f => `- ${f.brief_summary} (${f.outcome}, ${f.limkenion_helpfulness})`)
@@ -1489,14 +1489,14 @@ async function generateParallelInsights(
     '\n\nUSER INSTRUCTIONS TO LIMKENION:\n' +
     (userInstructions || 'None captured')
 
-  // Run sections in parallel first (excluding at_a_glance)
+  // 先并行运行各板块（不含 at_a_glance）
   const results = await Promise.all(
     INSIGHT_SECTIONS.map(section =>
       generateSectionInsight(section, fullContext),
     ),
   )
 
-  // Combine results
+  // 合并结果
   const insights: InsightResults = {}
   for (const { name, result } of results) {
     if (result) {
@@ -1504,7 +1504,7 @@ async function generateParallelInsights(
     }
   }
 
-  // Build rich context from generated sections for At a Glance
+  // 基于已生成的板块为 At a Glance 构建丰富上下文
   const projectAreasText =
     (
       insights.project_areas as {
@@ -1559,7 +1559,7 @@ async function generateParallelInsights(
       ?.map(o => `- ${o.title}: ${o.whats_possible}`)
       .join('\n') || ''
 
-  // Now generate "At a Glance" with access to other sections' outputs
+  // 现在生成 “At a Glance”，并可访问其他板块的输出
   const atAGlancePrompt = `You're writing an "At a Glance" summary for a Limkenion usage insights report for Limkenion users. The goal is to help them understand their usage and improve how they can use Limkenion better, especially as models improve.
 
 Use this 4-part structure:
@@ -1622,13 +1622,13 @@ ${horizonText}`
   return insights
 }
 
-// Escape HTML but render **bold** as <strong>
+// 转义 HTML，但将 **bold** 渲染为 <strong>
 function escapeHtmlWithBold(text: string): string {
   const escaped = escapeHtml(text)
   return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
-// Fixed orderings for specific charts (matching Python reference)
+// 特定图表的固定排序（与 Python 参考实现一致）
 const SATISFACTION_ORDER = [
   'frustrated',
   'dissatisfied',
@@ -1655,12 +1655,12 @@ function generateBarChart(
   let entries: [string, number][]
 
   if (fixedOrder) {
-    // Use fixed order, only including items that exist in data
+    // 使用固定顺序，仅包含数据中实际存在的项
     entries = fixedOrder
       .filter(key => key in data && (data[key] ?? 0) > 0)
       .map(key => [key, data[key] ?? 0] as [string, number])
   } else {
-    // Sort by count descending
+    // 按计数降序排序
     entries = Object.entries(data)
       .sort((a, b) => b[1] - a[1])
       .slice(0, maxItems)
@@ -1672,7 +1672,7 @@ function generateBarChart(
   return entries
     .map(([label, count]) => {
       const pct = (count / maxVal) * 100
-      // Use LABEL_MAP if available, otherwise clean up underscores and title case
+      // 若有 LABEL_MAP 则使用，否则清理下划线并转为标题大小写
       const cleanLabel =
         LABEL_MAP[label] ||
         label.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -1688,7 +1688,7 @@ function generateBarChart(
 function generateResponseTimeHistogram(times: number[]): string {
   if (times.length === 0) return '<p class="empty">No response time data</p>'
 
-  // Create buckets (matching Python reference)
+  // 创建分桶（与 Python 参考实现一致）
   const buckets: Record<string, number> = {
     '2-10s': 0,
     '10-30s': 0,
@@ -1727,7 +1727,7 @@ function generateResponseTimeHistogram(times: number[]): string {
 function generateTimeOfDayChart(messageHours: number[]): string {
   if (messageHours.length === 0) return '<p class="empty">No time data</p>'
 
-  // Group into time periods
+  // 分组为时间段
   const periods = [
     { label: 'Morning (6-12)', range: [6, 7, 8, 9, 10, 11] },
     { label: 'Afternoon (12-18)', range: [12, 13, 14, 15, 16, 17] },
@@ -1787,7 +1787,7 @@ function generateHtmlReport(
       .join('\n')
   }
 
-  // Build At a Glance section (new 4-part format with links to sections)
+  // 构建 At a Glance 板块（新的 4 部分格式，含指向各板块的链接）
   const atAGlance = insights.at_a_glance
   const atAGlanceHtml = atAGlance
     ? `
@@ -1803,7 +1803,7 @@ function generateHtmlReport(
     `
     : ''
 
-  // Build project areas section
+  // 构建项目领域板块
   const projectAreas = insights.project_areas?.areas || []
   const projectAreasHtml =
     projectAreas.length > 0
@@ -1827,7 +1827,7 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build interaction style section
+  // 构建交互风格板块
   const interactionStyle = insights.interaction_style
   const interactionHtml = interactionStyle?.narrative
     ? `
@@ -1839,7 +1839,7 @@ function generateHtmlReport(
     `
     : ''
 
-  // Build what works section
+  // 构建 “what works” 板块
   const whatWorks = insights.what_works
   const whatWorksHtml =
     whatWorks?.impressive_workflows && whatWorks.impressive_workflows.length > 0
@@ -1861,7 +1861,7 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build friction section
+  // 构建摩擦板块
   const frictionAnalysis = insights.friction_analysis
   const frictionHtml =
     frictionAnalysis?.categories && frictionAnalysis.categories.length > 0
@@ -1884,7 +1884,7 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build suggestions section
+  // 构建建议板块
   const suggestions = insights.suggestions
   const suggestionsHtml = suggestions
     ? `
@@ -1988,7 +1988,7 @@ function generateHtmlReport(
     `
     : ''
 
-  // Build On the Horizon section
+  // 构建 On the Horizon 板块
   const horizonData = insights.on_the_horizon
   const horizonHtml =
     horizonData?.opportunities && horizonData.opportunities.length > 0
@@ -2012,7 +2012,7 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build Team Feedback section (collapsible, ant-only)
+  // 构建 Team Feedback 板块（可折叠，仅 ant）
   const ccImprovements =
     []
   const modelImprovements =
@@ -2079,7 +2079,7 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build Fun Ending section
+  // 构建 Fun Ending 板块
   const funEnding = insights.fun_ending
   const funEndingHtml = funEnding?.headline
     ? `
@@ -2467,11 +2467,11 @@ function generateHtmlReport(
 }
 
 // ============================================================================
-// Export Types & Functions
+// 导出类型与函数
 // ============================================================================
 
 /**
- * Structured export format for limkenionscope consumption
+ * 供 limkenionscope 消费的结构化导出格式
  */
 export type InsightsExport = {
   metadata: {
@@ -2494,8 +2494,8 @@ export type InsightsExport = {
 }
 
 /**
- * Build export data from already-computed values.
- * Used by background upload to S3.
+ * 从已计算好的值构建导出数据。
+ * 供后台上传到 S3 使用。
  */
 export function buildExportData(
   data: AggregatedData,
@@ -2558,7 +2558,7 @@ export function buildExportData(
 }
 
 // ============================================================================
-// Lite Session Scanning
+// 轻量会话扫描
 // ============================================================================
 
 type LiteSessionInfo = {
@@ -2569,9 +2569,9 @@ type LiteSessionInfo = {
 }
 
 /**
- * Scans all project directories using filesystem metadata only (no JSONL parsing).
- * Returns a list of session file info sorted by mtime descending.
- * Yields to the event loop between project directories to keep the UI responsive.
+ * 仅使用文件系统元数据扫描所有项目目录（不做 JSONL 解析）。
+ * 返回按 mtime 降序排列的会话文件信息列表。
+ * 在每个项目目录之间让出事件循环，以保持 UI 响应。
  */
 async function scanAllSessions(): Promise<LiteSessionInfo[]> {
   const projectsDir = getProjectsDir()
@@ -2599,19 +2599,19 @@ async function scanAllSessions(): Promise<LiteSessionInfo[]> {
         size: fileInfo.size,
       })
     }
-    // Yield to event loop every 10 project directories
+    // 每处理 10 个项目目录让出一次事件循环
     if (i % 10 === 9) {
       await new Promise<void>(resolve => setImmediate(resolve))
     }
   }
 
-  // Sort by mtime descending (most recent first)
+  // 按 mtime 降序排序（最新的在前）
   allSessions.sort((a, b) => b.mtime - a.mtime)
   return allSessions
 }
 
 // ============================================================================
-// Main Function
+// 主函数
 // ============================================================================
 
 export async function generateUsageReport(options?: {
@@ -2625,15 +2625,15 @@ export async function generateUsageReport(options?: {
 }> {
   let remoteStats: { hosts: RemoteHostInfo[]; totalCopied: number } | undefined
 
-  // Optionally collect data from remote hosts first (ant-only)
+  // 可选：先从远程主机采集数据（仅 ant）
   
 
-  // Phase 1: Lite scan — filesystem metadata only (no JSONL parsing)
+  // 阶段 1：轻量扫描 —— 仅文件系统元数据（不做 JSONL 解析）
   const allScannedSessions = await scanAllSessions()
   const totalSessionsScanned = allScannedSessions.length
 
-  // Phase 2: Load SessionMeta — use cache where available, parse only uncached
-  // Read cached metas in parallel batches to avoid blocking the event loop
+  // 阶段 2：加载 SessionMeta —— 有缓存则用缓存，仅解析未缓存的
+  // 以并行批次读取缓存的 meta，避免阻塞事件循环
   const META_BATCH_SIZE = 50
   const MAX_SESSIONS_TO_LOAD = 200
   let allMetas: SessionMeta[] = []
@@ -2656,10 +2656,10 @@ export async function generateUsageReport(options?: {
     }
   }
 
-  // Load full message data only for uncached sessions and compute SessionMeta
+  // 仅为未缓存的会话加载完整消息数据并计算 SessionMeta
   const logsForFacets = new Map<string, LogOption>()
 
-  // Filter out /insights meta-sessions (facet extraction API calls get logged as sessions)
+  // 过滤掉 /insights 元会话（facet 提取的 API 调用也会被记录为会话）
   const isMetaSession = (log: LogOption): boolean => {
     for (const msg of log.messages.slice(0, 5)) {
       if (msg.type === 'user' && msg.message) {
@@ -2677,7 +2677,7 @@ export async function generateUsageReport(options?: {
     return false
   }
 
-  // Load uncached sessions in batches to yield to event loop between batches
+  // 分批加载未缓存的会话，在批次之间让出事件循环
   const LOAD_BATCH_SIZE = 10
   for (let i = 0; i < uncachedSessions.length; i += LOAD_BATCH_SIZE) {
     const batch = uncachedSessions.slice(i, i + LOAD_BATCH_SIZE)
@@ -2690,7 +2690,7 @@ export async function generateUsageReport(options?: {
         }
       }),
     )
-    // Collect metas synchronously, then save them in parallel (independent writes)
+    // 同步收集各 meta，然后并行保存（相互独立的写入）
     const metasToSave: SessionMeta[] = []
     for (const logs of batchResults) {
       for (const log of logs) {
@@ -2698,15 +2698,15 @@ export async function generateUsageReport(options?: {
         const meta = logToSessionMeta(log)
         allMetas.push(meta)
         metasToSave.push(meta)
-        // Keep the log around for potential facet extraction
+        // 保留日志以备可能的 facet 提取
         logsForFacets.set(meta.session_id, log)
       }
     }
     await Promise.all(metasToSave.map(meta => saveSessionMeta(meta)))
   }
 
-  // Deduplicate session branches (keep the one with most user messages per session_id)
-  // This prevents inflated totals when a session has multiple conversation branches
+  // 对会话分支去重（每个 session_id 保留用户消息最多的那个）
+  // 这可防止会话存在多个对话分支时总数被虚增
   const bestBySession = new Map<string, SessionMeta>()
   for (const meta of allMetas) {
     const existing = bestBySession.get(meta.session_id)
@@ -2719,7 +2719,7 @@ export async function generateUsageReport(options?: {
       bestBySession.set(meta.session_id, meta)
     }
   }
-  // Replace allMetas with deduplicated list and remove unused logs from logsForFacets
+  // 用去重后的列表替换 allMetas，并从 logsForFacets 中移除未使用的日志
   const keptSessionIds = new Set(bestBySession.keys())
   allMetas = [...bestBySession.values()]
   for (const sessionId of logsForFacets.keys()) {
@@ -2728,27 +2728,27 @@ export async function generateUsageReport(options?: {
     }
   }
 
-  // Sort all metas by start_time descending (most recent first)
+  // 按 start_time 降序排序所有 meta（最新的在前）
   allMetas.sort((a, b) => b.start_time.localeCompare(a.start_time))
 
-  // Pre-filter obviously minimal sessions to save API calls
-  // (matching Python's substantive filtering concept)
+  // 预先过滤掉明显极简的会话，以节省 API 调用
+  // （对应 Python 中 substantive 过滤的概念）
   const isSubstantiveSession = (meta: SessionMeta): boolean => {
-    // Skip sessions with very few user messages
+    // 跳过用户消息极少的会话
     if (meta.user_message_count < 2) return false
-    // Skip very short sessions (< 1 minute)
+    // 跳过过短的会话（< 1 分钟）
     if (meta.duration_minutes < 1) return false
     return true
   }
 
   const substantiveMetas = allMetas.filter(isSubstantiveSession)
 
-  // Phase 3: Facet extraction — only for sessions without cached facets
+  // 阶段 3：facet 提取 —— 仅针对没有缓存 facet 的会话
   const facets = new Map<string, SessionFacets>()
   const toExtract: Array<{ log: LogOption; sessionId: string }> = []
   const MAX_FACET_EXTRACTIONS = 50
 
-  // Load cached facets for all substantive sessions in parallel
+  // 并行加载所有实质性会话的缓存 facet
   const cachedFacetResults = await Promise.all(
     substantiveMetas.map(async meta => ({
       sessionId: meta.session_id,
@@ -2766,7 +2766,7 @@ export async function generateUsageReport(options?: {
     }
   }
 
-  // Extract facets for sessions that need them (50 concurrent)
+  // 为需要 facet 的会话提取 facet（并发 50）
   const CONCURRENCY = 50
   for (let i = 0; i < toExtract.length; i += CONCURRENCY) {
     const batch = toExtract.slice(i, i + CONCURRENCY)
@@ -2776,7 +2776,7 @@ export async function generateUsageReport(options?: {
         return { sessionId, newFacets }
       }),
     )
-    // Collect facets synchronously, save in parallel (independent writes)
+    // 同步收集 facet，并行保存（相互独立的写入）
     const facetsToSave: SessionFacets[] = []
     for (const { sessionId, newFacets } of results) {
       if (newFacets) {
@@ -2787,8 +2787,8 @@ export async function generateUsageReport(options?: {
     await Promise.all(facetsToSave.map(f => saveFacets(f)))
   }
 
-  // Filter out warmup/minimal sessions (matching Python's is_minimal)
-  // A session is minimal if warmup_minimal is the ONLY goal category
+  // 过滤掉预热/极简会话（对应 Python 的 is_minimal）
+  // 当 warmup_minimal 是唯一的目标类别时，该会话即为极简会话
   const isMinimalSession = (sessionId: string): boolean => {
     const sessionFacets = facets.get(sessionId)
     if (!sessionFacets) return false
@@ -2811,17 +2811,17 @@ export async function generateUsageReport(options?: {
   const aggregated = aggregateData(substantiveSessions, substantiveFacets)
   aggregated.total_sessions_scanned = totalSessionsScanned
 
-  // Generate parallel insights from Limkenion (6 sections)
+  // 从 Limkenion 生成并行洞察（6 个板块）
   const insights = await generateParallelInsights(aggregated, facets)
 
-  // Generate HTML report
+  // 生成 HTML 报告
   const htmlReport = generateHtmlReport(aggregated, insights)
 
-  // Save reports
+  // 保存报告
   try {
     await mkdir(getDataDir(), { recursive: true })
   } catch {
-    // Directory may already exist
+    // 目录可能已存在
   }
 
   const htmlPath = join(getDataDir(), 'report.html')
@@ -2850,14 +2850,14 @@ function safeKeys(obj: Record<string, unknown> | undefined | null): string[] {
 }
 
 // ============================================================================
-// Command Definition
+// 命令定义
 // ============================================================================
 
 const usageReport: Command = {
   type: 'prompt',
   name: 'insights',
   description: '生成一份分析你 Limkenion 会话的报告',
-  contentLength: 0, // Dynamic content
+  contentLength: 0, // 动态内容
   progressMessage: 'analyzing your sessions',
   source: 'builtin',
   async getPromptForCommand(args) {
@@ -2876,7 +2876,7 @@ const usageReport: Command = {
 
     
 
-    // Build header with stats
+    // 构建带统计信息的头部
     const sessionLabel =
       data.total_sessions_scanned &&
       data.total_sessions_scanned > data.total_sessions
@@ -2889,11 +2889,11 @@ const usageReport: Command = {
       `${data.git_commits} commits`,
     ].join(' · ')
 
-    // Build remote host info (ant-only)
+    // 构建远程主机信息（仅 ant）
     let remoteInfo = ''
     
 
-    // Build markdown summary from insights
+    // 从洞察构建 markdown 摘要
     const atAGlance = insights.at_a_glance
     const summaryText = atAGlance
       ? `## At a Glance
@@ -2918,7 +2918,7 @@ ${remoteInfo}
 
 Your full shareable insights report is ready: ${reportUrl}${uploadHint}`
 
-    // Return prompt for Limkenion to respond to
+    // 返回提示词，交由 Limkenion 回应
     return [
       {
         type: 'text',

@@ -33,6 +33,6 @@ export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
 
-// --- auto-added by scripts/fix-stub-exports.mjs ---
+// --- 由 scripts/fix-stub-exports.mjs 自动添加 ---
 export const NewInstallWizard = stub
 export const computeDefaultInstallDir = stub

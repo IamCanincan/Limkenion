@@ -17,15 +17,15 @@ import { toError } from '../../utils/errors.js'
 import { truncate } from '../../utils/format.js'
 import { logError } from '../../utils/log.js'
 
-// Skill listing gets 1% of the context window (in characters)
+// 技能列表占上下文窗口的 1%（以字符计）
 export const SKILL_BUDGET_CONTEXT_PERCENT = 0.01
 export const CHARS_PER_TOKEN = 4
-export const DEFAULT_CHAR_BUDGET = 8_000 // Fallback: 1% of 200k × 4
+export const DEFAULT_CHAR_BUDGET = 8_000 // 降级值：200k 的 1% × 4
 
-// Per-entry hard cap. The listing is for discovery only — the Skill tool loads
-// full content on invoke, so verbose whenToUse strings waste turn-1 cache_creation
-// tokens without improving match rate. Applies to all entries, including bundled,
-// since the cap is generous enough to preserve the core use case.
+// 每条目的硬上限。列表仅用于发现 —— Skill 工具在调用时会加载
+// 完整内容，因此冗长的 whenToUse 字符串会浪费第 1 回合的 cache_creation
+// token，却不会提升匹配率。适用于所有条目，包括内置条目，
+// 因为该上限足够宽松，能保住核心使用场景。
 export const MAX_LISTING_DESC_CHARS = 250
 
 export function getCharBudget(contextWindowTokens?: number): number {
@@ -50,7 +50,7 @@ function getCommandDescription(cmd: Command): string {
 }
 
 function formatCommandDescription(cmd: Command): string {
-  // Debug: log if userFacingName differs from cmd.name for plugin skills
+  // 调试：若插件技能的 userFacingName 与 cmd.name 不同则记录日志
   const displayName = getCommandName(cmd)
   if (
     cmd.name !== displayName &&
@@ -75,12 +75,12 @@ export function formatCommandsWithinBudget(
 
   const budget = getCharBudget(contextWindowTokens)
 
-  // Try full descriptions first
+  // 先尝试完整描述
   const fullEntries = commands.map(cmd => ({
     cmd,
     full: formatCommandDescription(cmd),
   }))
-  // join('\n') produces N-1 newlines for N entries
+  // 对 N 个条目，join('\n') 会产生 N-1 个换行
   const fullTotal =
     fullEntries.reduce((sum, e) => sum + stringWidth(e.full), 0) +
     (fullEntries.length - 1)
@@ -89,7 +89,7 @@ export function formatCommandsWithinBudget(
     return fullEntries.map(e => e.full).join('\n')
   }
 
-  // Partition into bundled (never truncated) and rest
+  // 划分为内置（永不截断）和其余部分
   const bundledIndices = new Set<number>()
   const restCommands: Command[] = []
   for (let i = 0; i < commands.length; i++) {
@@ -101,7 +101,7 @@ export function formatCommandsWithinBudget(
     }
   }
 
-  // Compute space used by bundled skills (full descriptions, always preserved)
+  // 计算内置技能占用的空间（完整描述，始终保留）
   const bundledChars = fullEntries.reduce(
     (sum, e, i) =>
       bundledIndices.has(i) ? sum + stringWidth(e.full) + 1 : sum,
@@ -109,7 +109,7 @@ export function formatCommandsWithinBudget(
   )
   const remainingBudget = budget - bundledChars
 
-  // Calculate max description length for non-bundled commands
+  // 计算非内置命令的最大描述长度
   if (restCommands.length === 0) {
     return fullEntries.map(e => e.full).join('\n')
   }
@@ -121,7 +121,7 @@ export function formatCommandsWithinBudget(
   const maxDescLen = Math.floor(availableForDescs / restCommands.length)
 
   if (maxDescLen < MIN_DESC_LENGTH) {
-    // Extreme case: non-bundled go names-only, bundled keep descriptions
+    // 极端情况：非内置只保留名称，内置保留描述
     
     return commands
       .map((cmd, i) =>
@@ -130,7 +130,7 @@ export function formatCommandsWithinBudget(
       .join('\n')
   }
 
-  // Truncate non-bundled descriptions to fit within budget
+  // 截断非内置描述以适配预算
   const truncatedCount = count(
     restCommands,
     cmd => stringWidth(getCommandDescription(cmd)) > maxDescLen,
@@ -138,7 +138,7 @@ export function formatCommandsWithinBudget(
   
   return commands
     .map((cmd, i) => {
-      // Bundled skills always get full descriptions
+      // 内置技能始终使用完整描述
       if (bundledIndices.has(i)) return fullEntries[i]!.full
       const description = getCommandDescription(cmd)
       return `- ${cmd.name}: ${truncate(description, maxDescLen)}`
@@ -183,9 +183,9 @@ export async function getSkillToolInfo(cwd: string): Promise<{
   }
 }
 
-// Returns the commands included in the SkillTool prompt.
-// All commands are always included (descriptions may be truncated to fit budget).
-// Used by analyzeContext to count skill tokens.
+// 返回包含在 SkillTool 提示词中的命令。
+// 所有命令始终包含（描述可能被截断以适配预算）。
+// 供 analyzeContext 统计技能 token 使用。
 export function getLimitedSkillToolCommands(cwd: string): Promise<Command[]> {
   return getSkillToolCommands(cwd)
 }
@@ -208,7 +208,7 @@ export async function getSkillInfo(cwd: string): Promise<{
   } catch (error) {
     logError(toError(error))
 
-    // Return zeros rather than throwing - let caller decide how to handle
+    // 返回零而不是抛错 - 由调用方决定如何处理
     return {
       totalSkills: 0,
       includedSkills: 0,

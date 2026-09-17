@@ -9,29 +9,29 @@ export const DEFAULT_MAX_AGE_DAYS =
   DEFAULT_CRON_JITTER_CONFIG.recurringMaxAgeMs / (24 * 60 * 60 * 1000)
 
 /**
- * Unified gate for the cron scheduling system. Combines the build-time
- * `feature('AGENT_TRIGGERS')` flag (dead code elimination) with the runtime
- * `limkenion_kairos_cron` GrowthBook gate on a 5-minute refresh window.
+ * cron 调度系统的统一门控。将构建期的
+ * `feature('AGENT_TRIGGERS')` 标志（死代码消除）与运行时的
+ * `limkenion_kairos_cron` GrowthBook 门控相结合，刷新窗口为 5 分钟。
  *
- * AGENT_TRIGGERS is independently shippable from KAIROS — the cron module
- * graph (cronScheduler/cronTasks/cronTasksLock/cron.ts + the three tools +
- * /loop skill) has zero imports into src/assistant/ and no feature('KAIROS')
- * calls. The REPL.tsx kairosEnabled read is safe:
- * kairosEnabled is unconditionally in AppStateStore with default false, so
- * when KAIROS is off the scheduler just gets assistantMode: false.
+ * AGENT_TRIGGERS 可独立于 KAIROS 发布 —— cron 模块
+ * 图（cronScheduler/cronTasks/cronTasksLock/cron.ts + 三个工具 +
+ * /loop 技能）对 src/assistant/ 的导入为零，也没有 feature('KAIROS')
+ * 调用。REPL.tsx 中读取 kairosEnabled 是安全的：
+ * kairosEnabled 无条件存在于 AppStateStore 中且默认为 false，因此
+ * 当 KAIROS 关闭时，调度器只会拿到 assistantMode: false。
  *
- * Called from Tool.isEnabled() (lazy, post-init) and inside useEffect /
- * imperative setup, never at module scope — so the disk cache has had a
- * chance to populate.
+ * 从 Tool.isEnabled()（惰性、初始化后）以及 useEffect /
+ * 命令式 setup 中调用，绝不在模块作用域调用 —— 这样磁盘缓存才有
+ * 机会完成填充。
  *
- * The default is `true` — /loop is GA (announced in changelog). GrowthBook
- * is disabled for Bedrock/Vertex/Foundry and when DISABLE_TELEMETRY /
- * LIMKENION_DISABLE_NONESSENTIAL_TRAFFIC are set; a `false` default would
- * break /loop for those users (GH #31759). The GB gate now serves purely as
- * a fleet-wide kill switch — flipping it to `false` stops already-running
- * schedulers on their next isKilled poll tick, not just new ones.
+ * 默认值为 `true` —— /loop 已 GA（在 changelog 中公布）。对于
+ * Bedrock/Vertex/Foundry 以及设置了 DISABLE_TELEMETRY /
+ * LIMKENION_DISABLE_NONESSENTIAL_TRAFFIC 的情况，GrowthBook 会被禁用；若默认值为 `false`
+ * 会破坏这些用户的 /loop（GH #31759）。GB 门控现在纯粹作为
+ * 面向全量实例的熔断开关 —— 将其翻转为 `false` 会在下一次 isKilled 轮询 tick 时停止已在运行的
+ * 调度器，而不只是新调度器。
  *
- * `LIMKENION_DISABLE_CRON` is a local override that wins over GB.
+ * `LIMKENION_DISABLE_CRON` 是优先级高于 GB 的本地覆盖项。
  */
 export function isKairosCronEnabled(): boolean {
   return feature('AGENT_TRIGGERS')
@@ -45,13 +45,13 @@ export function isKairosCronEnabled(): boolean {
 }
 
 /**
- * Kill switch for disk-persistent (durable) cron tasks. Narrower than
- * {@link isKairosCronEnabled} — flipping this off forces `durable: false` at
- * the call() site, leaving session-only cron (in-memory, GA) untouched.
+ * 磁盘持久化（durable）cron 任务的熔断开关。范围比
+ * {@link isKairosCronEnabled} 更窄 —— 将其关闭会在
+ * call() 处强制 `durable: false`，而不影响仅限会话的 cron（内存中，GA）。
  *
- * Defaults to `true` so Bedrock/Vertex/Foundry and DISABLE_TELEMETRY users get
- * durable cron. Does NOT consult LIMKENION_DISABLE_CRON (that kills the whole
- * scheduler via isKairosCronEnabled).
+ * 默认为 `true`，以便 Bedrock/Vertex/Foundry 和 DISABLE_TELEMETRY 用户获得
+ * 持久化 cron。它不读取 LIMKENION_DISABLE_CRON（那会通过
+ * isKairosCronEnabled 关闭整个调度器）。
  */
 export function isDurableCronEnabled(): boolean {
   return getFeatureValue_CACHED_WITH_REFRESH(

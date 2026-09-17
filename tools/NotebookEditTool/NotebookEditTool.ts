@@ -181,7 +181,7 @@ export const NotebookEditTool = buildTool({
       ? notebook_path
       : resolve(getCwd(), notebook_path)
 
-    // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+    // SECURITY: 对 UNC 路径跳过文件系统操作，以防 NTLM 凭据泄露。
     if (fullPath.startsWith('\\\\') || fullPath.startsWith('//')) {
       return { result: true }
     }
@@ -215,9 +215,9 @@ export const NotebookEditTool = buildTool({
       }
     }
 
-    // Require Read-before-Edit (matches FileEditTool/FileWriteTool). Without
-    // this, the model could edit a notebook it never saw, or edit against a
-    // stale view after an external change — silent data loss.
+    // 要求先 Read 再 Edit（与 FileEditTool/FileWriteTool 一致）。若没有
+    // 这一约束，模型可能编辑从未见过的 notebook，或在外部变更后
+    // 基于失效视图编辑——造成静默数据丢失。
     const readTimestamp = toolUseContext.readFileState.get(fullPath)
     if (!readTimestamp) {
       return {
@@ -266,11 +266,11 @@ export const NotebookEditTool = buildTool({
         }
       }
     } else {
-      // First try to find the cell by its actual ID
+      // 首先尝试按单元格的实际 ID 查找
       const cellIndex = notebook.cells.findIndex(cell => cell.id === cell_id)
 
       if (cellIndex === -1) {
-        // If not found, try to parse as a numeric index (cell-N format)
+        // 若未找到，尝试按数字索引解析（cell-N 格式）
         const parsedCellIndex = parseCellId(cell_id)
         if (parsedCellIndex !== undefined) {
           if (!notebook.cells[parsedCellIndex]) {
@@ -317,17 +317,17 @@ export const NotebookEditTool = buildTool({
     }
 
     try {
-      // readFileSyncWithMetadata gives content + encoding + line endings in
-      // one safeResolvePath + readFileSync pass, replacing the previous
-      // detectFileEncoding + readFile + detectLineEndings chain (each of
-      // which redid safeResolvePath and/or a 4KB readSync).
+      // readFileSyncWithMetadata 在一次 safeResolvePath + readFileSync 中
+      // 同时给出内容、编码和行尾，取代了此前
+      // detectFileEncoding + readFile + detectLineEndings 的调用链（其中每一步
+      // 都会重复执行 safeResolvePath 和/或一次 4KB 的 readSync）。
       const { content, encoding, lineEndings } =
         readFileSyncWithMetadata(fullPath)
-      // Must use non-memoized jsonParse here: safeParseJSON caches by content
-      // string and returns a shared object reference, but we mutate the
-      // notebook in place below (cells.splice, targetCell.source = ...).
-      // Using the memoized version poisons the cache for validateInput() and
-      // any subsequent call() with the same file content.
+      // 此处必须使用非记忆化的 jsonParse：safeParseJSON 按内容字符串缓存
+      // 并返回共享的对象引用，而我们在下方会原地修改
+      // notebook（cells.splice、targetCell.source = ...）。
+      // 使用记忆化版本会污染 validateInput() 以及后续任何
+      // 以相同文件内容调用 call() 的缓存。
       let notebook: NotebookContent
       try {
         notebook = jsonParse(content) as NotebookContent
@@ -349,12 +349,12 @@ export const NotebookEditTool = buildTool({
 
       let cellIndex
       if (!cell_id) {
-        cellIndex = 0 // Default to inserting at the beginning if no cell_id is provided
+        cellIndex = 0 // 若未提供 cell_id，默认插入到开头
       } else {
-        // First try to find the cell by its actual ID
+        // 首先尝试按单元格的实际 ID 查找
         cellIndex = notebook.cells.findIndex(cell => cell.id === cell_id)
 
-        // If not found, try to parse as a numeric index (cell-N format)
+        // 若未找到，尝试按数字索引解析（cell-N 格式）
         if (cellIndex === -1) {
           const parsedCellIndex = parseCellId(cell_id)
           if (parsedCellIndex !== undefined) {
@@ -363,16 +363,16 @@ export const NotebookEditTool = buildTool({
         }
 
         if (originalEditMode === 'insert') {
-          cellIndex += 1 // Insert after the cell with this ID
+          cellIndex += 1 // 插入到该 ID 对应的单元格之后
         }
       }
 
-      // Convert replace to insert if trying to replace one past the end
+      // 若尝试替换超出末尾的位置，则将 replace 转为 insert
       let edit_mode = originalEditMode
       if (edit_mode === 'replace' && cellIndex === notebook.cells.length) {
         edit_mode = 'insert'
         if (!cell_type) {
-          cell_type = 'code' // Default to code if no cell_type specified
+          cell_type = 'code' // 若未指定 cell_type，默认为 code
         }
       }
 
@@ -390,7 +390,7 @@ export const NotebookEditTool = buildTool({
       }
 
       if (edit_mode === 'delete') {
-        // Delete the specified cell
+        // 删除指定的单元格
         notebook.cells.splice(cellIndex, 1)
       } else if (edit_mode === 'insert') {
         let new_cell: NotebookCell
@@ -411,14 +411,14 @@ export const NotebookEditTool = buildTool({
             outputs: [],
           }
         }
-        // Insert the new cell
+        // 插入新单元格
         notebook.cells.splice(cellIndex, 0, new_cell)
       } else {
-        // Find the specified cell
-        const targetCell = notebook.cells[cellIndex]! // validateInput ensures cell_number is in bounds
+        // 查找指定的单元格
+        const targetCell = notebook.cells[cellIndex]! // validateInput 确保 cell_number 在边界内
         targetCell.source = new_source
         if (targetCell.cell_type === 'code') {
-          // Reset execution count and clear outputs since cell was modified
+          // 由于单元格已被修改，重置执行计数并清空输出
           targetCell.execution_count = null
           targetCell.outputs = []
         }
@@ -426,14 +426,14 @@ export const NotebookEditTool = buildTool({
           targetCell.cell_type = cell_type
         }
       }
-      // Write back to file
+      // 写回文件
       const IPYNB_INDENT = 1
       const updatedContent = jsonStringify(notebook, null, IPYNB_INDENT)
       writeTextContent(fullPath, updatedContent, encoding, lineEndings)
-      // Update readFileState with post-write mtime (matches FileEditTool/
-      // FileWriteTool). offset:undefined breaks FileReadTool's dedup match —
-      // without this, Read→NotebookEdit→Read in the same millisecond would
-      // return the file_unchanged stub against stale in-context content.
+      // 用写入后的 mtime 更新 readFileState（与 FileEditTool/
+      // FileWriteTool 一致）。offset:undefined 会破坏 FileReadTool 的去重匹配——
+      // 若没有这一处理，同一毫秒内的 Read→NotebookEdit→Read
+      // 会针对上下文中失效的内容返回 file_unchanged 存根。
       readFileState.set(fullPath, {
         content: updatedContent,
         timestamp: getFileModificationTime(fullPath),

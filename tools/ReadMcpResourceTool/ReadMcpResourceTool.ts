@@ -100,9 +100,9 @@ export const ReadMcpResourceTool = buildTool({
       ReadResourceResultSchema,
     )) as ReadResourceResult
 
-    // Intercept any blob fields: decode, write raw bytes to disk with a
-    // mime-derived extension, and replace with a path. Otherwise the base64
-    // would be stringified straight into the context.
+    // 拦截所有 blob 字段：解码后，以 mime 推导的扩展名将原始字节
+    // 写入磁盘，并替换为路径。否则 base64
+    // 会被直接字符串化进上下文。
     const contents = await Promise.all(
       result.contents.map(async (c, i) => {
         if ('text' in c) {

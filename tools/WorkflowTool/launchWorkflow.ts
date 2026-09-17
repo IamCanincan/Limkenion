@@ -59,10 +59,10 @@ export type LaunchedWorkflow = {
 }
 
 /**
- * Register the background task for a run and start executing its script.
+ * 为一次运行注册后台任务，并开始执行它的脚本。
  *
- * Returns as soon as the task exists so the tool call can hand the model a run
- * id immediately; everything after that happens on the detached promise below.
+ * 只要任务存在就立即返回，这样工具调用可以马上把 run id 交给模型；
+ * 之后的一切都发生在下面的游离 promise 上。
  */
 export function launchWorkflow(params: LaunchWorkflowParams): LaunchedWorkflow {
   const {
@@ -81,14 +81,14 @@ export function launchWorkflow(params: LaunchWorkflowParams): LaunchedWorkflow {
   const setAppState: SetAppState =
     toolUseContext.setAppStateForTasks ?? toolUseContext.setAppState
   const transcriptDir = getWorkflowTranscriptDir(workflowRunId)
-  // A caller-supplied path is read-only: it is the user's file, and a resume
-  // is supposed to pick up their edits, not overwrite them.
+  // 调用方提供的路径是只读的：它是用户的文件，而恢复运行应当
+  // 接续用户的编辑，而不是覆盖它们。
   const callerSuppliedPath = params.scriptPath !== undefined
   const scriptPath =
     params.scriptPath ?? getWorkflowScriptPath(workflowRunId, meta.name)
 
-  // A resumed run replaces the settled task for the same run id, so the
-  // progress view shows one entry instead of a stack of dead ones.
+  // 恢复的运行会替换同一 run id 上已结算的任务，这样
+  // 进度视图只显示一个条目，而不是一摞已死掉的条目。
   if (isResume) {
     const tasks = toolUseContext.getAppState().tasks
     for (const [id, task] of Object.entries(tasks)) {
@@ -196,7 +196,7 @@ export function launchWorkflow(params: LaunchWorkflowParams): LaunchedWorkflow {
     const settled = toolUseContext.getAppState().tasks[taskId] as
       | LocalWorkflowTaskState
       | undefined
-    // A run the user stopped is already terminal; do not overwrite that.
+    // 用户停止的运行已处于终态；不要覆盖它。
     if (settled && settled.status !== 'running') return
 
     const totalTokens = settled?.totalTokens ?? 0
@@ -266,11 +266,11 @@ export function launchWorkflow(params: LaunchWorkflowParams): LaunchedWorkflow {
 }
 
 /**
- * Coalesce progress events before they touch AppState.
+ * 在进度事件触及 AppState 之前先把它们合并起来。
  *
- * A 40-agent run emits thousands of token-count updates; applying each one
- * would re-render the whole task list per event. Batching on a short timer
- * keeps the view live without making the UI the bottleneck.
+ * 一次 40 个 agent 的运行会发出成千上万次 token 计数更新；逐个应用
+ * 会让每个事件都重新渲染整个任务列表。用短定时器做批处理
+ * 可以让视图保持实时，又不会让 UI 成为瓶颈。
  */
 function createProgressBatcher(params: {
   taskId: string
@@ -303,8 +303,8 @@ function createProgressBatcher(params: {
     const lastAgent = [...durable]
       .reverse()
       .find(event => event.type === 'workflow_agent')
-    // Token-count churn is throttled; anything else (an agent finishing, a new
-    // phase) goes out immediately so the panel is never visibly behind.
+    // token 计数的频繁变动被节流；其他任何事件（agent 完成、进入新
+    // 阶段）都立即发出，这样面板永远不会肉眼可见地滞后。
     const onlyTokenChurn = durable.every(
       event => event.type === 'workflow_agent' && event.state === 'progress',
     )

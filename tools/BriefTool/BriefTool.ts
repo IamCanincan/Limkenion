@@ -67,27 +67,27 @@ export type Output = z.infer<OutputSchema>
 const KAIROS_BRIEF_REFRESH_MS = 5 * 60 * 1000
 
 /**
- * Entitlement check — is the user ALLOWED to use Brief? Combines build-time
- * flags with runtime GB gate + assistant-mode passthrough. No opt-in check
- * here — this decides whether opt-in should be HONORED, not whether the user
- * has opted in.
+ * 授权检查——用户是否有权使用 Brief？它结合了构建期
+ * 标志、运行时 GB 门控以及助手模式直通。此处不做主动选择（opt-in）检查
+ * ——这里决定的是是否应当尊重主动选择，而不是用户
+ * 是否已主动选择。
  *
- * Build-time OR-gated on KAIROS || KAIROS_BRIEF (same pattern as
- * PROACTIVE || KAIROS): assistant mode depends on Brief, so KAIROS alone
- * must bundle it. KAIROS_BRIEF lets Brief ship independently.
+ * 构建期以 KAIROS || KAIROS_BRIEF 做 OR 门控（与
+ * PROACTIVE || KAIROS 同一模式）：助手模式依赖 Brief，因此仅有 KAIROS
+ * 也必须打包它。KAIROS_BRIEF 则让 Brief 可以独立发布。
  *
- * Use this to decide whether `--brief` / `defaultView: 'chat'` / `--tools`
- * listing should be honored. Use `isBriefEnabled()` to decide whether the
- * tool is actually active in the current session.
+ * 用它来决定是否应尊重 `--brief` / `defaultView: 'chat'` / `--tools`
+ * 列表。用 `isBriefEnabled()` 判断该工具在当前会话中
+ * 是否真正生效。
  *
- * LIMKENION_BRIEF env var force-grants entitlement for dev/testing —
- * bypasses the GB gate so you can test without being enrolled. Still
- * requires an opt-in action to activate (--brief, defaultView, etc.), but
- * the env var alone also sets userMsgOptIn via maybeActivateBrief().
+ * LIMKENION_BRIEF 环境变量在开发/测试时强制授予权限——
+ * 绕过 GB 门控，让你无需被纳入即可测试。它仍
+ * 需要一次主动选择操作才能激活（--brief、defaultView 等），但
+ * 仅该环境变量本身也会通过 maybeActivateBrief() 设置 userMsgOptIn。
  */
 export function isBriefEntitled(): boolean {
-  // Positive ternary — see docs/feature-gating.md. Negative early-return
-  // would not eliminate the GB gate string from external builds.
+  // 正向三元表达式——见 docs/feature-gating.md。反向提前返回
+  // 无法从外部构建中消除 GB 门控字符串。
   return feature('KAIROS') || feature('KAIROS_BRIEF')
     ? getKairosActive() ||
         isEnvTruthy(process.env.LIMKENION_BRIEF) ||
@@ -100,34 +100,34 @@ export function isBriefEntitled(): boolean {
 }
 
 /**
- * Unified activation gate for the Brief tool. Governs model-facing behavior
- * as a unit: tool availability, system prompt section (getBriefSection),
- * tool-deferral bypass (isDeferredTool), and todo-nag suppression.
+ * Brief 工具的统一激活门控。它作为一个整体管理面向模型的行为：
+ * 工具可用性、系统提示词段落（getBriefSection）、
+ * 工具延迟绕过（isDeferredTool）以及 todo 提醒抑制。
  *
- * Activation requires explicit opt-in (userMsgOptIn) set by one of:
- *   - `--brief` CLI flag (maybeActivateBrief in main.tsx)
- *   - `defaultView: 'chat'` in settings (main.tsx init)
- *   - `/brief` slash command (brief.ts)
- *   - `/config` defaultView picker (Config.tsx)
- *   - SendUserMessage in `--tools` / SDK `tools` option (main.tsx)
- *   - LIMKENION_BRIEF env var (maybeActivateBrief — dev/testing bypass)
- * Assistant mode (kairosActive) bypasses opt-in since its system prompt
- * hard-codes "you MUST use SendUserMessage" (systemPrompt.md:14).
+ * 激活需要显式主动选择（userMsgOptIn），由以下之一设置：
+ *   - `--brief` CLI 标志（main.tsx 中的 maybeActivateBrief）
+ *   - 设置中的 `defaultView: 'chat'`（main.tsx 初始化）
+ *   - `/brief` 斜杠命令（brief.ts）
+ *   - `/config` 的 defaultView 选择器（Config.tsx）
+ *   - `--tools` / SDK `tools` 选项中的 SendUserMessage（main.tsx）
+ *   - LIMKENION_BRIEF 环境变量（maybeActivateBrief——开发/测试绕过）
+ * 助手模式（kairosActive）会绕过主动选择，因为其系统提示词
+ * 硬编码了 "you MUST use SendUserMessage"（systemPrompt.md:14）。
  *
- * The GB gate is re-checked here as a kill-switch AND — flipping
- * limkenion_kairos_brief off mid-session disables the tool on the next 5-min
- * refresh even for opted-in sessions. No opt-in → always false regardless
- * of GB (this is the fix for "brief defaults on for enrolled ants").
+ * 此处重新检查 GB 门控作为终止开关，并且——在会话中途将
+ * limkenion_kairos_brief 关闭，会在下一次 5 分钟刷新时禁用该工具，
+ * 即使对已主动选择的会话也是如此。无主动选择 → 无论 GB 如何都为 false
+ * （这是对 "brief defaults on for enrolled ants" 的修复）。
  *
- * Called from Tool.isEnabled() (lazy, post-init), never at module scope.
- * getKairosActive() and getUserMsgOptIn() are set in main.tsx before any
- * caller reaches here.
+ * 由 Tool.isEnabled() 调用（惰性、初始化后），绝不在模块作用域调用。
+ * getKairosActive() 和 getUserMsgOptIn() 在任何调用方到达此处之前
+ * 已在 main.tsx 中设置。
  */
 export function isBriefEnabled(): boolean {
-  // Top-level feature() guard is load-bearing for DCE: Bun can constant-fold
-  // the ternary to `false` in external builds and then dead-code the BriefTool
-  // object. Composing isBriefEntitled() alone (which has its own guard) is
-  // semantically equivalent but defeats constant-folding across the boundary.
+  // 顶层 feature() 守卫对 DCE 至关重要：Bun 可以在外部构建中把该三元
+  // 表达式常量折叠为 `false`，进而将 BriefTool 对象按死代码消除。
+  // 仅组合 isBriefEntitled()（它自带守卫）在语义上等价，
+  // 但会破坏跨边界的常量折叠。
   return feature('KAIROS') || feature('KAIROS_BRIEF')
     ? (getKairosActive() || getUserMsgOptIn()) && isBriefEntitled()
     : false

@@ -73,11 +73,11 @@ export const EXPLORE_AGENT: BuiltInAgentDefinition = {
   ],
   source: 'built-in',
   baseDir: 'built-in',
-  // Ants get inherit to use the main agent's model; external users get haiku for speed
-  // Note: For ants, getAgentModel() checks limkenion_explore_agent GrowthBook flag at runtime
+  // ant 使用 inherit 以复用主 agent 的模型；外部用户使用 haiku 以求速度
+  // 注意：对于 ant，getAgentModel() 在运行时检查 limkenion_explore_agent GrowthBook 标志
   model: 'haiku',
-  // Explore is a fast read-only search agent — it doesn't need commit/PR/lint
-  // rules from LIMKENION.md. The main agent has full context and interprets results.
+  // Explore 是快速的只读搜索 agent——它不需要 LIMKENION.md 中的
+  // commit/PR/lint 规则。主 agent 拥有完整上下文并解读结果。
   omitLimkenionMd: true,
   getSystemPrompt: () => getExploreSystemPrompt(),
 }

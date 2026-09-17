@@ -427,12 +427,12 @@ export async function call(onDone: (result?: string, options?: {
     onChangeDynamicMcpConfig
   } = context;
 
-  // Handle 'open' argument
+  // 处理 'open' 参数
   if (args?.trim() === 'open') {
     const worktreeSession = getCurrentWorktreeSession();
     const targetPath = worktreeSession ? worktreeSession.worktreePath : getCwd();
 
-    // Detect available IDEs
+    // 检测可用的 IDE
     const detectedIDEs = await detectIDEs(true);
     const availableIDEs = detectedIDEs.filter(ide => ide.isValid);
     if (availableIDEs.length === 0) {
@@ -440,16 +440,16 @@ export async function call(onDone: (result?: string, options?: {
       return null;
     }
 
-    // Return IDE selection component
+    // 返回 IDE 选择组件
     return <IDEOpenSelection availableIDEs={availableIDEs} onSelectIDE={async (selectedIDE?: DetectedIDEInfo) => {
       if (!selectedIDE) {
         onDone('No IDE selected.');
         return;
       }
 
-      // Try to open the project in the selected IDE
+      // 尝试在所选 IDE 中打开项目
       if (selectedIDE.name.toLowerCase().includes('vscode') || selectedIDE.name.toLowerCase().includes('cursor') || selectedIDE.name.toLowerCase().includes('windsurf')) {
-        // VS Code-based IDEs
+        // 基于 VS Code 的 IDE
         const {
           code
         } = await execFileNoThrow('code', [targetPath]);
@@ -459,7 +459,7 @@ export async function call(onDone: (result?: string, options?: {
           onDone(`Failed to open in ${selectedIDE.name}. Try opening manually: ${targetPath}`);
         }
       } else if (isSupportedJetBrainsTerminal()) {
-        // JetBrains IDEs - they usually open via their CLI tools
+        // JetBrains 系 IDE —— 它们通常通过各自的 CLI 工具打开
         onDone(`Please open the ${worktreeSession ? 'worktree' : 'project'} manually in ${chalk.bold(selectedIDE.name)}: ${targetPath}`);
       } else {
         onDone(`Please open the ${worktreeSession ? 'worktree' : 'project'} manually in ${chalk.bold(selectedIDE.name)}: ${targetPath}`);
@@ -472,13 +472,13 @@ export async function call(onDone: (result?: string, options?: {
   }
   const detectedIDEs = await detectIDEs(true);
 
-  // If no IDEs with extensions detected, check for running IDEs and offer to install
+  // 若未检测到带扩展的 IDE，则检查正在运行的 IDE 并提供安装选项
   if (detectedIDEs.length === 0 && context.onInstallIDEExtension && !isSupportedTerminal()) {
     const runningIDEs = await detectRunningIDEs();
     const onInstall = (ide: IdeType) => {
       if (context.onInstallIDEExtension) {
         context.onInstallIDEExtension(ide);
-        // The completion message will be shown after installation
+        // 安装完成后会显示完成消息
         if (isJetBrainsIde(ide)) {
           onDone(`Installed plugin to ${chalk.bold(toIDEDisplayName(ide))}\n` + `Please ${chalk.bold('restart your IDE')} completely for it to take effect`);
         } else {
@@ -487,7 +487,7 @@ export async function call(onDone: (result?: string, options?: {
       }
     };
     if (runningIDEs.length > 1) {
-      // Show selector when multiple IDEs are running
+      // 有多个 IDE 正在运行时显示选择器
       return <RunningIDESelector runningIDEs={runningIDEs} onSelectIDE={onInstall} onDone={() => {
         onDone('No IDE selected.', {
           display: 'system'
@@ -503,7 +503,7 @@ export async function call(onDone: (result?: string, options?: {
   return <IDECommandFlow availableIDEs={availableIDEs} unavailableIDEs={unavailableIDEs} currentIDE={currentIDE} dynamicMcpConfig={dynamicMcpConfig} onChangeDynamicMcpConfig={onChangeDynamicMcpConfig} onDone={onDone} />;
 }
 
-// Connection timeout slightly longer than the 30s MCP connection timeout
+// 连接超时略长于 30 秒的 MCP 连接超时
 const IDE_CONNECTION_TIMEOUT_MS = 35000;
 type IDECommandFlowProps = {
   availableIDEs: DetectedIDEInfo[];
@@ -528,11 +528,11 @@ function IDECommandFlow({
   const setAppState = useSetAppState();
   const isFirstCheckRef = useRef(true);
 
-  // Watch for connection result
+  // 监听连接结果
   useEffect(() => {
     if (!connectingIDE) return;
-    // Skip the first check — it reflects stale state from before the
-    // config change was dispatched
+    // 跳过第一次检查 —— 它反映的是配置变更被派发之前
+    // 所遗留的失效状态
     if (isFirstCheckRef.current) {
       isFirstCheckRef.current = false;
       return;
@@ -545,7 +545,7 @@ function IDECommandFlow({
     }
   }, [ideClient, connectingIDE, onDone]);
 
-  // Timeout fallback
+  // 超时降级
   useEffect(() => {
     if (!connectingIDE) return;
     const timer = setTimeout(onDone, IDE_CONNECTION_TIMEOUT_MS, `Connection to ${connectingIDE.name} timed out.`);
@@ -563,9 +563,9 @@ function IDECommandFlow({
       delete newConfig.ide;
     }
     if (!selectedIDE) {
-      // Close the MCP transport and remove the client from state
+      // 关闭 MCP 传输层并从状态中移除该客户端
       if (ideClient && ideClient.type === 'connected' && currentIDE) {
-        // Null out onclose to prevent auto-reconnection
+        // 将 onclose 置空以防自动重连
         ideClient.client.onclose = () => {};
         void clearServerCache('ide', ideClient.config);
         setAppState(prev => ({
@@ -604,30 +604,30 @@ function IDECommandFlow({
 }
 
 /**
- * Formats workspace folders for display, stripping cwd and showing tail end of paths
- * @param folders Array of folder paths
- * @param maxLength Maximum total length of the formatted string
- * @returns Formatted string with folder paths
+ * 格式化工作区文件夹以便展示，去除工作目录并只显示路径末尾部分
+ * @param folders 文件夹路径数组
+ * @param maxLength 格式化后字符串的最大总长度
+ * @returns 带文件夹路径的格式化字符串
  */
 export function formatWorkspaceFolders(folders: string[], maxLength: number = 100): string {
   if (folders.length === 0) return '';
   const cwd = getCwd();
 
-  // Only show first 2 workspaces
+  // 只显示前 2 个工作区
   const foldersToShow = folders.slice(0, 2);
   const hasMore = folders.length > 2;
 
-  // Account for ", …" if there are more folders
+  // 为 “, …” 预留空间（若还有更多文件夹）
   const ellipsisOverhead = hasMore ? 3 : 0; // ", …"
 
-  // Account for commas and spaces between paths (", " = 2 chars per separator)
+  // 计入路径之间的逗号和空格（“, ” = 每个分隔符 2 个字符）
   const separatorOverhead = (foldersToShow.length - 1) * 2;
   const availableLength = maxLength - separatorOverhead - ellipsisOverhead;
   const maxLengthPerPath = Math.floor(availableLength / foldersToShow.length);
   const cwdNFC = cwd.normalize('NFC');
   const formattedFolders = foldersToShow.map(folder => {
-    // Strip cwd from the beginning if present
-    // Normalize both to NFC for consistent comparison (macOS uses NFD paths)
+    // 若开头存在工作目录则将其去除
+    // 两者都规范化为 NFC 以便一致比较（macOS 使用 NFD 路径）
     const folderNFC = folder.normalize('NFC');
     if (folderNFC.startsWith(cwdNFC + path.sep)) {
       folder = folderNFC.slice(cwdNFC.length + 1);

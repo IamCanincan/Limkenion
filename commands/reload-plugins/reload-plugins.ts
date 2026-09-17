@@ -8,27 +8,27 @@ import { settingsChangeDetector } from '../../utils/settings/changeDetector.js'
 import { plural } from '../../utils/stringUtils.js'
 
 export const call: LocalCommandCall = async (_args, context) => {
-  // CCR: re-pull user settings before the cache sweep so enabledPlugins /
-  // extraKnownMarketplaces pushed from the user's local CLI (settingsSync)
-  // take effect. Non-CCR headless (e.g. vscode SDK subprocess) shares disk
-  // with whoever writes settings — the file watcher delivers changes, no
-  // re-pull needed there.
+  // CCR：在清理缓存之前重新拉取用户设置，使 enabledPlugins /
+  // extraKnownMarketplaces（由用户本地 CLI 经 settingsSync 推送）
+  // 生效。非 CCR 的无头模式（例如 vscode SDK 子进程）与写入设置的
+  // 一方共享磁盘 —— 文件监听器会投递变更，那里无需
+  // 重新拉取。
   //
-  // Managed settings intentionally NOT re-fetched: it already polls hourly
-  // (POLLING_INTERVAL_MS), and policy enforcement is eventually-consistent
-  // by design (stale-cache fallback on fetch failure). Interactive
-  // /reload-plugins has never re-fetched it either.
+  // 有意不重新获取受管设置：它已经每小时轮询一次
+  //（POLLING_INTERVAL_MS），且策略执行在设计上就是最终一致的
+  //（获取失败时降级使用失效缓存）。交互式
+  // /reload-plugins 也从未重新获取过它。
   //
-  // No retries: user-initiated command, one attempt + fail-open. The user
-  // can re-run /reload-plugins to retry. Startup path keeps its retries.
+  // 不重试：这是用户主动发起的命令，只尝试一次 + 失败放行。用户
+  // 可以重新运行 /reload-plugins 来重试。启动路径保留其重试逻辑。
   if (
     feature('DOWNLOAD_USER_SETTINGS') &&
     (isEnvTruthy(process.env.LIMKENION_REMOTE) || getIsRemoteMode())
   ) {
     const applied = await redownloadUserSettings()
-    // applyRemoteEntriesToLocal uses markInternalWrite to suppress the
-    // file watcher (correct for startup, nothing listening yet); fire
-    // notifyChange here so mid-session applySettingsChange runs.
+    // applyRemoteEntriesToLocal 使用 markInternalWrite 抑制
+    // 文件监听器（对启动阶段是正确的，此时还没有监听者）；在这里
+    // 触发 notifyChange，以便会话中途能执行 applySettingsChange。
     if (applied) {
       settingsChangeDetector.notifyChange('userSettings')
     }
@@ -41,9 +41,9 @@ export const call: LocalCommandCall = async (_args, context) => {
     n(r.command_count, 'skill'),
     n(r.agent_count, 'agent'),
     n(r.hook_count, 'hook'),
-    // "plugin MCP/LSP" disambiguates from user-config/built-in servers,
-    // which /reload-plugins doesn't touch. Commands/hooks are plugin-only;
-    // agent_count is total agents (incl. built-ins). (gh-31321)
+    // “plugin MCP/LSP” 用于与用户配置/内置服务器区分开，
+    // /reload-plugins 不会动后者。Commands/hooks 仅限插件；
+    // agent_count 是 agent 总数（含内置）。(gh-31321)
     n(r.mcp_count, 'plugin MCP server'),
     n(r.lsp_count, 'plugin LSP server'),
   ]

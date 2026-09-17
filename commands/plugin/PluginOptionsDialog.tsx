@@ -10,16 +10,16 @@ import { isEnvTruthy } from '../../utils/envUtils.js';
 import type { PluginOptionSchema, PluginOptionValues } from '../../utils/plugins/pluginOptionsStorage.js';
 
 /**
- * Build the onSave payload from collected string inputs.
+ * 根据收集到的字符串输入构建 onSave 载荷。
  *
- * Sensitive fields are never prepopulated in the text buffer (security), so
- * by the time the user reaches the last field every sensitive field they
- * stepped through contains '' in collected. To avoid silently wiping saved
- * secrets on reconfigure: if a sensitive field is '' AND initialValues has
- * a value for it, OMIT the key entirely. savePluginOptions only writes keys
- * it receives, so omitting = keep existing.
+ * 出于安全考虑，敏感字段绝不会预填充到文本缓冲区中，因此
+ * 当用户走到最后一个字段时，他们此前经过的每个敏感字段在
+ * collected 中都是 ''。为避免在重新配置时静默清空已保存的
+ * 密钥：如果某个敏感字段为 ''，且 initialValues 中该字段有值，
+ * 则完全省略该键。savePluginOptions 只写入它收到的键，因此
+ * 省略 = 保留现有值。
  *
- * Exported for unit testing.
+ * 导出以便单元测试使用。
  */
 export function buildFinalValues(fields: string[], collected: Record<string, string>, configSchema: PluginOptionSchema, initialValues: PluginOptionValues | undefined): PluginOptionValues {
   const finalValues: PluginOptionValues = {};
@@ -30,8 +30,8 @@ export function buildFinalValues(fields: string[], collected: Record<string, str
       continue;
     }
     if (schema?.type === 'number') {
-      // Number('') returns 0, not NaN — omit blank number inputs so
-      // validateUserConfig's required check actually catches them.
+      // Number('') 返回 0 而非 NaN —— 省略空白的数字输入，
+      // 这样 validateUserConfig 的必填校验才能真正捕获它们。
       if (value.trim() === '') continue;
       const num = Number(value);
       finalValues[fieldKey] = Number.isNaN(num) ? value : num;
@@ -47,7 +47,7 @@ type Props = {
   title: string;
   subtitle: string;
   configSchema: PluginOptionSchema;
-  /** Pre-fill fields when reconfiguring. Sensitive fields are not prepopulated. */
+  /** 重新配置时预填充字段。敏感字段不会预填充。 */
   initialValues?: PluginOptionValues;
   onSave: (config: PluginOptionValues) => void;
   onCancel: () => void;

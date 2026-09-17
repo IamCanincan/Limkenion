@@ -69,7 +69,7 @@ export const TaskListTool = buildTool({
       t => !t.metadata?._internal,
     )
 
-    // Build a set of resolved task IDs for filtering
+    // 构建已解决任务 ID 的集合用于过滤
     const resolvedTaskIds = new Set(
       allTasks.filter(t => t.status === 'completed').map(t => t.id),
     )

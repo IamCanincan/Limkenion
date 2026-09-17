@@ -4,55 +4,55 @@ import type { Key } from '../ink.js';
 import { type ChordResolveResult, getBindingDisplayText, resolveKeyWithChordState } from './resolver.js';
 import type { KeybindingContextName, ParsedBinding, ParsedKeystroke } from './types.js';
 
-/** Handler registration for action callbacks */
+/** 动作回调的处理器注册信息 */
 type HandlerRegistration = {
   action: string;
   context: KeybindingContextName;
   handler: () => void;
 };
 type KeybindingContextValue = {
-  /** Resolve a key input to an action name (with chord support) */
+  /** 把按键输入解析为动作名（支持组合键序列） */
   resolve: (input: string, key: Key, activeContexts: KeybindingContextName[]) => ChordResolveResult;
 
-  /** Update the pending chord state */
+  /** 更新待处理的组合键状态 */
   setPendingChord: (pending: ParsedKeystroke[] | null) => void;
 
-  /** Get display text for an action (e.g., "ctrl+t") */
+  /** 获取某个动作的显示文本（例如 “ctrl+t”） */
   getDisplayText: (action: string, context: KeybindingContextName) => string | undefined;
 
-  /** All parsed bindings (for help display) */
+  /** 所有已解析的绑定（用于帮助显示） */
   bindings: ParsedBinding[];
 
-  /** Current pending chord keystrokes (null if not in a chord) */
+  /** 当前待处理的组合键按键序列（不在组合键中时为 null） */
   pendingChord: ParsedKeystroke[] | null;
 
-  /** Currently active keybinding contexts (for priority resolution) */
+  /** 当前激活的键位绑定上下文（用于优先级解析） */
   activeContexts: Set<KeybindingContextName>;
 
-  /** Register a context as active (call on mount) */
+  /** 将某个上下文注册为激活（在挂载时调用） */
   registerActiveContext: (context: KeybindingContextName) => void;
 
-  /** Unregister a context (call on unmount) */
+  /** 注销某个上下文（在卸载时调用） */
   unregisterActiveContext: (context: KeybindingContextName) => void;
 
-  /** Register a handler for an action (used by useKeybinding) */
+  /** 为某个动作注册处理器（由 useKeybinding 使用） */
   registerHandler: (registration: HandlerRegistration) => () => void;
 
-  /** Invoke all handlers for an action (used by ChordInterceptor) */
+  /** 调用某个动作的所有处理器（由 ChordInterceptor 使用） */
   invokeAction: (action: string) => boolean;
 };
 const KeybindingContext = createContext<KeybindingContextValue | null>(null);
 type ProviderProps = {
   bindings: ParsedBinding[];
-  /** Ref for immediate access to pending chord (avoids React state delay) */
+  /** 用于立即访问待处理组合键的 ref（避免 React 状态延迟） */
   pendingChordRef: RefObject<ParsedKeystroke[] | null>;
-  /** State value for re-renders (UI updates) */
+  /** 用于触发重新渲染的状态值（UI 更新） */
   pendingChord: ParsedKeystroke[] | null;
   setPendingChord: (pending: ParsedKeystroke[] | null) => void;
   activeContexts: Set<KeybindingContextName>;
   registerActiveContext: (context: KeybindingContextName) => void;
   unregisterActiveContext: (context: KeybindingContextName) => void;
-  /** Ref to handler registry (used by ChordInterceptor) */
+  /** 指向处理器注册表的 ref（由 ChordInterceptor 使用） */
   handlerRegistryRef: RefObject<Map<string, Set<HandlerRegistration>>>;
   children: React.ReactNode;
 };
@@ -190,25 +190,25 @@ export function useKeybindingContext() {
 }
 
 /**
- * Optional hook that returns undefined outside of KeybindingProvider.
- * Useful for components that may render before provider is available.
+ * 可选 hook，在 KeybindingProvider 之外返回 undefined。
+ * 适用于可能在 provider 可用之前就渲染的组件。
  */
 export function useOptionalKeybindingContext() {
   return useContext(KeybindingContext);
 }
 
 /**
- * Hook to register a keybinding context as active while the component is mounted.
+ * 在组件挂载期间将某个键位绑定上下文注册为激活的 hook。
  *
- * When a context is registered, its keybindings take precedence over Global bindings.
- * This allows context-specific bindings (like ThemePicker's ctrl+t) to override
- * global bindings (like the todo toggle) when the context is active.
+ * 上下文注册后，其键位绑定优先于 Global 绑定。
+ * 这使得上下文专属绑定（如 ThemePicker 的 ctrl+t）在该上下文激活时
+ * 能够覆盖全局绑定（如 todo 开关）。
  *
  * @example
  * ```tsx
  * function ThemePicker() {
  *   useRegisterKeybindingContext('ThemePicker')
- *   // Now ThemePicker's ctrl+t binding takes precedence over Global
+ *   // 现在 ThemePicker 的 ctrl+t 绑定优先于 Global
  * }
  * ```
  */

@@ -13,7 +13,7 @@ function walk(dir){
 }
 
 const files=walk('utils')
-// Detect English comment lines that look like prose (words longer than a threshold of ascii letters, not URLs/keys)
+// 识别看起来像自然语言的英文注释行（连续 ASCII 字母数超过阈值，且不是 URL / 键名）
 const eng=/[A-Za-z]{5,}/
 function hasEnglishComment(src){
   const lines=src.split('\n')
@@ -24,7 +24,7 @@ function hasEnglishComment(src){
     if(!/^\s*\/\/|\/\*\*|^\s*\*|\/\*\*?\*\//.test(line)) continue
     if(line.startsWith('// @')) continue
     if(line.startsWith('import')) continue
-    // only pure-comment lines
+    // 只处理纯注释行
     if(!line.startsWith('//') && !line.startsWith('*') && !line.startsWith('/**')) continue
     const body=line.replace(/^\/\/\s*/,'').replace(/^\/\*+\s*/,'').replace(/^\*/,'').replace(/\*\//,'').trim()
     if(!body) continue

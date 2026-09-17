@@ -44,10 +44,10 @@ export function showDialog<T = void>(root: Root, renderer: (done: (result: T) =>
 }
 
 /**
- * Render an error message through Ink, then unmount and exit.
- * Use this for fatal errors after the Ink root has been created —
- * console.error is swallowed by Ink's patchConsole, so we render
- * through the React tree instead.
+ * 通过 Ink 渲染一条错误消息，然后卸载并退出。
+ * 用于 Ink root 创建之后发生的致命错误 ——
+ * console.error 会被 Ink 的 patchConsole 吞掉，所以改为
+ * 通过 React 树渲染。
  */
 export async function exitWithError(root: Root, message: string, beforeExit?: () => Promise<void>): Promise<never> {
   return exitWithMessage(root, message, {
@@ -57,10 +57,10 @@ export async function exitWithError(root: Root, message: string, beforeExit?: ()
 }
 
 /**
- * Render a message through Ink, then unmount and exit.
- * Use this for messages after the Ink root has been created —
- * console output is swallowed by Ink's patchConsole, so we render
- * through the React tree instead.
+ * 通过 Ink 渲染一条消息，然后卸载并退出。
+ * 用于 Ink root 创建之后的消息输出 ——
+ * console 输出会被 Ink 的 patchConsole 吞掉，所以改为
+ * 通过 React 树渲染。
  */
 export async function exitWithMessage(root: Root, message: string, options?: {
   color?: TextProps['color'];
@@ -80,8 +80,8 @@ export async function exitWithMessage(root: Root, message: string, options?: {
 }
 
 /**
- * Show a setup dialog wrapped in AppStateProvider + KeybindingSetup.
- * Reduces boilerplate in showSetupScreens() where every dialog needs these wrappers.
+ * 展示一个包在 AppStateProvider + KeybindingSetup 中的设置对话框。
+ * 减少 showSetupScreens() 里的样板代码 —— 那里每个对话框都需要这两层包装。
  */
 export function showSetupDialog<T = void>(root: Root, renderer: (done: (result: T) => void) => React.ReactNode, options?: {
   onChangeAppState?: typeof onChangeAppState;
@@ -92,8 +92,8 @@ export function showSetupDialog<T = void>(root: Root, renderer: (done: (result: 
 }
 
 /**
- * Render the main UI into the root and wait for it to exit.
- * Handles the common epilogue: start deferred prefetches, wait for exit, graceful shutdown.
+ * 把主 UI 渲染到 root 中并等待其退出。
+ * 处理共同的收尾流程：启动延迟预取、等待退出、优雅关闭。
  */
 export async function renderAndRun(root: Root, element: React.ReactNode): Promise<void> {
   root.render(element);
@@ -102,18 +102,16 @@ export async function renderAndRun(root: Root, element: React.ReactNode): Promis
   await gracefulShutdown(0);
 }
 export async function showSetupScreens(root: Root, permissionMode: PermissionMode, allowDangerouslySkipPermissions: boolean, commands?: Command[], limkenionInChrome?: boolean, devChannels?: ChannelEntry[]): Promise<boolean> {
-  if ("production" === 'test' || isEnvTruthy(false) || process.env.IS_DEMO // Skip onboarding in demo mode
+  if ("production" === 'test' || isEnvTruthy(false) || process.env.IS_DEMO // demo 模式下跳过引导流程
   ) {
     return false;
   }
   const config = getGlobalConfig();
 
-  // Skip the onboarding wizard when an API key is already configured.
-  // The wizard asks you to pick a login method (subscription / console /
-  // 3rd-party) and a theme — both are meaningless for an API-key user whose
-  // provider is DeepSeek or another OpenAI-compatible endpoint. Note we only
-  // skip Onboarding here; the TrustDialog below is a security boundary and
-  // still runs.
+  // 当已经配置了 API key 时跳过引导向导。
+  // 该向导会让你选择登录方式（订阅 / console / 第三方）和主题 ——
+  // 对使用 DeepSeek 或其他 OpenAI 兼容端点的 API key 用户来说，两者都没有意义。
+  // 注意这里只跳过 Onboarding；下面的 TrustDialog 是安全边界，仍会执行。
   const hasApiKey = Boolean(
     process.env.LIMKENION_API_KEY ||
       process.env.DEEPSEEK_API_KEY ||
@@ -121,7 +119,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   )
 
   let onboardingShown = false;
-  if (!hasApiKey && (!config.theme || !config.hasCompletedOnboarding) // always show onboarding at least once
+  if (!hasApiKey && (!config.theme || !config.hasCompletedOnboarding) // 至少始终显示一次引导流程
   ) {
     onboardingShown = true;
     const {
@@ -135,16 +133,16 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     });
   }
 
-  // Always show the trust dialog in interactive sessions, regardless of permission mode.
-  // The trust dialog is the workspace trust boundary — it warns about untrusted repos
-  // and checks LIMKENION.md external includes. bypassPermissions mode
-  // only affects tool execution permissions, not workspace trust.
-  // Note: non-interactive sessions (CI/CD with -p) never reach showSetupScreens at all.
-  // Skip permission checks in claubbit
+  // 交互式会话中始终显示信任对话框，与权限模式无关。
+  // 信任对话框是工作区信任边界 —— 它会对不受信任的仓库发出警告，
+  // 并检查 LIMKENION.md 的外部 include。bypassPermissions 模式
+  // 只影响工具执行权限，不影响工作区信任。
+  // 注意：非交互式会话（带 -p 的 CI/CD）根本不会走到 showSetupScreens。
+  // 在 claubbit 中跳过权限检查
   if (!isEnvTruthy(process.env.CLAUBBIT)) {
-    // Fast-path: skip TrustDialog import+render when CWD is already trusted.
-    // If it returns true, the TrustDialog would auto-resolve regardless of
-    // security features, so we can skip the dynamic import and render cycle.
+    // 快速路径：当 CWD 已被信任时，跳过 TrustDialog 的导入与渲染。
+    // 因为此时 TrustDialog 无论安全特性如何都会自动通过，
+    // 所以可以跳过这一次动态导入与渲染流程。
     if (!checkHasTrustDialogAccepted()) {
       const {
         TrustDialog
@@ -152,20 +150,20 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
       await showSetupDialog(root, done => <TrustDialog commands={commands} onDone={done} />);
     }
 
-    // Signal that trust has been verified for this session.
-    // GrowthBook checks this to decide whether to include auth headers.
+    // 标记本会话的信任已通过校验。
+    // GrowthBook 会检查该标记以决定是否附带认证头。
     setSessionTrustAccepted(true);
 
-    // Reset and reinitialize GrowthBook after trust is established.
-    // Defense for login/logout: clears any prior client so the next init
-    // picks up fresh auth headers.
+    // 在信任建立之后重置并重新初始化 GrowthBook。
+    // 针对登录/登出的防御措施：清掉之前的 client，好让下次初始化
+    // 拿到全新的认证头。
     resetGrowthBook();
     void initializeGrowthBook();
 
-    // Now that trust is established, prefetch system context if it wasn't already
+    // 信任已建立，此时若尚未预取系统上下文则进行预取
     void getSystemContext();
 
-    // If settings are valid, check for any mcp.json servers that need approval
+    // 若设置有效，检查是否有需要批准的 mcp.json server
     const {
       errors: allErrors
     } = getSettingsWithAllErrors();
@@ -173,7 +171,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
       await handleMcpjsonServerApprovals(root);
     }
 
-    // Check for limkenion.md includes that need approval
+    // 检查是否有需要批准的 limkenion.md include
     if (await shouldShowLimkenionMdExternalIncludesWarning()) {
       const externalIncludes = getExternalLimkenionMdIncludes(await getMemoryFiles(true));
       const {
@@ -183,23 +181,23 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     }
   }
 
-  // Track current repo path for teleport directory switching (fire-and-forget)
-  // This must happen AFTER trust to prevent untrusted directories from poisoning the mapping
+  // 记录当前仓库路径，用于 teleport 目录切换（发后不管）
+  // 必须在信任校验之后执行，以防不受信任的目录污染该映射
   void updateGithubRepoPathMapping();
   if (feature('LODESTONE')) {
     updateDeepLinkTerminalPreference();
   }
 
-  // Apply full environment variables after trust dialog is accepted OR in bypass mode
-  // In bypass mode (CI/CD, automation), we trust the environment so apply all variables
-  // In normal mode, this happens after the trust dialog is accepted
-  // This includes potentially dangerous environment variables from untrusted sources
+  // 在信任对话框被接受之后、或处于 bypass 模式时，应用完整环境变量
+  // 在 bypass 模式（CI/CD、自动化）下我们信任该环境，因此应用全部变量
+  // 在正常模式下，这一步发生在信任对话框被接受之后
+  // 其中包含来自不受信任来源的、可能具有危险性的环境变量
   applyConfigEnvironmentVariables();
 
-  // Initialize telemetry after env vars are applied so OTEL endpoint env vars and
-  // otelHeadersHelper (which requires trust to execute) are available.
-  // Defer to next tick so the OTel dynamic import resolves after first render
-  // instead of during the pre-render microtask queue.
+  // 在环境变量应用完成之后初始化遥测，这样 OTEL 端点环境变量与
+  // otelHeadersHelper（执行它需要信任）才可用。
+  // 推迟到下一个 tick，让 OTel 的动态导入在首次渲染之后完成解析，
+  // 而不是在预渲染的微任务队列中解析。
   setImmediate(() => initializeTelemetryAfterTrust());
   if (await isQualifiedForGrove()) {
     const {
@@ -213,9 +211,9 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     }
   }
 
-  // Check for custom API key
-  // On homespace, LIMKENION_API_KEY is preserved in process.env for child
-  // processes but ignored by Limkenion itself (see auth.ts).
+  // 检查自定义 API key
+  // 在 homespace 上，LIMKENION_API_KEY 会保留在 process.env 中供子进程使用，
+  // 但 Limkenion 自身会忽略它（见 auth.ts）。
   if (process.env.LIMKENION_API_KEY && !isRunningOnHomespace()) {
     const customApiKeyTruncated = normalizeApiKeyForConfig(process.env.LIMKENION_API_KEY);
     const keyStatus = getCustomApiKeyStatus(customApiKeyTruncated);
@@ -235,10 +233,10 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     await showSetupDialog(root, done => <BypassPermissionsModeDialog onAccept={done} />);
   }
   if (feature('TRANSCRIPT_CLASSIFIER')) {
-    // Only show the opt-in dialog if auto mode actually resolved — if the
-    // gate denied it (org not allowlisted, settings disabled), showing
-    // consent for an unavailable feature is pointless. The
-    // verifyAutoModeGateAccess notification will explain why instead.
+    // 只有当 auto 模式真正解析成功时才显示该选择加入对话框 —— 如果
+    // 门禁拒绝了它（组织不在白名单、设置已禁用），为一项不可用的功能
+    // 征求同意毫无意义。此时改由 verifyAutoModeGateAccess 通知
+    // 来解释原因。
     if (permissionMode === 'auto' && !hasAutoModeOptIn()) {
       const {
         AutoModeOptInDialog
@@ -247,19 +245,19 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     }
   }
 
-  // --dangerously-load-development-channels confirmation. On accept, append
-  // dev channels to any --channels list already set in main.tsx. Org policy
-  // is NOT bypassed — gateChannelServer() still runs; this flag only exists
-  // to sidestep the --channels approved-server allowlist.
+  // --dangerously-load-development-channels 的确认。接受后，把 dev channel
+  // 追加到 main.tsx 中已设置的 --channels 列表上。组织策略不会被绕过 ——
+  // gateChannelServer() 仍会执行；这个开关的存在只是为了绕开
+  // --channels 的已批准 server 白名单。
   if (feature('KAIROS') || feature('KAIROS_CHANNELS')) {
-    // gateChannelServer and ChannelsNotice read limkenion_harbor after this
-    // function returns. A cold disk cache (fresh install, or first run after
-    // the flag was added server-side) defaults to false and silently drops
-    // channel notifications for the whole session — gh#37026.
-    // checkGate_CACHED_OR_BLOCKING returns immediately if disk already says
-    // true; only blocks on a cold/stale-false cache (awaits the same memoized
-    // initializeGrowthBook promise fired earlier). Also warms the
-    // isChannelsEnabled() check in the dev-channels dialog below.
+    // gateChannelServer 与 ChannelsNotice 会在本函数返回之后读取
+    // limkenion_harbor。冷磁盘缓存（全新安装，或该开关刚在服务端上线后的
+    // 首次运行）会默认为 false，并静默丢弃整个会话的 channel 通知 ——
+    // 见 gh#37026。
+    // checkGate_CACHED_OR_BLOCKING 在磁盘缓存已是 true 时立即返回；
+    // 只有缓存为冷/陈旧 false 时才阻塞（等待此前已触发的同一个
+    // 记忆化的 initializeGrowthBook promise）。同时预热下面
+    // dev-channels 对话框里的 isChannelsEnabled() 检查。
     if (getAllowedChannels().length > 0 || (devChannels?.length ?? 0) > 0) {
       await checkGate_CACHED_OR_BLOCKING('limkenion_harbor');
     }
@@ -269,13 +267,12 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
       }, {
         getLimkenionAIOAuthTokens
       }] = await Promise.all([import('./services/mcp/channelAllowlist.js'), import('./utils/auth.js')]);
-      // Skip the dialog when channels are blocked (limkenion_harbor off or no
-      // OAuth) — accepting then immediately seeing "not available" in
-      // ChannelsNotice is worse than no dialog. Append entries anyway so
-      // ChannelsNotice renders the blocked branch with the dev entries
-      // named. dev:true here is for the flag label in ChannelsNotice
-      // (hasNonDev check); the allowlist bypass it also grants is moot
-      // since the gate blocks upstream.
+      // 当 channel 被阻断时（limkenion_harbor 关闭或没有 OAuth）跳过该对话框 ——
+      // 先接受、紧接着又在 ChannelsNotice 里看到「不可用」，比干脆不弹更糟。
+      // 仍然追加条目，这样 ChannelsNotice 会渲染阻断分支并把 dev 条目的
+      // 名字显示出来。这里的 dev:true 是给 ChannelsNotice 里的开关标签用的
+      // （hasNonDev 检查）；它同时带来的白名单绕过在此已无意义，
+      // 因为上游门禁已经拦住了。
       if (!isChannelsEnabled() || !getLimkenionAIOAuthTokens()?.accessToken) {
         setAllowedChannels([...getAllowedChannels(), ...devChannels.map(c => ({
           ...c,
@@ -287,8 +284,8 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
           DevChannelsDialog
         } = await import('./components/DevChannelsDialog.js');
         await showSetupDialog(root, done => <DevChannelsDialog channels={devChannels} onAccept={() => {
-          // Mark dev entries per-entry so the allowlist bypass doesn't leak
-          // to --channels entries when both flags are passed.
+          // 逐条标记 dev 条目，这样在两个开关同时传入时，
+          // 白名单绕过不会泄漏到 --channels 的条目上。
           setAllowedChannels([...getAllowedChannels(), ...devChannels.map(c => ({
             ...c,
             dev: true
@@ -300,7 +297,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     }
   }
 
-  // Show Chrome onboarding for first-time Limkenion in Chrome users
+  // 为首次使用 Limkenion in Chrome 的用户展示 Chrome 引导流程
   if (limkenionInChrome && !getGlobalConfig().hasCompletedLimkenionInChromeOnboarding) {
     const {
       LimkenionInChromeOnboarding
@@ -317,7 +314,7 @@ export function getRenderContext(exitOnCtrlC: boolean): {
   let lastFlickerTime = 0;
   const baseOptions = getBaseRenderOptions(exitOnCtrlC);
 
-  // Log analytics event when stdin override is active
+  // 当 stdin 覆盖生效时记录遥测事件
   if (baseOptions.stdin) {
     logEvent('limkenion_stdin_interactive', {});
   }
@@ -325,10 +322,10 @@ export function getRenderContext(exitOnCtrlC: boolean): {
   const stats = createStatsStore();
   setStatsStore(stats);
 
-  // Bench mode: when set, append per-frame phase timings as JSONL for
-  // offline analysis by bench/repl-scroll.ts. Captures the full TUI
-  // render pipeline (yoga → screen buffer → diff → optimize → stdout)
-  // so perf work on any phase can be validated against real user flows.
+  // Bench 模式：设置后，把每帧各阶段的耗时以 JSONL 追加写入，供
+  // bench/repl-scroll.ts 做离线分析。覆盖完整的 TUI 渲染管线
+  // （yoga → 屏幕缓冲区 → diff → optimize → stdout），
+  // 这样针对任一阶段的性能工作都能基于真实用户流程来验证。
   const frameTimingLogPath = process.env.LIMKENION_FRAME_TIMING_LOG;
   return {
     getFpsMetrics: () => fpsTracker.getMetrics(),
@@ -339,9 +336,9 @@ export function getRenderContext(exitOnCtrlC: boolean): {
         fpsTracker.record(event.durationMs);
         stats.observe('frame_duration_ms', event.durationMs);
         if (frameTimingLogPath && event.phases) {
-          // Bench-only env-var-gated path: sync write so no frames dropped
-          // on abrupt exit. ~100 bytes at ≤60fps is negligible. rss/cpu are
-          // single syscalls; cpu is cumulative — bench side computes delta.
+          // 仅 bench 场景、由环境变量控制的路径：同步写入，以免
+          // abrupt 退出时丢帧。≤60fps 下每帧约 100 字节，开销可忽略。
+          // rss/cpu 各是一次系统调用；cpu 是累计值 —— 由 bench 侧计算差值。
           const line =
           // eslint-disable-next-line custom-rules/no-direct-json-operations -- tiny object, hot bench path
           JSON.stringify({
@@ -353,8 +350,8 @@ export function getRenderContext(exitOnCtrlC: boolean): {
           // eslint-disable-next-line custom-rules/no-sync-fs -- bench-only, sync so no frames dropped on exit
           appendFileSync(frameTimingLogPath, line);
         }
-        // Skip flicker reporting for terminals with synchronized output —
-        // DEC 2026 buffers between BSU/ESU so clear+redraw is atomic.
+        // 对支持同步输出的终端跳过闪烁上报 ——
+        // DEC 2026 在 BSU/ESU 之间做缓冲，因此 clear+redraw 是原子的。
         if (isSynchronizedOutputSupported()) {
           return;
         }

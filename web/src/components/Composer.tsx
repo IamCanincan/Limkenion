@@ -44,7 +44,7 @@ export function Composer({ commands, files, onSend, onCancel, streaming, onReque
   const taRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Open the command palette whenever the input starts with "/" and no space yet.
+  // 只要输入以 "/" 开头且还没有空格，就打开命令面板。
   useEffect(() => {
     setPaletteOpen(/^\/[^\s]*$/.test(value))
     setMention(mentionAt(value))
@@ -197,7 +197,7 @@ export function Composer({ commands, files, onSend, onCancel, streaming, onReque
               (paletteOpen || mention !== null) &&
               (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Tab')
             ) {
-              // Palette handles navigation via its window-level listener.
+              // 面板通过它自己在 window 层级的监听器处理导航。
               e.preventDefault()
               return
             }

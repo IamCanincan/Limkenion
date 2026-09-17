@@ -6,25 +6,25 @@ import {
 import { useOptionalKeybindingContext } from './KeybindingContext.js'
 import type { KeybindingContextName } from './types.js'
 
-// TODO(keybindings-migration): Remove fallback parameter after migration is complete
-// and we've confirmed no 'keybinding_fallback_used' events are being logged.
-// The fallback exists as a safety net during migration - if bindings fail to load
-// or an action isn't found, we fall back to hardcoded values. Once stable, callers
-// should be able to trust that getBindingDisplayText always returns a value for
-// known actions, and we can remove this defensive pattern.
+// TODO(keybindings-migration): 迁移完成后，并确认不再记录
+// 'keybinding_fallback_used' 事件时，移除 fallback 参数。
+// fallback 是迁移期间的安全网——若绑定加载失败或找不到某个 action，
+// 则回退到硬编码值。待其稳定后，调用方应能信任
+// getBindingDisplayText 对已知 action 始终返回一个值，
+// 届时即可移除这一防御性写法。
 
 /**
- * Hook to get the display text for a configured shortcut.
- * Returns the configured binding or a fallback if unavailable.
+ * 获取已配置快捷键显示文本的 hook。
+ * 返回已配置的绑定；若不可用则返回降级值。
  *
- * @param action - The action name (e.g., 'app:toggleTranscript')
- * @param context - The keybinding context (e.g., 'Global')
- * @param fallback - Fallback text if keybinding context unavailable
- * @returns The configured shortcut display text
+ * @param action - 动作名称（例如 'app:toggleTranscript'）
+ * @param context - 键位绑定上下文（例如 'Global'）
+ * @param fallback - 键位绑定上下文不可用时的降级文本
+ * @returns 已配置快捷键的显示文本
  *
  * @example
  * const expandShortcut = useShortcutDisplay('app:toggleTranscript', 'Global', 'ctrl+o')
- * // Returns the user's configured binding, or 'ctrl+o' as default
+ * // 返回用户配置的绑定，未配置时默认返回 'ctrl+o'
  */
 export function useShortcutDisplay(
   action: string,
@@ -36,8 +36,8 @@ export function useShortcutDisplay(
   const isFallback = resolved === undefined
   const reason = keybindingContext ? 'action_not_found' : 'no_context'
 
-  // Log fallback usage once per mount (not on every render) to avoid
-  // flooding analytics with events from frequent re-renders.
+  // 每次挂载只记录一次降级使用（而非每次渲染），以避免
+  // 频繁重渲染产生的事件淹没分析系统。
   const hasLoggedRef = useRef(false)
   useEffect(() => {
     if (isFallback && !hasLoggedRef.current) {

@@ -18,22 +18,22 @@ import { resetUserCache } from '../../utils/user.js';
 export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXCommandContext): Promise<React.ReactNode> {
   return <Login onDone={async success => {
     context.onChangeAPIKey();
-    // Signature-bearing blocks (thinking, connector_text) are bound to the API key —
-    // strip them so the new key doesn't reject stale signatures.
+    // 携带签名的块（thinking、connector_text）与 API 密钥绑定 ——
+    // 需剥离它们，以免新密钥拒绝失效的签名。
     context.setMessages(stripSignatureBlocks);
     if (success) {
-      // Post-login refresh logic. Keep in sync with onboarding in src/interactiveHelpers.tsx
-      // Reset cost state when switching accounts
+      // 登录后的刷新逻辑。需与 src/interactiveHelpers.tsx 中的引导流程保持同步
+      // 切换账户时重置成本状态
       resetCostState();
-      // Refresh remotely managed settings after login (non-blocking)
+      // 登录后刷新远程托管的设置（非阻塞）
       void refreshRemoteManagedSettings();
-      // Refresh policy limits after login (non-blocking)
+      // 登录后刷新策略限制（非阻塞）
       void refreshPolicyLimits();
-      // Clear user data cache BEFORE GrowthBook refresh so it picks up fresh credentials
+      // 在 GrowthBook 刷新之前清除用户数据缓存，以便其读取到新的凭据
       resetUserCache();
-      // Refresh GrowthBook after login to get updated feature flags (e.g., for limkenion.ai MCPs)
+      // 登录后刷新 GrowthBook 以获取更新的功能开关（例如用于 limkenion.ai 的 MCP）
       refreshGrowthBookAfterAuthChange();
-      // Reset killswitch gate checks and re-run with new org
+      // 重置 killswitch 门禁检查并以新组织重新运行
       resetBypassPermissionsCheck();
       const appState = context.getAppState();
       void checkAndDisableBypassPermissionsIfNeeded(appState.toolPermissionContext, context.setAppState);
@@ -41,7 +41,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
         resetAutoModeGateCheck();
         void checkAndDisableAutoModeIfNeeded(appState.toolPermissionContext, context.setAppState, appState.fastMode);
       }
-      // Increment authVersion to trigger re-fetching of auth-dependent data in hooks (e.g., MCP servers)
+      // 递增 authVersion 以触发钩子中依赖认证的数据重新拉取（例如 MCP 服务器）
       context.setAppState(prev => ({
         ...prev,
         authVersion: prev.authVersion + 1

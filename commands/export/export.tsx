@@ -32,7 +32,7 @@ export function extractFirstPrompt(messages: Message[]): string {
     }
   }
 
-  // Take first line only and limit length
+  // 只取第一行并限制长度
   result = result.split('\n')[0] || '';
   if (result.length > 50) {
     result = result.substring(0, 49) + '…';
@@ -40,21 +40,21 @@ export function extractFirstPrompt(messages: Message[]): string {
   return result;
 }
 export function sanitizeFilename(text: string): string {
-  // Replace special characters with hyphens
-  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-  .replace(/\s+/g, '-') // Replace spaces with hyphens
-  .replace(/-+/g, '-') // Replace multiple hyphens with single
-  .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  // 将特殊字符替换为连字符
+  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, '') // 移除特殊字符
+  .replace(/\s+/g, '-') // 将空格替换为连字符
+  .replace(/-+/g, '-') // 将多个连字符合并为一个
+  .replace(/^-|-$/g, ''); // 移除首尾连字符
 }
 async function exportWithReactRenderer(context: ToolUseContext): Promise<string> {
   const tools = context.options.tools || [];
   return renderMessagesToPlainText(context.messages, tools);
 }
 export async function call(onDone: LocalJSXCommandOnDone, context: ToolUseContext, args: string): Promise<React.ReactNode> {
-  // Render the conversation content
+  // 渲染对话内容
   const content = await exportWithReactRenderer(context);
 
-  // If args are provided, write directly to file and skip dialog
+  // 若提供了参数，则直接写入文件并跳过对话框
   const filename = args.trim();
   if (filename) {
     const finalFilename = filename.endsWith('.txt') ? filename : filename.replace(/\.[^.]+$/, '') + '.txt';
@@ -72,7 +72,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: ToolUseContex
     }
   }
 
-  // Generate default filename from first prompt or timestamp
+  // 根据首个提示词或时间戳生成默认文件名
   const firstPrompt = extractFirstPrompt(context.messages);
   const timestamp = formatTimestamp(new Date());
   let defaultFilename: string;
@@ -83,7 +83,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: ToolUseContex
     defaultFilename = `conversation-${timestamp}.txt`;
   }
 
-  // Return the dialog component when no args provided
+  // 未提供参数时返回对话框组件
   return <ExportDialog content={content} defaultFilename={defaultFilename} onDone={result => {
     onDone(result.message);
   }} />;

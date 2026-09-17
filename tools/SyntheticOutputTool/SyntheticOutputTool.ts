@@ -7,7 +7,7 @@ import { lazySchema } from '../../utils/lazySchema.js'
 import type { PermissionResult } from '../../utils/permissions/PermissionResult.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 
-// Allow any input object since the schema is provided dynamically
+// 允许任意输入对象，因为 schema 是动态提供的
 const inputSchema = lazySchema(() => z.object({}).passthrough())
 type InputSchema = ReturnType<typeof inputSchema>
 
@@ -28,8 +28,8 @@ export function isSyntheticOutputToolEnabled(opts: {
 export const SyntheticOutputTool = buildTool({
   isMcp: false,
   isEnabled() {
-    // This tool is only created when conditions are met (see main.tsx where
-    // isSyntheticOutputToolEnabled() gates tool creation). Once created, always enabled.
+    // 仅在满足条件时才创建该工具（见 main.tsx，其中
+    // isSyntheticOutputToolEnabled() 控制工具创建）。一旦创建，就始终启用。
     return true
   },
   isConcurrencySafe() {
@@ -57,20 +57,20 @@ export const SyntheticOutputTool = buildTool({
     return outputSchema()
   },
   async call(input) {
-    // The tool just validates and returns the input as the structured output
+    // 该工具只做校验，并将输入作为结构化输出返回
     return {
       data: 'Structured output provided successfully',
       structured_output: input,
     }
   },
   async checkPermissions(input): Promise<PermissionResult> {
-    // Always allow this tool - it's just returning data
+    // 始终允许该工具 - 它只是返回数据
     return {
       behavior: 'allow',
       updatedInput: input,
     }
   },
-  // Minimal UI implementations - this tool is for non-interactive SDK/CLI use
+  // 最小化的 UI 实现 - 该工具用于非交互式 SDK/CLI 场景
   renderToolUseMessage(input: Record<string, unknown>) {
     const keys = Object.keys(input)
     if (keys.length === 0) return null
@@ -102,16 +102,16 @@ export const SyntheticOutputTool = buildTool({
 
 type CreateResult = { tool: Tool<InputSchema> } | { error: string }
 
-// Workflow scripts call agent({schema: BUGS_SCHEMA}) 30-80 times per run with
-// the same schema object reference. Without caching, each call does
-// new Ajv() + validateSchema() + compile() (~1.4ms of JIT codegen). Identity
-// cache brings 80-call workflows from ~110ms to ~4ms Ajv overhead.
+// 工作流脚本每次运行会以同一个 schema 对象引用调用
+// agent({schema: BUGS_SCHEMA}) 30-80 次。若不缓存，每次调用都要
+// new Ajv() + validateSchema() + compile()（约 1.4ms 的 JIT 代码生成）。按引用
+// 缓存可将 80 次调用的工作流从约 110ms 降到约 4ms 的 Ajv 开销。
 const toolCache = new WeakMap<object, CreateResult>()
 
 /**
- * Create a SyntheticOutputTool configured with the given JSON schema.
- * Returns {tool} on success or {error} with Ajv's diagnostic message
- * (e.g. "data/properties/bugs should be object") on invalid schema.
+ * 创建使用给定 JSON schema 配置的 SyntheticOutputTool。
+ * 成功时返回 {tool}，schema 无效时返回 {error} 并附带 Ajv 的诊断信息
+ * （例如 "data/properties/bugs should be object"）。
  */
 export function createSyntheticOutputTool(
   jsonSchema: Record<string, unknown>,

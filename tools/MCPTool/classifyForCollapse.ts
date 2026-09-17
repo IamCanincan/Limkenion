@@ -12,7 +12,7 @@
 
 // prettier-ignore
 const SEARCH_TOOLS = new Set([
-  // Slack (hosted + @modelcontextprotocol/server-slack)
+  // Slack（托管版 + @modelcontextprotocol/server-slack）
   'slack_search_public',
   'slack_search_public_and_private',
   'slack_search_channels',
@@ -44,21 +44,21 @@ const SEARCH_TOOLS = new Set([
   'find_projects',
   'find_releases',
   'find_dsns',
-  // Notion (mcp.notion.com — kebab-case, normalized)
+  // Notion（mcp.notion.com — kebab-case 形式，已归一化）
   'search',
-  // Gmail (limkenion.ai hosted)
+  // Gmail（limkenion.ai 托管版）
   'gmail_search_messages',
-  // Google Drive (limkenion.ai hosted + @modelcontextprotocol/server-gdrive)
+  // Google Drive（limkenion.ai 托管版 + @modelcontextprotocol/server-gdrive）
   'google_drive_search',
-  // Google Calendar (limkenion.ai hosted)
+  // Google Calendar（limkenion.ai 托管版）
   'gcal_find_my_free_time',
   'gcal_find_meeting_times',
   'gcal_find_user_emails',
-  // Atlassian/Jira (mcp.atlassian.com — camelCase, normalized)
+  // Atlassian/Jira（mcp.atlassian.com — camelCase 形式，已归一化）
   'search_jira_issues_using_jql',
   'search_confluence_using_cql',
   'lookup_jira_account_id',
-  // Community Atlassian (sooperset/mcp-atlassian)
+  // 社区版 Atlassian（sooperset/mcp-atlassian）
   'confluence_search',
   'jira_search',
   'jira_search_fields',
@@ -84,7 +84,7 @@ const SEARCH_TOOLS = new Set([
   // Stripe
   'search_stripe_resources',
   'search_stripe_documentation',
-  // PubMed (limkenion.ai hosted + community)
+  // PubMed（limkenion.ai 托管版 + 社区版）
   'search_articles',
   'find_related_articles',
   'lookup_article_by_citation',
@@ -118,7 +118,7 @@ const SEARCH_TOOLS = new Set([
   'find_memories_by_name',
   // Airtable
   'search_records',
-  // Todoist (Doist — kebab-case, normalized)
+  // Todoist（Doist — kebab-case 形式，已归一化）
   'find_tasks',
   'find_tasks_by_date',
   'find_completed_tasks',
@@ -140,7 +140,7 @@ const SEARCH_TOOLS = new Set([
 
 // prettier-ignore
 const READ_TOOLS = new Set([
-  // Slack (hosted + @modelcontextprotocol/server-slack)
+  // Slack（托管版 + @modelcontextprotocol/server-slack）
   'slack_read_channel',
   'slack_read_thread',
   'slack_read_canvas',
@@ -251,25 +251,25 @@ const READ_TOOLS = new Set([
   'list_events',
   'list_issue_events',
   'get_sentry_issue',
-  // Notion (mcp.notion.com — kebab-case, normalized)
+  // Notion（mcp.notion.com — kebab-case 形式，已归一化）
   'fetch',
   'get_comments',
   'get_users',
   'get_self',
-  // Gmail (limkenion.ai hosted)
+  // Gmail（limkenion.ai 托管版）
   'gmail_get_profile',
   'gmail_read_message',
   'gmail_read_thread',
   'gmail_list_drafts',
   'gmail_list_labels',
-  // Google Drive (limkenion.ai hosted + @modelcontextprotocol/server-gdrive)
+  // Google Drive（limkenion.ai 托管版 + @modelcontextprotocol/server-gdrive）
   'google_drive_fetch',
   'google_drive_export',
-  // Google Calendar (limkenion.ai hosted)
+  // Google Calendar（limkenion.ai 托管版）
   'gcal_list_calendars',
   'gcal_list_events',
   'gcal_get_event',
-  // Atlassian/Jira (mcp.atlassian.com — camelCase, normalized)
+  // Atlassian/Jira（mcp.atlassian.com — camelCase 形式，已归一化）
   'atlassian_user_info',
   'get_accessible_atlassian_resources',
   'get_visible_jira_projects',
@@ -284,7 +284,7 @@ const READ_TOOLS = new Set([
   'get_confluence_page_descendants',
   'get_confluence_page_footer_comments',
   'get_confluence_page_inline_comments',
-  // Community Atlassian (sooperset/mcp-atlassian)
+  // 社区版 Atlassian（sooperset/mcp-atlassian）
   'confluence_get_page',
   'confluence_get_page_children',
   'confluence_get_comments',
@@ -450,7 +450,7 @@ const READ_TOOLS = new Set([
   'list_coupons',
   'list_disputes',
   'fetch_stripe_resources',
-  // PubMed (limkenion.ai hosted + community)
+  // PubMed（limkenion.ai 托管版 + 社区版）
   'get_article_metadata',
   'get_full_text_article',
   'convert_article_ids',
@@ -466,7 +466,7 @@ const READ_TOOLS = new Set([
   'pubmed_spell',
   'pubmed_cite',
   'pubmed_related',
-  // BigQuery (limkenion.ai hosted + community)
+  // BigQuery（limkenion.ai 托管版 + 社区版）
   'bigquery_query',
   'bigquery_schema',
   'list_dataset_ids',
@@ -547,7 +547,7 @@ const READ_TOOLS = new Set([
   'list_records',
   'list_bases',
   'get_record',
-  // Todoist (Doist — kebab-case, normalized)
+  // Todoist（Doist — kebab-case 形式，已归一化）
   'get_productivity_stats',
   'get_overview',
   'fetch_object',

@@ -18,7 +18,7 @@ function getToolsDescription(agent: AgentDefinition): string {
   const hasDenylist = disallowedTools && disallowedTools.length > 0
 
   if (hasAllowlist && hasDenylist) {
-    // Both defined: filter allowlist by denylist to match runtime behavior
+    // 两者都已定义：用禁用列表过滤允许列表以匹配运行时行为
     const denySet = new Set(disallowedTools)
     const effectiveTools = tools.filter(t => !denySet.has(t))
     if (effectiveTools.length === 0) {
@@ -26,19 +26,19 @@ function getToolsDescription(agent: AgentDefinition): string {
     }
     return effectiveTools.join(', ')
   } else if (hasAllowlist) {
-    // Allowlist only: show the specific tools available
+    // 仅有允许列表：展示具体的可用工具
     return tools.join(', ')
   } else if (hasDenylist) {
-    // Denylist only: show "All tools except X, Y, Z"
+    // 仅有禁用列表：展示 "All tools except X, Y, Z"
     return `All tools except ${disallowedTools.join(', ')}`
   }
-  // No restrictions
+  // 无限制
   return 'All tools'
 }
 
 /**
- * Format one agent line for the agent_listing_delta attachment message:
- * `- type: whenToUse (Tools: ...)`.
+ * 为 agent_listing_delta 附件消息格式化一行 agent：
+ * `- type: whenToUse (Tools: ...)`。
  */
 export function formatAgentLine(agent: AgentDefinition): string {
   const toolsDescription = getToolsDescription(agent)
@@ -46,15 +46,15 @@ export function formatAgentLine(agent: AgentDefinition): string {
 }
 
 /**
- * Whether the agent list should be injected as an attachment message instead
- * of embedded in the tool description. When true, getPrompt() returns a static
- * description and attachments.ts emits an agent_listing_delta attachment.
+ * agent 列表应作为附件消息注入，而不是嵌入工具描述中。
+ * 为 true 时，getPrompt() 返回静态描述，
+ * attachments.ts 发出 agent_listing_delta 附件。
  *
- * The dynamic agent list was ~10.2% of fleet cache_creation tokens: MCP async
- * connect, /reload-plugins, or permission-mode changes mutate the list →
- * description changes → full tool-schema cache bust.
+ * 动态 agent 列表约占全集群 cache_creation token 的 10.2%：MCP 异步
+ * 连接、/reload-plugins 或权限模式变更都会改动该列表 →
+ * 描述变化 → 整个工具 schema 缓存失效。
  *
- * Override with LIMKENION_AGENT_LIST_IN_MESSAGES=true/false for testing.
+ * 测试时可用 LIMKENION_AGENT_LIST_IN_MESSAGES=true/false 覆盖。
  */
 export function shouldInjectAgentListInMessages(): boolean {
   if (isEnvTruthy(process.env.LIMKENION_AGENT_LIST_IN_MESSAGES)) return true
@@ -68,13 +68,13 @@ export async function getPrompt(
   isCoordinator?: boolean,
   allowedAgentTypes?: string[],
 ): Promise<string> {
-  // Filter agents by allowed types when Agent(x,y) restricts which agents can be spawned
+  // 当 Agent(x,y) 限制可派生的 agent 时，按允许类型过滤 agent
   const effectiveAgents = allowedAgentTypes
     ? agentDefinitions.filter(a => allowedAgentTypes.includes(a.agentType))
     : agentDefinitions
 
-  // Fork subagent feature: when enabled, insert the "When to fork" section
-  // (fork semantics, directive-style prompts) and swap in fork-aware examples.
+  // Fork 子代理特性：启用时插入 "When to fork" 分节
+  // （fork 语义、指令式提示词），并替换为感知 fork 的示例。
   const forkEnabled = isForkSubagentEnabled()
 
   const whenToForkSection = forkEnabled
@@ -187,10 +187,10 @@ assistant: "I'm going to use the ${AGENT_TOOL_NAME} tool to launch the greeting-
 </example>
 `
 
-  // When the gate is on, the agent list lives in an agent_listing_delta
-  // attachment (see attachments.ts) instead of inline here. This keeps the
-  // tool description static across MCP/plugin/permission changes so the
-  // tools-block prompt cache doesn't bust every time an agent loads.
+  // 当开关开启时，agent 列表位于 agent_listing_delta
+  // 附件中（见 attachments.ts），而非内联在此处。这使
+  // 工具描述在 MCP/插件/权限变更时保持静态，从而
+  // tools 块的提示词缓存不会在每次 agent 加载时失效。
   const listViaAttachment = shouldInjectAgentListInMessages()
 
   const agentListSection = listViaAttachment
@@ -198,7 +198,7 @@ assistant: "I'm going to use the ${AGENT_TOOL_NAME} tool to launch the greeting-
     : `Available agent types and the tools they have access to:
 ${effectiveAgents.map(agent => formatAgentLine(agent)).join('\n')}`
 
-  // Shared core prompt used by both coordinator and non-coordinator modes
+  // coordinator 与非 coordinator 模式共用的核心提示词
   const shared = `Launch a new agent to handle complex, multi-step tasks autonomously.
 
 The ${AGENT_TOOL_NAME} tool launches specialized agents (subprocesses) that autonomously handle complex tasks. Each agent type has specific capabilities and tools available to it.
@@ -211,8 +211,8 @@ ${
     : `When using the ${AGENT_TOOL_NAME} tool, specify a subagent_type parameter to select which agent type to use. If omitted, the general-purpose agent is used.`
 }`
 
-  // Coordinator mode gets the slim prompt -- the coordinator system prompt
-  // already covers usage notes, examples, and when-not-to-use guidance.
+  // coordinator 模式使用精简提示词——coordinator 系统提示词
+  // 已涵盖使用说明、示例以及何时不应使用的指引。
   if (isCoordinator) {
     return shared
   }
@@ -223,9 +223,9 @@ ${
   const fileSearchHint = embedded
     ? '`find` via the Bash tool'
     : `the ${GLOB_TOOL_NAME} tool`
-  // The "class Foo" example is about content search. Non-embedded stays Glob
-  // (original intent: find-the-file-containing). Embedded gets grep because
-  // find -name doesn't look at file contents.
+  // "class Foo" 示例涉及内容搜索。非嵌入模式保留 Glob
+  // （原意是查找包含该内容的文件）。嵌入模式改用 grep，因为
+  // find -name 不会查看文件内容。
   const contentSearchHint = embedded
     ? '`grep` via the Bash tool'
     : `the ${GLOB_TOOL_NAME} tool`
@@ -239,16 +239,16 @@ When NOT to use the ${AGENT_TOOL_NAME} tool:
 - Other tasks that are not related to the agent descriptions above
 `
 
-  // When listing via attachment, the "launch multiple agents" note is in the
-  // attachment message (conditioned on subscription there). When inline, keep
-  // the existing per-call getSubscriptionType() check.
+  // 通过附件列出时，"launch multiple agents" 说明位于
+  // 附件消息中（在那里根据订阅状态决定）。内联时，保留
+  // 现有的每次调用 getSubscriptionType() 检查。
   const concurrencyNote =
     !listViaAttachment && getSubscriptionType() !== 'pro'
       ? `
 - Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses`
       : ''
 
-  // Non-coordinator gets the full prompt with all sections
+  // 非 coordinator 模式获得包含所有分节的完整提示词
   return `${shared}
 ${whenNotToUseSection}
 

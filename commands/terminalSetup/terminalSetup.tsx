@@ -22,7 +22,7 @@ import { getPlatform } from '../../utils/platform.js';
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js';
 const EOL = '\n';
 
-// Terminals that natively support CSI u / Kitty keyboard protocol
+// 原生支持 CSI u / Kitty 键盘协议的终端
 const NATIVE_CSIU_TERMINALS: Record<string, string> = {
   ghostty: 'Ghostty',
   kitty: 'Kitty',
@@ -32,16 +32,16 @@ const NATIVE_CSIU_TERMINALS: Record<string, string> = {
 };
 
 /**
- * Detect if we're running in a VSCode Remote SSH session.
- * In this case, keybindings need to be installed on the LOCAL machine,
- * not the remote server where Limkenion is running.
+ * 检测我们是否运行在 VSCode Remote SSH 会话中。
+ * 这种情况下，键位绑定需要安装到本地机器上，
+ * 而不是运行 Limkenion 的远程服务器上。
  */
 function isVSCodeRemoteSSH(): boolean {
   const askpassMain = process.env.VSCODE_GIT_ASKPASS_MAIN ?? '';
   const path = process.env.PATH ?? '';
 
-  // Check both env vars - VSCODE_GIT_ASKPASS_MAIN is more reliable when git extension
-  // is active, and PATH is a fallback. Omit path separator for Windows compatibility.
+  // 同时检查两个环境变量 —— git 扩展激活时 VSCODE_GIT_ASKPASS_MAIN 更可靠，
+  // PATH 则作为降级。为兼容 Windows，省略路径分隔符。
   return askpassMain.includes('.vscode-server') || askpassMain.includes('.cursor-server') || askpassMain.includes('.windsurf-server') || path.includes('.vscode-server') || path.includes('.cursor-server') || path.includes('.windsurf-server');
 }
 export function getNativeCSIuTerminalDisplayName(): string | null {
@@ -52,28 +52,28 @@ export function getNativeCSIuTerminalDisplayName(): string | null {
 }
 
 /**
- * Format a file path as a clickable hyperlink.
+ * 把文件路径格式化为可点击的超链接。
  *
- * Paths containing spaces (e.g., "Application Support") are not clickable
- * in most terminals - they get split at the space. OSC 8 hyperlinks solve
- * this by embedding a file:// URL that the terminal can open on click,
- * while displaying the clean path to the user.
+ * 包含空格的路径（例如 “Application Support”）在大多数终端中
+ * 无法点击 —— 它们会在空格处被断开。OSC 8 超链接通过在
+ * 内部嵌入终端点击时可打开的 file:// URL 来解决这个问题，
+ * 同时向用户显示整洁的路径。
  *
- * Unlike createHyperlink(), this doesn't apply any color styling so the
- * path inherits the parent's styling (e.g., chalk.dim).
+ * 与 createHyperlink() 不同，这里不应用任何颜色样式，以便
+ * 路径继承父级的样式（例如 chalk.dim）。
  */
 function formatPathLink(filePath: string): string {
   if (!supportsHyperlinks()) {
     return filePath;
   }
   const fileUrl = pathToFileURL(filePath).href;
-  // OSC 8 hyperlink: \e]8;;URL\a TEXT \e]8;;\a
+  // OSC 8 超链接：\e]8;;URL\a TEXT \e]8;;\a
   return `\x1b]8;;${fileUrl}\x07${filePath}\x1b]8;;\x07`;
 }
 export function shouldOfferTerminalSetup(): boolean {
-  // iTerm2, WezTerm, Ghostty, Kitty, and Warp natively support CSI u / Kitty
-  // keyboard protocol, which Limkenion already parses. No setup needed for
-  // these terminals.
+  // iTerm2、WezTerm、Ghostty、Kitty 和 Warp 原生支持 CSI u / Kitty
+  // 键盘协议，Limkenion 已经能解析它。这些终端
+  // 无需任何设置。
   return platform() === 'darwin' && env.terminal === 'Apple_Terminal' || env.terminal === 'vscode' || env.terminal === 'cursor' || env.terminal === 'windsurf' || env.terminal === 'alacritty' || env.terminal === 'zed';
 }
 export async function setupTerminal(theme: ThemeName): Promise<string> {
@@ -118,7 +118,7 @@ export async function setupTerminal(theme: ThemeName): Promise<string> {
   });
   maybeMarkProjectOnboardingComplete();
 
-  // Install shell completions (ant-only, since the completion command is ant-only)
+  // 安装 shell 补全（仅 ant 可用，因为补全命令仅 ant 可用）
   
   return result;
 }
@@ -146,20 +146,20 @@ No configuration needed. Just use Shift+Enter to add newlines.`;
     return null;
   }
 
-  // Check if terminal is supported
+  // 检查终端是否受支持
   if (!shouldOfferTerminalSetup()) {
     const terminalName = env.terminal || 'your current terminal';
     const currentPlatform = getPlatform();
 
-    // Build platform-specific terminal suggestions
+    // 构建按平台区分的终端建议
     let platformTerminals = '';
     if (currentPlatform === 'macos') {
       platformTerminals = '   • macOS: Apple Terminal\n';
     } else if (currentPlatform === 'windows') {
       platformTerminals = '   • Windows: Windows Terminal\n';
     }
-    // For Linux and other platforms, we don't show native terminal options
-    // since they're not currently supported
+    // 对于 Linux 及其他平台，我们不显示原生终端选项，
+    // 因为它们目前不受支持
 
     const message = `Terminal setup cannot be run from ${terminalName}.
 
@@ -190,8 +190,8 @@ type VSCodeKeybinding = {
   when: string;
 };
 async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'Windsurf' = 'VSCode', theme: ThemeName): Promise<string> {
-  // Check if we're running in a VSCode Remote SSH session
-  // In this case, keybindings need to be installed on the LOCAL machine
+  // 检查我们是否运行在 VSCode Remote SSH 会话中
+  // 这种情况下，键位绑定需要安装到本地机器上
   if (isVSCodeRemoteSSH()) {
     return `${color('warning', theme)(`Cannot install keybindings from a remote ${editor} session.`)}${EOL}${EOL}${editor} keybindings must be installed on your local machine, not the remote server.${EOL}${EOL}To install the Shift+Enter keybinding:${EOL}1. Open ${editor} on your local machine (not connected to remote)${EOL}2. Open the Command Palette (Cmd/Ctrl+Shift+P) → "Preferences: Open Keyboard Shortcuts (JSON)"${EOL}3. Add this keybinding (the file must be a JSON array):${EOL}${EOL}${chalk.dim(`[
   {
@@ -206,12 +206,12 @@ async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'W
   const userDirPath = join(homedir(), platform() === 'win32' ? join('AppData', 'Roaming', editorDir, 'User') : platform() === 'darwin' ? join('Library', 'Application Support', editorDir, 'User') : join('.config', editorDir, 'User'));
   const keybindingsPath = join(userDirPath, 'keybindings.json');
   try {
-    // Ensure user directory exists (idempotent with recursive)
+    // 确保用户目录存在（使用 recursive 保证幂等）
     await mkdir(userDirPath, {
       recursive: true
     });
 
-    // Read existing keybindings file, or default to empty array if it doesn't exist
+    // 读取现有的键位绑定文件，若不存在则默认使用空数组
     let content = '[]';
     let keybindings: VSCodeKeybinding[] = [];
     let fileExists = false;
@@ -225,7 +225,7 @@ async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'W
       if (!isFsInaccessible(e)) throw e;
     }
 
-    // Backup the existing file before modifying it
+    // 修改前先备份现有文件
     if (fileExists) {
       const randomSha = randomBytes(4).toString('hex');
       const backupPath = `${keybindingsPath}.${randomSha}.bak`;
@@ -236,13 +236,13 @@ async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'W
       }
     }
 
-    // Check if keybinding already exists
+    // 检查该键位绑定是否已存在
     const existingBinding = keybindings.find(binding => binding.key === 'shift+enter' && binding.command === 'workbench.action.terminal.sendSequence' && binding.when === 'terminalFocus');
     if (existingBinding) {
       return `${color('warning', theme)(`Found existing ${editor} terminal Shift+Enter key binding. Remove it to continue.`)}${EOL}${chalk.dim(`See ${formatPathLink(keybindingsPath)}`)}${EOL}`;
     }
 
-    // Create the new keybinding
+    // 创建新的键位绑定
     const newKeybinding: VSCodeKeybinding = {
       key: 'shift+enter',
       command: 'workbench.action.terminal.sendSequence',
@@ -252,10 +252,10 @@ async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'W
       when: 'terminalFocus'
     };
 
-    // Modify the content by adding the new keybinding while preserving comments and formatting
+    // 通过添加新键位绑定来修改内容，同时保留注释和格式
     const updatedContent = addItemToJSONCArray(content, newKeybinding);
 
-    // Write the updated content back to the file
+    // 把更新后的内容写回文件
     await writeFile(keybindingsPath, updatedContent, {
       encoding: 'utf-8'
     });
@@ -266,13 +266,13 @@ async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'W
   }
 }
 async function enableOptionAsMetaForProfile(profileName: string): Promise<boolean> {
-  // First try to add the property (in case it doesn't exist)
-  // Quote the profile name to handle names with spaces (e.g., "Man Page", "Red Sands")
+  // 首先尝试添加该属性（以防它不存在）
+  // 给配置文件名称加引号，以处理含空格的名称（例如 “Man Page”、“Red Sands”）
   const {
     code: addCode
   } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Add :'Window Settings':'${profileName}':useOptionAsMetaKey bool true`, getTerminalPlistPath()]);
 
-  // If adding fails (likely because it already exists), try setting it instead
+  // 如果添加失败（很可能因为它已存在），则改为尝试设置它
   if (addCode !== 0) {
     const {
       code: setCode
@@ -285,13 +285,13 @@ async function enableOptionAsMetaForProfile(profileName: string): Promise<boolea
   return true;
 }
 async function disableAudioBellForProfile(profileName: string): Promise<boolean> {
-  // First try to add the property (in case it doesn't exist)
-  // Quote the profile name to handle names with spaces (e.g., "Man Page", "Red Sands")
+  // 首先尝试添加该属性（以防它不存在）
+  // 给配置文件名称加引号，以处理含空格的名称（例如 “Man Page”、“Red Sands”）
   const {
     code: addCode
   } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Add :'Window Settings':'${profileName}':Bell bool false`, getTerminalPlistPath()]);
 
-  // If adding fails (likely because it already exists), try setting it instead
+  // 如果添加失败（很可能因为它已存在），则改为尝试设置它
   if (addCode !== 0) {
     const {
       code: setCode
@@ -304,16 +304,16 @@ async function disableAudioBellForProfile(profileName: string): Promise<boolean>
   return true;
 }
 
-// Enable Option as Meta key for Terminal.app
+// 为 Terminal.app 启用 Option 作为 Meta 键
 async function enableOptionAsMetaForTerminal(theme: ThemeName): Promise<string> {
   try {
-    // Create a backup of the current plist file
+    // 备份当前的 plist 文件
     const backupPath = await backupTerminalPreferences();
     if (!backupPath) {
       throw new Error('Failed to create backup of Terminal.app preferences, bailing out');
     }
 
-    // Read the current default profile from the plist
+    // 从 plist 中读取当前的默认配置文件
     const {
       stdout: defaultProfile,
       code: readCode
@@ -337,7 +337,7 @@ async function enableOptionAsMetaForTerminal(theme: ThemeName): Promise<string> 
     }
     const startupProfileName = startupProfile.trim();
 
-    // Only proceed if the startup profile is different from the default profile
+    // 仅当启动配置文件与默认配置文件不同时才继续
     if (startupProfileName !== defaultProfileName) {
       const startupOptionAsMetaEnabled = await enableOptionAsMetaForProfile(startupProfileName);
       const startupAudioBellDisabled = await disableAudioBellForProfile(startupProfileName);
@@ -349,14 +349,14 @@ async function enableOptionAsMetaForTerminal(theme: ThemeName): Promise<string> 
       throw new Error('Failed to enable Option as Meta key or disable audio bell for any Terminal.app profile');
     }
 
-    // Flush the preferences cache
+    // 刷新偏好设置缓存
     await execFileNoThrow('killall', ['cfprefsd']);
     markTerminalSetupComplete();
     return `${color('success', theme)(`Configured Terminal.app settings:`)}${EOL}${color('success', theme)('- Enabled "Use Option as Meta key"')}${EOL}${color('success', theme)('- Switched to visual bell')}${EOL}${chalk.dim('Option+Enter will now enter a newline.')}${EOL}${chalk.dim('You must restart Terminal.app for changes to take effect.', theme)}${EOL}`;
   } catch (error) {
     logError(error);
 
-    // Attempt to restore from backup
+    // 尝试从备份恢复
     const restoreResult = await checkAndRestoreTerminalBackup();
     const errorMessage = 'Failed to enable Option as Meta key for Terminal.app.';
     if (restoreResult.status === 'restored') {
@@ -374,10 +374,10 @@ key = "Return"
 mods = "Shift"
 chars = "\\u001B\\r"`;
 
-  // Get Alacritty config file paths in order of preference
+  // 按优先级顺序获取 Alacritty 配置文件路径
   const configPaths: string[] = [];
 
-  // XDG config path (Linux and macOS)
+  // XDG 配置路径（Linux 和 macOS）
   const xdgConfigHome = process.env.XDG_CONFIG_HOME;
   if (xdgConfigHome) {
     configPaths.push(join(xdgConfigHome, 'alacritty', 'alacritty.toml'));
@@ -385,7 +385,7 @@ chars = "\\u001B\\r"`;
     configPaths.push(join(homedir(), '.config', 'alacritty', 'alacritty.toml'));
   }
 
-  // Windows-specific path
+  // Windows 专用路径
   if (platform() === 'win32') {
     const appData = process.env.APPDATA;
     if (appData) {
@@ -393,7 +393,7 @@ chars = "\\u001B\\r"`;
     }
   }
 
-  // Find existing config file by attempting to read it, or use first preferred path
+  // 通过尝试读取来查找现有配置文件，否则使用第一个首选路径
   let configPath: string | null = null;
   let configContent = '';
   let configExists = false;
@@ -407,11 +407,11 @@ chars = "\\u001B\\r"`;
       break;
     } catch (e: unknown) {
       if (!isFsInaccessible(e)) throw e;
-      // File missing or inaccessible — try next config path
+      // 文件缺失或无法访问 —— 尝试下一个配置路径
     }
   }
 
-  // If no config exists, use the first path (XDG/default location)
+  // 如果不存在配置，则使用第一个路径（XDG/默认位置）
   if (!configPath) {
     configPath = configPaths[0] ?? null;
   }
@@ -420,12 +420,12 @@ chars = "\\u001B\\r"`;
   }
   try {
     if (configExists) {
-      // Check if keybinding already exists (look for Shift+Return binding)
+      // 检查该键位绑定是否已存在（查找 Shift+Return 绑定）
       if (configContent.includes('mods = "Shift"') && configContent.includes('key = "Return"')) {
         return `${color('warning', theme)('Found existing Alacritty Shift+Enter key binding. Remove it to continue.')}${EOL}${chalk.dim(`See ${formatPathLink(configPath)}`)}${EOL}`;
       }
 
-      // Create backup
+      // 创建备份
       const randomSha = randomBytes(4).toString('hex');
       const backupPath = `${configPath}.${randomSha}.bak`;
       try {
@@ -434,20 +434,20 @@ chars = "\\u001B\\r"`;
         return `${color('warning', theme)('Error backing up existing Alacritty config. Bailing out.')}${EOL}${chalk.dim(`See ${formatPathLink(configPath)}`)}${EOL}${chalk.dim(`Backup path: ${formatPathLink(backupPath)}`)}${EOL}`;
       }
     } else {
-      // Ensure config directory exists (idempotent with recursive)
+      // 确保配置目录存在（使用 recursive 保证幂等）
       await mkdir(dirname(configPath), {
         recursive: true
       });
     }
 
-    // Add the keybinding to the config
+    // 把键位绑定添加到配置中
     let updatedContent = configContent;
     if (configContent && !configContent.endsWith('\n')) {
       updatedContent += '\n';
     }
     updatedContent += '\n' + ALACRITTY_KEYBINDING + '\n';
 
-    // Write the updated config
+    // 写入更新后的配置
     await writeFile(configPath, updatedContent, {
       encoding: 'utf-8'
     });
@@ -458,16 +458,16 @@ chars = "\\u001B\\r"`;
   }
 }
 async function installBindingsForZed(theme: ThemeName): Promise<string> {
-  // Zed uses JSON keybindings similar to VSCode
+  // Zed 使用与 VSCode 类似的 JSON 键位绑定
   const zedDir = join(homedir(), '.config', 'zed');
   const keymapPath = join(zedDir, 'keymap.json');
   try {
-    // Ensure zed directory exists (idempotent with recursive)
+    // 确保 zed 目录存在（使用 recursive 保证幂等）
     await mkdir(zedDir, {
       recursive: true
     });
 
-    // Read existing keymap file, or default to empty array if it doesn't exist
+    // 读取现有的 keymap 文件，若不存在则默认使用空数组
     let keymapContent = '[]';
     let fileExists = false;
     try {
@@ -479,12 +479,12 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
       if (!isFsInaccessible(e)) throw e;
     }
     if (fileExists) {
-      // Check if keybinding already exists
+      // 检查该键位绑定是否已存在
       if (keymapContent.includes('shift-enter')) {
         return `${color('warning', theme)('Found existing Zed Shift+Enter key binding. Remove it to continue.')}${EOL}${chalk.dim(`See ${formatPathLink(keymapPath)}`)}${EOL}`;
       }
 
-      // Create backup
+      // 创建备份
       const randomSha = randomBytes(4).toString('hex');
       const backupPath = `${keymapPath}.${randomSha}.bak`;
       try {
@@ -494,7 +494,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
       }
     }
 
-    // Parse and modify the keymap
+    // 解析并修改 keymap
     let keymap: Array<{
       context?: string;
       bindings: Record<string, string | string[]>;
@@ -508,7 +508,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
       keymap = [];
     }
 
-    // Add the new keybinding for terminal context
+    // 为终端上下文添加新的键位绑定
     keymap.push({
       context: 'Terminal',
       bindings: {
@@ -516,7 +516,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
       }
     });
 
-    // Write the updated keymap
+    // 写入更新后的 keymap
     await writeFile(keymapPath, jsonStringify(keymap, null, 2) + '\n', {
       encoding: 'utf-8'
     });

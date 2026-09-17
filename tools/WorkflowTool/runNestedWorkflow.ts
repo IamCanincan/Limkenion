@@ -28,13 +28,12 @@ export type NestedWorkflowDeps = {
 }
 
 /**
- * Build the `workflow(nameOrRef, args)` global.
+ * 构建 `workflow(nameOrRef, args)` 全局函数。
  *
- * A child runs inside the parent's run: same run id, same journal, same
- * concurrency pool and agent-index sequence (so its progress rows sit
- * alongside the parent's instead of overwriting them), and the same token
- * budget. Nesting is one level — a child's own `workflow()` throws, which is
- * what keeps the agent cap meaningful.
+ * 子运行在父运行的内部执行：相同的 run id、相同的 journal、相同的
+ * 并发池与 agent 索引序列（因此它的进度行与父级的并排显示，
+ * 而不是覆盖父级的），以及相同的 token 预算。嵌套只有一层 ——
+ * 子级自己的 `workflow()` 会抛错，这正是让 agent 上限保持意义的原因。
  */
 export function createNestedWorkflowRunner(
   deps: NestedWorkflowDeps,
@@ -63,7 +62,7 @@ export function createNestedWorkflowRunner(
       onProgress: deps.onProgress,
       onAgentController: deps.onAgentController,
       shared: deps.shared,
-      // One level only: the child gets no `workflow()` of its own.
+      // 只有一层：子级没有属于自己的 `workflow()`。
       runNestedWorkflow: undefined,
     })
 

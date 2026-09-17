@@ -56,7 +56,7 @@ export const TodoWriteTool = buildTool({
     return `${input.todos.length} items`
   },
   async checkPermissions(input) {
-    // No permission checks required for todo operations
+    // todo 操作无需权限检查
     return { behavior: 'allow', updatedInput: input }
   },
   renderToolUseMessage() {
@@ -69,10 +69,10 @@ export const TodoWriteTool = buildTool({
     const allDone = todos.every(_ => _.status === 'completed')
     const newTodos = allDone ? [] : todos
 
-    // Structural nudge: if the main-thread agent is closing out a 3+ item
-    // list and none of those items was a verification step, append a reminder
-    // to the tool result. Fires at the exact loop-exit moment where skips
-    // happen ("when the last task closed, the loop exited").
+    // 结构性提醒：如果主线程 agent 正在关闭一个包含 3 个及以上
+    // 条目的列表，且其中没有任何条目是验证步骤，则在工具结果后
+    // 追加一条提醒。触发时机正是循环退出、发生跳过的
+    // 那一刻（"当最后一个任务关闭时，循环退出了"）。
     let verificationNudgeNeeded = false
     if (
       feature('VERIFICATION_AGENT') &&

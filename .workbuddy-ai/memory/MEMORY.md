@@ -23,6 +23,19 @@
 - **服务默认只绑 127.0.0.1**，WS 握手要一次性 token + Origin 校验；改动协议层时别把这两道去掉。
 - **shell 守卫与不可信内容升级确认优先级最高**：不受 `bypassPermissions` 与「本会话总是允许」影响。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾（与既有风格一致）。
+
+## 注释中文化工程（进行中）
+- 计划与术语表在仓库根 `COMMENT_I18N_PLAN.md`，共 28 批；进度按批次推进。
+- 形态：**纯中文替换**（不留双语对照）；JSDoc 的 `@param`/`@returns` 标签名保留、描述翻译。
+- 红线：协议字段值（`'user'`/`'assistant'`/`'tool_use'` 等）、命令名、工具名、
+  枚举值、JSON 键、env 变量名、字符串里的 `//` 一律不动。术语（agent、schema、
+  MCP、LSP、ANSI 等）保留原文。
+- **验收靠 esbuild 指纹**：`transform({minifyWhitespace:true, minifySyntax:false,
+  minifyIdentifiers:false, legalComments:'none'})`，改前改后指纹必须一致
+  （不一致即动了代码，回滚该文件）。CLI 树无 tsconfig，只能语法级校验。
+- 仓库**无 .git**，无法 git diff 回退 —— 首次执行前必须先生成改前指纹基线。
+- 规模参考：全仓 2059 个 TS/JS 文件、**无 .py 文件**；英文注释 67,677 行，
+  `utils/` 独占 49%。
 - 服务端模块是**单向依赖**：paths → config/bus → sessions/security/workspace →
   interactions/toolindex → engine → commands → protocol → index。新增模块别引入反向依赖
   （需要回调就用钩子，如 `onSessionDeleted`）。

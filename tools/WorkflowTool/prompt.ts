@@ -6,14 +6,13 @@ import {
 import { describeWorkflowSizeGuideline } from '../../utils/workflows/enabled.js'
 
 /**
- * The Workflow tool description.
+ * Workflow 工具的描述。
  *
- * This is the whole product surface for the model: everything it knows about
- * when to reach for a workflow, how to shape one, and which patterns produce
- * trustworthy results comes from here. Sections that read as over-explained
- * (the pipeline-vs-barrier argument, the loop-until-dry example) are load
- * bearing — without them models default to a single `parallel()` barrier per
- * stage and lose most of the wall-clock advantage.
+ * 这是模型所见的全部产品面：它对何时该动用工作流、如何塑造一个工作流、
+ * 以及哪些模式能产出可信结果的全部认知都来自这里。那些读起来像过度解释的
+ * 小节（pipeline 与 barrier 的论证、loop-until-dry 示例）都是承重的 ——
+ * 没有它们，模型会默认每个阶段只用一个 `parallel()` 屏障，从而丢掉
+ * 大部分的墙钟时间优势。
  */
 export function getWorkflowToolPrompt(): string {
   return `Execute a workflow script that orchestrates multiple subagents deterministically. Workflows run in the background — this tool returns immediately with a task ID, and a <task-notification> arrives when the workflow completes. Use /workflows to watch live progress.

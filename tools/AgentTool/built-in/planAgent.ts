@@ -85,8 +85,8 @@ export const PLAN_AGENT: BuiltInAgentDefinition = {
   tools: EXPLORE_AGENT.tools,
   baseDir: 'built-in',
   model: 'inherit',
-  // Plan is read-only and can Read LIMKENION.md directly if it needs conventions.
-  // Dropping it from context saves tokens without blocking access.
+  // Plan 是只读的，如果需要约定可以直接 Read LIMKENION.md。
+  // 从上下文中移除它可节省 token 且不阻塞访问。
   omitLimkenionMd: true,
   getSystemPrompt: () => getPlanV2SystemPrompt(),
 }

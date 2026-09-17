@@ -11,7 +11,7 @@ export function renderToolResultMessage(content: Output | string, _progressMessa
 }): React.ReactNode {
   const result: Output = typeof content === 'string' ? jsonParse(content) : content;
 
-  // Suppress cleanup result - the batched shutdown message covers this
+  // 抑制清理结果 - 批量关闭消息已涵盖此内容
   if ('success' in result && 'team_name' in result && 'message' in result) {
     return null;
   }

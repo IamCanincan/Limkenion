@@ -53,7 +53,7 @@ export class LimkenionConnection {
         const msg = JSON.parse(ev.data as string) as ServerMessage
         this.listeners.forEach(fn => fn(msg))
       } catch {
-        // Ignore malformed frames.
+        // 忽略格式错误的帧。
       }
     }
     ws.onclose = () => {
