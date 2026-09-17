@@ -173,12 +173,32 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `contentToOpenAIContent()`，把 image block 翻成 OpenAI 的 `image_url` part。
   **实测**：`deepseek-flash` 能看见图（纯红图答"红色"），`deepseek-v4-pro` 看不见（答"白色"，且不报错）。
   没图片时仍返回字符串，有图片时返回 content part 数组。
-4. **与参照实现的功能缺口**（用户还没定做不做）：
-   - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
-     真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
-   - **图片输入**：`deepseek-flash` 支持 Vision，但适配器 `blockToText()` 对 image 块返回空串，
-     **图片被静默丢弃**。
-   - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
+4. **与参照实现的差距：API 接入层几乎无差别**（2026-09-18 实测）
+`D:\下载\agent\upstream-ref-impl` 接 DeepSeek 用的是 **上游 端点**
+（`src/server/config/providerPresets.json` 里 `baseUrl: https://api.deepseek.com/上游兼容`、
+`apiFormat: 上游兼容`、`main: deepseek-v4-pro[1m]`）；我们走 OpenAI 端点。
+
+| 能力 | OpenAI 端点（我们） | 上游 端点（upstream-ref-impl） |
+|---|---|---|
+| 思考模式 | 默认开启，`reasoning_content` | 默认开启，`thinking` 块 |
+| 思考签名 | ❌ 无 | ✅ 有 `signature` |
+| 提示缓存 | `prompt_cache_hit_tokens` | `cache_read_input_tokens` |
+| 显式缓存断点 | ❌ 不发 `cache_control` | ✅ 支持 |
+| 强制工具 + 推理 | ❌ 400 | ❌ **400（同样报错）** |
+| 视觉 | ✅ flash 支持 | ✅ |
+
+**两个关键纠正（都实测过）**：
+1. **"强制工具 + 推理"的 400 冲突是两个端点共有的** —— 那是 DeepSeek **模型**的限制，
+   不是 OpenAI 端点独有的。**换端点并不能解决它。**
+2. **提示缓存在两个端点上都能拿到命中数**，只是字段名不同。我们并没有"缺缓存"。
+
+**唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮时可原样传回；
+我们这条路径拿不到签名，所以 `toOpenAIMessages` 直接丢弃 thinking
+（OpenAI 协议本来也不该回传 `reasoning_content`）。
+
+**结论：真正的差距不在 API 层，而在功能层** —— upstream-ref-impl 是完整桌面工作台
+（多供应商切换 / IM 接入 / H5 远程 / Computer Use / 技能市场 / 请求追踪）。
+按用户"只支持 DeepSeek"的决定，多供应商那条不算缺口。
 
 ### 痕迹清理总账（2026-09-18 收官）
 | 类别 | 结果 |
