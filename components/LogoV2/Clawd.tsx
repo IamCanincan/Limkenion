@@ -10,64 +10,63 @@ type Props = {
   pose?: ClawdPose;
 };
 
-// Neutral Limkenion badge: a simple diamond/gem glyph built from block
-// characters. Standard-terminal fragments. Each row is split into segments
-// so the pose system keeps working unchanged; every pose shares the same
-// neutral, brand-agnostic art (the abstract glyph is not a character).
-// All poses end up 9 cols wide.
+// Limkenion 吉祥物 logo：一个「实心圆内嵌 L」的像素标徽，用 block-character
+// 绘制，共 9 列。4 种 pose 共用同一图形（引用名/状态机保持不动以兼容上层
+// 调用）。圆用宵粉色的噪音体实心填满，L 以「左竖列 + 底横」的正形呈现，
+// 圆体内侧用背景色镂空一块作为 L 的负形。
 //
-// Row 1 is the top facet, row 2 is the bright solid middle band, and row 3
-// (hardcoded near the bottom of Clawd) is the base facet that closes the gem.
+// Row1 是圆顶（实心），Row2 是躯干带（左竖列 + 镂空缺口），Row3（Clawd
+// 底部硬编码处）是闭合圆的 L 底横。
 type Segments = {
-  /** row 1 left (no bg): left facet corner */
+  /** row 1 left (no bg): 圆顶左段 */
   r1L: string;
-  /** row 1 middle facet (with bg) */
+  /** row 1 middle (with bg): 圆顶中段 */
   r1E: string;
-  /** row 1 right (no bg): right facet corner */
+  /** row 1 right (no bg): 圆顶右段 */
   r1R: string;
-  /** row 2 left (no bg): left band corner */
+  /** row 2 left (no bg): L 左竖列 */
   r2L: string;
-  /** row 2 right (no bg): right band corner */
+  /** row 2 right (no bg): 圆体右缘 */
   r2R: string;
 };
 const POSES: Record<ClawdPose, Segments> = {
   default: {
-    r1L: ' ▗',
-    r1E: '▄▄▄▄▄',
-    r1R: '▖ ',
-    r2L: '▗▟',
-    r2R: '▙▖'
+    r1L: '██',
+    r1E: '█████',
+    r1R: '██',
+    r2L: '███',
+    r2R: '██'
   },
   'look-left': {
-    r1L: ' ▗',
-    r1E: '▄▄▄▄▄',
-    r1R: '▖ ',
-    r2L: '▗▟',
-    r2R: '▙▖'
+    r1L: '██',
+    r1E: '█████',
+    r1R: '██',
+    r2L: '███',
+    r2R: '██'
   },
   'look-right': {
-    r1L: ' ▗',
-    r1E: '▄▄▄▄▄',
-    r1R: '▖ ',
-    r2L: '▗▟',
-    r2R: '▙▖'
+    r1L: '██',
+    r1E: '█████',
+    r1R: '██',
+    r2L: '███',
+    r2R: '██'
   },
   'arms-up': {
-    r1L: ' ▗',
-    r1E: '▄▄▄▄▄',
-    r1R: '▖ ',
-    r2L: '▗▟',
-    r2R: '▙▖'
+    r1L: '██',
+    r1E: '█████',
+    r1R: '██',
+    r2L: '███',
+    r2R: '██'
   }
 };
 
-// Apple Terminal uses a bg-fill trick (see below), so the middle segment is a
-// flat facet here too; every pose has the same neutral look.
+// Apple Terminal 用背景填充技巧（见下），因此中段这里同样取实心圆；每个
+// pose 视觉一致（同一 Limkenion 吉祥物 logo）。
 const APPLE_EYES: Record<ClawdPose, string> = {
-  default: '▄▄▄▄▄',
-  'look-left': '▄▄▄▄▄',
-  'look-right': '▄▄▄▄▄',
-  'arms-up': '▄▄▄▄▄'
+  default: '     ',
+  'look-left': '     ',
+  'look-right': '     ',
+  'arms-up': '     '
 };
 export function Clawd(t0) {
   const $ = _c(26);
@@ -139,7 +138,7 @@ export function Clawd(t0) {
   }
   let t8;
   if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Text color="clawd_body" backgroundColor="clawd_background">█████</Text>;
+    t8 = <Text color="clawd_body" backgroundColor="clawd_background">{"    "}</Text>;
     $[16] = t8;
   } else {
     t8 = $[16];
@@ -163,7 +162,7 @@ export function Clawd(t0) {
   }
   let t11;
   if ($[22] === Symbol.for("react.memo_cache_sentinel")) {
-    t11 = <Text color="clawd_body">{"  "}▗▀▀▀▀▀▖{"  "}</Text>;
+    t11 = <Text color="clawd_body">{" "}█████████{" "}</Text>;
     $[22] = t11;
   } else {
     t11 = $[22];
