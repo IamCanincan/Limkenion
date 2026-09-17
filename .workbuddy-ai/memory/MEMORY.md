@@ -94,10 +94,10 @@
    - `commands/oauth-refresh/index.js`：已是 1 行中性 stub（`isEnabled: () => false`），由 `commands.ts:195` 导入，无害。
    - `stubs/bedrock-sdk.ts`：由 `tsconfig.json` 的 `paths` 映射 `@limkenion-ai/bedrock-sdk`，无显式 import。
    - `services/mcp/oauthPort.ts`：**正当保留**（远程 MCP OAuth），被 `services/mcp/auth.ts`、`xaaIdpLogin.ts` 使用。
-2. `utils/model/{model.ts:180, modelOptions.ts:436, providers.ts:8,19}` 有 4 处中文注释里出现
-   `CC` / `上游` 字样（"不回落到 CC 系 Sonnet 硬默认"等）。注释不进 bundle，构建断言不报错；
-   但严格按"源码不得出现英文单词"的约束看算残留，是否改写待用户定。
-3. `COMMENT_I18N_PLAN.md`（仓库根，未跟踪）是旧注释翻译计划，去留待用户定；`.workbuddy-ai/i18n/` 下
-   有 40 个批次文件 + 20 个备份，注释中文化工程实际处于中途。
+2. **已解决（2026-09-17，commit dd8eb9c）**：`utils/model/` 4 处中文注释里的 `CC`/`上游`
+   已改写为中性表述。源码中现仅 `scripts/build-cli.mjs` 的 `BRAND_TOKENS` 清洗名单含这些词 ——
+   那是**故意保留**的（它就是用来从产物里抹掉它们的），改动时别删。
+3. **已解决（2026-09-17）**：`COMMENT_I18N_PLAN.md` 移入 `.workbuddy-ai/i18n/`（不进 git），
+   注释中文化工程按用户决定**暂停**。
 4. `HANDOFF.md`（已跟踪）记录源码树重建过程，内容仍准确，但提到的 174/175 缺失已补完。
 5. web 端真实引擎依赖 `DEEPSEEK_API_KEY`，未设置时降级 mock（工具不会被模型调用，但可直接单测）。
