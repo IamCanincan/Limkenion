@@ -33,7 +33,7 @@ export function Onboarding({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [skipOAuth, setSkipOAuth] = useState(false);
   const [oauthEnabled] = useState(() => isLimkenionAuthEnabled());
-  const [theme, setTheme] = useTheme();
+  const [theme] = useTheme();
   useEffect(() => {
     logEvent('内部代号_began_setup', {
       oauthEnabled
@@ -51,17 +51,9 @@ export function Onboarding({
       onDone();
     }
   }
-  function handleThemeSelection(newTheme: ThemeSetting) {
-    setTheme(newTheme);
-    goToNextStep();
-  }
   const exitState = useExitOnCtrlCDWithKeybindings();
 
   // Define all onboarding steps
-  const themeStep = <Box marginX={1}>
-      <ThemePicker onThemeSelect={handleThemeSelection} showIntroText={true} helpText="To change this later, run /theme" hideEscToCancel={true} skipExitHandling={true} // Skip exit handling as Onboarding already handles it
-    />
-    </Box>;
   const securityStep = <Box flexDirection="column" gap={1} paddingLeft={1}>
       <Text bold>Security notes:</Text>
       <Box flexDirection="column" width={70}>
