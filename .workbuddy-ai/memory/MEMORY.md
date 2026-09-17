@@ -98,21 +98,34 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
 
 **待办（按优先级）**：
-1. **~50 处域名引用**：多为内部枚举值（`authTokenSource === 'limkenion.ai'`、
-   transport 名 `'limkenionai-proxy'`）与调试信息，另有**假阳性**
-   （`limkenion.commit.count` 被正则误判成 `limkenion.com`）。**不能批量改，要逐个看。**
-2. **两处待用户拍板的行为变更**（我没动）：
+1. **两处待用户拍板的行为变更**（我没动）：
    - `utils/context.ts` 的 `MODEL_CONTEXT_WINDOW_DEFAULT = 200_000`，DeepSeek 官方是 **1M**
    - 同文件 `MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000`，官方最大输出 **384K**
-3. **三处"保守但可能不对"的判定**（改造前就有，我没改行为）：
+2. **三处"保守但可能不对"的判定**（改造前就有，我没改行为）：
    - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
    - `utils/context.ts` 的上下文窗口与最大输出沿用上游保守值（见上）
+3. **三处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
+   - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**出现在 SDK 输出 schema 里**
+     （`entrypoints/sdk/coreSchemas.ts`、`services/mcp/types.ts`），改名等于改 SDK 契约
+   - `'limkenion-ai'`（连字符）—— **`CommandAvailability` 枚举值**，就是判断命令可见性的那个字段
+   - `'limkenionai'` —— MCP 配置作用域（10 处）
+   - `'limkenion.ai'` —— 认证来源枚举（读写成对，5 处）
+   - `@limkenion.com` —— 邮件地址（会写进 git 提交 trailer，3 处）
 4. **与参照实现的功能缺口**（用户还没定做不做）：
    - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
      真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
    - **图片输入**：`deepseek-flash` 支持 Vision，但适配器 `blockToText()` 对 image 块返回空串，
      **图片被静默丢弃**。
    - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
+
+### 痕迹清理总账（2026-09-18 收官）
+| 类别 | 结果 |
+|---|---|
+| `CC` / `上游兼容` / `内部代号` | **0 命中**（唯一例外是 build 脚本的清洗名单，故意保留） |
+| 自有服务 URL / 域名 | 170 + 151（裸域名）+ 87（注释）+ 53 → **8 处**（1 处假阳性 + 7 处契约值/邮件） |
+| `sonnet` / `opus` / `haiku` | 1442 → **10 处**（全是同名巧合：章鱼精灵 / git 参数 / 词表 / 文件扩展名） |
+| 整文件删除 | 4 个（`mockRateLimits` 719 行、`modelCapabilities` 118 行、`product.ts` 139 行、`modelOptions` 净删 447 行） |
+| 云服务命令 | 停用 7 个；`/feedback` 改本地文件 |
 
 ### 模型名痕迹：**已清完**（1442 → 11 处，其中 10 处是合法保留）
 剩下 10 处**刻意不动**，全是同名巧合：
