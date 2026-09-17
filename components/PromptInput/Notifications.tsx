@@ -305,7 +305,7 @@ function NotificationContent({
         </Box>}
       {(apiKeyStatus === 'invalid' || apiKeyStatus === 'missing') && <Box>
           <Text color="error" wrap="truncate">
-            {isEnvTruthy(process.env.LIMKENION_REMOTE) ? '身份验证错误 · 请重试' : '未登录 · 运行 /login'}
+            {isEnvTruthy(process.env.LIMKENION_REMOTE) ? '身份验证错误 · 请重试' : '未配置有效的 API Key · 运行 /login 查看说明'}
           </Text>
         </Box>}
       {debug && <Box>

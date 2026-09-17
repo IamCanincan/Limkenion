@@ -24,6 +24,7 @@ import { queryOpenAICompat, queryOpenAICompatOnce } from './openai-compat.js'
 import {
   getAPIProvider,
   isFirstPartyLimkenionBaseUrl,
+  isOpenAICompat,
 } from 'src/utils/model/providers.js'
 import {
   getAttributionHeader,
@@ -528,7 +529,7 @@ export async function verifyApiKey(
   // OpenAI 兼容模式：用一个最小的 chat-completions 调用验证 key。
   // 原路径（下面）直接调 limkenion.beta.messages.create，会打到 上游，
   // 在 openai provider 下必然失败，所以这里单独走适配器。
-  if (process.env.LIMKENION_API_PROVIDER === 'openai') {
+  if (isOpenAICompat()) {
     try {
       await queryOpenAICompatOnce({
         messages: [{ message: { role: 'user', content: 'test' } } as any],
@@ -1047,7 +1048,7 @@ async function* queryModel(
   // 走 services/api/openai-compat.ts。产出仍是 上游 风格的 AssistantMessage，
   // 因此上层无需改动。上游 专有能力（prompt caching、extended thinking、
   // beta headers、advisor、bedrock/vertex provider）在此路径下不可用。
-  if (process.env.LIMKENION_API_PROVIDER === 'openai') {
+  if (isOpenAICompat()) {
     yield* queryOpenAICompat({
       messages,
       systemPrompt,

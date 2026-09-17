@@ -255,7 +255,7 @@ export function getLogoDisplayData(): {
     : displayPath
   const billingType = isLimkenionAISubscriber()
     ? getSubscriptionName()
-    : 'API 用量计费'
+    : 'API 密钥'
   const agentName = getInitialSettings().agent
 
   return {

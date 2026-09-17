@@ -4,11 +4,15 @@ export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
 
 /** 是否运行在 OpenAI 兼容模式（DeepSeek / 任意 OpenAI 格式端点）。 */
 export function isOpenAICompat(): boolean {
-  // 显式 provider 标记，或检测到 DeepSeek key（走 OpenAI 协议）都算兼容模式，
-  // 这样即便漏配 provider 变量，默认模型也不会回落到上游那套硬编码默认值。
+  // 显式 provider 标记，或检测到任一 OpenAI 兼容 key（都走 OpenAI 协议）都算兼容模式。
+  // 上游端点在本项目里已永久移除，所以只要配了 key 就必须走兼容路径，
+  // 不能因为漏配 provider 变量就回落到上游那套硬编码默认值。
+  // 这里必须与 services/api/openai-compat.ts 的 getConfig() 取 key 的顺序保持一致。
   return (
     process.env.LIMKENION_API_PROVIDER === 'openai' ||
-    !!process.env.DEEPSEEK_API_KEY
+    !!process.env.DEEPSEEK_API_KEY ||
+    !!process.env.OPENAI_API_KEY ||
+    !!process.env.LIMKENION_API_KEY
   )
 }
 

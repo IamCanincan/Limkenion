@@ -9,7 +9,7 @@ import {
   logEvent,
 } from 'src/services/analytics/index.js'
 import { getModelStrings } from 'src/utils/model/modelStrings.js'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import { getAPIProvider, isOpenAICompat } from 'src/utils/model/providers.js'
 import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
@@ -119,7 +119,7 @@ export function isLimkenionAuthEnabled(): boolean {
   // key, so skip anything tied to Limkenion OAuth — the login-method picker
   // and the connectivity preflight against api.limkenion.com are both
   // meaningless here.
-  if (process.env.LIMKENION_API_PROVIDER === 'openai') return false
+  if (isOpenAICompat()) return false
 
   // `limkenion ssh` remote: LIMKENION_UNIX_SOCKET tunnels API calls through a
   // local auth-injecting proxy. The launcher sets LIMKENION_OAUTH_TOKEN as a

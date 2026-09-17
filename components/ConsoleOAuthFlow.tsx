@@ -26,6 +26,6 @@ export function ConsoleOAuthFlow({
   return <Box flexDirection="column" gap={1} paddingLeft={1}>
       <Text bold={true}>{title}</Text>
       <Text>{body}</Text>
-      <Text color="success">已连接 DeepSeek。请确保已设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY 环境变量。按 <Text bold={true}>Enter</Text> 继续…</Text>
+      <Text color="warning">这里不做实际登录。环境变量改完后需要重启 Limkenion 才会生效。按 <Text bold={true}>Enter</Text> 继续…</Text>
     </Box>;
 }

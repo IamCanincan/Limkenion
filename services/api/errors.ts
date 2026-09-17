@@ -145,7 +145,8 @@ export function isMediaSizeErrorMessage(msg: AssistantMessage): boolean {
   )
 }
 export const CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE = 'Credit balance is too low'
-export const INVALID_API_KEY_ERROR_MESSAGE = '未登录 · 请运行 /login'
+export const INVALID_API_KEY_ERROR_MESSAGE =
+  'API Key 无效 · 请检查 DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量，然后重启 Limkenion'
 export const INVALID_API_KEY_ERROR_MESSAGE_EXTERNAL =
   '无效的 API key · 请修复外部 API key'
 export const ORG_DISABLED_ERROR_MESSAGE_ENV_KEY_WITH_OAUTH =
@@ -774,6 +775,20 @@ export function getAssistantMessageFromError(
           : ORG_DISABLED_ERROR_MESSAGE_ENV_KEY,
       })
     }
+  }
+
+  // OpenAI 兼容模式（DeepSeek / 任意 OpenAI 格式端点）的认证失败。
+  // 这条路径不经过 上游 SDK，抛的是 OpenAI SDK 的错误，message 形如
+  // "Authentication Fails, Your api key: ****xxxx is invalid"，
+  // 既不含 'x-api-key' 也不是本模块的 APIError，所以单独认一次。
+  if (
+    error instanceof Error &&
+    /authentication fails|invalid[_\s-]?api[_\s-]?key/i.test(error.message)
+  ) {
+    return createAssistantAPIErrorMessage({
+      error: 'authentication_failed',
+      content: INVALID_API_KEY_ERROR_MESSAGE,
+    })
   }
 
   if (

@@ -25,14 +25,14 @@ export function getSteps(): Step[] {
   return [
     {
       key: 'workspace',
-      text: 'Ask Limkenion to create a new app or clone a repository',
+      text: '让 Limkenion 创建一个新应用，或克隆一个仓库',
       isComplete: false,
       isCompletable: true,
       isEnabled: isWorkspaceDirEmpty,
     },
     {
       key: 'limkenionmd',
-      text: 'Run /init to create a LIMKENION.md file with instructions for Limkenion',
+      text: '运行 /init 创建 LIMKENION.md，写下给 Limkenion 的项目说明',
       isComplete: hasLimkenionMd,
       isCompletable: true,
       isEnabled: !isWorkspaceDirEmpty,

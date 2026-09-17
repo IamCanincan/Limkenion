@@ -43,11 +43,20 @@ export type OfficialMarketplaceSkipReason =
 
 /**
  * Check if official marketplace auto-install is disabled via environment variable.
+ *
+ * 本构建是纯本地工具：官方插件市场托管在云端 CDN / GitHub 上，不存在可用的下载源，
+ * 所以**默认关闭**自动安装 —— 否则每次启动都会发一次必然失败的网络请求，
+ * 并在右下角弹一条 "Failed to install Limkenion marketplace" 警告。
+ * 显式设置 LIMKENION_ENABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1 可重新打开。
+ * 插件能力本身不受影响：本地 marketplaces 仍可通过 /plugin 手动添加。
  */
 export function isOfficialMarketplaceAutoInstallDisabled(): boolean {
-  return isEnvTruthy(
-    process.env.LIMKENION_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL,
-  )
+  if (
+    isEnvTruthy(process.env.LIMKENION_ENABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL)
+  ) {
+    return false
+  }
+  return true
 }
 
 /**
