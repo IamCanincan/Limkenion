@@ -153,6 +153,42 @@ Desktop 交付（`components/DesktopHandoff.tsx`、`utils/desktopDeepLink.ts`）
 判断"某命令本地是否可见"必须同时看 `availability` 和 `isEnabled` 两个条件，
 只看其中一个会得出错误结论（我第一遍就错了）。
 
+### 模型层改名映射（阶段一已完成，commit 6028b9b）
+**阶段一：数据层收敛（已完成）**
+- `configs.ts`：11 个上游模型配置 → `deepseekFlash` / `deepseekV4Pro`。
+  `ModelConfig` 从 `Record<APIProvider, ModelName>` 简化为 `{ firstParty }`。
+- `modelStrings.ts`：去掉 provider 取值与整套 Bedrock 分支。
+- `modelCost.ts`：定价换成 DeepSeek 官方价（见下）。
+- 38 处失效模型键引用（`.opus46` / `.sonnet46` / `.haiku45` …）批量改名。
+- `getPublicModelDisplayName` 重写（原本重复 case 导致 deepseek-flash 显示成 "Sonnet 4.6"）。
+- 键映射：`opus4x` → `deepseekV4Pro`；`sonnet4x` / `haiku4x` → `deepseekFlash`。
+
+**阶段二：内部标识符改名（未做）** —— 剩 1258 处 / 120 文件
+- `getDefaultHaikuModel` → `getDefaultSmallFastModel`（16 处调用）
+- `getDefaultSonnetModel` → `getDefaultMainModel`（16 处）
+- `getDefaultOpusModel` → `getDefaultStrongModel`（16 处）
+- `isNonCustomOpusModel` → `isNonCustomStrongModel`（9 处）
+- `queryHaiku` → `querySmallFastModel`（18 处）
+- `opusplan` / `sonnetplan` / `haiku` 别名 → 从别名表移除（13 处）
+- `seven_day_opus` / `seven_day_sonnet` 限流键、`migrateSonnet*` 迁移函数 → 纯服务端概念，删
+
+### DeepSeek 官方定价（2026-09-17 核对，USD / 1M tokens）
+来源 `https://api-docs.deepseek.com/quick_start/pricing`。峰时为 UTC 周一至周五
+01:00-04:00 与 06:00-10:00，**其余时段为半价**。代码里取**峰时价**作保守上界。
+
+| | 输入(缓存命中) | 输入(未命中) | 输出 |
+|---|---|---|---|
+| `deepseek-flash` | 0.006 | 0.3 | 1.2 |
+| `deepseek-v4-pro` | 0.044 | 1.32 | 3.96 |
+
+DeepSeek 前缀缓存**自动**、不收写入费 → `promptCacheWriteTokens` 记 0；无 web search 计费。
+
+### 顺带纠正：`deepseek-flash` **支持 Vision**
+官方模型表里 Vision 一栏 flash 是 ✓、v4-pro 是 ✗。我之前说"两边都没有视觉"是错的。
+但 `openai-compat.ts` 的 `blockToText()` 对 `image` 块返回空串 —— 也就是说**图片会被静默丢掉**。
+若要用上这个能力，得改适配器的图片翻译（OpenAI 协议走 `image_url`）。
+另外官方还给出：上下文 1M、最大输出 384K、thinking 可开关、上游 端点同样可用。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
