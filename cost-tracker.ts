@@ -45,7 +45,6 @@ import { isFastModeEnabled } from './utils/fastMode.js'
 import { formatDuration, formatNumber } from './utils/format.js'
 import type { FpsMetrics } from './utils/fpsTracker.js'
 import { getCanonicalName } from './utils/model/model.js'
-import { calculateUSDCost } from './utils/modelCost.js'
 export {
   getTotalCostUSD as getTotalCost,
   getTotalDuration,
@@ -218,24 +217,16 @@ function formatModelUsage(): string {
       `${formatNumber(usage.cacheCreationInputTokens)} cache write` +
       (usage.webSearchRequests > 0
         ? `, ${formatNumber(usage.webSearchRequests)} web search`
-        : '') +
-      ` (${formatCost(usage.costUSD)})`
+        : '')
     result += `\n` + `${shortName}:`.padStart(21) + usageString
   }
   return result
 }
 
 export function formatTotalCost(): string {
-  const costDisplay =
-    formatCost(getTotalCostUSD()) +
-    (hasUnknownModelCost()
-      ? ' (costs may be inaccurate due to usage of unknown models)'
-      : '')
-
   const modelUsageDisplay = formatModelUsage()
 
   return chalk.dim(
-    `Total cost:            ${costDisplay}\n` +
       `Total duration (API):  ${formatDuration(getTotalAPIDuration())}
 Total duration (wall): ${formatDuration(getTotalDuration())}
 Total code changes:    ${getTotalLinesAdded()} ${getTotalLinesAdded() === 1 ? 'line' : 'lines'} added, ${getTotalLinesRemoved()} ${getTotalLinesRemoved() === 1 ? 'line' : 'lines'} removed
@@ -302,7 +293,7 @@ export function addToTotalSessionCost(
 
   let totalCost = cost
   for (const advisorUsage of getAdvisorUsage(usage)) {
-    const advisorCost = calculateUSDCost(advisorUsage.model, advisorUsage)
+    const advisorCost = 0
     logEvent('limkenion_advisor_tool_token_usage', {
       advisor_model:
         advisorUsage.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

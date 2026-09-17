@@ -5,7 +5,6 @@ import { getOrCreateUserID } from '../../utils/config.js'
 import { logError } from '../../utils/log.js'
 import { getCanonicalName } from '../../utils/model/model.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
-import { MODEL_COSTS } from '../../utils/modelCost.js'
 import { isAnalyticsDisabled } from './config.js'
 import { getEventMetadata } from './metadata.js'
 
@@ -204,7 +203,7 @@ export async function trackDatadogEvent(
     // Normalize model names for cardinality reduction (external users only)
     if ((typeof allData.model === 'string')) {
       const shortName = getCanonicalName(allData.model.replace(/\[1m]$/i, ''))
-      allData.model = shortName in MODEL_COSTS ? shortName : 'other'
+      allData.model = shortName
     }
 
     // Truncate dev version to base + date (remove timestamp and sha for cardinality reduction)

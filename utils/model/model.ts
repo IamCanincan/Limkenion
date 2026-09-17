@@ -20,7 +20,6 @@ import {
 } from '../context.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
-import { formatModelPricing, getDefaultModelCostTier } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
 import {
@@ -29,7 +28,6 @@ import {
   isOpenAICompat,
   OPENAI_COMPAT_DEFAULT_MODEL,
 } from './providers.js'
-import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
 import { capitalize } from '../stringUtils.js'
@@ -316,11 +314,12 @@ export function renderDefaultModelSetting(
   return renderModelName(parseUserSpecifiedModel(setting))
 }
 
-export function getOpus46PricingSuffix(fastMode: boolean): string {
-  if (getAPIProvider() !== 'firstParty') return ''
-  const pricing = formatModelPricing(getDefaultModelCostTier())
-  const fastModeIndicator = fastMode ? ` (${LIGHTNING_BOLT})` : ''
-  return ` ·${fastModeIndicator} ${pricing}`
+/**
+ * 原本返回 " · ⚡ $5/$25 per Mtok" 这样的定价后缀。
+ * 定价表已移除（DeepSeek 价格会变，不写死），所以不再展示金额。
+ */
+export function getPricingSuffix(_fastMode: boolean): string {
+  return ''
 }
 
 export function isOpus1mMergeEnabled(): boolean {

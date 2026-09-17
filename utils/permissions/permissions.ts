@@ -88,7 +88,6 @@ import {
   buildYoloRejectionMessage,
   DONT_ASK_REJECT_MESSAGE,
 } from '../messages.js'
-import { calculateCostFromTokens } from '../modelCost.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { jsonStringify } from '../slowOperations.js'
 import {
@@ -713,12 +712,8 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
 
       // Compute classifier cost in USD for overhead analysis
       const classifierCostUSD =
-        classifierResult.usage && classifierResult.model
-          ? calculateCostFromTokens(
-              classifierResult.model,
-              classifierResult.usage,
-            )
-          : undefined
+        // 已移除定价表（DeepSeek 价格会变，不写死），不再上报估算金额
+        undefined
       logEvent('limkenion_auto_mode_decision', {
         decision:
           yoloDecision as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -773,12 +768,7 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
         classifierStage1MsgId:
           classifierResult.stage1MsgId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         classifierStage1CostUSD:
-          classifierResult.stage1Usage && classifierResult.model
-            ? calculateCostFromTokens(
-                classifierResult.model,
-                classifierResult.stage1Usage,
-              )
-            : undefined,
+          undefined,
         classifierStage2InputTokens: classifierResult.stage2Usage?.inputTokens,
         classifierStage2OutputTokens:
           classifierResult.stage2Usage?.outputTokens,
@@ -792,12 +782,7 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
         classifierStage2MsgId:
           classifierResult.stage2MsgId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         classifierStage2CostUSD:
-          classifierResult.stage2Usage && classifierResult.model
-            ? calculateCostFromTokens(
-                classifierResult.model,
-                classifierResult.stage2Usage,
-              )
-            : undefined,
+          undefined,
       })
 
       if (classifierResult.durationMs !== undefined) {
