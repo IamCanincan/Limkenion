@@ -99,24 +99,21 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `getDefaultSonnetModel`→`getDefaultMainModel`、`getDefaultOpusModel`→`getDefaultStrongModel`、
   `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
 
-**待办（按优先级）**：
-1. **三处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
-   - `@limkenion-ai/*`（41 处）—— **npm 包作用域**，改名等于给软件改名（分发决策）
-   - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**出现在 SDK 输出 schema 里**
-   - `'limkenionai'`（10 处）—— MCP 配置作用域，且**出现在设置文件的 enum schema 里**
-2. **一处"保守但可能不对"的判定**（改造前就有，我没改行为）：
-   - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
-3. **两处功能缺口**（用户还没定做不做）：
-   - **`/effort` 是空操作**（已核实）：`/effort high` 把值存进设置文件的 `effortLevel`，
-     但 API 的 `reasoning_effort` 读的是 `getRuntimeReasoningEffort()`
-     （`services/api/openai-compat.ts`），而它只被 `/model low|medium|high` 设置过。
-     所以真正生效的只有 `/model low|medium|high`。
-   - **`modelSupportsStructuredOutputs` 恒 false，但翻它没用**（已核实）：
-     它控制 4 处（`limkenion.ts:1616`、`utils/api.ts:189`、`betas.ts:279`、`sideQuery.ts:132`）——
-     给工具加 `strict: true`、加结构化输出的 beta 头。
-     但 **`services/api/openai-compat.ts` 的 `toOpenAITools()` 根本不发 `strict`，
-     也完全不发 betas** —— 所以翻这个开关什么也不会发生。
-     要真用上结构化输出，得同时改适配器。
+**已完成（2026-09-18 用户拍板"都加"）**：
+- **`/effort` 不再是空操作**：`getRuntimeReasoningEffort()` 补上第三层回落
+  `运行时 set > REASONING_EFFORT env > 设置文件里的 effortLevel > 空`。
+  惰性读取 + try/catch 兜底。
+- **新增 `/schedule` 命令**（`commands/schedule/`）：列出/删除本地定时任务。
+  本地 cron 能力一直都在，缺的只是命令入口。`isEnabled` 挂 `isKairosCronEnabled()`。
+- **结构化输出打通**：`modelSupportsStructuredOutputs` → true，
+  **且** `toOpenAITools()` 转发 `strict: true`（只改前者没用 —— 适配器原本不转发）。
+  实测 DeepSeek 两个模型都接受 `strict: true`。
+
+**待办**：
+1. **三处"契约值"改名**（用户未表态，我建议不动）：
+   - `@limkenion-ai/*`（41 处）—— **npm 包作用域**，改名等于给软件改名
+   - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**写在 SDK 输出 schema 里**
+   - `'limkenionai'`（10 处）—— MCP 配置作用域，**写在设置文件的 enum schema 里**
 
 ### **更正：本地定时任务其实是有的**（2026-09-18 核实）
 我早先报"没有本地定时任务"是**错的**。实际上：
