@@ -146,24 +146,15 @@ export function sanitizeSurfaceKey(surfaceKey: string): string {
   return `${surface}/${sanitizedModel}`
 }
 
-// @[MODEL LAUNCH]: Add a mapping for the new model ID so git commit trailers show the public name.
+// @[MODEL LAUNCH]: 新增模型时在这里补一条映射，让 git 提交 trailer 显示公开模型名。
 /**
- * Sanitize a model name to its public equivalent.
- * Maps internal variants to their public names based on model family.
+ * 把内部模型名净化成公开名。
+ * 本构建只有 DeepSeek 两个模型；原本那一长串上游模型名映射已移除。
  */
 export function sanitizeModelName(shortName: string): string {
-  // Map internal variants to public equivalents based on model family
-  if (shortName.includes('opus-4-6')) return 'limkenion-opus-4-6'
-  if (shortName.includes('opus-4-5')) return 'limkenion-opus-4-5'
-  if (shortName.includes('opus-4-1')) return 'limkenion-opus-4-1'
-  if (shortName.includes('opus-4')) return 'limkenion-opus-4'
-  if (shortName.includes('sonnet-4-6')) return 'limkenion-sonnet-4-6'
-  if (shortName.includes('sonnet-4-5')) return 'limkenion-sonnet-4-5'
-  if (shortName.includes('sonnet-4')) return 'limkenion-sonnet-4'
-  if (shortName.includes('sonnet-3-7')) return 'limkenion-sonnet-3-7'
-  if (shortName.includes('haiku-4-5')) return 'limkenion-haiku-4-5'
-  if (shortName.includes('haiku-3-5')) return 'limkenion-haiku-3-5'
-  // Unknown models get a generic name
+  if (shortName.includes('deepseek-v4-pro')) return 'deepseek-v4-pro'
+  if (shortName.includes('deepseek-flash')) return 'deepseek-flash'
+  // 未知模型给一个通用名，避免泄露内部代号
   return 'limkenion'
 }
 

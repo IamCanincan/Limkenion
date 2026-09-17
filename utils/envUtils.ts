@@ -138,23 +138,15 @@ export function isInProtectedNamespace(): boolean {
   return false
 }
 
-// @[MODEL LAUNCH]: 为新模型添加一个 Vertex 区域覆盖环境变量。
 /**
  * 模型前缀 → Vertex 区域覆盖的环境变量。
- * 顺序很重要：更具体的前缀必须放在更不具体的前缀之前
- * （例如 'limkenion-deepseek-v4-pro-4-1' 在 'limkenion-deepseek-v4-pro-4' 之前）。
+ *
+ * **本构建里这张表是空的** —— Vertex 供应商已随云服务一起移除，
+ * 原本那些 `VERTEX_REGION_*` 环境变量与上游模型前缀都不再有意义。
+ * 保留这个结构是为了不动 `getVertexRegionForModel()` 的调用方；
+ * 它现在总是回落到 `getDefaultVertexRegion()`。
  */
-const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = [
-  ['limkenion-haiku-4-5', 'VERTEX_REGION_LIMKENION_HAIKU_4_5'],
-  ['limkenion-3-5-haiku', 'VERTEX_REGION_LIMKENION_3_5_HAIKU'],
-  ['limkenion-3-5-sonnet', 'VERTEX_REGION_LIMKENION_3_5_SONNET'],
-  ['limkenion-3-7-sonnet', 'VERTEX_REGION_LIMKENION_3_7_SONNET'],
-  ['limkenion-opus-4-1', 'VERTEX_REGION_LIMKENION_4_1_OPUS'],
-  ['limkenion-opus-4', 'VERTEX_REGION_LIMKENION_4_0_OPUS'],
-  ['limkenion-sonnet-4-6', 'VERTEX_REGION_LIMKENION_4_6_SONNET'],
-  ['limkenion-sonnet-4-5', 'VERTEX_REGION_LIMKENION_4_5_SONNET'],
-  ['limkenion-sonnet-4', 'VERTEX_REGION_LIMKENION_4_0_SONNET'],
-]
+const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = []
 
 /**
  * 为特定模型获取 Vertex AI 区域。

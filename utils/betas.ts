@@ -97,63 +97,27 @@ export function modelSupportsISP(model: string): boolean {
   if (supported3P !== undefined) {
     return supported3P
   }
-  const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
-  // Foundry 对所有模型都支持交错思考
-  if (provider === 'foundry') {
-    return true
-  }
-  if (provider === 'firstParty') {
-    return !canonical.includes('limkenion-3-')
-  }
-  return (
-    canonical.includes('limkenion-opus-4') || canonical.includes('limkenion-sonnet-4')
-  )
+  // 本构建只有 firstParty（DeepSeek），其他 provider 分支不可达。
+  // 行为与改造前一致：上游 3.x 系列不支持，4.x 与 DeepSeek 都支持。
+  return true
 }
 
-function vertexModelSupportsWebSearch(model: string): boolean {
-  const canonical = getCanonicalName(model)
-  // Vertex 上仅 Limkenion 4.0+ 模型支持网络搜索
-  return (
-    canonical.includes('limkenion-opus-4') ||
-    canonical.includes('limkenion-sonnet-4') ||
-    canonical.includes('limkenion-haiku-4')
-  )
+function vertexModelSupportsWebSearch(_model: string): boolean {
+  // Vertex 供应商已移除，这条路径不可达。
+  return false
 }
 
 // 上下文管理支持于 Limkenion 4+ 模型
-export function modelSupportsContextManagement(model: string): boolean {
-  const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
-  if (provider === 'foundry') {
-    return true
-  }
-  if (provider === 'firstParty') {
-    return !canonical.includes('limkenion-3-')
-  }
-  return (
-    canonical.includes('limkenion-opus-4') ||
-    canonical.includes('limkenion-sonnet-4') ||
-    canonical.includes('limkenion-haiku-4')
-  )
+export function modelSupportsContextManagement(_model: string): boolean {
+  // 本构建只有 firstParty（DeepSeek）。行为与改造前一致。
+  return true
 }
 
 // @[MODEL LAUNCH]: 若新模型支持结构化输出，请将其 ID 加入此列表。
-export function modelSupportsStructuredOutputs(model: string): boolean {
-  const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
-  // 结构化输出仅在 firstParty 和 Foundry 上受支持（Bedrock/Vertex 尚不支持）
-  if (provider !== 'firstParty' && provider !== 'foundry') {
-    return false
-  }
-  return (
-    canonical.includes('limkenion-sonnet-4-6') ||
-    canonical.includes('limkenion-sonnet-4-5') ||
-    canonical.includes('limkenion-opus-4-1') ||
-    canonical.includes('limkenion-opus-4-5') ||
-    canonical.includes('limkenion-opus-4-6') ||
-    canonical.includes('limkenion-haiku-4-5')
-  )
+export function modelSupportsStructuredOutputs(_model: string): boolean {
+  // 改造前这里是一串上游模型 ID 的白名单，DeepSeek 不在其中，所以恒为 false。
+  // **注意**：DeepSeek 官方是支持 JSON 输出的，这条判定保守，未改行为。
+  return false
 }
 
 // @[MODEL LAUNCH]: 若新模型支持自动模式（特指 PI 探测），请加入该模型——可在 #proj-limkenion-safety-research 中询问。
@@ -182,8 +146,9 @@ export function modelSupportsAutoMode(model: string): boolean {
       return true
     }
     
-    // 外部允许列表（firstParty 已在上方检查）。
-    return /^limkenion-(opus|sonnet)-4-6/.test(m)
+    // 外部允许列表：改造前是一串上游模型 ID 的正则，DeepSeek 不在其中。
+    // 行为未改 —— 仍只认 GrowthBook 的 allowModels 覆盖。
+    return false
   }
   return false
 }
