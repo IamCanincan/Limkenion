@@ -177,7 +177,9 @@ describe('命令往返', () => {
       ['/tools', /常驻/],
       ['/status', /工作区/],
       ['/config', /当前设置/],
-      ['/mcp', /不可用/],
+      // /mcp 现在是真实现（会读 mcpServers 并显示连接状态）
+      ['/mcp', /MCP 服务器|支持的传输/],
+      ['/hooks', /钩子/],
       ['/不存在的命令', /未知命令/],
     ]) {
       client.ws.send(JSON.stringify({ type: 'run_command', sessionId, command: cmd }))

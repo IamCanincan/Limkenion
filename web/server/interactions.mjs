@@ -12,7 +12,7 @@
 import { broadcast } from './bus.mjs'
 import { settingsFor } from './config.mjs'
 import { ruleDecision } from './settings.mjs'
-import { DANGEROUS_TOOLS } from './tools.mjs'
+import { isDangerousTool } from './tools.mjs'
 
 const pendingPermissions = new Map()
 const pendingQuestions = new Map()
@@ -61,7 +61,8 @@ export function needsPermission(session, toolName, opts = {}) {
 
   if (rule === 'allow') return false
 
-  if (!DANGEROUS_TOOLS.has(toolName)) return false
+  // 静态清单 + 运行时发现的 MCP 工具（后者默认也要确认，见 isDangerousTool）
+  if (!isDangerousTool(toolName)) return false
   if (session.allowedTools?.has(toolName)) return false
 
   if (mode === 'bypassPermissions') return false

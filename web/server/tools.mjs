@@ -1115,6 +1115,34 @@ function degraded(reason) {
 }
 
 /**
+ * MCP：通用调用入口 / 资源列表 / 资源读取。
+ *
+ * 已发现的 MCP 工具会以单个工具的形式注册进来（`mcp__<服务器>__<工具>`），
+ * 走 `executeTool` 里的前缀分支；这三个是 CLI 里对应的通用入口。
+ */
+async function toolMcpGeneric({ server, tool, args }, ctx) {
+  if (typeof ctx?.callMcpTool !== 'function') {
+    throw new Error('当前服务端未挂载 MCP 客户端（ctx.callMcpTool 缺失）')
+  }
+  const { mcpToolName } = await import('./mcp.mjs')
+  return ctx.callMcpTool(mcpToolName(server, tool), args ?? {})
+}
+
+async function toolListMcpResources({ server }, ctx) {
+  if (typeof ctx?.listMcpResources !== 'function') {
+    throw new Error('当前服务端未挂载 MCP 客户端（ctx.listMcpResources 缺失）')
+  }
+  return ctx.listMcpResources(server)
+}
+
+async function toolReadMcpResource({ server, uri }, ctx) {
+  if (typeof ctx?.readMcpResource !== 'function') {
+    throw new Error('当前服务端未挂载 MCP 客户端（ctx.readMcpResource 缺失）')
+  }
+  return ctx.readMcpResource(server, uri)
+}
+
+/**
  * worktree 两个工具的真实现。
  *
  * 它们**会改动会话的沙箱根**（不只是 cwd），所以列进 DANGEROUS_TOOLS 需要用户确认：
@@ -1134,6 +1162,37 @@ async function toolExitWorktree(input, session) {
 // ---------------------------------------------------------------------------
 // 注册表
 // ---------------------------------------------------------------------------
+
+/**
+ * 需要用户确认的工具：静态清单 + **运行时发现的 MCP 工具**。
+ *
+ * MCP 工具本质上是一段我们看不见的远程/进程内代码，能干任何事（写盘、发请求），
+ * 所以默认按危险工具处理。用户想免确认，就用设置文件里的权限规则显式放行
+ * （`mcp__server__tool` 或 `mcp__server__*`）。
+ */
+export function isDangerousTool(name) {
+  return DANGEROUS_TOOLS.has(name) || String(name).startsWith('mcp__')
+}
+
+/**
+ * 把运行时发现的 MCP 工具注册进工具集（替换上一次的 MCP 工具）。
+ *
+ * 为什么是"替换"而不是"追加"：MCP 服务器可能被移除/改配置，重连后工具清单会变；
+ * 只追加会让已经消失的工具一直留在列表里（模型会去调用一个不存在的工具）。
+ * @returns {number} 注册后的工具总数
+ */
+export function registerMcpTools(schemas) {
+  const kept = TOOL_SCHEMAS.filter(s => !String(s.function.name).startsWith('mcp__'))
+  const incoming = schemas.filter(s => String(s.function.name).startsWith('mcp__'))
+  TOOL_SCHEMAS.length = 0
+  TOOL_SCHEMAS.push(...kept, ...incoming)
+  return TOOL_SCHEMAS.length
+}
+
+/** 当前注册进来的 MCP 工具名。 */
+export function mcpToolNames() {
+  return TOOL_SCHEMAS.filter(s => String(s.function.name).startsWith('mcp__')).map(s => s.function.name)
+}
 
 /** OpenAI function-calling 格式的 schema（发往 DeepSeek）。 */
 export const TOOL_SCHEMAS = [
@@ -1692,7 +1751,9 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'mcp',
-      description: '调用 MCP 服务器提供的工具。web 沙箱内未挂载 MCP 客户端，调用会返回不可用说明。',
+      description:
+        '调用 MCP 服务器提供的工具（通用入口）。已发现的 MCP 工具会以 mcp__<服务器>__<工具> 的形式' +
+        '单独出现在工具集里，能用那个就直接用；这个入口适合名字不固定或临时调用。',
       parameters: {
         type: 'object',
         properties: { server: { type: 'string' }, tool: { type: 'string' }, args: {} },
@@ -1704,7 +1765,7 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'ListMcpResourcesTool',
-      description: '列出 MCP 资源。web 沙箱内未挂载 MCP 客户端，调用会返回不可用说明。',
+      description: '列出已连接的 MCP 服务器上的资源。省略 server 则列出全部服务器。',
       parameters: { type: 'object', properties: { server: { type: 'string' } }, required: [] },
     },
   },
@@ -1712,7 +1773,7 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'ReadMcpResource',
-      description: '读取 MCP 资源。web 沙箱内未挂载 MCP 客户端，调用会返回不可用说明。',
+      description: '读取 MCP 服务器上的某个资源（uri 用 ListMcpResourcesTool 拿到的那个）。',
       parameters: {
         type: 'object',
         properties: { server: { type: 'string' }, uri: { type: 'string' } },
@@ -1724,7 +1785,9 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'McpAuth',
-      description: 'MCP 服务器鉴权。web 沙箱内未挂载 MCP 客户端，调用会返回不可用说明。',
+      description:
+        'MCP 服务器鉴权。web 端没有 OAuth 回调流程，此工具不可用 —— 需要凭证的服务器请在 ' +
+        'mcpServers 配置里用 headers 传固定 token。',
       parameters: { type: 'object', properties: { server: { type: 'string' } }, required: ['server'] },
     },
   },
@@ -1799,6 +1862,14 @@ export const TOOL_SCHEMAS = [
  */
 export async function executeTool(name, input, ctx) {
   const session = ctx?.session
+  // MCP 工具是**运行时发现**的，名字形如 mcp__<服务器>__<工具>，进不了静态 switch。
+  // 认前缀分派；危险工具判定那类地方也按前缀放行（见 DANGEROUS_TOOLS 的说明）。
+  if (name.startsWith('mcp__')) {
+    if (typeof ctx?.callMcpTool !== 'function') {
+      throw new Error(`MCP 客户端未挂载，无法调用 ${name}`)
+    }
+    return ctx.callMcpTool(name, input ?? {})
+  }
   switch (name) {
     // 文件类
     case 'Read': return toolRead(input)
@@ -1844,10 +1915,11 @@ export async function executeTool(name, input, ctx) {
     case 'StructuredOutput': return toolStructuredOutput(input)
     // 降级
     case 'LSP': return degraded('未挂载语言服务器，无法提供跳转/引用/诊断')(input)
-    case 'mcp': return degraded('未配置 MCP 客户端连接')(input)
-    case 'ListMcpResourcesTool': return degraded('未配置 MCP 客户端连接')(input)
-    case 'ReadMcpResource': return degraded('未配置 MCP 客户端连接')(input)
-    case 'McpAuth': return degraded('未配置 MCP 客户端连接')(input)
+    // MCP：真实现（见 mcp.mjs）。发现的工具是 mcp__server__tool 形式，走下面的前缀分支。
+    case 'mcp': return toolMcpGeneric(input, ctx)
+    case 'ListMcpResourcesTool': return toolListMcpResources(input, ctx)
+    case 'ReadMcpResource': return toolReadMcpResource(input, ctx)
+    case 'McpAuth': return degraded('web 端没有 OAuth 回调流程；需要凭证请在 mcpServers 里配 headers')(input)
     case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')(input)
     case 'EnterWorktree': return toolEnterWorktree(input, session)
     case 'ExitWorktree': return toolExitWorktree(input, session)

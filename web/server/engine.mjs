@@ -38,6 +38,7 @@ import { additionalDirectories, deniedBy } from './settings.mjs'
 import { hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './hooks.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
+import { callMcpTool, listMcpResources, readMcpResource } from './mcp.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
 
@@ -214,6 +215,10 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     },
     enableTools: names => enableTools(session, names),
     runSubAgent: ({ description, prompt }) => runSubAgent(session, prompt, description, emit, expired),
+    // MCP：发现的工具经这里执行（tools.mjs 不反向 import mcp.mjs）。
+    callMcpTool: (name, args) => callMcpTool(name, args),
+    listMcpResources: server => listMcpResources(server),
+    readMcpResource: (server, uri) => readMcpResource(server, uri),
   }
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -527,6 +532,11 @@ async function runSubAgent(session, prompt, description, emit, expired) {
     applySetting: undefined,
     enableTools: undefined,
     runSubAgent: undefined,
+    // 子代理是只读的，**不给它 MCP 通道**：MCP 工具能干什么我们看不见
+    // （可能是写盘、可能是发请求），让只读子代理拿到它等于把只读保证作废。
+    callMcpTool: undefined,
+    listMcpResources: undefined,
+    readMcpResource: undefined,
   }
 
   for (let round = 0; round < MAX_SUBAGENT_ROUNDS; round++) {

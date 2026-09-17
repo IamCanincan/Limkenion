@@ -474,9 +474,6 @@ describe('执行类工具', () => {
 describe('降级工具给出明确原因', () => {
   for (const [name, input] of [
     ['LSP', { operation: 'definition' }],
-    ['mcp', { server: 's', tool: 't' }],
-    ['ListMcpResourcesTool', {}],
-    ['ReadMcpResource', { server: 's', uri: 'u' }],
     ['McpAuth', { server: 's' }],
     ['RemoteTrigger', { target: 't' }],
   ]) {

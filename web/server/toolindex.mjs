@@ -10,10 +10,15 @@
 
 import { CORE_TOOL_NAMES, TOOL_SCHEMAS } from './tools.mjs'
 
-/** 延迟工具名（不含常驻）。 */
-export const DEFERRED_TOOL_NAMES = TOOL_SCHEMAS
-  .map(s => s.function.name)
-  .filter(n => !CORE_TOOL_NAMES.has(n))
+/**
+ * 延迟工具名（不含常驻）。
+ *
+ * **必须是函数，不能是模块加载时的快照** —— MCP 工具是运行时注册进 TOOL_SCHEMAS 的，
+ * 快照会让它们永远不出现在延迟清单里（ToolSearch 搜不到、模型也不知道它们存在）。
+ */
+export function deferredToolNames() {
+  return TOOL_SCHEMAS.map(s => s.function.name).filter(n => !CORE_TOOL_NAMES.has(n))
+}
 
 /** 取某会话当前应发送的 schema 列表。 */
 export function schemasFor(session) {
@@ -51,10 +56,11 @@ export function enableTools(session, names) {
 
 /** 系统提示里给模型看的延迟工具清单（只列名字，省 token）。 */
 export function deferredHint() {
-  if (DEFERRED_TOOL_NAMES.length === 0) return ''
+  const names = deferredToolNames()
+  if (names.length === 0) return ''
   return (
     `以下工具默认未加载，需要时先用 ToolSearch 检索并启用，之后即可直接调用：\n` +
-    DEFERRED_TOOL_NAMES.join('、')
+    names.join('、')
   )
 }
 
@@ -62,8 +68,9 @@ export function deferredHint() {
 export function toolsOverview(session) {
   const enabled = session?.enabledTools ?? new Set()
   const core = [...CORE_TOOL_NAMES]
-  const on = DEFERRED_TOOL_NAMES.filter(n => enabled.has(n))
-  const off = DEFERRED_TOOL_NAMES.filter(n => !enabled.has(n))
+  const all = deferredToolNames()
+  const on = all.filter(n => enabled.has(n))
+  const off = all.filter(n => !enabled.has(n))
   return (
     `工具共 ${TOOL_SCHEMAS.length} 个，当前会话可调用 ${schemasFor(session).length} 个。\n\n` +
     `常驻（${core.length}）：\n${core.join('、')}\n\n` +
