@@ -421,16 +421,13 @@ export type GlobalConfig = {
 
   // deepseek-v4-pro Pro migration tracking
   opusProMigrationComplete?: boolean
-  opusProMigrationTimestamp?: number
 
   // deepseek-flash 1m migration tracking
   sonnet1m45MigrationComplete?: boolean
 
   // deepseek-v4-pro/4.1 → current deepseek-v4-pro migration (shows one-time notif)
-  legacyOpusMigrationTimestamp?: number
 
   // deepseek-flash → 4.6 migration (pro/max/team premium)
-  sonnet45To46MigrationTimestamp?: number
 
   // Cached statsig gate values
   cachedStatsigGates: {
