@@ -11,9 +11,6 @@ const feedback = {
   argumentHint: '[report]',
   isEnabled: () =>
     !(
-      isEnvTruthy(process.env.LIMKENION_USE_BEDROCK) ||
-      isEnvTruthy(process.env.LIMKENION_USE_VERTEX) ||
-      isEnvTruthy(process.env.LIMKENION_USE_FOUNDRY) ||
       isEnvTruthy(process.env.DISABLE_FEEDBACK_COMMAND) ||
       isEnvTruthy(process.env.DISABLE_BUG_COMMAND) ||
       isEssentialTrafficOnly() ||

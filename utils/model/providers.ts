@@ -1,5 +1,4 @@
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../../services/analytics/index.js'
-import { isEnvTruthy } from '../envUtils.js'
 
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
 
@@ -16,14 +15,12 @@ export function isOpenAICompat(): boolean {
 /** OpenAI 兼容模式下的默认主模型（与 services/api/openai-compat.ts 保持一致）。 */
 export const OPENAI_COMPAT_DEFAULT_MODEL = 'deepseek-flash'
 
+// Limkenion 已去除对 Amazon Bedrock / Google Vertex AI / Microsoft Foundry 等
+// 上游 第三方云供应商的路由支持，当前仅运行于 OpenAI 兼容（DeepSeek）模式。
+// getAPIProvider 恒返回 firstParty，使全仓库基于 getAPIProvider() 的分支全部
+// 走回第一方/独立路径，不再触发任何 Bedrock/Vertex/Foundry 供应商逻辑。
 export function getAPIProvider(): APIProvider {
-  return isEnvTruthy(process.env.LIMKENION_USE_BEDROCK)
-    ? 'bedrock'
-    : isEnvTruthy(process.env.LIMKENION_USE_VERTEX)
-      ? 'vertex'
-      : isEnvTruthy(process.env.LIMKENION_USE_FOUNDRY)
-        ? 'foundry'
-        : 'firstParty'
+  return 'firstParty'
 }
 
 export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {

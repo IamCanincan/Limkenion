@@ -19,9 +19,6 @@ import { isTelemetryDisabled } from '../../utils/privacyLevel.js'
 export function isAnalyticsDisabled(): boolean {
   return (
     process.env.NODE_ENV === 'test' ||
-    isEnvTruthy(process.env.LIMKENION_USE_BEDROCK) ||
-    isEnvTruthy(process.env.LIMKENION_USE_VERTEX) ||
-    isEnvTruthy(process.env.LIMKENION_USE_FOUNDRY) ||
     isTelemetryDisabled()
   )
 }
