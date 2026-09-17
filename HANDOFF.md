@@ -1,4 +1,88 @@
-# Limkenion CLI 源码树重建 — 记录
+# Limkenion 交接文档
+
+> **新 agent 从这里开始。** 最后更新：2026-09-18
+> 本文**下半部分**是 2026-09-16 源码树重建的**历史记录**（已完成，仅留档）。
+
+---
+
+## 一、接力怎么接
+
+**自动注入的（每次会话启动就加载，先读它）**
+- `.workbuddy-ai/memory/MEMORY.md` —— 用户要求、硬约束、环境要点、DeepSeek 实测事实、
+  当前进度、关键陷阱。**这份是精简过的，能完整注入。**
+
+**按需读的**
+- `.workbuddy-ai/memory/MEMORY-details.md` —— 端点清单、命令级处置、模型改名映射、功能对比
+- `.workbuddy-ai/memory/2026-09-17.md` —— 逐轮流水（做了什么、踩了什么坑、为什么这么定）
+- 本文下半部分 —— 源码树重建历史（已完结）
+
+**为什么要分这么多文件**：`MEMORY.md` 是自动注入的，**超过注入上限会被截断，接力就断了**。
+2026-09-18 它曾涨到 36KB 被截断过，已拆分瘦身。**往里加内容前先想清楚该放哪一份。**
+
+---
+
+## 二、现在的状态
+
+**能用。** 开新终端 → `limkenion` → `/login` 粘贴 DeepSeek key → 就能干活。
+
+- 构建：`node scripts/build-cli.mjs` → `dist/cli.mjs`，**0 错误**
+- 冒烟：`limkenion -p "只回复两个字：收到" --no-session-persistence` → 返回「收到」
+- 模型：`deepseek-flash`（默认/快）、`deepseek-v4-pro`（强），两个
+- 协议：只走 OpenAI 兼容端点（`https://api.deepseek.com`），**不接 上游 协议**（用户拍板）
+- 无云、无账号、无网站
+
+**去痕迹工程已完成的部分**：品牌词 0 命中、云服务命令停用 7 个、模型表收敛为 2 个、
+定价表删除、6 个迁移函数删除、2 个死模块（共 837 行）删除、**170 处自有服务 URL 删除**、
+模型相关函数改名 66 处。
+
+---
+
+## 三、下一步做什么（按优先级）
+
+1. **删 URL 留下的空壳**：12 个 `const *_URL = ''`、约 20 处 `<Link url="" />`、
+   几处悬空的 `Learn more: `。
+   ⚠️ `<Link>` 在 react-compiler 产物里，**动手前先确认不在 `$[N]` memo 区块内**。
+2. **剩余约 980 处零散模型名**（注释、字符串、变量名）。改名用 `\b` 边界，别误伤 `octopus`。
+3. **两处待用户拍板的行为变更**（我没动）：`utils/context.ts` 的上下文窗口默认值 200K
+   （DeepSeek 官方 1M）、最大输出上限 64K（官方 384K）。
+4. **功能缺口**（用户还没定做不做）：
+   - `/effort` 是空操作，且没有"关闭思考"的入口；真正生效的是 `/model low|medium|high`
+   - 图片输入被适配器静默丢弃（`deepseek-flash` 官方支持 Vision）
+   - 没有本地定时任务
+
+---
+
+## 四、每轮必须做的
+
+```bash
+node scripts/build-cli.mjs          # 必须 0 错误
+export LIMKENION_GIT_BASH_PATH='C:\Users\20653\.workbuddy-ai\binaries\PortableGit\versions\1.2.0\usr\bin\bash.exe'
+export DEEPSEEK_API_KEY=<用户自己输入的 key>
+limkenion -p "只回复两个字：收到" --no-session-persistence   # 必须返回「收到」
+export APPDATA='C:\Users\20653\AppData\Roaming'
+npm install -g .                    # 必须带 APPDATA，否则装错地方
+git commit                          # 不 push、不动 git config
+```
+
+**冒烟不是可选项**：esbuild 不做类型检查，删模块/改数据表后的错误只有跑起来才看得见
+（这个坑踩过三次）。
+
+---
+
+## 五、别碰的东西
+
+- **`D:\下载\agent\新建 文本文档.txt`** —— 用户选择自己处理那个 key，不要动、不要复制
+- **密钥一律不要写进仓库或记忆文件**
+- `scripts/build-cli.mjs` 的 `BRAND_TOKENS` 清洗名单 —— **故意保留**，它就是用来抹掉品牌词的
+- 承重的"半坏残留"（看着像死的，其实是活的）：`constants/oauth.ts`、`utils/model/bedrock.ts`、
+  `services/mcp/oauthPort.ts`、`stubs/bedrock-sdk.ts`、`commands/oauth-refresh/index.js`
+- `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 的**第 69–120 行是术语表**，别删
+- `/web` 是**本地** Web UI 服务器（`http://localhost:${port}`），跟 limkenion.ai 无关，必须保留
+
+---
+
+# 附：Limkenion CLI 源码树重建 — 记录
+
 
 > 最后更新：2026-09-16，WorkBuddy AI
 > 状态：**打包已打通（0 错误）**
