@@ -118,29 +118,40 @@ Desktop 交付（`components/DesktopHandoff.tsx`、`utils/desktopDeepLink.ts`）
 - `seven_day_opus` / `seven_day_sonnet` 限流键、`migrateSonnet*` 迁移函数 → 纯服务端概念，删除
 
 ### 命令级处置清单（2026-09-17 核实）
-**① 早就禁用了（`isEnabled: () => false`），只剩残留要清**
-`/teleport`、`/ant-trace`、`/bughunter`、`/backfill-sessions`、`/mock-limits`、
-`/reset-limits`、`/perf-issue`、`/issue` —— 这些不是"要失去的功能"，本来就没有。
+用户决定：**云服务直接停用，能本地替代的替代。**
 
-**② 当前仍启用、但真依赖不存在的服务（按功能处置就是这些会消失）**
-`/chrome`（Chrome 扩展 + 订阅）、`/desktop`（Desktop 应用）、`/mobile`（App Store 上的 iOS App）、
-`/passes`（guest passes）、`/stickers`（stickermule 周边）、`/usage`（套餐用量）、
-`/extra-usage`（limkenion.ai 计费）、`/privacy-settings`（账号隐私设置）、
-`/remote-env`（teleport 远程环境）、`/feedback`（fedstart 调查）、`/install-slack-app`、
-`/think-back`（从 GitHub 拉插件市场）、`/install-github-app`、`/review` 的 ultrareview
-（余额/超额计费）、`/release-notes`（从 GitHub 拉 CHANGELOG）。
+**① 已停用（commit 2f7288d，用 `isEnabled: () => false`，与 teleport/bughunter 惯例一致）**
+`/mobile`、`/stickers`、`/passes`、`/install-github-app`、`/release-notes`、
+`/think-back`、`/thinkback-play`
 
-**③ 千万别误删 —— 功能是本地能力，只是带了个文档链接**
+**② 已本地替代**
+`/feedback` 原本 POST 到 `https://127.0.0.1/api/limkenion_cli_feedback`（不存在的内部端点，
+必然失败）→ 改写 `~/.limkenion/feedback/<时间戳>-<id>.json`（0600）；
+同时删掉把反馈正文 `logEventTo1P` 上报第一方遥测的调用（无云服务 + 那是用户原文）。
+
+**③ 早就是死路径，无需处理**
+`/chrome`、`/desktop`（`availability: ['limkenion-ai']` 需订阅 → 本地恒隐藏）、
+`/privacy-settings`（`isConsumerSubscriber()`）、`/remote-env`（`isLimkenionAISubscriber()`）、
+`/extra-usage`（`isOverageProvisioningAllowed()` 恒 false）、
+`/rate-limit-options`（`isHidden: true`）、`/upgrade`、
+以及 `/teleport`、`/ant-trace`、`/bughunter`、`/backfill-sessions`、`/mock-limits`、
+`/reset-limits`、`/perf-issue`、`/issue`。
+
+**④ 千万别误删 —— 功能是本地能力，只是带了个文档链接**
 - **`/web` 是本地 Web UI 服务器**（`http://localhost:${port}`），是本仓库 `web/` 交付物的一部分，
   **必须保留**。
-- `/fast`（fast 模式）、`/memory` —— 只是 "Learn more: <Link>"，删链接即可。
+- `/fast`、`/memory` —— 只是 "Learn more: <Link>"，删链接即可。
 - `/ide` —— IDE 集成本地可用；只有 JetBrains 插件下载链接指向不存在的 docs。
 - `/mcp` —— 本地 MCP 保留；只有远程 MCP 代理（`mcp-proxy.limkenion.com`）没了。
 
-**④ 非命令的云端依赖**
-遥测/错误上报（sentry、Statsig/GrowthBook 功能开关）、官方插件市场自动安装（已默认关闭）、
-远程 agent 调度（`skills/bundled/scheduleRemoteAgents`）、GitHub Action（`.github/workflows`）、
-内部构建端点（`artifactory.infra.ant.dev`）。
+### 关键陷阱：`availability` 字段的实际语义
+`commands.ts:meetsAvailabilityRequirement()` 决定命令是否可见，在 `isEnabled()` **之前**运行：
+- `availability: ['limkenion-ai']` → 要求 `isLimkenionAISubscriber()` → **本地恒 false → 隐藏**
+- `availability: ['console']` → 要求 `!subscriber && !isUsing3PServices() && isFirstPartyLimkenionBaseUrl()`
+  → **本地反而恒 true → 可见**（未设 `LIMKENION_BASE_URL` 时 `isFirstPartyLimkenionBaseUrl()` 返回 true）
+
+判断"某命令本地是否可见"必须同时看 `availability` 和 `isEnabled` 两个条件，
+只看其中一个会得出错误结论（我第一遍就错了）。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
