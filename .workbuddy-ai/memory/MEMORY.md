@@ -46,10 +46,20 @@
 ## 硬约束与每轮惯例（纯本地 DeepSeek 版）
 - **无任何在线账号 / OAuth / 订阅 / 云供应商**。登录 = 设置 `DEEPSEEK_API_KEY` 或 `OPENAI_API_KEY`
   （OpenAI 兼容端点，默认 `https://api.deepseek.com`），模型只有 `deepseek-flash`。
-- **源码不得出现英文单词 `CC` / `上游兼容` / `内部代号`**（2026-09-17 复核：`内部代号` 全仓 0 命中；
-  `CC|上游兼容` 仅剩 4 处中文注释提及，见未决事项）。
+- **源码不得出现英文单词 `CC` / `上游兼容` / `内部代号`**。2026-09-17 已清干净：
+  `内部代号` 全仓 0 命中；`CC|上游兼容` 仅 `scripts/build-cli.mjs` 的 `BRAND_TOKENS` 清洗名单
+  还含（**故意保留**，它就是用来从产物里抹掉它们的）。
 - 已删：`services/oauth/`、`/setup-token`、订阅/计费、云供应商真实路由。
 - 保留：命令体系、plan/权限/沙箱、MCP、plugins/skills/子代理、memory(CC.md)、hooks、CI/headless、IDE 扩展。
+- **判断"是否 OpenAI 兼容模式"只许用 `isOpenAICompat()`**（`utils/model/providers.ts`），
+  不要硬比 `process.env.LIMKENION_API_PROVIDER === 'openai'`。
+  2026-09-17 踩过：三处硬比导致只设 `DEEPSEEK_API_KEY` 时 queryModel 落到已移除的上游 SDK 路径，
+  每次请求必报"上游 client 已移除"（commit 26d53b0 已修）。
+  `isOpenAICompat()` 的取 key 顺序必须与 `services/api/openai-compat.ts` 的 `getConfig()` 保持一致。
+- 上游 SDK 已不存在（`types/llm-protocol.ts` 里的 `Limkenion` 只是会抛错的占位类），
+  **任何非兼容路径都是死路**，`.beta` / `.messages` 一碰就抛。
+- 官方插件市场自动安装**默认关闭**（云端源不存在）；要开得显式设
+  `LIMKENION_ENABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1`。
 - **每轮改完的惯例**：`node scripts/build-cli.mjs` 必须 0 错误 → `npm install -g .` → git commit
   （**切莫动 git config，不 push**）。全局命令 `limkenion` 已安装。
 - `scripts/build-cli.mjs` 内置两道 post-build 清洗：品牌 token 中性化（`CCBot`/`上游` → `Limkenion*`）
@@ -69,6 +79,15 @@
   - Node 的 `fetch` 直连可用；**DuckDuckGo 被墙/超时，Bing 可用**（WebSearch 以 Bing 为数据源）。
 - 机器上**没有 agent-browser**，且不允许全局 npm 安装。
   验证 React 组件能否渲染的替代方案：esbuild 打包成 **CJS** + `react-dom/server` 的 `renderToString`。
+- **非交互跑 CLI 必须先设 `LIMKENION_GIT_BASH_PATH`**：本机 bash 在
+  `C:\Users\20653\.workbuddy-ai\binaries\PortableGit\versions\1.2.0\usr\bin\bash.exe`（不在系统 PATH），
+  否则 `limkenion -p "..."` 直接报 "requires git-bash" 退出。
+  冒烟命令：`limkenion -p "只回复两个字：收到" --no-session-persistence`。
+- **单测某个源码模块**（如 `services/api/errors.ts` 的错误映射）：用 esbuild 打成单文件再 node 跑，
+  `--banner:js="import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"`
+  **不能省**（否则 execa/cross-spawn 的 `Dynamic require` 直接炸），
+  同时带上 `--alias:bun:bundle=./bun-bundle-stub.ts` 与 `--tsconfig=./tsconfig.json`。
+  纯 node 直跑会撞 `Config accessed before allowed` —— 那是没走 bootstrap，不是 bug，别误判。
 - 托管 Node：`C:\Users\20653\.workbuddy-ai\binaries\node\versions\22.22.2-2\node.exe`
 - 托管 Python：`C:\Users\20653\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe`
 - 系统 Node：`D:\nodejs\node.exe`（v24.20.0）+ `D:\nodejs\npm.cmd`（npm 11.19.0）。
@@ -99,5 +118,11 @@
    那是**故意保留**的（它就是用来从产物里抹掉它们的），改动时别删。
 3. **已解决（2026-09-17）**：`COMMENT_I18N_PLAN.md` 移入 `.workbuddy-ai/i18n/`（不进 git），
    注释中文化工程按用户决定**暂停**。
-4. `HANDOFF.md`（已跟踪）记录源码树重建过程，内容仍准确，但提到的 174/175 缺失已补完。
+4. `HANDOFF.md`（已跟踪）记录源码树重建过程，开头已补"现状补充"块（commit 4cdae44）。
 5. web 端真实引擎依赖 `DEEPSEEK_API_KEY`，未设置时降级 mock（工具不会被模型调用，但可直接单测）。
+6. **`/login` 不做实际登录**：`components/ConsoleOAuthFlow.tsx` 只显示"设环境变量后重启"并等 Enter，
+   不写 key。2026-09-17 已把其中那句假的"已连接 DeepSeek"改成实话。
+   若要让 /login 真能录入并持久化 key，需另开一轮（要动 .tsx 结构，注意 react-compiler 记忆化）。
+7. 用户机器上的 `DEEPSEEK_API_KEY`（尾号 06ae）2026-09-17 被 DeepSeek 判为 invalid
+   （`curl https://api.deepseek.com/models` 直接 401）—— 属凭据问题，非代码问题。
+   **key 值不要写进任何记忆文件**。
