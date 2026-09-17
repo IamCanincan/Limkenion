@@ -56,11 +56,6 @@ export type PastedContent = {
   sourcePath?: string // Original file path for images dragged onto the terminal
 }
 
-export interface SerializedStructuredHistoryEntry {
-  display: string
-  pastedContents?: Record<number, PastedContent>
-  pastedText?: string
-}
 export interface HistoryEntry {
   display: string
   pastedContents: Record<number, PastedContent>
@@ -657,9 +652,6 @@ export const GLOBAL_CONFIG_KEYS = [
 
 export type GlobalConfigKey = (typeof GLOBAL_CONFIG_KEYS)[number]
 
-export function isGlobalConfigKey(key: string): key is GlobalConfigKey {
-  return GLOBAL_CONFIG_KEYS.includes(key as GlobalConfigKey)
-}
 
 export const PROJECT_CONFIG_KEYS = [
   'allowedTools',
@@ -680,9 +672,6 @@ export type ProjectConfigKey = (typeof PROJECT_CONFIG_KEYS)[number]
  */
 let _trustAccepted = false
 
-export function resetTrustDialogAcceptedCacheForTesting(): void {
-  _trustAccepted = false
-}
 
 export function checkHasTrustDialogAccepted(): boolean {
   // Trust only transitions false→true during a session (never the reverse),
@@ -732,23 +721,6 @@ function computeTrustDialogAccepted(): boolean {
   return false
 }
 
-/**
- * Check trust for an arbitrary directory (not the session cwd).
- * Walks up from `dir`, returning true if any ancestor has trust persisted.
- * Unlike checkHasTrustDialogAccepted, this does NOT consult session trust or
- * the memoized project path — use when the target dir differs from cwd (e.g.
- * /assistant installing into a user-typed path).
- */
-export function isPathTrusted(dir: string): boolean {
-  const config = getGlobalConfig()
-  let currentPath = normalizePathForConfigKey(resolve(dir))
-  while (true) {
-    if (config.projects?.[currentPath]?.hasTrustDialogAccepted) return true
-    const parentPath = normalizePathForConfigKey(resolve(currentPath, '..'))
-    if (parentPath === currentPath) return false
-    currentPath = parentPath
-  }
-}
 
 // We have to put this test code here because Jest doesn't support mocking ES modules :O
 const TEST_GLOBAL_CONFIG_FOR_TESTING: GlobalConfig = {
@@ -759,9 +731,6 @@ const TEST_PROJECT_CONFIG_FOR_TESTING: ProjectConfig = {
   ...DEFAULT_PROJECT_CONFIG,
 }
 
-export function isProjectConfigKey(key: string): key is ProjectConfigKey {
-  return PROJECT_CONFIG_KEYS.includes(key as ProjectConfigKey)
-}
 
 /**
  * Detect whether writing `fresh` would lose auth/onboarding state that the
@@ -874,7 +843,6 @@ export function getGlobalConfigWriteCount(): number {
   return globalConfigWriteCount
 }
 
-export const CONFIG_WRITE_DISPLAY_THRESHOLD = 20
 
 function reportConfigCacheStats(): void {
   const total = configCacheHits + configCacheMisses
@@ -1796,12 +1764,3 @@ export function getUserLimkenionRulesDir(): string {
   return join(getLimkenionConfigHomeDir(), 'rules')
 }
 
-// Exported for testing only
-export const _getConfigForTesting = getConfig
-export const _wouldLoseAuthStateForTesting = wouldLoseAuthState
-export function _setGlobalConfigCacheForTesting(
-  config: GlobalConfig | null,
-): void {
-  globalConfigCache.config = config
-  globalConfigCache.mtime = config ? Date.now() : 0
-}

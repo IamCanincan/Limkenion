@@ -19,12 +19,4 @@ export function logRemoteSkillLoaded(_fields: RemoteSkillTelemetryFields): void 
   // no-op
 }
 
-/** Record that a skill was surfaced by discovery. No-op locally. */
-export function logSkillDiscovered(_name: string): void {
-  // no-op
-}
 
-/** Clear per-session skill telemetry state. No-op locally. */
-export function resetSkillTelemetry(): void {
-  // no-op
-}

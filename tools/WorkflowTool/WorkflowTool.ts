@@ -240,21 +240,6 @@ export const WorkflowTool = buildTool({
   },
 } satisfies ToolDef<InputSchema, Output>)
 
-/**
- * 判断本次调用应运行哪个脚本。
- *
- * `scriptPath` 优先，这样编辑过的运行可以逐字节重新启动，其次是
- * 保存的 `name`，然后是内联的 `script`。在这里按名称解析（而不是
- * 让模型把脚本再粘贴回来）正是 `/deep-research` 和
- * 已保存的工作流能成为单行调用的原因。
- */
-export async function resolveScriptForTesting(input: {
-  script?: string
-  scriptPath?: string
-  name?: string
-}): Promise<{ script: string; scriptPath?: string } | { error: string }> {
-  return resolveScript(input)
-}
 
 async function resolveScript(input: {
   script?: string

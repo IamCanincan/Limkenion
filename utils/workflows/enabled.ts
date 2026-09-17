@@ -62,21 +62,6 @@ export function areWorkflowsEnabled(): boolean {
   return getWorkflowsDisabledReason() === null
 }
 
-/**
- * Whether typing `ultracode` opts a turn into orchestration.
- *
- * On by default; the `/config` row writes `false` to turn it off. Independent
- * of whether workflows themselves are enabled — a disabled feature has no
- * keyword to suppress.
- */
-export function isWorkflowKeywordTriggerEnabled(): boolean {
-  if (!areWorkflowsEnabled()) return false
-  // The keyword is an opt-in only in a prompt the user typed. A `-p` run, an
-  // SDK caller, a scheduled task, or a relayed PR comment can all contain the
-  // word "ultracode" without anyone having asked for a hundred agents.
-  if (getIsNonInteractiveSession()) return false
-  return getSettings_DEPRECATED().workflowKeywordTriggerEnabled ?? true
-}
 
 export type LargeWorkflowWarning = {
   axis: 'agents' | 'tokens' | 'both'

@@ -98,12 +98,6 @@ function getSessionMemoryRemoteConfig(): Partial<SessionMemoryConfig> {
 
 let lastMemoryMessageUuid: string | undefined
 
-/**
- * Reset the last memory message UUID (for testing)
- */
-export function resetLastMemoryMessageUuid(): void {
-  lastMemoryMessageUuid = undefined
-}
 
 function countToolCallsSince(
   messages: Message[],

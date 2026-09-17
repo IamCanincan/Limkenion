@@ -94,13 +94,6 @@ export function getLimkenionSocketName(): string {
   return socketName
 }
 
-/**
- * 若套接字已初始化则返回套接字路径。
- * 尚未初始化时返回 null。
- */
-export function getLimkenionSocketPath(): string | null {
-  return socketPath
-}
 
 /**
  * 初始化后设置套接字信息。
@@ -178,14 +171,6 @@ export function isTmuxAvailable(): boolean {
   return tmuxAvailabilityChecked && tmuxAvailable
 }
 
-/**
- * 标记 Tmux 工具至少被使用过一次。
- * 由 TungstenTool 在初始化前调用。
- * 调用后，Shell.ts 将为后续 Bash 命令初始化套接字。
- */
-export function markTmuxToolUsed(): void {
-  tmuxToolUsed = true
-}
 
 /**
  * 返回 Tmux 工具是否至少被使用过一次。
@@ -411,14 +396,3 @@ async function doInitialize(): Promise<void> {
   )
 }
 
-// 用于测试
-export function resetSocketState(): void {
-  socketName = null
-  socketPath = null
-  serverPid = null
-  isInitializing = false
-  initPromise = null
-  tmuxAvailabilityChecked = false
-  tmuxAvailable = false
-  tmuxToolUsed = false
-}

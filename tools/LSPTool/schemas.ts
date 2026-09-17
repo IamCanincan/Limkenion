@@ -195,21 +195,3 @@ export const lspToolInputSchema = lazySchema(() => {
  */
 export type LSPToolInput = z.infer<ReturnType<typeof lspToolInputSchema>>
 
-/**
- * 用于检查某个操作是否为有效 LSP 操作的类型守卫
- */
-export function isValidLSPOperation(
-  operation: string,
-): operation is LSPToolInput['operation'] {
-  return [
-    'goToDefinition',
-    'findReferences',
-    'hover',
-    'documentSymbol',
-    'workspaceSymbol',
-    'goToImplementation',
-    'prepareCallHierarchy',
-    'incomingCalls',
-    'outgoingCalls',
-  ].includes(operation)
-}

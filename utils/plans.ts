@@ -55,14 +55,6 @@ export function setPlanSlug(sessionId: SessionId, slug: string): void {
   getPlanSlugCache().set(sessionId, slug)
 }
 
-/**
- * Clear the plan slug for the current session.
- * This should be called on /clear to ensure a fresh plan file is used.
- */
-export function clearPlanSlug(sessionId?: SessionId): void {
-  const id = sessionId ?? getSessionId()
-  getPlanSlugCache().delete(id)
-}
 
 /**
  * Clear ALL plan slug entries (all sessions).

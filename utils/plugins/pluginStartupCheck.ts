@@ -162,16 +162,6 @@ export function getPluginEditableScopes(): Map<string, ExtendedPluginScope> {
   return result
 }
 
-/**
- * Check if a scope is persistable (not session-only).
- * @param scope The scope to check
- * @returns true if the scope should be persisted to installed_plugins.json
- */
-export function isPersistableScope(
-  scope: ExtendedPluginScope,
-): scope is PersistablePluginScope {
-  return scope !== 'flag'
-}
 
 /**
  * Convert SettingSource to plugin scope.

@@ -57,17 +57,7 @@ let stateListener: SessionStateChangedListener | null = null
 let metadataListener: SessionMetadataChangedListener | null = null
 let permissionModeListener: PermissionModeChangedListener | null = null
 
-export function setSessionStateChangedListener(
-  cb: SessionStateChangedListener | null,
-): void {
-  stateListener = cb
-}
 
-export function setSessionMetadataChangedListener(
-  cb: SessionMetadataChangedListener | null,
-): void {
-  metadataListener = cb
-}
 
 /**
  * Register a listener for permission-mode changes from onChangeAppState.

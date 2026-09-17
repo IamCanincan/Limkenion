@@ -605,14 +605,6 @@ export const NodeFsOperations: FsOperations = {
 // The currently active filesystem implementation
 let activeFs: FsOperations = NodeFsOperations
 
-/**
- * Overrides the filesystem implementation. Note: This function does not
- * automatically update cwd.
- * @param implementation The filesystem implementation to use
- */
-export function setFsImplementation(implementation: FsOperations): void {
-  activeFs = implementation
-}
 
 /**
  * Gets the currently active filesystem implementation
@@ -622,13 +614,6 @@ export function getFsImplementation(): FsOperations {
   return activeFs
 }
 
-/**
- * Resets the filesystem implementation to the default Node.js implementation.
- * Note: This function does not automatically update cwd.
- */
-export function setOriginalFsImplementation(): void {
-  activeFs = NodeFsOperations
-}
 
 export type ReadFileRangeResult = {
   content: string

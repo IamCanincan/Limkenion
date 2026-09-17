@@ -31,10 +31,6 @@ export type ModelKey = keyof typeof ALL_MODEL_CONFIGS
 export type CanonicalModelId =
   (typeof ALL_MODEL_CONFIGS)[ModelKey]['firstParty']
 
-/** Runtime list of canonical model IDs — used by comprehensiveness tests. */
-export const CANONICAL_MODEL_IDS = Object.values(ALL_MODEL_CONFIGS).map(
-  c => c.firstParty,
-) as [CanonicalModelId, ...CanonicalModelId[]]
 
 /** Map canonical ID → internal short key. Used to apply settings-based modelOverrides. */
 export const CANONICAL_ID_TO_KEY: Record<CanonicalModelId, ModelKey> =

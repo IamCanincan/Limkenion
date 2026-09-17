@@ -101,17 +101,7 @@ export type WorkflowProgressEvent =
   | WorkflowPhaseEvent
   | WorkflowLogEvent
 
-export function isWorkflowAgentEvent(
-  event: WorkflowProgressEvent,
-): event is WorkflowAgentEvent {
-  return event.type === 'workflow_agent'
-}
 
-export function isWorkflowPhaseEvent(
-  event: WorkflowProgressEvent,
-): event is WorkflowPhaseEvent {
-  return event.type === 'workflow_phase'
-}
 
 /** Progress rows worth persisting in the run summary — logs are transient. */
 export function isDurableWorkflowEvent(event: WorkflowProgressEvent): boolean {

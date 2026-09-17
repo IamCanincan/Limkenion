@@ -114,10 +114,6 @@ export async function uploadUserSettingsInBackground(): Promise<void> {
 // installPluginsAndApplyMcpInBackground share one fetch.
 let downloadPromise: Promise<boolean> | null = null
 
-/** Test-only: clear the cached download promise between tests. */
-export function _resetDownloadPromiseForTesting(): void {
-  downloadPromise = null
-}
 
 /**
  * Download settings from remote for CCR mode.

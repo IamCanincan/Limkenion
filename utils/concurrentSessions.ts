@@ -135,17 +135,6 @@ export async function updateSessionName(
   await updatePidFile({ name })
 }
 
-/**
- * Record this session's Remote Control session ID so peer enumeration can
- * dedup: a session reachable over both UDS and bridge should only appear
- * once (local wins). Cleared on bridge teardown so stale IDs don't
- * suppress a legitimately-remote session after reconnect.
- */
-export async function updateSessionBridgeId(
-  bridgeSessionId: string | null,
-): Promise<void> {
-  await updatePidFile({ bridgeSessionId })
-}
 
 /**
  * Push live activity state for `limkenion ps`. Fire-and-forget from REPL's

@@ -8,10 +8,6 @@ import type { PermissionDecision, PermissionDecisionReason } from '../../utils/p
 import { permissionRuleValueToString } from '../../utils/permissions/permissionRuleParser.js';
 import type { Theme } from '../../utils/theme.js';
 import ThemedText from '../design-system/ThemedText.js';
-export type PermissionRuleExplanationProps = {
-  permissionResult: PermissionDecision;
-  toolType: 'tool' | 'command' | 'edit' | 'read';
-};
 type DecisionReasonStrings = {
   reasonString: string;
   configString?: string;

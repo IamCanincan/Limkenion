@@ -81,14 +81,3 @@ export function getTimeZone(): string {
 // a stripped-ICU environment fails once instead of retrying on every call).
 let cachedSystemLocaleLanguage: string | undefined | null = null
 
-export function getSystemLocaleLanguage(): string | undefined {
-  if (cachedSystemLocaleLanguage === null) {
-    try {
-      const locale = Intl.DateTimeFormat().resolvedOptions().locale
-      cachedSystemLocaleLanguage = new Intl.Locale(locale).language
-    } catch {
-      cachedSystemLocaleLanguage = undefined
-    }
-  }
-  return cachedSystemLocaleLanguage
-}

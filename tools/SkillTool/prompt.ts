@@ -194,24 +194,3 @@ export function clearPromptCache(): void {
   getPrompt.cache?.clear?.()
 }
 
-export async function getSkillInfo(cwd: string): Promise<{
-  totalSkills: number
-  includedSkills: number
-}> {
-  try {
-    const skills = await getSlashCommandToolSkills(cwd)
-
-    return {
-      totalSkills: skills.length,
-      includedSkills: skills.length,
-    }
-  } catch (error) {
-    logError(toError(error))
-
-    // 返回零而不是抛错 - 由调用方决定如何处理
-    return {
-      totalSkills: 0,
-      includedSkills: 0,
-    }
-  }
-}

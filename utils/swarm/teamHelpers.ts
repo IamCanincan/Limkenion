@@ -48,11 +48,6 @@ export type SpawnTeamOutput = {
   lead_agent_id: string
 }
 
-export type CleanupOutput = {
-  success: boolean
-  message: string
-  team_name?: string
-}
 
 export type TeamAllowedPath = {
   path: string // Directory path (absolute)

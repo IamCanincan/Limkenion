@@ -191,33 +191,3 @@ export function resetCwdIfOutsideProject(
   return false
 }
 
-/**
- * 为结构化内容块创建人类可读的摘要。
- * 用于在 UI 中展示含图片和文本的 MCP 结果。
- */
-export function createContentSummary(content: ContentBlockParam[]): string {
-  const parts: string[] = []
-  let textCount = 0
-  let imageCount = 0
-
-  for (const block of content) {
-    if (block.type === 'image') {
-      imageCount++
-    } else if (block.type === 'text' && 'text' in block) {
-      textCount++
-      // 包含文本块的前 200 个字符作为上下文
-      const preview = block.text.slice(0, 200)
-      parts.push(preview + (block.text.length > 200 ? '...' : ''))
-    }
-  }
-
-  const summary: string[] = []
-  if (imageCount > 0) {
-    summary.push(`[${imageCount} ${plural(imageCount, 'image')}]`)
-  }
-  if (textCount > 0) {
-    summary.push(`[${textCount} text ${plural(textCount, 'block')}]`)
-  }
-
-  return `MCP Result: ${summary.join(', ')}${parts.length > 0 ? '\n\n' + parts.join('\n\n') : ''}`
-}

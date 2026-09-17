@@ -206,13 +206,6 @@ export async function pruneRemovedPluginHooks(): Promise<void> {
   registerHookCallbacks(survivors)
 }
 
-/**
- * Reset hot reload subscription state. Only for testing.
- */
-export function resetHotReloadState(): void {
-  hotReloadSubscribed = false
-  lastPluginSettingsSnapshot = undefined
-}
 
 /**
  * Build a stable string snapshot of the settings that feed into

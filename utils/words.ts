@@ -789,12 +789,3 @@ export function generateWordSlug(): string {
   return `${adjective}-${verb}-${noun}`
 }
 
-/**
- * Generate a shorter random word slug in the format "adjective-noun"
- * Example: "graceful-unicorn", "cosmic-lighthouse"
- */
-export function generateShortWordSlug(): string {
-  const adjective = pickRandom(ADJECTIVES)
-  const noun = pickRandom(NOUNS)
-  return `${adjective}-${noun}`
-}

@@ -494,13 +494,6 @@ function findLastUuid(logs: Entry[] | null): UUID | undefined {
   return entry && 'uuid' in entry ? (entry.uuid as UUID) : undefined
 }
 
-/**
- * 清除某个会话的缓存状态
- */
-export function clearSession(sessionId: string): void {
-  lastUuidMap.delete(sessionId)
-  sequentialAppendBySession.delete(sessionId)
-}
 
 /**
  * 清除所有会话的缓存状态（全部会话）。

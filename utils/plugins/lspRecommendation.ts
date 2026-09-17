@@ -356,19 +356,3 @@ export function isLspRecommendationsDisabled(): boolean {
   )
 }
 
-/**
- * Reset the ignored count (useful if user re-enables recommendations)
- */
-export function resetIgnoredCount(): void {
-  saveGlobalConfig(currentConfig => {
-    const currentCount = currentConfig.lspRecommendationIgnoredCount ?? 0
-    if (currentCount === 0) {
-      return currentConfig
-    }
-    return {
-      ...currentConfig,
-      lspRecommendationIgnoredCount: 0,
-    }
-  })
-  logForDebugging('[lspRecommendation] Reset ignored count')
-}

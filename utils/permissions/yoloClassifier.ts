@@ -191,17 +191,6 @@ export function getAutoModeClassifierErrorDumpPath(): string {
   )
 }
 
-/**
- * Snapshot of the most recent classifier API request(s), stringified lazily
- * only when /share reads it. Array because the XML path may send two requests
- * (stage1 + stage2). Stored in bootstrap/state.ts to avoid module-scope
- * mutable state.
- */
-export function getAutoModeClassifierTranscript(): string | null {
-  const requests = getLastClassifierRequests()
-  if (requests === null) return null
-  return jsonStringify(requests, null, 2)
-}
 
 /**
  * Dump classifier input prompts + context-comparison diagnostics on API error.

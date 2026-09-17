@@ -103,15 +103,6 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
   return false
 }
 
-/**
- * 返回给定代理类型与作用域的代理记忆文件路径。
- */
-export function getAgentMemoryEntrypoint(
-  agentType: string,
-  scope: AgentMemoryScope,
-): string {
-  return join(getAgentMemoryDir(agentType, scope), 'MEMORY.md')
-}
 
 export function getMemoryScopeDisplay(
   memory: AgentMemoryScope | undefined,

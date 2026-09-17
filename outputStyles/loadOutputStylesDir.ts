@@ -91,8 +91,3 @@ export const getOutputStyleDirStyles = memoize(
   },
 )
 
-export function clearOutputStyleCaches(): void {
-  getOutputStyleDirStyles.cache?.clear?.()
-  loadMarkdownFilesForSubdir.cache?.clear?.()
-  clearPluginOutputStyleCache()
-}

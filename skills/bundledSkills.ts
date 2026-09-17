@@ -107,12 +107,6 @@ export function getBundledSkills(): Command[] {
   return [...bundledSkills]
 }
 
-/**
- * Clear bundled skills registry (for testing).
- */
-export function clearBundledSkills(): void {
-  bundledSkills.length = 0
-}
 
 /**
  * Deterministic extraction directory for a bundled skill's reference files.

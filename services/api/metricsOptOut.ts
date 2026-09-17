@@ -153,7 +153,3 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
   return refreshMetricsStatus()
 }
 
-// 仅用于测试导出
-export const _clearMetricsEnabledCacheForTesting = (): void => {
-  memoizedCheckMetrics.cache.clear()
-}

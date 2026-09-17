@@ -34,6 +34,3 @@ export function getBundledWorkflows(): WorkflowDefinition[] {
   return definitions
 }
 
-export function resetBundledWorkflowsForTesting(): void {
-  cached = null
-}

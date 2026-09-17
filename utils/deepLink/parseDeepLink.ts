@@ -147,19 +147,3 @@ export function parseDeepLink(uri: string): DeepLinkAction {
   return { query, cwd, repo }
 }
 
-/**
- * 构建 limkenion-cli:// 深度链接 URL。
- */
-export function buildDeepLink(action: DeepLinkAction): string {
-  const url = new URL(`${DEEP_LINK_PROTOCOL}://open`)
-  if (action.query) {
-    url.searchParams.set('q', action.query)
-  }
-  if (action.cwd) {
-    url.searchParams.set('cwd', action.cwd)
-  }
-  if (action.repo) {
-    url.searchParams.set('repo', action.repo)
-  }
-  return url.toString()
-}

@@ -19,12 +19,6 @@ function mapConfigsToOptions(styles: {
     description: config?.description ?? DEFAULT_OUTPUT_STYLE_DESCRIPTION
   }));
 }
-export type OutputStylePickerProps = {
-  initialStyle: OutputStyle;
-  onComplete: (style: OutputStyle) => void;
-  onCancel: () => void;
-  isStandaloneCommand?: boolean;
-};
 export function OutputStylePicker(t0) {
   const $ = _c(16);
   const {

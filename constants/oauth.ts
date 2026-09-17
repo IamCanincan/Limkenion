@@ -43,12 +43,6 @@ export const LIMKENION_AI_OAUTH_SCOPES = [
   'user:file_upload',
 ] as const
 
-// All OAuth scopes - union of all scopes used in Limkenion CLI
-// When logging in, request all scopes in order to handle both Console -> Limkenion.ai redirect
-// Ensure that `OAuthConsentPage` in apps repo is kept in sync with this list.
-export const ALL_OAUTH_SCOPES = Array.from(
-  new Set([...CONSOLE_OAUTH_SCOPES, ...LIMKENION_AI_OAUTH_SCOPES]),
-)
 
 type OauthConfig = {
   BASE_API_URL: string

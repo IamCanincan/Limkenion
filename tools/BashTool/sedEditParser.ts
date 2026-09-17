@@ -33,14 +33,6 @@ export type SedEditInfo = {
   extendedRegex: boolean
 }
 
-/**
- * 检查命令是否为 sed 就地编辑命令
- * 仅对简单的 sed -i 's/pattern/replacement/flags' file 命令返回 true
- */
-export function isSedInPlaceEdit(command: string): boolean {
-  const info = parseSedEditCommand(command)
-  return info !== null
-}
 
 /**
  * 解析 sed 编辑命令并提取编辑信息

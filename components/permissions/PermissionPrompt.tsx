@@ -20,13 +20,6 @@ export type ToolAnalyticsContext = {
   toolName: string;
   isMcp: boolean;
 };
-export type PermissionPromptProps<T extends string> = {
-  options: PermissionPromptOption<T>[];
-  onSelect: (value: T, feedback?: string) => void;
-  onCancel?: () => void;
-  question?: string | ReactNode;
-  toolAnalyticsContext?: ToolAnalyticsContext;
-};
 const DEFAULT_PLACEHOLDERS: Record<FeedbackType, string> = {
   accept: '告诉 Limkenion 接下来要做什么',
   reject: '告诉 Limkenion 要做出哪些不同的处理'

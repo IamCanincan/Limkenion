@@ -87,13 +87,6 @@ export function getSessionMemoryCompactConfig(): SessionMemoryCompactConfig {
   return { ...smCompactConfig }
 }
 
-/**
- * Reset config state (useful for testing)
- */
-export function resetSessionMemoryCompactConfig(): void {
-  smCompactConfig = { ...DEFAULT_SM_COMPACT_CONFIG }
-  configInitialized = false
-}
 
 /**
  * Initialize configuration from remote config (GrowthBook).

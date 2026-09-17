@@ -431,11 +431,6 @@ export function addToHistory(command: HistoryEntry | string): void {
   void addToPromptHistory(command)
 }
 
-export function clearPendingHistoryEntries(): void {
-  pendingEntries = []
-  lastAddedEntry = null
-  skippedTimestamps.clear()
-}
 
 /**
  * 撤销最近一次 addToHistory 调用。供「中断时自动恢复」使用：

@@ -76,13 +76,6 @@ export type RemoteTaskMetadata = AutofixPrRemoteTaskMetadata;
 export type RemoteTaskCompletionChecker = (remoteTaskMetadata: RemoteTaskMetadata | undefined) => Promise<string | null>;
 const completionCheckers = new Map<RemoteTaskType, RemoteTaskCompletionChecker>();
 
-/**
- * Register a completion checker for a remote task type. Invoked on every poll
- * tick; survives --resume via the sidecar's remoteTaskType + remoteTaskMetadata.
- */
-export function registerCompletionChecker(remoteTaskType: RemoteTaskType, checker: RemoteTaskCompletionChecker): void {
-  completionCheckers.set(remoteTaskType, checker);
-}
 
 /**
  * Persist a remote-agent metadata entry to the session sidecar.
@@ -200,42 +193,7 @@ function markTaskNotified(taskId: string, setAppState: SetAppState): boolean {
   return shouldEnqueue;
 }
 
-/**
- * Extract the plan content from the remote session log.
- * Searches all assistant messages for <ultraplan>...</ultraplan> tags.
- */
-export function extractPlanFromLog(log: SDKMessage[]): string | null {
-  // Walk backwards through assistant messages to find <ultraplan> content
-  for (let i = log.length - 1; i >= 0; i--) {
-    const msg = log[i];
-    if (msg?.type !== 'assistant') continue;
-    const fullText = extractTextContent(msg.message.content, '\n');
-    const plan = extractTag(fullText, ULTRAPLAN_TAG);
-    if (plan?.trim()) return plan.trim();
-  }
-  return null;
-}
 
-/**
- * Enqueue an ultraplan-specific failure notification. Unlike enqueueRemoteNotification
- * this does NOT instruct the model to read the raw output file (a JSONL dump that is
- * useless for plan extraction).
- */
-export function enqueueUltraplanFailureNotification(taskId: string, sessionId: string, reason: string, setAppState: SetAppState): void {
-  if (!markTaskNotified(taskId, setAppState)) return;
-  const sessionUrl = getRemoteTaskSessionUrl(sessionId);
-  const message = `<${TASK_NOTIFICATION_TAG}>
-<${TASK_ID_TAG}>${taskId}</${TASK_ID_TAG}>
-<${TASK_TYPE_TAG}>remote_agent</${TASK_TYPE_TAG}>
-<${STATUS_TAG}>failed</${STATUS_TAG}>
-<${SUMMARY_TAG}>Ultraplan failed: ${reason}</${SUMMARY_TAG}>
-</${TASK_NOTIFICATION_TAG}>
-The remote Ultraplan session did not produce a plan (${reason}). Inspect the session at ${sessionUrl} and tell the user to retry locally with plan mode.`;
-  enqueuePendingNotification({
-    value: message,
-    mode: 'task-notification'
-  });
-}
 
 /**
  * Extract review content from the remote session log.

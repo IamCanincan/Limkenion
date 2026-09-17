@@ -201,20 +201,6 @@ export type BaseTextInputProps = {
   readonly inputFilter?: (input: string, key: Key) => string
 }
 
-/**
- * Extended props for VimTextInput
- */
-export type VimTextInputProps = BaseTextInputProps & {
-  /**
-   * Initial vim mode to use
-   */
-  readonly initialMode?: VimMode
-
-  /**
-   * Optional callback for mode changes
-   */
-  readonly onModeChange?: (mode: VimMode) => void
-}
 
 /**
  * Vim editor modes
@@ -251,13 +237,6 @@ export type BaseInputState = {
  */
 export type TextInputState = BaseInputState
 
-/**
- * State for vim input with mode
- */
-export type VimInputState = BaseInputState & {
-  mode: VimMode
-  setMode: (mode: VimMode) => void
-}
 
 /**
  * Input modes for the prompt

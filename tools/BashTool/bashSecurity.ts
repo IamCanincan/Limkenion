@@ -557,10 +557,6 @@ export function stripSafeHeredocSubstitutions(command: string): string | null {
   return result
 }
 
-/** 仅检测用途的检查：命令是否包含安全的 heredoc 替换？ */
-export function hasSafeHeredocSubstitution(command: string): boolean {
-  return stripSafeHeredocSubstitutions(command) !== null
-}
 
 function validateSafeCommandSubstitution(
   context: ValidationContext,

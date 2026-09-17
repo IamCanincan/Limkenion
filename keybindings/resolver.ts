@@ -19,46 +19,6 @@ export type ChordResolveResult =
   | { type: 'chord_started'; pending: ParsedKeystroke[] }
   | { type: 'chord_cancelled' }
 
-/**
- * 把按键输入解析为一个动作。
- * 纯函数 —— 无状态、无副作用，只有匹配逻辑。
- *
- * @param input - 来自 Ink 的字符输入
- * @param key - 来自 Ink 的带修饰键标志的 Key 对象
- * @param activeContexts - 当前激活的上下文数组（例如 ['Chat', 'Global']）
- * @param bindings - 要搜索的所有已解析绑定
- * @returns 解析结果
- */
-export function resolveKey(
-  input: string,
-  key: Key,
-  activeContexts: KeybindingContextName[],
-  bindings: ParsedBinding[],
-): ResolveResult {
-  // 查找匹配的绑定（用户覆盖时靠后者胜出）
-  let match: ParsedBinding | undefined
-  const ctxSet = new Set(activeContexts)
-
-  for (const binding of bindings) {
-    // 第 1 阶段：仅单按键绑定
-    if (binding.chord.length !== 1) continue
-    if (!ctxSet.has(binding.context)) continue
-
-    if (matchesBinding(input, key, binding)) {
-      match = binding
-    }
-  }
-
-  if (!match) {
-    return { type: 'none' }
-  }
-
-  if (match.action === null) {
-    return { type: 'unbound' }
-  }
-
-  return { type: 'match', action: match.action }
-}
 
 /**
  * 从绑定中获取某个动作的显示文本（例如 “app:toggleTodos” 对应 “ctrl+t”）。

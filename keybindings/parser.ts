@@ -175,15 +175,6 @@ export function keystrokeToDisplayString(
   return parts.join('+')
 }
 
-/**
- * 把 Chord 转换为符合平台习惯的显示字符串。
- */
-export function chordToDisplayString(
-  chord: Chord,
-  platform: DisplayPlatform = 'linux',
-): string {
-  return chord.map(ks => keystrokeToDisplayString(ks, platform)).join(' ')
-}
 
 /**
  * 把（来自 JSON 配置的）键位绑定块解析为扁平的 ParsedBinding 列表。

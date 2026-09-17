@@ -656,33 +656,6 @@ function logToSessionMeta(log: LogOption): SessionMeta {
   }
 }
 
-/**
- * 对同一会话内的对话分支去重。
- *
- * 当会话文件存在多个叶子消息时（来自重试或分支），
- * loadAllLogsFromSessionFile 会为每个叶子生成一个 LogOption。各分支
- * 共享同一个根消息，因此其时长与兄弟分支重叠。这里对每个 session_id
- * 只保留用户消息最多的分支
- * （时长更长者优先）。
- */
-export function deduplicateSessionBranches(
-  entries: Array<{ log: LogOption; meta: SessionMeta }>,
-): Array<{ log: LogOption; meta: SessionMeta }> {
-  const bestBySession = new Map<string, { log: LogOption; meta: SessionMeta }>()
-  for (const entry of entries) {
-    const id = entry.meta.session_id
-    const existing = bestBySession.get(id)
-    if (
-      !existing ||
-      entry.meta.user_message_count > existing.meta.user_message_count ||
-      (entry.meta.user_message_count === existing.meta.user_message_count &&
-        entry.meta.duration_minutes > existing.meta.duration_minutes)
-    ) {
-      bestBySession.set(id, entry)
-    }
-  }
-  return [...bestBySession.values()]
-}
 
 function formatTranscriptForFacets(log: LogOption): string {
   const lines: string[] = []
@@ -2493,69 +2466,6 @@ export type InsightsExport = {
   }
 }
 
-/**
- * 从已计算好的值构建导出数据。
- * 供后台上传到 S3 使用。
- */
-export function buildExportData(
-  data: AggregatedData,
-  insights: InsightResults,
-  facets: Map<string, SessionFacets>,
-  remoteStats?: { hosts: RemoteHostInfo[]; totalCopied: number },
-): InsightsExport {
-  const version = typeof MACRO !== 'undefined' ? MACRO.VERSION : 'unknown'
-
-  const remote_hosts_collected = remoteStats?.hosts
-    .filter(h => h.sessionCount > 0)
-    .map(h => h.name)
-
-  const facets_summary = {
-    total: facets.size,
-    goal_categories: {} as Record<string, number>,
-    outcomes: {} as Record<string, number>,
-    satisfaction: {} as Record<string, number>,
-    friction: {} as Record<string, number>,
-  }
-  for (const f of facets.values()) {
-    for (const [cat, count] of safeEntries(f.goal_categories)) {
-      if (count > 0) {
-        facets_summary.goal_categories[cat] =
-          (facets_summary.goal_categories[cat] || 0) + count
-      }
-    }
-    facets_summary.outcomes[f.outcome] =
-      (facets_summary.outcomes[f.outcome] || 0) + 1
-    for (const [level, count] of safeEntries(f.user_satisfaction_counts)) {
-      if (count > 0) {
-        facets_summary.satisfaction[level] =
-          (facets_summary.satisfaction[level] || 0) + count
-      }
-    }
-    for (const [type, count] of safeEntries(f.friction_counts)) {
-      if (count > 0) {
-        facets_summary.friction[type] =
-          (facets_summary.friction[type] || 0) + count
-      }
-    }
-  }
-
-  return {
-    metadata: {
-      username: process.env.SAFEUSER || process.env.USER || 'unknown',
-      generated_at: new Date().toISOString(),
-      limkenion_version: version,
-      date_range: data.date_range,
-      session_count: data.total_sessions,
-      ...(remote_hosts_collected &&
-        remote_hosts_collected.length > 0 && {
-          remote_hosts_collected,
-        }),
-    },
-    aggregated_data: data,
-    insights,
-    facets_summary,
-  }
-}
 
 // ============================================================================
 // 轻量会话扫描

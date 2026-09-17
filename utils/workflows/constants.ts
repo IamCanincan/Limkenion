@@ -39,8 +39,6 @@ export const WORKFLOW_PANEL_EMIT_INTERVAL_MS = 10_000
 /** Agent type used for every subagent a workflow script spawns. */
 export const WORKFLOW_SUBAGENT_TYPE = 'workflow-subagent'
 
-/** Run ids look like `wf_<8 hex>-<3 hex>`; agent ids append `-<index>`. */
-export const WORKFLOW_RUN_ID_PATTERN = /^wf_[a-z0-9-]{6,}$/
 
 /**
  * Concurrency ceiling for in-flight agents. Bounded by CPU count so a fan-out

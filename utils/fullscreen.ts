@@ -93,10 +93,6 @@ export function isTmuxControlMode(): boolean {
   return tmuxControlModeProbed ?? false
 }
 
-export function _resetTmuxControlModeProbeForTesting(): void {
-  tmuxControlModeProbed = undefined
-  loggedTmuxCcDisable = false
-}
 
 /**
  * 仅运行时环境变量检查。Ant 默认开启（设 LIMKENION_NO_FLICKER=0 可退出）；

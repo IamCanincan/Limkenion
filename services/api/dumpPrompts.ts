@@ -26,16 +26,7 @@ type DumpState = {
 // 按会话跟踪状态，避免数据重复
 const dumpState = new Map<string, DumpState>()
 
-export function getLastApiRequests(): Array<{
-  timestamp: string
-  request: unknown
-}> {
-  return [...cachedApiRequests]
-}
 
-export function clearApiRequestCache(): void {
-  cachedApiRequests.length = 0
-}
 
 export function clearDumpState(agentIdOrSessionId: string): void {
   dumpState.delete(agentIdOrSessionId)

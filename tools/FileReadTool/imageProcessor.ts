@@ -66,23 +66,6 @@ export async function getImageProcessor(): Promise<SharpFunction> {
   return sharp
 }
 
-/**
- * 获取用于从零生成新图片的图片创建器。
- * 注意：image-processor-napi 不支持创建图片，
- * 因此这里总是直接使用 sharp。
- */
-export async function getImageCreator(): Promise<SharpCreator> {
-  if (imageCreatorModule) {
-    return imageCreatorModule.default
-  }
-
-  const imported = (await import(
-    'sharp'
-  )) as unknown as MaybeDefault<SharpCreator>
-  const sharp = unwrapDefault(imported)
-  imageCreatorModule = { default: sharp }
-  return sharp
-}
 
 // 动态 import 的形态随模块互操作模式而异——ESM 产出 { default: fn }，CJS 直接产出 fn。
 type MaybeDefault<T> = T | { default: T }

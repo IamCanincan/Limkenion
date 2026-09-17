@@ -82,11 +82,6 @@ export function registerPendingAsyncHook({
   })
 }
 
-export function getPendingAsyncHooks(): PendingAsyncHook[] {
-  return Array.from(pendingHooks.values()).filter(
-    hook => !hook.responseAttachmentSent,
-  )
-}
 
 async function finalizeHook(
   hook: PendingAsyncHook,
@@ -300,10 +295,3 @@ export async function finalizePendingAsyncHooks(): Promise<void> {
   pendingHooks.clear()
 }
 
-// Test utility function to clear all hooks
-export function clearAllAsyncHooks(): void {
-  for (const hook of pendingHooks.values()) {
-    hook.stopProgressInterval()
-  }
-  pendingHooks.clear()
-}

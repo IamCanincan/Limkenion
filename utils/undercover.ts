@@ -35,13 +35,3 @@ export function getUndercoverInstructions(): string {
   return ''
 }
 
-/**
- * Check whether to show the one-time explainer dialog for auto-undercover.
- * True when: undercover is active via auto-detection (not forced via env),
- * and the user hasn't seen the notice before. Pure — the component marks the
- * flag on mount.
- */
-export function shouldShowUndercoverAutoNotice(): boolean {
-  
-  return false
-}

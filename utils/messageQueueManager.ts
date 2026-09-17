@@ -192,25 +192,6 @@ export function dequeue(
   return dequeued
 }
 
-/**
- * Remove and return all commands from the queue.
- * Logs a dequeue operation for each command.
- */
-export function dequeueAll(): QueuedCommand[] {
-  if (commandQueue.length === 0) {
-    return []
-  }
-
-  const commands = [...commandQueue]
-  commandQueue.length = 0
-  notifySubscribers()
-
-  for (const _cmd of commands) {
-    logOperation('dequeue')
-  }
-
-  return commands
-}
 
 /**
  * Return the highest-priority command without removing it, or undefined if empty.
@@ -487,33 +468,15 @@ export function popAllEditable(
 // Backward-compatible aliases (deprecated — prefer new names)
 // ============================================================================
 
-/** @deprecated Use subscribeToCommandQueue */
-export const subscribeToPendingNotifications = subscribeToCommandQueue
 
-/** @deprecated Use getCommandQueueSnapshot */
-export function getPendingNotificationsSnapshot(): readonly QueuedCommand[] {
-  return snapshot
-}
 
 /** @deprecated Use hasCommandsInQueue */
 export const hasPendingNotifications = hasCommandsInQueue
 
-/** @deprecated Use getCommandQueueLength */
-export const getPendingNotificationsCount = getCommandQueueLength
 
-/** @deprecated Use recheckCommandQueue */
-export const recheckPendingNotifications = recheckCommandQueue
 
-/** @deprecated Use dequeue */
-export function dequeuePendingNotification(): QueuedCommand | undefined {
-  return dequeue()
-}
 
-/** @deprecated Use resetCommandQueue */
-export const resetPendingNotifications = resetCommandQueue
 
-/** @deprecated Use clearCommandQueue */
-export const clearPendingNotifications = clearCommandQueue
 
 /**
  * Get commands at or above a given priority level without removing them.

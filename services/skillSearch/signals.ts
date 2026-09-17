@@ -15,13 +15,6 @@ export interface DiscoverySignal {
   payload?: unknown
 }
 
-/** Build a DiscoverySignal without exposing the shape to callers. */
-export function createDiscoverySignal(
-  type: string,
-  payload?: unknown,
-): DiscoverySignal {
-  return payload === undefined ? { type } : { type, payload }
-}
 
 /** Legacy bare identifier export kept for historical value-imports. */
 export type DiscoverySignalValue = DiscoverySignal

@@ -343,18 +343,6 @@ export async function writeRemoteAgentMetadata(
   await writeFile(path, JSON.stringify(metadata))
 }
 
-export async function readRemoteAgentMetadata(
-  taskId: string,
-): Promise<RemoteAgentMetadata | null> {
-  const path = getRemoteAgentMetadataPath(taskId)
-  try {
-    const raw = await readFile(path, 'utf-8')
-    return JSON.parse(raw) as RemoteAgentMetadata
-  } catch (e) {
-    if (isFsInaccessible(e)) return null
-    throw e
-  }
-}
 
 export async function deleteRemoteAgentMetadata(taskId: string): Promise<void> {
   const path = getRemoteAgentMetadataPath(taskId)
@@ -466,26 +454,8 @@ function getProject(): Project {
   return project
 }
 
-/**
- * Reset the Project singleton's flush state for testing.
- * This ensures tests don't interfere with each other via shared counter state.
- */
-export function resetProjectFlushStateForTesting(): void {
-  project?._resetFlushState()
-}
 
-/**
- * Reset the entire Project singleton for testing.
- * This ensures tests with different LIMKENION_CONFIG_DIR values
- * don't share stale sessionFile paths.
- */
-export function resetProjectForTesting(): void {
-  project = null
-}
 
-export function setSessionFileForTesting(path: string): void {
-  getProject().sessionFile = path
-}
 
 type InternalEventWriter = (
   eventType: string,
@@ -519,13 +489,6 @@ export function setInternalEventReader(
   getProject().setInternalSubagentEventReader(subagentReader)
 }
 
-/**
- * Set the remote ingress URL on the current Project for testing.
- * This simulates what hydrateRemoteSession does in production.
- */
-export function setRemoteIngressUrlForTesting(url: string): void {
-  getProject().setRemoteIngressUrl(url)
-}
 
 const REMOTE_FLUSH_INTERVAL_MS = 10
 
@@ -1533,52 +1496,7 @@ export function adoptResumedSessionFile(): void {
   project.reAppendSessionMetadata(true)
 }
 
-/**
- * Append a context-collapse commit entry to the transcript. One entry per
- * commit, in commit order. On resume these are collected into an ordered
- * array and handed to restoreFromEntries() which rebuilds the commit log.
- */
-export async function recordContextCollapseCommit(commit: {
-  collapseId: string
-  summaryUuid: string
-  summaryContent: string
-  summary: string
-  firstArchivedUuid: string
-  lastArchivedUuid: string
-}): Promise<void> {
-  const sessionId = getSessionId() as UUID
-  if (!sessionId) return
-  await getProject().appendEntry({
-    type: 'marble-origami-commit',
-    sessionId,
-    ...commit,
-  })
-}
 
-/**
- * Snapshot the staged queue + spawn state. Written after each ctx-agent
- * spawn resolves (when staged contents may have changed). Last-wins on
- * restore — the loader keeps only the most recent snapshot entry.
- */
-export async function recordContextCollapseSnapshot(snapshot: {
-  staged: Array<{
-    startUuid: string
-    endUuid: string
-    summary: string
-    risk: number
-    stagedAt: number
-  }>
-  armed: boolean
-  lastSpawnTokens: number
-}): Promise<void> {
-  const sessionId = getSessionId() as UUID
-  if (!sessionId) return
-  await getProject().appendEntry({
-    type: 'marble-origami-snapshot',
-    sessionId,
-    ...snapshot,
-  })
-}
 
 export async function flushSessionStorage(): Promise<void> {
   await getProject().flush()
@@ -2672,20 +2590,6 @@ export function saveAiGeneratedTitle(sessionId: UUID, aiTitle: string): void {
   })
 }
 
-/**
- * Append a periodic task summary for `limkenion ps`. Unlike ai-title this is
- * not re-appended by reAppendSessionMetadata — it's a rolling snapshot of
- * what the agent is doing *now*, so staleness is fine; ps reads the most
- * recent one from the tail.
- */
-export function saveTaskSummary(sessionId: UUID, summary: string): void {
-  appendEntryToFile(getTranscriptPathForSession(sessionId), {
-    type: 'task-summary',
-    summary,
-    sessionId,
-    timestamp: new Date().toISOString(),
-  })
-}
 
 export async function saveTag(sessionId: UUID, tag: string, fullPath?: string) {
   // Fall back to computed path if fullPath is not provided
@@ -4458,15 +4362,6 @@ export function cleanMessagesForLogging(
   )
 }
 
-/**
- * Gets a log by its index
- * @param index Index in the sorted list of logs (0-based)
- * @returns Log data or null if not found
- */
-export async function getLogByIndex(index: number): Promise<LogOption | null> {
-  const logs = await loadMessageLogs()
-  return logs[index] || null
-}
 
 /**
  * Looks up unresolved tool uses in the transcript by tool_use_id.

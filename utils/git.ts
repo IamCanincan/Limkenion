@@ -232,23 +232,6 @@ export function getGitDir(cwd: string): Promise<string | null> {
   return resolveGitDir(cwd)
 }
 
-export async function isAtGitRoot(): Promise<boolean> {
-  const cwd = getCwd()
-  const gitRoot = findGitRoot(cwd)
-  if (!gitRoot) {
-    return false
-  }
-  // Resolve symlinks for accurate comparison
-  try {
-    const [resolvedCwd, resolvedGitRoot] = await Promise.all([
-      realpath(cwd),
-      realpath(gitRoot),
-    ])
-    return resolvedCwd === resolvedGitRoot
-  } catch {
-    return cwd === gitRoot
-  }
-}
 
 export const dirIsInGitRepo = async (cwd: string): Promise<boolean> => {
   return findGitRoot(cwd) !== null
@@ -344,14 +327,6 @@ export const getIsHeadOnRemote = async (): Promise<boolean> => {
   return code === 0
 }
 
-export const hasUnpushedCommits = async (): Promise<boolean> => {
-  const { stdout, code } = await execFileNoThrow(
-    gitExe(),
-    ['rev-list', '--count', '@{u}..HEAD'],
-    { preserveOutputOnError: false },
-  )
-  return code === 0 && parseInt(stdout.trim(), 10) > 0
-}
 
 export const getIsClean = async (options?: {
   ignoreUntracked?: boolean
@@ -712,137 +687,6 @@ async function captureUntrackedFiles(): Promise<
   return result
 }
 
-/**
- * Preserve git state for issue submission.
- * Uses remote base for more stable replay capability.
- *
- * Edge cases handled:
- * - Detached HEAD: falls back to merge-base with default branch directly
- * - No remote: returns null for remote fields, uses HEAD-only mode
- * - Shallow clone: falls back to HEAD-only mode
- */
-export async function preserveGitStateForIssue(): Promise<PreservedGitState | null> {
-  try {
-    const isGit = await getIsGit()
-    if (!isGit) {
-      return null
-    }
-
-    // Check for shallow clone - fall back to simpler mode
-    if (await isShallowClone()) {
-      logForDebugging('Shallow clone detected, using HEAD-only mode for issue')
-      const [{ stdout: patch }, untrackedFiles] = await Promise.all([
-        execFileNoThrow(gitExe(), ['diff', 'HEAD']),
-        captureUntrackedFiles(),
-      ])
-      return {
-        remote_base_sha: null,
-        remote_base: null,
-        patch: patch || '',
-        untracked_files: untrackedFiles,
-        format_patch: null,
-        head_sha: null,
-        branch_name: null,
-      }
-    }
-
-    // Find the best remote base
-    const remoteBase = await findRemoteBase()
-
-    if (!remoteBase) {
-      // No remote found - use HEAD-only mode
-      logForDebugging('No remote found, using HEAD-only mode for issue')
-      const [{ stdout: patch }, untrackedFiles] = await Promise.all([
-        execFileNoThrow(gitExe(), ['diff', 'HEAD']),
-        captureUntrackedFiles(),
-      ])
-      return {
-        remote_base_sha: null,
-        remote_base: null,
-        patch: patch || '',
-        untracked_files: untrackedFiles,
-        format_patch: null,
-        head_sha: null,
-        branch_name: null,
-      }
-    }
-
-    // Get the merge-base with remote
-    const { stdout: mergeBase, code: mergeBaseCode } = await execFileNoThrow(
-      gitExe(),
-      ['merge-base', 'HEAD', remoteBase],
-      { preserveOutputOnError: false },
-    )
-
-    if (mergeBaseCode !== 0 || !mergeBase.trim()) {
-      // Merge-base failed - fall back to HEAD-only
-      logForDebugging('Merge-base failed, using HEAD-only mode for issue')
-      const [{ stdout: patch }, untrackedFiles] = await Promise.all([
-        execFileNoThrow(gitExe(), ['diff', 'HEAD']),
-        captureUntrackedFiles(),
-      ])
-      return {
-        remote_base_sha: null,
-        remote_base: null,
-        patch: patch || '',
-        untracked_files: untrackedFiles,
-        format_patch: null,
-        head_sha: null,
-        branch_name: null,
-      }
-    }
-
-    const remoteBaseSha = mergeBase.trim()
-
-    // All 5 commands below depend only on remoteBaseSha — run them in parallel.
-    // ~5×90ms serial → ~90ms parallel on Bun native (used by /issue and /share).
-    const [
-      { stdout: patch },
-      untrackedFiles,
-      { stdout: formatPatchOut, code: formatPatchCode },
-      { stdout: headSha },
-      { stdout: branchName },
-    ] = await Promise.all([
-      // Patch from merge-base to current state (including staged changes)
-      execFileNoThrow(gitExe(), ['diff', remoteBaseSha]),
-      // Untracked files captured separately
-      captureUntrackedFiles(),
-      // format-patch for committed changes between merge-base and HEAD.
-      // Preserves the actual commit chain (author, date, message) so replay
-      // containers can reconstruct the branch with real commits instead of a
-      // squashed diff. Uses --stdout to emit all patches as a single text stream.
-      execFileNoThrow(gitExe(), [
-        'format-patch',
-        `${remoteBaseSha}..HEAD`,
-        '--stdout',
-      ]),
-      // HEAD SHA for replay
-      execFileNoThrow(gitExe(), ['rev-parse', 'HEAD']),
-      // Branch name for replay
-      execFileNoThrow(gitExe(), ['rev-parse', '--abbrev-ref', 'HEAD']),
-    ])
-
-    let formatPatch: string | null = null
-    if (formatPatchCode === 0 && formatPatchOut && formatPatchOut.trim()) {
-      formatPatch = formatPatchOut
-    }
-
-    const trimmedBranch = branchName?.trim()
-    return {
-      remote_base_sha: remoteBaseSha,
-      remote_base: remoteBase,
-      patch: patch || '',
-      untracked_files: untrackedFiles,
-      format_patch: formatPatch,
-      head_sha: headSha?.trim() || null,
-      branch_name:
-        trimmedBranch && trimmedBranch !== 'HEAD' ? trimmedBranch : null,
-    }
-  } catch (err) {
-    logError(err)
-    return null
-  }
-}
 
 function isLocalHost(host: string): boolean {
   const hostWithoutPort = host.split(':')[0] ?? ''

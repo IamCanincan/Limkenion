@@ -68,20 +68,4 @@ export function useVoiceState(selector) {
   return useSyncExternalStore(store.subscribe, get, get);
 }
 
-/**
- * Get the voice state setter. Stable reference — never causes re-renders.
- * store.setState is synchronous: callers can read getVoiceState() immediately
- * after to observe the new value (VoiceKeybindingHandler relies on this).
- */
-export function useSetVoiceState() {
-  return useVoiceStore().setState;
-}
 
-/**
- * Get a synchronous reader for fresh state inside callbacks. Unlike
- * useVoiceState (which subscribes), this doesn't cause re-renders — use
- * inside event handlers that need to read state set earlier in the same tick.
- */
-export function useGetVoiceState() {
-  return useVoiceStore().getState;
-}

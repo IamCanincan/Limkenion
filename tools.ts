@@ -363,24 +363,3 @@ export function assembleToolPool(
   )
 }
 
-/**
- * 获取所有工具，包括内置工具与 MCP 工具。
- *
- * 当你需要完整工具列表时，这个函数是首选：
- * - 工具搜索阈值计算（isToolSearchEnabled）
- * - 需要把 MCP 工具计入的 token 统计
- * - 任何需要考虑 MCP 工具的上下文
- *
- * 只有在明确只需要内置工具时才用 getTools()。
- *
- * @param permissionContext - 用于过滤内置工具的权限上下文
- * @param mcpTools - 来自 appState.mcp.tools 的 MCP 工具
- * @returns 合并后的内置工具与 MCP 工具数组
- */
-export function getMergedTools(
-  permissionContext: ToolPermissionContext,
-  mcpTools: Tools,
-): Tools {
-  const builtInTools = getTools(permissionContext)
-  return [...builtInTools, ...mcpTools]
-}

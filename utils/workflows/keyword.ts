@@ -93,7 +93,3 @@ export function findKeywordRanges(
   return matches
 }
 
-export function hasWorkflowKeyword(text: string | null | undefined): boolean {
-  if (!text) return false
-  return findKeywordRanges(text).length > 0
-}

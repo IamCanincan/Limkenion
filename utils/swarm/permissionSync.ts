@@ -249,67 +249,6 @@ export async function writePermissionRequest(
   }
 }
 
-/**
- * Read all pending permission requests for a team
- * Called by the team leader to see what requests need attention
- */
-export async function readPendingPermissions(
-  teamName?: string,
-): Promise<SwarmPermissionRequest[]> {
-  const team = teamName || getTeamName()
-  if (!team) {
-    logForDebugging('[PermissionSync] No team name available')
-    return []
-  }
-
-  const pendingDir = getPendingDir(team)
-
-  let files: string[]
-  try {
-    files = await readdir(pendingDir)
-  } catch (e: unknown) {
-    const code = getErrnoCode(e)
-    if (code === 'ENOENT') {
-      return []
-    }
-    logForDebugging(`[PermissionSync] Failed to read pending requests: ${e}`)
-    logError(e)
-    return []
-  }
-
-  const jsonFiles = files.filter(f => f.endsWith('.json') && f !== '.lock')
-
-  const results = await Promise.all(
-    jsonFiles.map(async file => {
-      const filePath = join(pendingDir, file)
-      try {
-        const content = await readFile(filePath, 'utf-8')
-        const parsed = SwarmPermissionRequestSchema().safeParse(
-          jsonParse(content),
-        )
-        if (parsed.success) {
-          return parsed.data
-        }
-        logForDebugging(
-          `[PermissionSync] Invalid request file ${file}: ${parsed.error.message}`,
-        )
-        return null
-      } catch (err) {
-        logForDebugging(
-          `[PermissionSync] Failed to read request file ${file}: ${err}`,
-        )
-        return null
-      }
-    }),
-  )
-
-  const requests = results.filter(r => r !== null)
-
-  // Sort by creation time (oldest first)
-  requests.sort((a, b) => a.createdAt - b.createdAt)
-
-  return requests
-}
 
 /**
  * Read a resolved permission request by ID
@@ -351,96 +290,6 @@ export async function readResolvedPermission(
   }
 }
 
-/**
- * Resolve a permission request
- * Called by the team leader (or worker in self-resolution cases)
- *
- * Writes the resolution to resolved/, removes from pending/
- */
-export async function resolvePermission(
-  requestId: string,
-  resolution: PermissionResolution,
-  teamName?: string,
-): Promise<boolean> {
-  const team = teamName || getTeamName()
-  if (!team) {
-    logForDebugging('[PermissionSync] No team name available')
-    return false
-  }
-
-  await ensurePermissionDirsAsync(team)
-
-  const pendingPath = getPendingRequestPath(team, requestId)
-  const resolvedPath = getResolvedRequestPath(team, requestId)
-  const lockFilePath = join(getPendingDir(team), '.lock')
-
-  await writeFile(lockFilePath, '', 'utf-8')
-
-  let release: (() => Promise<void>) | undefined
-  try {
-    release = await lockfile.lock(lockFilePath)
-
-    // Read the pending request
-    let content: string
-    try {
-      content = await readFile(pendingPath, 'utf-8')
-    } catch (e: unknown) {
-      const code = getErrnoCode(e)
-      if (code === 'ENOENT') {
-        logForDebugging(
-          `[PermissionSync] Pending request not found: ${requestId}`,
-        )
-        return false
-      }
-      throw e
-    }
-
-    const parsed = SwarmPermissionRequestSchema().safeParse(jsonParse(content))
-    if (!parsed.success) {
-      logForDebugging(
-        `[PermissionSync] Invalid pending request ${requestId}: ${parsed.error.message}`,
-      )
-      return false
-    }
-
-    const request = parsed.data
-
-    // Update the request with resolution data
-    const resolvedRequest: SwarmPermissionRequest = {
-      ...request,
-      status: resolution.decision === 'approved' ? 'approved' : 'rejected',
-      resolvedBy: resolution.resolvedBy,
-      resolvedAt: Date.now(),
-      feedback: resolution.feedback,
-      updatedInput: resolution.updatedInput,
-      permissionUpdates: resolution.permissionUpdates,
-    }
-
-    // Write to resolved directory
-    await writeFile(
-      resolvedPath,
-      jsonStringify(resolvedRequest, null, 2),
-      'utf-8',
-    )
-
-    // Remove from pending directory
-    await unlink(pendingPath)
-
-    logForDebugging(
-      `[PermissionSync] Resolved request ${requestId} with ${resolution.decision}`,
-    )
-
-    return true
-  } catch (error) {
-    logForDebugging(`[PermissionSync] Failed to resolve request: ${error}`)
-    logError(error)
-    return false
-  } finally {
-    if (release) {
-      await release()
-    }
-  }
-}
 
 /**
  * Clean up old resolved permission files
@@ -634,11 +483,6 @@ export async function deleteResolvedPermission(
   }
 }
 
-/**
- * Submit a permission request (alias for writePermissionRequest)
- * Provided for backward compatibility with worker integration code
- */
-export const submitPermissionRequest = writePermissionRequest
 
 // ============================================================================
 // Mailbox-Based Permission System

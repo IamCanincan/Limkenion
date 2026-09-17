@@ -294,13 +294,6 @@ export function scanForSecrets(content: string): SecretMatch[] {
   return matches
 }
 
-/**
- * Get a human-readable label for a gitleaks rule ID.
- * Falls back to kebab-to-Title conversion for unknown IDs.
- */
-export function getSecretLabel(ruleId: string): string {
-  return ruleIdToLabel(ruleId)
-}
 
 /**
  * Redact any matched secrets in-place with [REDACTED].
@@ -309,16 +302,3 @@ export function getSecretLabel(ruleId: string): string {
  */
 let redactRules: RegExp[] | null = null
 
-export function redactSecrets(content: string): string {
-  redactRules ??= SECRET_RULES.map(
-    r => new RegExp(r.source, (r.flags ?? '').replace('g', '') + 'g'),
-  )
-  for (const re of redactRules) {
-    // Replace only the captured group, not the full match — patterns include
-    // boundary chars (space, quote, ;) outside the group that must survive.
-    content = content.replace(re, (match, g1) =>
-      typeof g1 === 'string' ? match.replace(g1, '[REDACTED]') : '[REDACTED]',
-    )
-  }
-  return content
-}

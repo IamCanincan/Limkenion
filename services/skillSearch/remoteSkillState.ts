@@ -22,15 +22,7 @@ export function getDiscoveredRemoteSkill(slug: string): RemoteSkillMeta | null {
   return discovered.get(slug) ?? null
 }
 
-/** Register a remotely discovered skill during a session. */
-export function addDiscoveredRemoteSkill(meta: RemoteSkillMeta): void {
-  discovered.set(meta.slug, meta)
-}
 
-/** Drop all discovered remote skills (session teardown / reset). */
-export function clearDiscoveredRemoteSkills(): void {
-  discovered.clear()
-}
 
 /**
  * Strip a canonical remote-skill prefix from a name. Returns the slug when the
@@ -42,7 +34,3 @@ export function stripCanonicalPrefix(name: string): string | null {
   return name.startsWith('_canonical_') ? name.slice('_canonical_'.length) : null
 }
 
-/** Safe no-op fallback exported for completess. */
-export function resetRemoteSkillState(): void {
-  discovered.clear()
-}

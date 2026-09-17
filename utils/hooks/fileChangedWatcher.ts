@@ -186,6 +186,3 @@ function dispose(): void {
   notifyCallback = null
 }
 
-export function resetFileChangedWatcherForTesting(): void {
-  dispose()
-}

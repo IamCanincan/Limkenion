@@ -61,18 +61,6 @@ export function commandBelongsToServer(
   )
 }
 
-/**
- * Filters commands by MCP server name
- * @param commands Array of commands to filter
- * @param serverName Name of the MCP server
- * @returns Commands belonging to the specified server
- */
-export function filterCommandsByServer(
-  commands: Command[],
-  serverName: string,
-): Command[] {
-  return commands.filter(c => commandBelongsToServer(c, serverName))
-}
 
 /**
  * Filters MCP **prompts** (not skills) by server. Used by the `/mcp` menu
@@ -93,18 +81,6 @@ export function filterMcpPromptsByServer(
   )
 }
 
-/**
- * Filters resources by MCP server name
- * @param resources Array of resources to filter
- * @param serverName Name of the MCP server
- * @returns Resources belonging to the specified server
- */
-export function filterResourcesByServer(
-  resources: ServerResource[],
-  serverName: string,
-): ServerResource[] {
-  return resources.filter(resource => resource.server === serverName)
-}
 
 /**
  * Removes tools belonging to a specific MCP server
@@ -246,14 +222,6 @@ export function isMcpTool(tool: Tool): boolean {
   return tool.name?.startsWith('mcp__') || tool.isMcp === true
 }
 
-/**
- * Checks if a command belongs to any MCP server
- * @param command The command to check
- * @returns True if the command is from an MCP server
- */
-export function isMcpCommand(command: Command): boolean {
-  return command.name?.startsWith('mcp__') || command.isMcp === true
-}
 
 /**
  * Describe the file path for a given MCP config scope.

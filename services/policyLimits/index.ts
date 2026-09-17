@@ -71,17 +71,6 @@ const LOADING_PROMISE_TIMEOUT_MS = 30000 // 30 seconds
 // Session-level cache for policy restrictions
 let sessionCache: PolicyLimitsResponse['restrictions'] | null = null
 
-/**
- * Test-only sync reset. clearPolicyLimitsCache() does file I/O and is too
- * expensive for preload beforeEach; this only clears the module-level
- * singleton so downstream tests in the same shard see a clean slate.
- */
-export function _resetPolicyLimitsForTesting(): void {
-  stopBackgroundPolling()
-  sessionCache = null
-  loadingCompletePromise = null
-  loadingCompleteResolve = null
-}
 
 /**
  * Initialize the loading promise for policy limits

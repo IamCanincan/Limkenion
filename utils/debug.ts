@@ -195,10 +195,6 @@ function getDebugWriter(): BufferedWriter {
   return debugWriter
 }
 
-export async function flushDebugLogs(): Promise<void> {
-  debugWriter?.flush()
-  await pendingWrite
-}
 
 export function logForDebugging(
   message: string,

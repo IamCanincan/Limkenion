@@ -158,40 +158,4 @@ export async function initializeFromSnapshot(
   await saveSyncedMeta(agentType, scope, snapshotTimestamp)
 }
 
-/**
- * 用快照替换本地代理记忆。
- */
-export async function replaceFromSnapshot(
-  agentType: string,
-  scope: AgentMemoryScope,
-  snapshotTimestamp: string,
-): Promise<void> {
-  logForDebugging(
-    `正在用项目快照替换 ${agentType} 的代理记忆`,
-  )
-  // 复制前移除现有的 .md 文件，以避免产生孤儿文件
-  const localMemDir = getAgentMemoryDir(agentType, scope)
-  try {
-    const existing = await readdir(localMemDir, { withFileTypes: true })
-    for (const dirent of existing) {
-      if (dirent.isFile() && dirent.name.endsWith('.md')) {
-        await unlink(join(localMemDir, dirent.name))
-      }
-    }
-  } catch {
-    // 目录可能尚不存在
-  }
-  await copySnapshotToLocal(agentType, scope)
-  await saveSyncedMeta(agentType, scope, snapshotTimestamp)
-}
 
-/**
- * 将当前快照标记为已同步，而不改动本地记忆。
- */
-export async function markSnapshotSynced(
-  agentType: string,
-  scope: AgentMemoryScope,
-  snapshotTimestamp: string,
-): Promise<void> {
-  await saveSyncedMeta(agentType, scope, snapshotTimestamp)
-}

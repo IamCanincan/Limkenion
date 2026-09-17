@@ -7,11 +7,6 @@ type CommandLifecycleListener = (
 
 let listener: CommandLifecycleListener | null = null
 
-export function setCommandLifecycleListener(
-  cb: CommandLifecycleListener | null,
-): void {
-  listener = cb
-}
 
 export function notifyCommandLifecycle(
   uuid: string,

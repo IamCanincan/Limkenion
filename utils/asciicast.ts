@@ -43,10 +43,6 @@ export function getRecordFilePath(): string | null {
   return recordingState.filePath
 }
 
-export function _resetRecordingStateForTesting(): void {
-  recordingState.filePath = null
-  recordingState.timestamp = 0
-}
 
 /**
  * Find all .cast files for the current session.
@@ -124,13 +120,6 @@ function getTerminalSize(): { cols: number; rows: number } {
   return { cols, rows }
 }
 
-/**
- * Flush pending recording data to disk.
- * Call before reading the .cast file (e.g., during /share).
- */
-export async function flushAsciicastRecorder(): Promise<void> {
-  await recorder?.flush()
-}
 
 /**
  * Install the asciicast recorder.

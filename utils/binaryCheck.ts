@@ -45,9 +45,3 @@ export async function isBinaryInstalled(command: string): Promise<boolean> {
   return exists
 }
 
-/**
- * 清除二进制检查缓存（用于测试）
- */
-export function clearBinaryCache(): void {
-  binaryCache.clear()
-}

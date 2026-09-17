@@ -130,19 +130,6 @@ export function isMediaSizeError(raw: string): boolean {
   )
 }
 
-/**
- * 消息级谓词：这条助手消息是否为媒体尺寸被拒错误？
- * 与 isPromptTooLongMessage 平行。它检查 errorDetails（由 ~L523/560/573 处的
- * getAssistantMessageFromError 分支填充的原始 API 错误字符串）而不是内容文本，
- * 因为媒体错误针对不同变体有不同的内容字符串。
- */
-export function isMediaSizeErrorMessage(msg: AssistantMessage): boolean {
-  return (
-    msg.isApiErrorMessage === true &&
-    msg.errorDetails !== undefined &&
-    isMediaSizeError(msg.errorDetails)
-  )
-}
 export const CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE = 'Credit balance is too low'
 export const INVALID_API_KEY_ERROR_MESSAGE =
   'API Key 无效 · 请检查 DEEPSEEK_API_KEY / OPENAI_API_KEY 环境变量，然后重启 Limkenion'
@@ -374,21 +361,6 @@ function logToolUseToolResultMismatch(
   }
 }
 
-/**
- * 类型守卫：判断某个值是否是 API 返回的合法 Message 响应
- */
-export function isValidAPIMessage(value: unknown): value is BetaMessage {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'content' in value &&
-    'model' in value &&
-    'usage' in value &&
-    Array.isArray((value as BetaMessage).content) &&
-    typeof (value as BetaMessage).model === 'string' &&
-    typeof (value as BetaMessage).usage === 'object'
-  )
-}
 
 /** AWS 可能返回的底层错误。 */
 type AmazonError = {
@@ -398,22 +370,6 @@ type AmazonError = {
   Version?: string
 }
 
-/**
- * 给定一个看起来不太对劲的响应，尝试从中提取已知的错误类型。
- */
-export function extractUnknownErrorFormat(value: unknown): string | undefined {
-  // 先判断 value 是否是合法对象
-  if (!value || typeof value !== 'object') {
-    return undefined
-  }
-
-  // Amazon Bedrock 路由错误
-  if ((value as AmazonError).Output?.__type) {
-    return (value as AmazonError).Output!.__type
-  }
-
-  return undefined
-}
 
 export function getAssistantMessageFromError(
   error: unknown,

@@ -30,8 +30,6 @@ export const TOOL_RESULTS_SUBDIR = 'tool-results'
 export const PERSISTED_OUTPUT_TAG = '<persisted-output>'
 export const PERSISTED_OUTPUT_CLOSING_TAG = '</persisted-output>'
 
-// Message used when tool result content was cleared without persisting to file
-export const TOOL_RESULT_CLEARED_MESSAGE = '[Old tool result content cleared]'
 
 /**
  * GrowthBook override map: tool name -> persistence threshold (chars).

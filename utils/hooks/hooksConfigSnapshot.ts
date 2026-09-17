@@ -123,11 +123,3 @@ export function getHooksConfigFromSnapshot(): HooksSettings | null {
   return initialHooksConfig
 }
 
-/**
- * Reset the hooks configuration snapshot (useful for testing)
- * Also resets SDK init state to prevent test pollution
- */
-export function resetHooksConfigSnapshot(): void {
-  initialHooksConfig = null
-  resetSdkInitState()
-}

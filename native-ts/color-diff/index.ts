@@ -987,13 +987,3 @@ export function getNativeModule(): NativeModule | null {
 
 export type { ColorDiff as ColorDiffClass, ColorFile as ColorFileClass }
 
-// Exported for testing
-export const __test = {
-  tokenize,
-  findAdjacentPairs,
-  wordDiffStrings,
-  ansi256FromRgb,
-  colorToEscape,
-  detectColorMode,
-  detectLanguage,
-}

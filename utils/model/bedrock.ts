@@ -4,48 +4,7 @@ import { getAWSRegion, isEnvTruthy } from '../envUtils.js'
 import { logError } from '../log.js'
 import { getAWSClientProxyConfig } from '../proxy.js'
 
-export const getBedrockInferenceProfiles = memoize(async function (): Promise<
-  string[]
-> {
-  const [client, { ListInferenceProfilesCommand }] = await Promise.all([
-    createBedrockClient(),
-    import('@aws-sdk/client-bedrock'),
-  ])
-  const allProfiles = []
-  let nextToken: string | undefined
 
-  try {
-    do {
-      const command = new ListInferenceProfilesCommand({
-        ...(nextToken && { nextToken }),
-        typeEquals: 'SYSTEM_DEFINED',
-      })
-      const response = await client.send(command)
-
-      if (response.inferenceProfileSummaries) {
-        allProfiles.push(...response.inferenceProfileSummaries)
-      }
-
-      nextToken = response.nextToken
-    } while (nextToken)
-
-    // Filter for Limkenion models (SYSTEM_DEFINED filtering handled in query)
-    return allProfiles
-      .filter(profile => profile.inferenceProfileId?.includes('limkenion'))
-      .map(profile => profile.inferenceProfileId)
-      .filter(Boolean) as string[]
-  } catch (error) {
-    logError(error as Error)
-    throw error
-  }
-})
-
-export function findFirstMatch(
-  profiles: string[],
-  substring: string,
-): string | null {
-  return profiles.find(p => p.includes(substring)) ?? null
-}
 
 async function createBedrockClient() {
   const { BedrockClient } = await import('@aws-sdk/client-bedrock')

@@ -187,10 +187,6 @@ export function getUpstreamProxyEnv(): Record<string, string> {
   }
 }
 
-/** Test-only: reset module state between test cases. */
-export function resetUpstreamProxyForTests(): void {
-  state = { enabled: false }
-}
 
 async function readToken(path: string): Promise<string | null> {
   try {

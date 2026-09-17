@@ -66,12 +66,6 @@ export function setDynamicTeamContext(
   dynamicTeamContext = context
 }
 
-/**
- * Clear the dynamic team context (called when leaving a team)
- */
-export function clearDynamicTeamContext(): void {
-  dynamicTeamContext = null
-}
 
 /**
  * Get the current dynamic team context (for inspection/debugging)

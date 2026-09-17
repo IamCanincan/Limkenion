@@ -146,12 +146,6 @@ export type PDFExtractPagesResult = {
 
 let pdftoppmAvailable: boolean | undefined
 
-/**
- * Reset the pdftoppm availability cache. Used by tests only.
- */
-export function resetPdftoppmCache(): void {
-  pdftoppmAvailable = undefined
-}
 
 /**
  * Check whether the `pdftoppm` binary (from poppler-utils) is available.

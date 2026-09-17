@@ -75,7 +75,6 @@ type OutputSchema = ReturnType<typeof outputSchema>;
 
 // SDK schemas 与内部 schemas 完全一致，因为 'preview' 和 'annotations' 现已公开（可通过 'toolConfig.askUserQuestion' 配置）。
 export const _sdkInputSchema = inputSchema;
-export const _sdkOutputSchema = outputSchema;
 export type Question = z.infer<ReturnType<typeof questionSchema>>;
 export type QuestionOption = z.infer<ReturnType<typeof questionOptionSchema>>;
 export type Output = z.infer<OutputSchema>;

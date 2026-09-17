@@ -94,17 +94,6 @@ type CreateSdkMcpServerOptions = {
   tools?: Array<SdkMcpToolDefinition<any>>
 }
 
-/**
- * 创建可配合 SDK 传输使用的 MCP 服务器实例。
- * 这允许 SDK 用户定义在同一进程中运行的自定义工具。
- *
- * 如果你的 SDK MCP 调用运行时间会超过 60 秒，请覆盖 LIMKENION_STREAM_CLOSE_TIMEOUT
- */
-export function createSdkMcpServer(
-  _options: CreateSdkMcpServerOptions,
-): McpSdkServerConfigWithInstance {
-  throw new Error('未实现')
-}
 
 export class AbortError extends Error {}
 

@@ -106,9 +106,6 @@ export function getMainLoopModel(): ModelName {
   return getDefaultMainLoopModel()
 }
 
-export function getBestModel(): ModelName {
-  return getDefaultStrongModel()
-}
 
 // @[MODEL LAUNCH]: 新增模型时更新强模型的默认值。
 export function getDefaultStrongModel(): ModelName {

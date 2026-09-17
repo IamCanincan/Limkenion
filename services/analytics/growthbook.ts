@@ -203,75 +203,9 @@ function getConfigOverrides(): Record<string, unknown> | undefined {
   }
 }
 
-/**
- * Enumerate all known GrowthBook features and their current resolved values
- * (not including overrides). In-memory payload first, disk cache fallback —
- * same priority as the getters. Used by the /config Gates tab.
- */
-export function getAllGrowthBookFeatures(): Record<string, unknown> {
-  if (remoteEvalFeatureValues.size > 0) {
-    return Object.fromEntries(remoteEvalFeatureValues)
-  }
-  return getGlobalConfig().cachedGrowthBookFeatures ?? {}
-}
 
-export function getGrowthBookConfigOverrides(): Record<string, unknown> {
-  return getConfigOverrides() ?? {}
-}
 
-/**
- * Set or clear a single config override. Pass undefined to clear.
- * Fires onGrowthBookRefresh listeners so systems that bake gate values into
- * long-lived objects (useMainLoopModel, useSkillsChange, etc.) rebuild —
- * otherwise overriding e.g. limkenion_ant_model_override wouldn't actually
- * change the model until the next periodic refresh.
- */
-export function setGrowthBookConfigOverride(
-  feature: string,
-  value: unknown,
-): void {
-  if (true) return
-  try {
-    saveGlobalConfig(c => {
-      const current = c.growthBookOverrides ?? {}
-      if (value === undefined) {
-        if (!(feature in current)) return c
-        const { [feature]: _, ...rest } = current
-        if (Object.keys(rest).length === 0) {
-          const { growthBookOverrides: __, ...configWithout } = c
-          return configWithout
-        }
-        return { ...c, growthBookOverrides: rest }
-      }
-      if (isEqual(current[feature], value)) return c
-      return { ...c, growthBookOverrides: { ...current, [feature]: value } }
-    })
-    // Subscribers do their own change detection (see onGrowthBookRefresh docs),
-    // so firing on a no-op write is fine.
-    refreshed.emit()
-  } catch (e) {
-    logError(e)
-  }
-}
 
-export function clearGrowthBookConfigOverrides(): void {
-  if (true) return
-  try {
-    saveGlobalConfig(c => {
-      if (
-        !c.growthBookOverrides ||
-        Object.keys(c.growthBookOverrides).length === 0
-      ) {
-        return c
-      }
-      const { growthBookOverrides: _, ...rest } = c
-      return rest
-    })
-    refreshed.emit()
-  } catch (e) {
-    logError(e)
-  }
-}
 
 /**
  * Log experiment exposure for a feature if it has experiment data.

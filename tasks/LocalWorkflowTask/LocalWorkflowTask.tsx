@@ -59,16 +59,6 @@ export type LocalWorkflowTaskState = TaskStateBase & {
   evictAfter?: number
 }
 
-export function isLocalWorkflowTask(
-  task: unknown,
-): task is LocalWorkflowTaskState {
-  return (
-    typeof task === 'object' &&
-    task !== null &&
-    'type' in task &&
-    task.type === 'local_workflow'
-  )
-}
 
 export function registerWorkflowTask(params: {
   taskId: string

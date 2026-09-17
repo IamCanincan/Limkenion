@@ -99,13 +99,6 @@ export function getRepoClassCached(): 'internal' | 'external' | 'none' | null {
   return repoClassCache
 }
 
-/**
- * Synchronously return the cached result of isInternalModelRepo().
- * Returns false if the check hasn't run yet (safe default: don't leak).
- */
-export function isInternalModelRepoCached(): boolean {
-  return repoClassCache === 'internal'
-}
 
 /**
  * Check if the current repo is in the allowlist for internal model names.
@@ -128,23 +121,6 @@ export const isInternalModelRepo = sequential(async (): Promise<boolean> => {
   return isInternal
 })
 
-/**
- * Sanitize a surface key to use public model names.
- * Converts internal model variants to their public equivalents.
- */
-export function sanitizeSurfaceKey(surfaceKey: string): string {
-  // Split surface key into surface and model parts (e.g., "cli/deepseek-v4-pro-4-5-fast" -> ["cli", "deepseek-v4-pro-4-5-fast"])
-  const slashIndex = surfaceKey.lastIndexOf('/')
-  if (slashIndex === -1) {
-    return surfaceKey
-  }
-
-  const surface = surfaceKey.slice(0, slashIndex)
-  const model = surfaceKey.slice(slashIndex + 1)
-  const sanitizedModel = sanitizeModelName(model)
-
-  return `${surface}/${sanitizedModel}`
-}
 
 // @[MODEL LAUNCH]: 新增模型时在这里补一条映射，让 git 提交 trailer 显示公开模型名。
 /**
@@ -221,13 +197,6 @@ export function getClientSurface(): string {
   return process.env.LIMKENION_ENTRYPOINT ?? 'cli'
 }
 
-/**
- * Build a surface key that includes the model name.
- * Format: "surface/model" (e.g., "cli/limkenion-deepseek-flash")
- */
-export function buildSurfaceKey(surface: string, model: ModelName): string {
-  return `${surface}/${getCanonicalName(model)}`
-}
 
 /**
  * Compute SHA-256 hash of content.
@@ -370,21 +339,6 @@ function computeFileModificationState(
   }
 }
 
-/**
- * Get a file's modification time (mtimeMs), falling back to Date.now() if
- * the file doesn't exist. This is async so it can be precomputed before
- * entering a sync setAppState callback.
- */
-export async function getFileMtime(filePath: string): Promise<number> {
-  const normalizedPath = normalizeFilePath(filePath)
-  const absPath = expandFilePath(normalizedPath)
-  try {
-    const stats = await stat(absPath)
-    return stats.mtimeMs
-  } catch {
-    return Date.now()
-  }
-}
 
 /**
  * Track a file modification by Limkenion.
@@ -423,114 +377,10 @@ export function trackFileModification(
   }
 }
 
-/**
- * Track a file creation by Limkenion (e.g., via bash command).
- * Used when Limkenion creates a new file through a non-tracked mechanism.
- */
-export function trackFileCreation(
-  state: AttributionState,
-  filePath: string,
-  content: string,
-  mtime: number = Date.now(),
-): AttributionState {
-  // A creation is simply a modification from empty to the new content
-  return trackFileModification(state, filePath, '', content, false, mtime)
-}
 
-/**
- * Track a file deletion by Limkenion (e.g., via bash rm command).
- * Used when Limkenion deletes a file through a non-tracked mechanism.
- */
-export function trackFileDeletion(
-  state: AttributionState,
-  filePath: string,
-  oldContent: string,
-): AttributionState {
-  const normalizedPath = normalizeFilePath(filePath)
-  const existingState = state.fileStates.get(normalizedPath)
-  const existingContribution = existingState?.limkenionContribution ?? 0
-  const deletedChars = oldContent.length
-
-  const newFileState: FileAttributionState = {
-    contentHash: '', // Empty hash for deleted files
-    limkenionContribution: existingContribution + deletedChars,
-    mtime: Date.now(),
-  }
-
-  const newFileStates = new Map(state.fileStates)
-  newFileStates.set(normalizedPath, newFileState)
-
-  logForDebugging(
-    `Attribution: Tracked deletion of ${normalizedPath} (${deletedChars} chars removed, total contribution: ${newFileState.limkenionContribution})`,
-  )
-
-  return {
-    ...state,
-    fileStates: newFileStates,
-  }
-}
 
 // --
 
-/**
- * Track multiple file changes in bulk, mutating a single Map copy.
- * This avoids the O(n²) cost of copying the Map per file when processing
- * large git diffs (e.g., jj operations that touch hundreds of thousands of files).
- */
-export function trackBulkFileChanges(
-  state: AttributionState,
-  changes: ReadonlyArray<{
-    path: string
-    type: 'modified' | 'created' | 'deleted'
-    oldContent: string
-    newContent: string
-    mtime?: number
-  }>,
-): AttributionState {
-  // Create ONE copy of the Map, then mutate it for each file
-  const newFileStates = new Map(state.fileStates)
-
-  for (const change of changes) {
-    const mtime = change.mtime ?? Date.now()
-    if (change.type === 'deleted') {
-      const normalizedPath = normalizeFilePath(change.path)
-      const existingState = newFileStates.get(normalizedPath)
-      const existingContribution = existingState?.limkenionContribution ?? 0
-      const deletedChars = change.oldContent.length
-
-      newFileStates.set(normalizedPath, {
-        contentHash: '',
-        limkenionContribution: existingContribution + deletedChars,
-        mtime,
-      })
-
-      logForDebugging(
-        `Attribution: Tracked deletion of ${normalizedPath} (${deletedChars} chars removed, total contribution: ${existingContribution + deletedChars})`,
-      )
-    } else {
-      const newFileState = computeFileModificationState(
-        newFileStates,
-        change.path,
-        change.oldContent,
-        change.newContent,
-        mtime,
-      )
-      if (newFileState) {
-        const normalizedPath = normalizeFilePath(change.path)
-        newFileStates.set(normalizedPath, newFileState)
-
-        logForDebugging(
-          `Attribution: Tracked ${newFileState.limkenionContribution} chars for ${normalizedPath}`,
-        )
-      }
-    }
-  }
-
-  return {
-    ...state,
-    fileStates: newFileStates,
-  }
-}
 
 /**
  * Calculate final attribution for staged files.
@@ -802,60 +652,10 @@ export async function isFileDeleted(filePath: string): Promise<boolean> {
   return false
 }
 
-/**
- * Get staged files from git.
- */
-export async function getStagedFiles(): Promise<string[]> {
-  const cwd = getAttributionRepoRoot()
-
-  try {
-    const result = await execFileNoThrowWithCwd(
-      gitExe(),
-      ['diff', '--cached', '--name-only'],
-      { cwd, timeout: 5000 },
-    )
-
-    if (result.code === 0 && result.stdout) {
-      return result.stdout.split('\n').filter(Boolean)
-    }
-  } catch (error) {
-    logError(error as Error)
-  }
-
-  return []
-}
 
 // formatAttributionTrailer moved to attributionTrailer.ts for tree-shaking
 // (contains excluded strings that should not be in external builds)
 
-/**
- * Check if we're in a transient git state (rebase, merge, cherry-pick).
- */
-export async function isGitTransientState(): Promise<boolean> {
-  const gitDir = await resolveGitDir(getAttributionRepoRoot())
-  if (!gitDir) return false
-
-  const indicators = [
-    'rebase-merge',
-    'rebase-apply',
-    'MERGE_HEAD',
-    'CHERRY_PICK_HEAD',
-    'BISECT_LOG',
-  ]
-
-  const results = await Promise.all(
-    indicators.map(async indicator => {
-      try {
-        await stat(join(gitDir, indicator))
-        return true
-      } catch {
-        return false
-      }
-    }),
-  )
-
-  return results.some(exists => exists)
-}
 
 /**
  * Convert attribution state to snapshot message for persistence.
