@@ -33,7 +33,8 @@ import {
   schedulePersist,
   turnExpired,
 } from './sessions.mjs'
-import { deniedBy } from './settings.mjs'
+import { scopeForSession, withWorkspace } from './paths.mjs'
+import { additionalDirectories, deniedBy } from './settings.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
@@ -538,6 +539,18 @@ async function runAgentTurn(session, text, emit, expired) {
 }
 
 /**
+ * 本回合的沙箱作用域：会话自己的根（可能是某个 worktree）+ 设置文件里的额外目录。
+ *
+ * 回合里跑的一切（文件工具、shell 的 cwd、子代理、工作流、Skill 扫描）都走它，
+ * 所以 `safePath()` 这类判断自动拿到正确的根 —— 不会出现"会话切了 worktree，
+ * 但工具还在老根里写文件"。
+ */
+function sessionScope(session) {
+  const base = scopeForSession(session)
+  return { root: base.root, additions: [...additionalDirectories(), ...base.additions] }
+}
+
+/**
  * 完整跑一个回合。事件广播给所有连接（前端按 sessionId 过滤）。
  * @returns {Promise<void>}
  */
@@ -571,7 +584,9 @@ export async function runTurn(session, text, messageId = newMessageId()) {
 
   activeTurns.add(session.id)
   try {
-    const usage = await runAgentTurn(session, text, emit, expired)
+    const usage = await withWorkspace(sessionScope(session), () =>
+      runAgentTurn(session, text, emit, expired),
+    )
     session.turnCount++
     session.toolCallCount += toolCalls.length
     if (expired()) {

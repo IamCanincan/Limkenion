@@ -13,6 +13,7 @@
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { broadcast } from './bus.mjs'
@@ -55,6 +56,11 @@ function blankSession(id) {
     allowedTools: new Set(),
     enabledTools: new Set(),
     turnSeq: 0,
+    // 沙箱根按会话（进入 git worktree 后会变）。见 paths.mjs —— 注意它**必须落盘**，
+    // 否则刷新页面/重启服务之后，会话还在 worktree 里工作文件却写回了原目录。
+    workspaceRoot: null,
+    workspaceAdditions: [],
+    worktree: null,
   }
 }
 
@@ -141,6 +147,13 @@ export function forkSession(source, title, atIndex) {
   forked.tasks = (source.tasks ?? []).map(t => ({ ...t }))
   forked.enabledTools = new Set(source.enabledTools ?? [])
   forked.allowedTools = new Set(source.allowedTools ?? [])
+  // 沙箱根一起带过去：分叉的本意是"从这里接着干"，把根换回默认根会让人莫名其妙。
+  // 代价是 **两个会话可能共用同一个 worktree 目录** —— 退出时选 remove 会删掉
+  // 另一个会话正在用的目录，所以 ExitWorktree 在 remove 时依赖 git 自己的检查
+  // （有未提交改动就拒绝），并在结果里说明。
+  forked.workspaceRoot = source.workspaceRoot ?? null
+  forked.workspaceAdditions = [...(source.workspaceAdditions ?? [])]
+  forked.worktree = source.worktree ? { ...source.worktree } : null
 
   sessions.set(forked.id, forked)
   schedulePersist()
@@ -264,6 +277,10 @@ function serialize(s) {
     tags: s.tags ?? [],
     allowedTools: [...(s.allowedTools ?? [])],
     enabledTools: [...(s.enabledTools ?? [])],
+    // 沙箱根必须持久化（见 blankSession 的说明）；worktree 一起存，退出时才能还原。
+    workspaceRoot: s.workspaceRoot ?? null,
+    workspaceAdditions: s.workspaceAdditions ?? [],
+    worktree: s.worktree ?? null,
   }
 }
 
@@ -314,6 +331,18 @@ export async function loadPersisted() {
       s.tags = Array.isArray(item.tags) ? item.tags : []
       s.allowedTools = new Set(Array.isArray(item.allowedTools) ? item.allowedTools : [])
       s.enabledTools = new Set(Array.isArray(item.enabledTools) ? item.enabledTools : [])
+      // 沙箱根：只有路径**仍然存在**才恢复 —— 目录被删掉之后还按它当根，
+      // 会让这个会话的所有文件操作都失败在各种奇怪的地方（而不是一句清楚的提示）。
+      let root = typeof item.workspaceRoot === 'string' ? item.workspaceRoot : null
+      let wt = item.worktree && typeof item.worktree?.path === 'string' ? item.worktree : null
+      if (root && !existsSync(root)) {
+        console.warn(`会话 ${s.id} 的沙箱根已不存在，回落到默认根：${root}`)
+        root = null
+        wt = null
+      }
+      s.workspaceRoot = root
+      s.workspaceAdditions = Array.isArray(item.workspaceAdditions) ? item.workspaceAdditions : []
+      s.worktree = wt
       // 计划模式不跨进程恢复，避免重启后模型仍被静默限制
       s.planMode = false
       sessions.set(s.id, s)

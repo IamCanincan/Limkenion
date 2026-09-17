@@ -12,8 +12,9 @@
  */
 
 import { randomBytes } from 'node:crypto'
-import { relative, isAbsolute, resolve, sep } from 'node:path'
-import { WORKSPACE_ROOT, EXPOSED, PORT } from './config.mjs'
+import { resolve } from 'node:path'
+import { EXPOSED, PORT } from './config.mjs'
+import { isInsideWorkspace } from './paths.mjs'
 
 // ---------------------------------------------------------------------------
 // 1. 连接鉴权
@@ -139,8 +140,9 @@ function outsideWorkspacePaths(command) {
       } catch {
         continue
       }
-      const rel = relative(WORKSPACE_ROOT, abs)
-      const inside = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+      // 用 isInsideWorkspace 而不是自己算相对路径：沙箱根是按会话的
+      // （worktree 会改根），而且要去重额外可访问目录。
+      const inside = isInsideWorkspace(abs)
       if (!inside && !found.includes(raw)) found.push(raw)
     }
   }

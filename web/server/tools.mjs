@@ -8,12 +8,12 @@
  *   协作类   Agent / TeamCreate / TeamDelete / SendMessage / SendUserMessage
  *   任务类   TodoWrite / TaskCreate / TaskGet / TaskList / TaskUpdate / TaskStop / TaskOutput
  *   流程类   EnterPlanMode / ExitPlanMode / AskUserQuestion / Sleep / CronCreate
+ *            / EnterWorktree / ExitWorktree
  *   配置类   Config / Skill / ToolSearch / StructuredOutput
  *   降级类   LSP / MCPTool / ListMcpResourcesTool / ReadMcpResource / McpAuth / RemoteTrigger
- *            / EnterWorktree / ExitWorktree（web 沙箱内无对应基础设施，返回明确说明）
  *
- * 所有文件工具都限制在工作区沙箱内。
- * 工作区根：LIMKENION_WEB_WORKSPACE（默认 CLI 源码根目录）。
+ * 所有文件工具都限制在**会话的沙箱根**内（可以随 EnterWorktree 变化，见 paths.mjs）。
+ * 默认根：LIMKENION_WEB_WORKSPACE（默认 CLI 源码根目录）。
  */
 
 import { readFile, writeFile, readdir, stat, mkdir } from 'node:fs/promises'
@@ -21,12 +21,20 @@ import { execFile } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import vm from 'node:vm'
-import { CLI_ROOT, WORKSPACE_ROOT, relToWorkspace as rel, safePath, toPosix, globToRegExp } from './paths.mjs'
+import {
+  CLI_ROOT,
+  globToRegExp,
+  relToWorkspace as rel,
+  safePath,
+  toPosix,
+  workspaceRoot,
+} from './paths.mjs'
 import { collectFiles, invalidateFileIndex } from './workspace.mjs'
 import { MAX_DIFF_CHARS } from './config.mjs'
 import { markUntrusted, wrapUntrusted } from './security.mjs'
+import { enterWorktree, exitWorktree } from './worktree.mjs'
 
-export { CLI_ROOT, WORKSPACE_ROOT, safePath }
+export { CLI_ROOT, safePath, workspaceRoot }
 
 /**
  * 需要用户确认的危险工具：会改动磁盘、执行外部进程、或排定后续自动回合。
@@ -42,6 +50,10 @@ export const DANGEROUS_TOOLS = new Set([
   'CronCreate',
   // 取消定时任务会改变后续自动回合的行为，与 CronCreate 同等对待。
   'CronDelete',
+  // worktree 改的是**会话的沙箱根**（不只是 cwd）：一次授权会把之后所有文件工具的
+  // 作用范围换到另一棵树上，属于安全边界改变，所以要确认。
+  'EnterWorktree',
+  'ExitWorktree',
 ])
 
 /** 子代理只读工具白名单（Agent 工具内部使用）。 */
@@ -381,7 +393,7 @@ function matchWithTimeout(pattern, fileLines, { multiline = false } = {}) {
 
 async function toolGrep({ pattern, path, glob, head_limit, offset, output_mode, context, multiline, type }) {
   const p = validatePattern(pattern)
-  const base = path ? safePath(path) : WORKSPACE_ROOT
+  const base = path ? safePath(path) : workspaceRoot()
   const include = glob ?? type ? String(glob ?? type).replace(/\*/g, '') : null
   const candidates = (await collectFiles(base)).filter(f =>
     include
@@ -473,7 +485,7 @@ function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
     execFile(
       file,
       args,
-      { cwd: WORKSPACE_ROOT, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
+      { cwd: workspaceRoot(), timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
       (error, stdout, stderr) => {
         const out = [
           stdout && `stdout:\n${stdout}`,
@@ -501,7 +513,7 @@ async function toolPowerShell({ command }) {
     execFile(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', command],
-      { cwd: WORKSPACE_ROOT, timeout: BASH_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
+      { cwd: workspaceRoot(), timeout: BASH_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
       (error, stdout, stderr) => {
         resolveResult(
           [
@@ -956,7 +968,7 @@ async function discoverSkills() {
   const found = new Map()
 
   // 1) CLI 内置技能：从 skills/bundled/*.ts 里解析 name
-  const bundledDir = join(WORKSPACE_ROOT, 'skills', 'bundled')
+  const bundledDir = join(workspaceRoot(), 'skills', 'bundled')
   if (existsSync(bundledDir)) {
     let entries = []
     try {
@@ -983,8 +995,8 @@ async function discoverSkills() {
 
   // 2) SKILL.md 技能目录
   const skillRoots = [
-    join(WORKSPACE_ROOT, 'skills'),
-    join(WORKSPACE_ROOT, '.workbuddy-ai', 'skills'),
+    join(workspaceRoot(), 'skills'),
+    join(workspaceRoot(), '.workbuddy-ai', 'skills'),
     join(process.env.USERPROFILE ?? process.env.HOME ?? '', '.workbuddy-ai', 'skills'),
   ]
   for (const root of skillRoots) {
@@ -1103,20 +1115,20 @@ function degraded(reason) {
 }
 
 /**
- * worktree 类工具的降级原因。
+ * worktree 两个工具的真实现。
  *
- * 原来这里写死「当前工作区不是 git 仓库」—— 但工作区**经常就是** git 仓库，
- * 于是模型和用户会收到一句明显不实的错误。
- *
- * 真实原因是**设计选择**：web 端的沙箱根 `WORKSPACE_ROOT` 是模块级常量
- * （`paths.mjs`），被 safePath / isInsideWorkspace 等所有文件工具共用；
- * 让会话动态切换沙箱根是一次安全边界改动，没有做。
+ * 它们**会改动会话的沙箱根**（不只是 cwd），所以列进 DANGEROUS_TOOLS 需要用户确认：
+ * 一次授权等于把之后所有文件工具的作用范围换到另一棵树上，属于安全边界的改变。
  */
-function worktreeDegradedReason() {
-  const isRepo = existsSync(join(WORKSPACE_ROOT, '.git'))
-  return isRepo
-    ? 'web 端沙箱固定为工作区根（LIMKENION_WEB_WORKSPACE），不支持把会话切换到 git worktree'
-    : '当前工作区不是 git 仓库，也没有可切换的 worktree'
+async function toolEnterWorktree(input, session) {
+  const r = await enterWorktree(session, input?.name)
+  return `${r.message}\n\n（沙箱根已切换；如需可访问其他目录，配 permissions.additionalDirectories）`
+}
+
+async function toolExitWorktree(input, session) {
+  const action = input?.action === 'remove' ? 'remove' : 'keep'
+  const r = await exitWorktree(session, action === 'remove')
+  return r.message
 }
 
 // ---------------------------------------------------------------------------
@@ -1736,20 +1748,36 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'EnterWorktree',
-      description: '进入 git worktree 隔离工作。当前工作区不是 git 仓库，调用会返回不可用说明。',
-      parameters: { type: 'object', properties: { name: { type: 'string' } }, required: [] },
+      description:
+        '创建一个隔离的 git worktree，并把本会话的沙箱根切换过去（只在用户明确提到 worktree 时使用）。' +
+        '在 <仓库>/.limkenion/worktrees/ 下基于 HEAD 建新分支。注意：切换后原目录不再可访问，' +
+        '且未受版本控制的目录（node_modules 等）不会被带过去。',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description:
+              'worktree 名称（可选）。以 / 分隔的每段只能包含字母、数字、点、下划线和短横线，总长 ≤ 64；省略则随机生成。',
+          },
+        },
+        required: [],
+      },
     },
   },
   {
     type: 'function',
     function: {
       name: 'ExitWorktree',
-      description: '退出 git worktree。当前工作区不是 git 仓库，调用会返回不可用说明。',
+      description: '退出当前 worktree：把会话的沙箱根还原，并按需移除 worktree 目录。',
       parameters: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['keep', 'remove'] },
-          discard_changes: { type: 'boolean' },
+          action: {
+            type: 'string',
+            enum: ['keep', 'remove'],
+            description: 'keep 保留目录（默认）、remove 删除目录（有未提交改动时会拒绝，不会替你丢东西）',
+          },
         },
         required: [],
       },
@@ -1821,8 +1849,8 @@ export async function executeTool(name, input, ctx) {
     case 'ReadMcpResource': return degraded('未配置 MCP 客户端连接')(input)
     case 'McpAuth': return degraded('未配置 MCP 客户端连接')(input)
     case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')(input)
-    case 'EnterWorktree': return degraded(worktreeDegradedReason())(input)
-    case 'ExitWorktree': return degraded(worktreeDegradedReason())(input)
+    case 'EnterWorktree': return toolEnterWorktree(input, session)
+    case 'ExitWorktree': return toolExitWorktree(input, session)
     default: throw new Error(`未知工具：${name}`)
   }
 }

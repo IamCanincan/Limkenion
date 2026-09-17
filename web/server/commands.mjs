@@ -30,7 +30,7 @@ import {
   settingsFor,
   startedAt,
   THEMES,
-  WORKSPACE_ROOT,
+  workspaceRoot,
 } from './config.mjs'
 import { chatCompletion, getApiKey } from './deepseek.mjs'
 import { bypassDisabled, getSettings, loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
@@ -47,6 +47,7 @@ import {
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
 import { enableTools, toolsOverview } from './toolindex.mjs'
 import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
+import { worktreeSummary } from './worktree.mjs'
 
 // ---------------------------------------------------------------------------
 // 命令注册表（静态扫描 CLI 源码，不执行任何 CLI 代码）
@@ -481,7 +482,8 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       `引擎：${engineName() === 'deepseek' ? 'DeepSeek（真实）' : 'mock（未设 DEEPSEEK_API_KEY）'}\n` +
       `模型：${settings.model}　主题：${settings.theme}　权限：${settings.permissionMode}\n` +
       `计划模式：${session.planMode ? '开' : '关'}\n` +
-      `工作区：${WORKSPACE_ROOT}\n` +
+      `工作区：${workspaceRoot()}\n` +
+      `worktree：${worktreeSummary(session)}\n` +
       `工具：可调用 ${TOOL_SCHEMAS.length} 个中按需启用（详见 /tools）\n` +
       `文件索引：${idx.count} 个文件${idx.ageMs === null ? '' : `（缓存 ${Math.round(idx.ageMs / 1000)}s 前）`}\n` +
       `会话：${session.title}（${session.messages.length} 条消息）\n` +
@@ -493,7 +495,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
   }
   if (name === 'context') {
     return (
-      `工作区：${WORKSPACE_ROOT}\n` +
+      `工作区：${workspaceRoot()}\n` +
       `上下文消息数：${session.messages.length + 1}（含系统提示）\n` +
       `本会话已加载工具：${[...(session.enabledTools ?? [])].length} 个延迟工具 + 常驻集\n` +
       `思维链：${session.lastReasoning ? `上一回合 ${session.lastReasoning.length} 字` : '无'}\n` +
@@ -573,7 +575,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     )
   }
   if (name === 'memory') {
-    const memDir = join(WORKSPACE_ROOT, '.workbuddy-ai', 'memory')
+    const memDir = join(workspaceRoot(), '.workbuddy-ai', 'memory')
     if (!existsSync(memDir)) return `工作区记忆目录不存在：${memDir}\n（CLI 会在首次写入时创建）`
     try {
       const entries = await readdir(memDir, { withFileTypes: true })

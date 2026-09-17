@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'node:fs'
 import { DEEPSEEK_MODELS, getApiKey } from './deepseek.mjs'
-import { CLI_ROOT, WORKSPACE_ROOT } from './paths.mjs'
+import { CLI_ROOT, DEFAULT_WORKSPACE_ROOT, workspaceRoot } from './paths.mjs'
 import { broadcast } from './bus.mjs'
 import { bypassDisabled, defaultPermissionMode } from './settings.mjs'
 
@@ -37,7 +37,7 @@ export const startedAt = Date.now()
 export const COMMANDS_DIR = join(CLI_ROOT, 'commands')
 export const HAS_CLI_SOURCE = existsSync(COMMANDS_DIR)
 
-export { CLI_ROOT, WORKSPACE_ROOT }
+export { CLI_ROOT, DEFAULT_WORKSPACE_ROOT, workspaceRoot }
 
 /** 模型目录（取自 deepseek-harness packages/llm/llm-deepseek DEFAULT_MODELS）。 */
 export const MODELS = DEEPSEEK_MODELS
@@ -145,7 +145,8 @@ export function publicSettings(session, engineName) {
     effortLevel: s.effortLevel ?? null,
     // 该模型下 effort 实际会被解析成什么（max 在非 v4-pro 上降级为 high）
     effectiveEffort: resolveEffort(s.model, s.effortLevel) ?? null,
-    workspace: WORKSPACE_ROOT,
+    // 沙箱根是**按会话**的：进入 git worktree 后这个值会变（见 paths.mjs 的说明）。
+    workspace: session?.workspaceRoot ?? workspaceRoot(),
     engine: engineName ?? (getApiKey() ? 'deepseek' : 'mock'),
   }
 }

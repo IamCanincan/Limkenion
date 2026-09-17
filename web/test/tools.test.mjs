@@ -9,6 +9,8 @@ import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { readFile, mkdir, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { listen, makeWorkspace } from './helpers.mjs'
 
@@ -74,7 +76,7 @@ before(async () => {
   DANGEROUS_TOOLS = tools.DANGEROUS_TOOLS
   unifiedDiff = tools.unifiedDiff
   safePath = tools.safePath
-  WORKSPACE_ROOT = tools.WORKSPACE_ROOT
+  WORKSPACE_ROOT = tools.workspaceRoot()
 })
 
 after(async () => {
@@ -421,19 +423,21 @@ describe('流程与配置工具', () => {
     assert.ok(!DANGEROUS_TOOLS.has('CronList'), '列清单是只读的')
   })
 
-  test('worktree 工具的降级原因与实际相符（不谎称"不是 git 仓库"）', async () => {
-    // 原实现把原因写死成「当前工作区不是 git 仓库」，但工作区经常**就是** git 仓库，
-    // 于是模型收到一句明显不实的错误。现在按实际判断。
+  test('worktree 工具：不是 git 仓库时如实说明原因', async () => {
     const { ctx } = makeCtx()
     await assert.rejects(() => executeTool('EnterWorktree', {}, ctx), /不是 git 仓库/)
+  })
 
-    await mkdir(join(WORKSPACE_ROOT, '.git'), { recursive: true })
-    try {
-      await assert.rejects(() => executeTool('EnterWorktree', {}, ctx), /沙箱固定为工作区根/)
-      await assert.rejects(() => executeTool('ExitWorktree', {}, ctx), /沙箱固定为工作区根/)
-    } finally {
-      await rm(join(WORKSPACE_ROOT, '.git'), { recursive: true, force: true })
-    }
+  test('worktree 两个工具都算危险工具（会改沙箱根）', () => {
+    assert.ok(DANGEROUS_TOOLS.has('EnterWorktree'), '一次授权会把之后所有文件工具的作用范围换到另一棵树上')
+    assert.ok(DANGEROUS_TOOLS.has('ExitWorktree'))
+  })
+
+  test('worktree 名称校验：拒绝 .. 与非法字符', () => {
+    const { ctx } = makeCtx()
+    return assert.rejects(() => executeTool('EnterWorktree', { name: '..' }, ctx), /不允许出现/)
+      .then(() => assert.rejects(() => executeTool('EnterWorktree', { name: 'a b' }, ctx), /只能包含/))
+      .then(() => assert.rejects(() => executeTool('EnterWorktree', { name: 'x'.repeat(65) }, ctx), /过长/))
   })
 
   test('StructuredOutput 回传 JSON', async () => {
@@ -475,8 +479,6 @@ describe('降级工具给出明确原因', () => {
     ['ReadMcpResource', { server: 's', uri: 'u' }],
     ['McpAuth', { server: 's' }],
     ['RemoteTrigger', { target: 't' }],
-    ['EnterWorktree', {}],
-    ['ExitWorktree', {}],
   ]) {
     test(`${name} 抛出不可用说明`, async () => {
       await assert.rejects(() => executeTool(name, input, makeCtx().ctx), /不可用/)
@@ -523,5 +525,153 @@ describe('unifiedDiff 本身', () => {
 describe('safePath 从工具侧可见', () => {
   test('工作区内路径解析为绝对路径', () => {
     assert.equal(safePath('src/a.ts'), join(WORKSPACE_ROOT, 'src', 'a.ts'))
+  })
+})
+
+/**
+ * worktree：真流程 + **安全边界回归**。
+ *
+ * 这一组的核心断言不是"能建出 worktree"，而是"建完之后沙箱**真的换了**"：
+ * 新树里能写、老树里必须被拦。漏掉这条，worktree 就会变成一个绕过沙箱写文件的通道。
+ */
+describe('worktree（沙箱根切换）', () => {
+  let withWorkspace
+  let ctx
+  let session
+  // 同样不能在 describe 回调里就 join(WORKSPACE_ROOT) —— before 还没跑
+  let WT_DIR
+
+  const gitSync = args =>
+    new Promise(res => {
+      execFile(
+        'git',
+        args,
+        { cwd: WORKSPACE_ROOT, windowsHide: true },
+        (e, so, se) => res({ ok: !e, out: String(so).trim(), err: String(se).trim() }),
+      )
+    })
+
+  const gitAt = (args, cwd) =>
+    new Promise(res => {
+      execFile('git', args, { cwd, windowsHide: true }, (e, so, se) =>
+        res({ ok: !e, out: String(so).trim(), err: String(se).trim() }),
+      )
+    })
+
+  before(async () => {
+    ;({ withWorkspace } = await import('../server/paths.mjs'))
+    WT_DIR = join(WORKSPACE_ROOT, '.limkenion', 'worktrees', 'wt-one')
+    // 造一个真 git 仓库（EnterWorktree 需要至少一个提交作为 HEAD）
+    await gitSync(['init', '-b', 'main'])
+    await gitSync(['config', 'user.email', 'test@local'])
+    await gitSync(['config', 'user.name', 'test'])
+    const r = await gitSync(['add', '-A'])
+    if (!r.ok) throw new Error('git add 失败：' + r.err)
+    const c = await gitSync(['commit', '-m', 'init', '--allow-empty'])
+    if (!c.ok) throw new Error('git commit 失败：' + c.err)
+  })
+
+  /** 每个用例一个新的会话对象（沙箱根挂在会话上，用例之间不能互相污染）。 */
+  function freshSession() {
+    const made = makeCtx()
+    session = made.session
+    ctx = made.ctx
+    return session
+  }
+
+  test('进入 worktree：建出目录与分支，并把会话的根切过去', async () => {
+    freshSession()
+    const out = await executeTool('EnterWorktree', { name: 'wt-one' }, ctx)
+
+    assert.match(out, /已进入 worktree/)
+    assert.match(out, /原目录.*不再可访问/, '必须说明沙箱根换了，否则用户以为还能看老目录')
+    assert.equal(session.workspaceRoot, WT_DIR, '会话的沙箱根应当是新的 worktree')
+    assert.ok(existsSync(WT_DIR), '目录应当真的建出来了')
+
+    const branches = await gitSync(['branch', '--list', 'limkenion-wt/wt-one'])
+    assert.ok(branches.out.includes('limkenion-wt/wt-one'), '分支应当在自己的命名空间里')
+  })
+
+  test('进入后：新树里能写，**老树里必须越界**（安全边界回归）', async () => {
+    freshSession()
+    await executeTool('EnterWorktree', { name: 'wt-one' }, ctx)
+
+    // 之后的一切都在"这个会话"的作用域里跑（引擎的 runTurn 就是这么做的）
+    await withWorkspace({ root: session.workspaceRoot }, async () => {
+      await executeTool('Write', { file_path: 'inside.txt', content: '在 worktree 里\n' }, ctx)
+      assert.equal(await readFile(join(WT_DIR, 'inside.txt'), 'utf8'), '在 worktree 里\n')
+
+      // 老根里的文件：必须被 safePath 拦住
+      await assert.rejects(
+        () => executeTool('Read', { file_path: join(WORKSPACE_ROOT, 'package.json') }, ctx),
+        /越界/,
+        '进入 worktree 后还能读老目录 = 隔离失效',
+      )
+      await assert.rejects(
+        () => executeTool('Write', { file_path: join(WORKSPACE_ROOT, 'should-not-exist.txt'), content: 'x' }, ctx),
+        /越界/,
+      )
+    })
+    assert.ok(!existsSync(join(WORKSPACE_ROOT, 'should-not-exist.txt')), '越界的写入绝不能落地')
+  })
+
+  test('退出（keep）：还原根，目录留着', async () => {
+    freshSession()
+    await executeTool('EnterWorktree', { name: 'wt-one' }, ctx)
+    const out = await executeTool('ExitWorktree', { action: 'keep' }, ctx)
+
+    assert.match(out, /已退出 worktree/)
+    assert.equal(session.workspaceRoot, null, '退出后应当回落到默认根')
+    assert.equal(session.worktree, null)
+    assert.ok(existsSync(WT_DIR), 'keep 时目录留着')
+  })
+
+  test('退出（remove）：有未提交改动时拒绝丢东西，清干净后才移除', async () => {
+    freshSession()
+    await executeTool('EnterWorktree', { name: 'wt-one' }, ctx)
+    // 留一个未提交的改动：remove 必须**拒绝**丢东西
+    await withWorkspace({ root: session.workspaceRoot }, () =>
+      executeTool('Write', { file_path: 'dirty.txt', content: '未提交\n' }, ctx),
+    )
+    const dirty = await executeTool('ExitWorktree', { action: 'remove' }, ctx)
+    assert.match(dirty, /未移除/, '有未提交改动时不能替用户丢东西')
+    assert.ok(existsSync(WT_DIR), '拒绝移除时目录必须还在')
+
+    // 改动清掉之后再进去退一次 —— 这次应当真的删掉。
+    // 用 git 自己清（前面的用例在树里留过未跟踪文件，git worktree remove 一律会拒绝）。
+    await gitAt(['clean', '-fdx'], WT_DIR)
+    await gitAt(['checkout', '--', '.'], WT_DIR)
+    await executeTool('EnterWorktree', { name: 'wt-one' }, ctx)
+    const out = await executeTool('ExitWorktree', { action: 'remove' }, ctx)
+    assert.match(out, /已清理/)
+    assert.ok(!existsSync(WT_DIR), 'remove 之后目录应当没了')
+    const branches = await gitSync(['branch', '--list', 'limkenion-wt/wt-one'])
+    assert.equal(branches.out, '', '分支也应当被删掉，避免留下一堆孤儿分支')
+  })
+
+  test('已在 worktree 里时不能重复进入', async () => {
+    freshSession()
+    await executeTool('EnterWorktree', { name: 'wt-two' }, ctx)
+    await assert.rejects(() => executeTool('EnterWorktree', { name: 'wt-three' }, ctx), /已经在 worktree 里/)
+    await executeTool('ExitWorktree', { action: 'remove' }, ctx)
+  })
+
+  test('仓库根在沙箱外时拒绝建（不给绕过沙箱的口子）', async () => {
+    freshSession()
+    // 把会话的根设成仓库里的一个**子目录**：worktree 会建在 <repo>/.limkenion/... ，
+    // 那在这个会话的沙箱之外，必须拒绝。
+    const sub = join(WORKSPACE_ROOT, 'sub-sandbox')
+    await mkdir(sub, { recursive: true })
+    session.workspaceRoot = sub
+    await assert.rejects(
+      () => executeTool('EnterWorktree', { name: 'wt-outside' }, ctx),
+      /沙箱之外/,
+      '否则"创建 worktree"就是一个绕过沙箱写文件的通道',
+    )
+  })
+
+  test('不在 worktree 里时退出要报错', async () => {
+    freshSession()
+    await assert.rejects(() => executeTool('ExitWorktree', {}, ctx), /不在任何 worktree/)
   })
 })

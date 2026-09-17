@@ -33,6 +33,7 @@ import {
   getSession,
   schedulePersist,
 } from './sessions.mjs'
+import { scopeForSession, withWorkspace } from './paths.mjs'
 import { listIndexedFiles } from './workspace.mjs'
 
 /** 单条客户端消息的最大长度（防超大帧打爆内存）。 */
@@ -102,6 +103,15 @@ function requireSession(ws, sessionId) {
 }
 
 async function handleClientMessage(ws, msg, registry) {
+  // 沙箱根是按会话的（会话可以进入某个 git worktree），所以每条消息都在
+  // **该会话的作用域**里处理 —— 命令（/status、/diff、/memory…）与文件列表
+  // 都属于"这个会话在看哪个目录"的范畴。没有 sessionId 的消息（如 new_session）
+  // 走默认根，因为它们不碰文件。
+  const session = msg.sessionId ? getSession(msg.sessionId) : null
+  return withWorkspace(scopeForSession(session), () => handleClientMessageInner(ws, msg, registry))
+}
+
+async function handleClientMessageInner(ws, msg, registry) {
   switch (msg.type) {
     case 'new_session': {
       const s = createSession()

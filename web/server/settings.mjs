@@ -12,6 +12,9 @@
  *   permissions.allow    免确认
  *   permissions.defaultMode                  新会话的默认权限模式
  *   permissions.disableBypassPermissionsMode 禁掉 bypassPermissions
+ *   permissions.additionalDirectories        额外可访问目录（沙箱根之外）
+ *   hooks                                    工具前后钩子（见 hooks.mjs）
+ *   mcpServers                               MCP 服务器（见 mcp.mjs）
  *
  * 规则语法与 CLI 一致：`Tool` 或 `Tool(specifier)`。
  *   - 裸工具名（如 `Bash`）→ 匹配该工具的任何调用
@@ -20,15 +23,20 @@
  *   - 其他工具的 specifier → **不做猜测匹配**，记进 `unhonored` 供上层提示 ——
  *     宁可明说"这条规则在 web 端不生效"，也不要给用户一个假的保护感。
  *
+ * **项目级设置固定从「进程默认根」读，不跟着会话的 worktree 漂移。**
+ * 这是刻意的安全选择：会话进入某个 git worktree 之后，如果项目级设置改成从新根读，
+ * 而新根里没有 `.limkenion/settings.json`（git worktree 只检出受版本控制的文件），
+ * 用户配的 `permissions.deny` 就会**静默失效** —— 那是"以为挡住了、其实没挡"。
+ * 策略不随 worktree 变化，越权面才可预测。
+ *
  * 没实现的（如实记录，不要以为有）：
- *   permissions.additionalDirectories  需要改沙箱根（安全边界），未做
- *   其他设置键（hooks / env / mcpServers / outputStyle 等）web 端不消费
+ *   hooks 的 prompt / agent / http 三种执行方式，以及 web 未接线的钩子事件
  */
 
 import { readFileSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve } from 'node:path'
-import { globToRegExp, toPosix, WORKSPACE_ROOT } from './paths.mjs'
+import { globToRegExp, toPosix, DEFAULT_WORKSPACE_ROOT, workspaceRoot } from './paths.mjs'
 
 /** 文件类工具：specifier 按 glob 匹配 file_path（与 CLI 的 filePatternTools 对齐）。 */
 const FILE_PATTERN_TOOLS = new Set(['Read', 'Write', 'Edit', 'Glob', 'NotebookRead', 'NotebookEdit'])
@@ -42,13 +50,16 @@ const PATH_INPUT_KEYS = ['file_path', 'notebook_path', 'path']
 /**
  * 设置文件的位置。顺序即优先级（后面的覆盖前面的标量键；数组一律取并集）。
  * 与 CLI 的 userSettings / projectSettings / localSettings 对应。
+ *
+ * 项目级/本地级固定在**进程默认根**下（见文件头"为什么"）—— 不随会话的 worktree 变。
  */
 export function settingsFilePaths() {
   const configDir = process.env.LIMKENION_CONFIG_DIR ?? join(homedir(), '.limkenion')
+  const root = DEFAULT_WORKSPACE_ROOT
   return [
     { source: 'user', path: join(configDir, 'settings.json') },
-    { source: 'project', path: join(WORKSPACE_ROOT, '.limkenion', 'settings.json') },
-    { source: 'local', path: join(WORKSPACE_ROOT, '.limkenion', 'settings.local.json') },
+    { source: 'project', path: join(root, '.limkenion', 'settings.json') },
+    { source: 'local', path: join(root, '.limkenion', 'settings.local.json') },
   ]
 }
 
@@ -91,12 +102,17 @@ function matchCommandSpecifier(specifier, command) {
   return cmd === specifier.trim()
 }
 
-/** 文件类匹配：对 file_path 做 glob；支持 `//abs/path`（绝对路径）写法。 */
+/**
+ * 文件类匹配：对 file_path 做 glob；支持 `//abs/path`（绝对路径）写法。
+ *
+ * 相对路径的候选**对每个沙箱根各算一份**（会话根可能是某个 worktree，也可能有额外
+ * 可访问目录），任意一份命中就算命中。刻意往"更容易命中"的方向偏：
+ * `deny`/`ask` 漏判是安全问题（以为挡住了其实没挡），误判只是多弹一次确认。
+ */
 function matchFileSpecifier(specifier, input) {
   const raw = PATH_INPUT_KEYS.map(k => input?.[k]).find(v => typeof v === 'string' && v.length > 0)
   if (!raw) return false
-  const abs = isAbsolute(raw) ? resolve(raw) : resolve(WORKSPACE_ROOT, raw)
-  const relPath = toPosix(abs.slice(resolve(WORKSPACE_ROOT).length).replace(/^[\\/]/, ''))
+  const abs = isAbsolute(raw) ? resolve(raw) : resolve(workspaceRoot(), raw)
   const posixAbs = toPosix(abs)
 
   let pattern = specifier.trim()
@@ -105,7 +121,13 @@ function matchFileSpecifier(specifier, input) {
     return globToRegExp(toPosix(pattern.slice(1))).test(posixAbs)
   }
   pattern = toPosix(pattern.replace(/^\.\//, ''))
-  return globToRegExp(pattern).test(relPath) || globToRegExp('**/' + pattern).test(relPath)
+  const re = globToRegExp(pattern)
+  const rel = globToRegExp('**/' + pattern)
+  for (const root of new Set([workspaceRoot(), DEFAULT_WORKSPACE_ROOT])) {
+    const relPath = toPosix(abs.slice(resolve(root).length).replace(/^[\\/]/, ''))
+    if (re.test(relPath) || rel.test(relPath)) return true
+  }
+  return false
 }
 
 /**
@@ -133,6 +155,17 @@ export function matchRule(rule, toolName, input) {
 // 加载与缓存
 // ---------------------------------------------------------------------------
 
+/**
+ * 读取各来源设置文件的内容（**每次都重新读盘**，3 个小文件，代价可忽略）。
+ *
+ * 各功能模块（hooks / mcpServers / additionalDirectories）都用它取自己的键，
+ * 避免各自再写一遍"去哪几个文件找"的逻辑 —— 路径只有 settingsFilePaths() 一处定义。
+ * @returns {{source: string, path: string, data: object|null}[]}
+ */
+export function settingsSources() {
+  return settingsFilePaths().map(f => ({ ...f, data: readJson(f.path) }))
+}
+
 let cache = null
 
 /** 合并各来源的权限配置（数组取并集，标量后者覆盖前者）。 */
@@ -140,6 +173,7 @@ function mergePermissions(files) {
   const allow = []
   const deny = []
   const ask = []
+  const additionalDirs = []
   let defaultMode = null
   let bypassDisabled = false
   const sources = []
@@ -155,6 +189,11 @@ function mergePermissions(files) {
         for (const r of p[key]) if (typeof r === 'string' && r.trim()) bucket.push(r.trim())
       }
     }
+    if (Array.isArray(p.additionalDirectories)) {
+      for (const d of p.additionalDirectories) {
+        if (typeof d === 'string' && d.trim()) additionalDirs.push(d.trim())
+      }
+    }
     if (typeof p.defaultMode === 'string') defaultMode = p.defaultMode
     if (p.disableBypassPermissionsMode === 'disable') bypassDisabled = true
   }
@@ -163,10 +202,29 @@ function mergePermissions(files) {
     allow: [...new Set(allow)],
     deny: [...new Set(deny)],
     ask: [...new Set(ask)],
+    additionalDirectories: [...new Set(additionalDirs)],
     defaultMode,
     bypassDisabled,
     sources,
   }
+}
+
+/**
+ * `permissions.additionalDirectories` —— 额外可访问目录（沙箱根之外）。
+ *
+ * 相对路径按**进程默认根**解析（与项目级设置文件的位置一致，便于写
+ * `.limkenion/settings.json` 时用 `"../other-repo"` 这种相对写法）。
+ * 不存在的目录会被过滤掉：把不存在的路径塞进沙箱只会在排错时误导人。
+ */
+export function additionalDirectories() {
+  const list = getSettings().permissions.additionalDirectories ?? []
+  const out = []
+  for (const item of list) {
+    const abs = isAbsolute(item) ? resolve(item) : resolve(DEFAULT_WORKSPACE_ROOT, item)
+    if (!existsSync(abs)) continue
+    if (!out.includes(abs)) out.push(abs)
+  }
+  return out
 }
 
 /**
@@ -199,7 +257,10 @@ export function settingsSummary() {
     `设置文件：${present.map(f => `${f.source}(${f.path})`).join('、')}\n` +
     `权限规则：allow ${p.allow.length} 条、deny ${p.deny.length} 条、ask ${p.ask.length} 条` +
     (p.defaultMode ? `；默认模式 ${p.defaultMode}` : '') +
-    (p.bypassDisabled ? '；已禁用 bypassPermissions' : '')
+    (p.bypassDisabled ? '；已禁用 bypassPermissions' : '') +
+    (p.additionalDirectories?.length
+      ? `；额外可访问目录 ${p.additionalDirectories.length} 个（生效 ${additionalDirectories().length} 个）`
+      : '')
   )
 }
 

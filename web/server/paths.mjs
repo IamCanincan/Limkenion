@@ -1,7 +1,22 @@
 /**
- * 路径解析与沙箱校验（被 tools / config / workspace 共用，因此单独成模块避免循环依赖）。
+ * 路径解析与沙箱校验（被 tools / config / workspace / settings 共用，因此单独成模块避免循环依赖）。
+ *
+ * **沙箱根是「按会话」的，不是进程级的**（这一条是安全边界，改之前先读完本节）：
+ *   - 进程启动时的根 = `LIMKENION_WEB_WORKSPACE` || CLI 源码根，叫 **默认根**；
+ *   - 回合/命令处理期间，根可以是**当前会话的根** —— 会话进入 git worktree 后会变；
+ *   - 还可以有**额外可访问目录**（设置文件里的 `permissions.additionalDirectories`）。
+ *
+ * 承载方式是 Node 自带的 `AsyncLocalStorage`，不是模块级可变变量。原因：
+ *   1. 模块级可变变量在并发回合之间会互相串味（会话 A 切了 worktree，会话 B 的
+ *      safePath 也跟着变了 —— 那就是越界读写的口子）；
+ *   2. 用 ALS 之后 `safePath(p)` / `isInsideWorkspace(p)` 的**签名一个都不用改**，
+ *      于是不可能漏掉某个调用点 —— 只要它在回合内执行，就自动拿到正确的根。
+ *
+ * 只在协议边界（每个 WS 消息）与回合边界（runTurn）进入作用域，
+ * 其余地方一律走 `withWorkspace()`；**不要直接读 WORKSPACE_ROOT 常量做沙箱判断**。
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 
@@ -27,11 +42,80 @@ function detectCliRoot() {
   return resolve(fallback)
 }
 
-/** CLI 源码根：命令注册表扫描、/agents 等镜像功能的来源目录。 */
+/** CLI 源码根：命令注册表扫描、/agents 等镜像功能的来源目录。**不随会话变化。** */
 export const CLI_ROOT = detectCliRoot()
 
-/** 文件工具沙箱根：显式环境变量 > CLI 源码根。 */
-export const WORKSPACE_ROOT = resolve(process.env.LIMKENION_WEB_WORKSPACE ?? CLI_ROOT)
+/**
+ * 进程默认沙箱根：显式环境变量 > CLI 源码根。**不随会话变化。**
+ * 会话没设根时用它；设置文件也按它定位（见 settings.mjs 的说明）。
+ */
+export const DEFAULT_WORKSPACE_ROOT = resolve(process.env.LIMKENION_WEB_WORKSPACE ?? CLI_ROOT)
+
+/**
+ * @deprecated 只是**默认根**，不反映当前会话的根（例如进入 worktree 之后）。
+ * 沙箱判断一律用 `isInsideWorkspace()` / `safePath()`；要拿根用 `workspaceRoot()`。
+ */
+export const WORKSPACE_ROOT = DEFAULT_WORKSPACE_ROOT
+
+/** 沙箱作用域载体（异步安全，见文件头说明）。 */
+const als = new AsyncLocalStorage()
+
+/** 当前作用域。默认为「默认根 + 无额外目录」。 */
+function currentScope() {
+  return als.getStore() ?? { root: DEFAULT_WORKSPACE_ROOT, additions: [] }
+}
+
+/** 当前生效的沙箱根（回合内 = 该会话的根，可能是某个 git worktree）。 */
+export function workspaceRoot() {
+  return currentScope().root
+}
+
+/** 当前可访问的全部根：主根在前，额外目录在后。 */
+export function workspaceRoots() {
+  const { root, additions } = currentScope()
+  return [root, ...additions]
+}
+
+/**
+ * 在指定沙箱作用域里执行一段代码（异步安全）。
+ * @param {{root?: string, additions?: string[]}} scope
+ * @param {() => T} fn
+ * @returns {T}
+ * @template T
+ */
+export function withWorkspace(scope, fn) {
+  const root = resolve(scope?.root ?? DEFAULT_WORKSPACE_ROOT)
+  const additions = []
+  for (const a of scope?.additions ?? []) {
+    if (typeof a !== 'string' || !a.trim()) continue
+    const abs = resolve(a.trim())
+    // 额外目录与主根重合时不必重复；自己不能被"加"成主根的父级
+    if (abs !== root && !additions.includes(abs)) additions.push(abs)
+  }
+  return als.run({ root, additions }, fn)
+}
+
+/** 由会话对象构造作用域（会话没设根就用默认根）。 */
+export function scopeForSession(session) {
+  return {
+    root: session?.workspaceRoot ?? null,
+    additions: session?.workspaceAdditions ?? [],
+  }
+}
+
+/** posix 相对判断：abs 是否落在 root 之内（含相等）。 */
+function inside(root, abs) {
+  const rel = relative(root, abs)
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+}
+
+/** 该绝对路径命中的根（主根优先，其次额外目录）；都不命中返回 null。 */
+function matchedRoot(abs) {
+  const { root, additions } = currentScope()
+  if (inside(root, abs)) return root
+  for (const a of additions) if (inside(a, abs)) return a
+  return null
+}
 
 /** POSIX 风格路径（前端与工具输出统一用正斜杠）。 */
 export function toPosix(p) {
@@ -57,15 +141,22 @@ export function globToRegExp(pattern) {
   )
 }
 
-/** 相对工作区的 POSIX 路径。 */
+/**
+ * 相对沙箱根的 POSIX 路径。
+ *
+ * 额外目录里的文件相对**那个目录**计算（它们不属于主根，用主根算出来全是 `../..`）。
+ * 一个都不命中时退回绝对 POSIX 路径 —— 越界路径仍要能显示出来，不能变成一个假相对路径。
+ */
 export function relToWorkspace(p) {
-  return toPosix(relative(WORKSPACE_ROOT, p))
+  const abs = resolve(p)
+  const root = matchedRoot(abs)
+  if (!root) return toPosix(abs)
+  return toPosix(relative(root, abs))
 }
 
-/** 判断绝对路径是否落在沙箱内。 */
+/** 判断绝对路径是否落在沙箱内（含额外可访问目录）。 */
 export function isInsideWorkspace(abs) {
-  const rel = relative(WORKSPACE_ROOT, abs)
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  return matchedRoot(resolve(abs)) !== null
 }
 
 /**
@@ -88,9 +179,9 @@ export function safePath(inputPath) {
     throw new Error(`无法解析的盘符路径：${inputPath}`)
   }
 
-  const abs = isAbsolute(raw) ? resolve(raw) : resolve(WORKSPACE_ROOT, raw)
+  const abs = isAbsolute(raw) ? resolve(raw) : resolve(workspaceRoot(), raw)
   if (!isInsideWorkspace(abs)) {
-    throw new Error(`路径越界（沙箱：${WORKSPACE_ROOT}）：${inputPath}`)
+    throw new Error(`路径越界（沙箱：${workspaceRoots().join('、')}）：${inputPath}`)
   }
 
   // Windows 保留设备名
@@ -101,7 +192,7 @@ export function safePath(inputPath) {
   }
   // NTFS 备用数据流
   if (/^[^\\/]*:[^\\/]+$/.test(base) && !/^[a-zA-Z]:$/.test(base)) {
-    throw new Error(`不允许访问备用数据流（ADS）：${inputPath}`)
+    throw new Error('不允许访问备用数据流（ADS）：' + inputPath)
   }
 
   return abs

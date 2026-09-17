@@ -10,7 +10,7 @@
 
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { WORKSPACE_ROOT, relToWorkspace } from './paths.mjs'
+import { relToWorkspace, workspaceRoot } from './paths.mjs'
 
 /** 递归时跳过的目录名。 */
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.workbuddy-ai', '.next', 'coverage', '__pycache__'])
@@ -22,12 +22,17 @@ const MAX_FILES = 5000
 const MAX_DEPTH = 12
 const TTL_MS = 30_000
 
-/** 绝对路径列表缓存。 */
-let cache = { at: 0, files: [] }
+/**
+ * 文件列表缓存，**按沙箱根分别缓存**。
+ *
+ * 沙箱根是按会话的（会话可以进入某个 git worktree），所以不能只有一份缓存 ——
+ * 否则 A 会话切到 worktree 之后，B 会话拿到的是 A 的目录树（越权看到别的树）。
+ */
+const caches = new Map()
 
-/** 显式失效（写盘后调用）。 */
+/** 显式失效（写盘后调用）。清全部：写盘可能发生在任何一个根里。 */
 export function invalidateFileIndex() {
-  cache = { at: 0, files: [] }
+  caches.clear()
 }
 
 /** 递归收集文件绝对路径（内部实现，不带缓存）。 */
@@ -54,12 +59,14 @@ async function walk(dir, depth, acc) {
  * @param {string} [base] 限定子目录；传入时绕过缓存直接扫（范围小、结果多变）
  */
 export async function collectFiles(base) {
-  if (base && base !== WORKSPACE_ROOT) {
+  const root = workspaceRoot()
+  if (base && base !== root) {
     return walk(base, 0, [])
   }
-  if (Date.now() - cache.at < TTL_MS && cache.files.length > 0) return cache.files
-  const files = await walk(WORKSPACE_ROOT, 0, [])
-  cache = { at: Date.now(), files }
+  const cached = caches.get(root)
+  if (cached && Date.now() - cached.at < TTL_MS && cached.files.length > 0) return cached.files
+  const files = await walk(root, 0, [])
+  caches.set(root, { at: Date.now(), files })
   return files
 }
 
@@ -77,5 +84,6 @@ export async function listIndexedFiles() {
 
 /** 缓存状态（供 /status 展示）。 */
 export function fileIndexStatus() {
-  return { count: cache.files.length, ageMs: cache.at === 0 ? null : Date.now() - cache.at }
+  const cached = caches.get(workspaceRoot())
+  return { count: cached?.files.length ?? 0, ageMs: !cached || cached.at === 0 ? null : Date.now() - cached.at }
 }

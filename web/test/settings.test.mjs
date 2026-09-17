@@ -289,3 +289,82 @@ describe('设置文件里的 bypass 开关', () => {
     assert.equal(mod.validateSetting('permissionMode', 'bypassPermissions'), true)
   })
 })
+
+/**
+ * `permissions.additionalDirectories`：把沙箱根之外的目录加进可访问范围。
+ *
+ * 这是本仓库里少数几处**放宽安全边界**的功能，所以断言要覆盖"放宽到什么程度"：
+ * 加进去的目录可访问、它之外仍然拦、不存在的目录不会被算进去。
+ */
+describe('additionalDirectories（额外可访问目录）', () => {
+  let extraDir
+
+  before(async () => {
+    extraDir = join(tmpdir(), 'lk-extra-' + Math.random().toString(36).slice(2, 8))
+    await mkdir(extraDir, { recursive: true })
+  })
+
+  test('用户级配置里的额外目录会被解析出来', async () => {
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({ permissions: { additionalDirectories: [extraDir] } }),
+      'utf8',
+    )
+    mod.loadSettings()
+    assert.deepEqual(mod.additionalDirectories(), [extraDir])
+  })
+
+  test('不存在的目录被过滤掉（否则排错时会以为它生效了）', async () => {
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({
+        permissions: { additionalDirectories: [join(extraDir, 'does-not-exist'), extraDir] },
+      }),
+      'utf8',
+    )
+    mod.loadSettings()
+    assert.deepEqual(mod.additionalDirectories(), [extraDir])
+  })
+
+  test('相对路径按进程默认根解析', async () => {
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({ permissions: { additionalDirectories: ['../' + extraDir.split(/[\\/]/).pop()] } }),
+      'utf8',
+    )
+    mod.loadSettings()
+    const list = mod.additionalDirectories()
+    assert.equal(list.length, 1, `应当解析出 1 个，实际 ${JSON.stringify(list)}`)
+    assert.equal(list[0], extraDir)
+  })
+
+  test('多来源取并集，重复项去重', async () => {
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({ permissions: { additionalDirectories: [extraDir] } }),
+      'utf8',
+    )
+    await writeSettings('.limkenion/settings.json', { permissions: { additionalDirectories: [extraDir] } })
+    mod.loadSettings()
+    assert.deepEqual(mod.additionalDirectories(), [extraDir])
+
+    await writeFile(join(workspace, '.limkenion', 'settings.json'), JSON.stringify({ permissions: {} }), 'utf8')
+    mod.loadSettings()
+  })
+
+  test('设置文件摘要里会提到额外目录', async () => {
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({ permissions: { additionalDirectories: [extraDir] } }),
+      'utf8',
+    )
+    mod.loadSettings()
+    assert.match(mod.settingsSummary(), /额外可访问目录 1 个/)
+  })
+
+  test('sources 空时不影响其他功能（没有额外目录就是空数组）', async () => {
+    await writeFile(join(configDir, 'settings.json'), JSON.stringify({ permissions: {} }), 'utf8')
+    mod.loadSettings()
+    assert.deepEqual(mod.additionalDirectories(), [])
+  })
+})
