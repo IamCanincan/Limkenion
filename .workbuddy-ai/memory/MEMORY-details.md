@@ -259,3 +259,53 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 ### 测试
 新增 `web/test/requestLog.test.mjs`（5 项）；`protocol.test.mjs` 补 3 项 WS 往返。
 顺带扩展测试桩支持 `{ status: 500 }` 模拟错误。全套 web 测试 **137 项全过**。
+
+## 十、Web 端搬 CLI 命令 + 两个静默严重 bug（2026-09-18）
+用户："cli 有的都要搬到 web 上。"
+
+### ① 工具 schema 从来没发给过模型（**严重**）
+`web/server/deepseek.mjs` 的 `chatCompletion` 构造了带 `tools` 的 `body`，
+但 `fetch` 用的是**另一份内联字面量**（不含 tools）→ 模型永远拿不到工具定义，
+**web 端的 agent 实际只能聊天**。现有测试全绿也发现不了（tools.test 直接测 executeTool，
+engine.test 用桩按脚本回放，都不看请求内容）。
+**教训：桩模型按脚本回放 → 断言不到"请求里少了什么"。要专门断言请求体。**
+修复后实测：模型调到 Read 并答对 package.json 的 name。
+
+### ② `chatCompletion` 不返回 text
+只 `return { usage, toolCalls }`，而 `engine.mjs` 的 `makeSummarizer` 读 `res.text`
+→ 永远 undefined，WebFetch 的网页提炼器一直失效。已累积正文并返回。
+（顺带给提炼器加 `reasoning_effort:'none'`。）
+
+### `reasoning_effort` 实测取值（重要）
+`none`（**唯一能完全关掉思考链**，0 字）/ minimal / low / medium / high / max 都接受；
+`auto` → 400。CLI 的 `EFFORT_LEVELS` 只有 low|medium|high|max，web 对齐这四档
+（**故意不引入 none，否则两端语义不一致**）。`max` 仅 v4-pro（CLI 的
+`modelSupportsMaxEffort`），其余模型降级为 high。实测 effort=low 思考 71 字 vs 默认 310 字。
+
+### 搬过来的 7 个命令
+`/effort`、`/branch`（别名 `/fork`）、`/rewind`、`/btw`、`/init`、`/schedule`、`/workflows`。
+- **`/btw` 语义怎么成立的**：命令输出在 `session.messages` 里是 `role:'system'`，
+  而 `sessionToWireMessages` 只映射 user/assistant → **system 不进模型上下文**。
+- `/rewind` 只回退对话，**不回滚磁盘文件**（web 无文件快照），输出里写明。
+- `/schedule` 与 `/cron` 同一实现，另加 `remove <id>`。
+- `/workflows` 只是如实说明（web 没挂载 Workflow 工具）。
+
+### 命令分类修正
+- `TERMINAL_ONLY` 键名与实际 name 不符：`sandbox-toggle`→`sandbox`、
+  `terminalSetup`→`terminal-setup`。
+- 新增 `NOT_IN_BUILD`（占位桩 / 已停用 / 需云端账号）—— 别混进"终端专属"，
+  那会误导用户以为换个环境就能用。
+- **注册表扫描取缩进最浅的 `name:`**，不是第一个。原来 `commands/insights.ts` 被注册成
+  `project_areas`（嵌套分节名，缩进 4），真名 `insights` 反而没注册。
+- `/usage` → `/cost`（CLI 的 /usage 是云端套餐，本机是死路径）。
+
+### UI
+顶栏「推理 · 默认/低/中/高/最高」下拉（降级时标"（实为高）"）；
+侧栏会话搜索框 + 会话菜单「分叉」；协议 `fork_session` → `session_forked`。
+
+### 没搬的（诚实记录）
+- `/insights`：2876 行，读 CLI 会话日志 + 生成 HTML 报告；web 会话存储是另一套
+  （`~/.limkenion-web/sessions.json`），搬 = 重写。属单独一件事。
+- 其余 40 个：终端专属（Git/登录/插件/终端配置/IDE）或死路径。
+
+测试：新增 `web/test/commands.test.mjs`（34 项），全套 **173 项全过**。

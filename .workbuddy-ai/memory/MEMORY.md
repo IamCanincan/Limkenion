@@ -93,6 +93,10 @@ Base：`https://api.deepseek.com`。**OpenAI 协议与 上游 协议（`/上游�
 （实测 flash 能看见图）。
 
 **已补的三处功能**：`/effort` 不再是空操作、新增 `/schedule` 命令、结构化输出打通。
+**Web 端已补齐 CLI 可搬的命令**（`/effort` `/branch` `/rewind` `/btw` `/init` `/schedule` `/workflows`），
+并修掉两个静默严重 bug（工具 schema 从没发给模型、`chatCompletion` 不返回 text）。
+`reasoning_effort` 实测：`none` 是唯一能关思考的取值，但 CLI 只暴露 low|medium|high|max，
+**web 对齐这四档、故意不加 none**。
 **Web 端新增「请求追踪」面板**（`web/server/requestLog.mjs` + `RequestLogPanel.tsx`）——
 记录每次模型请求的耗时/状态/token，内存环形缓冲、不上报不落盘。
 顺带修掉一个真 bug：web 端的模型列表原本有 4 个（含 2 个已退役别名）且默认用别名，
