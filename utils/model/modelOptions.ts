@@ -14,7 +14,12 @@ import {
 } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
-import { getAPIProvider, isOpenAICompat } from './providers.js'
+import {
+  getAPIProvider,
+  isOpenAICompat,
+  OPENAI_COMPAT_DEFAULT_MODEL,
+  OPENAI_COMPAT_MODELS,
+} from './providers.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import {
   getCanonicalName,
@@ -432,10 +437,18 @@ function getKnownModelOption(model: string): ModelOption | null {
 }
 
 export function getModelOptions(fastMode = false): ModelOption[] {
-  // OpenAI 兼容模式（DeepSeek）下：Limkenion 只有一个模型（deepseek-flash），
-  // 只展示"默认"这一项即可，不再罗列上游的多档模型选项。
+  // OpenAI 兼容模式（DeepSeek）下：只列 DeepSeek 真实存在的模型，
+  // 不再罗列上游那套多档模型选项（Sonnet/Opus/Haiku 在这里都不存在）。
   if (isOpenAICompat()) {
-    return [getDefaultOptionForUser(fastMode)]
+    return [
+      getDefaultOptionForUser(fastMode),
+      ...OPENAI_COMPAT_MODELS.map(model => ({
+        value: model,
+        label:
+          model === OPENAI_COMPAT_DEFAULT_MODEL ? `${model}（默认）` : model,
+        description: `DeepSeek 模型 · ${model}`,
+      })),
+    ]
   }
   const options = getModelOptionsBase(fastMode)
 

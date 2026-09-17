@@ -14,6 +14,8 @@ import { logEvent } from '../services/analytics/index.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../services/analytics/metadata.js'
 import { getAPIMetadata } from '../services/api/limkenion.js'
 import { getLimkenionClient } from '../services/api/client.js'
+import { queryOpenAICompatOnce } from '../services/api/openai-compat.js'
+import { isOpenAICompat } from './model/providers.js'
 import { getModelBetas, modelSupportsStructuredOutputs } from './betas.js'
 import { computeFingerprint } from './fingerprint.js'
 import { normalizeModelStringForAPI } from './model/model.js'
@@ -121,11 +123,8 @@ export async function sideQuery(opts: SideQueryOptions): Promise<BetaMessage> {
     stop_sequences,
   } = opts
 
-  const client = await getLimkenionClient({
-    maxRetries,
-    model,
-    source: 'side_query',
-  })
+  // 注意：客户端延后到 systemBlocks 构建完再取 —— 兼容模式下根本不需要它，
+  // 而 getLimkenionClient() 会走一堆本地不存在的账号/OAuth 前置检查。
   const betas = [...getModelBetas(model)]
   // Add structured-outputs beta if using output_format and provider supports it
   if (
@@ -177,6 +176,31 @@ export async function sideQuery(opts: SideQueryOptions): Promise<BetaMessage> {
   }
 
   const normalizedModel = normalizeModelStringForAPI(model)
+
+  // OpenAI 兼容模式（DeepSeek）：绕开已移除的上游 SDK，走适配器。
+  // sideQuery 是权限解释器 / 权限自动判定 / auto mode / 记忆相关性检索 /
+  // 会话搜索 / 模型名校验 / Chrome 集成等「轻量旁路调用」的统一入口 ——
+  // 这一处不修，那些功能在本地模式下全都会抛「上游 client 已移除」。
+  if (isOpenAICompat()) {
+    const res = await queryOpenAICompatOnce({
+      messages,
+      systemPrompt: systemBlocks,
+      tools,
+      toolChoice: tool_choice,
+      stopSequences: stop_sequences,
+      signal,
+      model: normalizedModel,
+      maxTokens: max_tokens,
+      temperature,
+    })
+    return res.message as BetaMessage
+  }
+
+  const client = await getLimkenionClient({
+    maxRetries,
+    model,
+    source: 'side_query',
+  })
   const start = Date.now()
   // biome-ignore lint/plugin: this IS the wrapper that handles OAuth attribution
   const response = await client.beta.messages.create(

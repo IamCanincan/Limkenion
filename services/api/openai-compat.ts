@@ -17,10 +17,26 @@
  */
 
 import OpenAI from 'openai'
+import { getGlobalConfig } from '../../utils/config.js'
 
 /**  endpoints 默认值 */
 const DEFAULT_BASE_URL = 'https://api.deepseek.com'
 const DEFAULT_MODEL = 'deepseek-flash'
+
+/**
+ * 取 /login 保存下来的 key（全局配置的 primaryApiKey）。
+ *
+ * 放在环境变量**之后**：环境变量是显式覆盖，优先级更高。
+ * 用 try/catch 包住 —— 配置在 bootstrap 完成前被读取会抛
+ * "Config accessed before allowed"，那不是致命错误，当作没有 key 即可。
+ */
+function getStoredApiKey(): string {
+  try {
+    return getGlobalConfig().primaryApiKey ?? ''
+  } catch {
+    return ''
+  }
+}
 
 function getConfig() {
   return {
@@ -28,6 +44,7 @@ function getConfig() {
       process.env.DEEPSEEK_API_KEY ||
       process.env.OPENAI_API_KEY ||
       process.env.LIMKENION_API_KEY ||
+      getStoredApiKey() ||
       '',
     baseURL:
       process.env.DEEPSEEK_BASE_URL ||
@@ -185,6 +202,33 @@ export function toOpenAITools(tools: any): any[] | undefined {
 }
 
 /**
+ * 上游 tool_choice -> OpenAI tool_choice
+ * - {type:'auto'}          -> 'auto'
+ * - {type:'any'}           -> 'required'
+ * - {type:'none'}          -> 'none'
+ * - {type:'tool',name:'x'} -> {type:'function',function:{name:'x'}}
+ *   （权限解释器 / 权限判定器靠这个强制拿结构化输出，必须支持）
+ */
+function toOpenAIToolChoice(toolChoice: any): any | undefined {
+  if (!toolChoice) return undefined
+  if (typeof toolChoice === 'string') return toolChoice
+  switch (toolChoice.type) {
+    case 'auto':
+      return 'auto'
+    case 'any':
+      return 'required'
+    case 'none':
+      return 'none'
+    case 'tool':
+      return toolChoice.name
+        ? { type: 'function', function: { name: toolChoice.name } }
+        : undefined
+    default:
+      return undefined
+  }
+}
+
+/**
  * 调用 OpenAI 兼容端点，产出 **上游 风格**的 AssistantMessage，
  * 使上层无需改动。
  */
@@ -192,6 +236,8 @@ export async function* queryOpenAICompat({
   messages,
   systemPrompt,
   tools,
+  toolChoice,
+  stopSequences,
   signal,
   model,
   maxTokens,
@@ -200,6 +246,8 @@ export async function* queryOpenAICompat({
   messages: any[]
   systemPrompt: any
   tools: any
+  toolChoice?: any
+  stopSequences?: string[]
   signal?: AbortSignal
   model?: string
   maxTokens?: number
@@ -224,12 +272,29 @@ export async function* queryOpenAICompat({
   }
   if (oaiTools) {
     request.tools = oaiTools
-    request.tool_choice = 'auto'
+    // 未显式指定时默认 auto；指定了强制工具就翻译过去。
+    request.tool_choice = toOpenAIToolChoice(toolChoice) ?? 'auto'
   }
   if (maxTokens) request.max_tokens = maxTokens
   if (typeof temperature === 'number') request.temperature = temperature
+  if (Array.isArray(stopSequences) && stopSequences.length > 0) {
+    request.stop = stopSequences
+  }
   // 推理强度（等效于 上游 的 extended thinking / codex 的 reasoning.effort）
-  if (cfg.reasoningEffort) request.reasoning_effort = cfg.reasoningEffort
+  //
+  // 但有个硬约束：DeepSeek 在推理模式下拒绝强制 tool_choice，会返回
+  // 400 "Thinking mode does not support this tool_choice"。而权限解释器 /
+  // 权限自动判定 / 结构化输出这类调用恰恰靠强制工具拿结果 —— 所以一旦指定了
+  // 强制工具就必须关掉推理（实测 reasoning_effort:'none' 可关闭思考链）。
+  const isForcedToolChoice =
+    toolChoice != null &&
+    typeof toolChoice === 'object' &&
+    (toolChoice as any).type === 'tool'
+  if (isForcedToolChoice) {
+    request.reasoning_effort = 'none'
+  } else if (cfg.reasoningEffort) {
+    request.reasoning_effort = cfg.reasoningEffort
+  }
 
   const stream: any = await client.chat.completions.create(request, {
     ...(signal ? { signal } : {}),
@@ -305,10 +370,14 @@ export async function* queryOpenAICompat({
     type: 'assistant',
     uuid: crypto.randomUUID(),
     message: {
+      // 补齐 BetaMessage 的基本字段：sideQuery 的调用方会把它当 BetaMessage 用。
+      id: `msg_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`,
+      type: 'message',
       role: 'assistant',
       model: model || cfg.model,
       content,
       stop_reason: stopReason,
+      stop_sequence: null,
       usage: {
         input_tokens: usage?.prompt_tokens ?? 0,
         output_tokens: usage?.completion_tokens ?? 0,

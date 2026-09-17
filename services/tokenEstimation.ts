@@ -3,7 +3,7 @@ import type { BetaMessageParam as MessageParam } from '../types/llm-protocol.js'
 // @aws-sdk/client-bedrock-runtime is imported dynamically in countTokensWithBedrock()
 // to defer ~279KB of AWS SDK code until a Bedrock call is actually made
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import { getAPIProvider, isOpenAICompat } from 'src/utils/model/providers.js'
 import { VERTEX_COUNT_TOKENS_ALLOWED_BETAS } from '../constants/betas.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getModelBetas } from '../utils/betas.js'
@@ -25,6 +25,7 @@ import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
 import { getAPIMetadata, getExtraBodyParams } from './api/limkenion.js'
 import { getLimkenionClient } from './api/client.js'
+import { queryOpenAICompatOnce } from './api/openai-compat.js'
 import { withTokenCountVCR } from './vcr.js'
 
 // Minimal values for token counting with thinking enabled
@@ -137,11 +138,42 @@ export async function countTokensWithAPI(
   return countMessagesTokensWithAPI([message], [])
 }
 
+/**
+ * OpenAI 兼容模式（DeepSeek）下的 token 计数。
+ *
+ * OpenAI 协议没有 count_tokens 接口，但发一个 max_tokens=1 的最小请求、
+ * 读回 usage.prompt_tokens 拿到的就是精确值 —— 这正是
+ * countTokensViaHaikuFallback 原本的思路，这里直接复用适配器，
+ * 避免走到已被移除的上游 SDK。
+ */
+async function countTokensViaOpenAICompat(
+  messages: MessageParam[],
+  tools: Limkenion.Beta.Messages.BetaToolUnion[],
+): Promise<number | null> {
+  try {
+    const res = await queryOpenAICompatOnce({
+      messages,
+      systemPrompt: '',
+      tools,
+      maxTokens: 1,
+    })
+    const input = res?.message?.usage?.input_tokens
+    return typeof input === 'number' ? input : null
+  } catch (error) {
+    logError(error as Error)
+    return null
+  }
+}
+
 export async function countMessagesTokensWithAPI(
   messages: Limkenion.Beta.Messages.BetaMessageParam[],
   tools: Limkenion.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
   return withTokenCountVCR(messages, tools, async () => {
+    // OpenAI 兼容模式：没有 count_tokens 接口，改用最小请求读 usage。
+    if (isOpenAICompat()) {
+      return countTokensViaOpenAICompat(messages, tools)
+    }
     try {
       const model = getMainLoopModel()
       const betas = getModelBetas(model)
@@ -252,6 +284,12 @@ export async function countTokensViaHaikuFallback(
   messages: Limkenion.Beta.Messages.BetaMessageParam[],
   tools: Limkenion.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  // OpenAI 兼容模式：不做 Haiku 兜底（那会拿到改名后的上游模型名并 404），
+  // 直接用适配器发最小请求读 usage。
+  if (isOpenAICompat()) {
+    return countTokensViaOpenAICompat(messages, tools)
+  }
+
   // Check if messages contain thinking blocks
   const containsThinking = hasThinkingBlocks(messages)
 

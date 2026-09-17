@@ -19,6 +19,21 @@ export function isOpenAICompat(): boolean {
 /** OpenAI 兼容模式下的默认主模型（与 services/api/openai-compat.ts 保持一致）。 */
 export const OPENAI_COMPAT_DEFAULT_MODEL = 'deepseek-flash'
 
+/**
+ * OpenAI 兼容模式下可选的模型清单。
+ * 来源：实测 `GET https://api.deepseek.com/models`（2026-09-17），
+ * DeepSeek 当前只提供这两个。**别凭印象改，以接口返回为准。**
+ */
+export const OPENAI_COMPAT_MODELS = [
+  'deepseek-flash',
+  'deepseek-v4-pro',
+] as const
+
+/** 兼容模式下的"小快模型"：WebSearch 结果处理、离开回来摘要、agent hooks 等用它。 */
+export function getOpenAICompatSmallFastModel(): string {
+  return process.env.LIMKENION_SMALL_FAST_MODEL || OPENAI_COMPAT_DEFAULT_MODEL
+}
+
 // Limkenion 已去除对 Amazon Bedrock / Google Vertex AI / Microsoft Foundry 等
 // 第三方云供应商的路由支持，当前仅运行于 OpenAI 兼容（DeepSeek）模式。
 // getAPIProvider 恒返回 firstParty，使全仓库基于 getAPIProvider() 的分支全部

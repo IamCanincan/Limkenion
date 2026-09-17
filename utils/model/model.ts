@@ -23,7 +23,12 @@ import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
 import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
-import { getAPIProvider, isOpenAICompat, OPENAI_COMPAT_DEFAULT_MODEL } from './providers.js'
+import {
+  getAPIProvider,
+  getOpenAICompatSmallFastModel,
+  isOpenAICompat,
+  OPENAI_COMPAT_DEFAULT_MODEL,
+} from './providers.js'
 import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
@@ -34,6 +39,12 @@ export type ModelName = string
 export type ModelSetting = ModelName | ModelAlias | null
 
 export function getSmallFastModel(): ModelName {
+  // OpenAI 兼容模式（DeepSeek）下必须返回真实存在的 DeepSeek 模型名。
+  // 否则会拿到 getModelStrings().haiku45 —— 那是改名后的上游模型 ID，
+  // 发给 DeepSeek 会 404，WebSearch 结果处理、离开回来摘要、agent hooks 全废。
+  if (isOpenAICompat()) {
+    return getOpenAICompatSmallFastModel()
+  }
   return process.env.LIMKENION_SMALL_FAST_MODEL || getDefaultHaikuModel()
 }
 
