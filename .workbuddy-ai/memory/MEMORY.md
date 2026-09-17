@@ -225,14 +225,27 @@ DeepSeek 前缀缓存**自动**、不收写入费 → `promptCacheWriteTokens` �
   `api/usage`、`api/errors`、SDK 输出 schema、`Settings/Usage`、`rateLimitMessages`、
   `mockRateLimits`、`rateLimitMocking`。
 
-### 又发现的死模块（`if (true) return false` 硬关掉，可整体删）
-- `services/mockRateLimits.ts`（719 行）：`shouldProcessMockLimits()` 开头就是
-  `if (true) return false`。删除需同时处理 `services/rateLimitMocking.ts` 与
-  `utils/auth.ts` 的引用（`getMockSubscriptionType` / `shouldUseMockSubscription`）。
-- `utils/model/modelCapabilities.ts`：`isModelCapabilitiesEligible()` 同样开头 `if (true) return false`。
+### 又发现的死模块（`if (true) return false` 硬关掉，**均已删除**）
+- `services/mockRateLimits.ts`（719 行）—— 已删（commit e181f9e）。
+  `rateLimitMocking.ts` 重写成恒等/空操作门面，保留 5 个导出签名不动调用方。
+- `utils/model/modelCapabilities.ts`（118 行）—— 已删（commit ebfeb65）。
+  它依赖的缓存文件从没被写过，`getModelCapability()` 永远返回 `undefined`。
 
-**教训：判断"某功能是不是死的"最快的方法就是看它入口函数开头有没有 `if (true) return false`。
-这个仓库里这种硬关断有好几处，别只看调用点就下结论。**
+**排查死模块的最快方式：`grep -rn "if (true)" --include='*.ts' .`**
+
+### 删模块的强制流程（被同一类坑咬了三次）
+esbuild 只报"缺失导出/模块解析失败"，**不报类型错误**。删掉模块后它的**函数调用点**
+会静默变 `undefined`，构建 0 错误、CLI 照常启动，只在执行到那行才炸。
+
+**删模块前必须把它 export 的每个符号都 grep 一遍**，而不是只 grep 模块名。
+第三次踩坑就是这么来的：grep 了 `modelCapabilities`，漏掉 `utils/context.ts:171`
+的 `getModelCapability(model)`（函数名），只有冒烟才报出来。
+**改完必须跑冒烟**（`limkenion -p "..."`），那是唯一能发现这类错误的关卡。
+
+### 待确认的行为变更（我没动）
+- `utils/context.ts` 的 `MODEL_CONTEXT_WINDOW_DEFAULT = 200_000`，但 **DeepSeek 官方上下文是 1M**。
+- 同文件的 `MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000`，但 **DeepSeek 官方最大输出 384K**。
+两者都沿用上游保守值。放开属于行为变更（影响自动压缩时机、单次输出上限），等用户拍板。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
