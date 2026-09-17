@@ -2,7 +2,7 @@ import Limkenion, { type ClientOptions } from '../../types/llm-protocol.js'
 import { randomUUID } from 'crypto'
 import type { GoogleAuth } from 'google-auth-library'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionApiKey,
   getApiKeyFromApiKeyHelper,
   getLimkenionAIOAuthTokens,
@@ -129,7 +129,7 @@ export async function getLimkenionClient({
   }
 
   logForDebugging('[API:auth] OAuth token 检查开始')
-  await checkAndRefreshOAuthTokenIfNeeded()
+  await ensureLocalAuthAvailable()
   logForDebugging('[API:auth] OAuth token 检查完成')
 
   if (!isLimkenionAISubscriber()) {

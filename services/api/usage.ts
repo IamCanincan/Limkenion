@@ -1,13 +1,11 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import {
-  getLimkenionAIOAuthTokens,
   hasProfileScope,
   isLimkenionAISubscriber,
 } from '../../utils/auth.js'
 import { getAuthHeaders } from '../../utils/http.js'
 import { getLimkenionUserAgent } from '../../utils/userAgent.js'
-import { isOAuthTokenExpired } from '../oauth/client.js'
 
 export type RateLimit = {
   utilization: number | null // 0 到 100 之间的百分比
@@ -33,12 +31,6 @@ export type Utilization = {
 export async function fetchUtilization(): Promise<Utilization | null> {
   if (!isLimkenionAISubscriber() || !hasProfileScope()) {
     return {}
-  }
-
-  // OAuth token 已过期时跳过 API 调用，以避免 401 错误
-  const tokens = getLimkenionAIOAuthTokens()
-  if (tokens && isOAuthTokenExpired(tokens.expiresAt)) {
-    return null
   }
 
   const authResult = getAuthHeaders()

@@ -72,6 +72,30 @@ function sanitizeBrand(file) {
   }
 }
 
+/**
+ * Post-build OAuth-phrase sanitizer：Limkenion 是纯本地工具，无任何 OAuth 账号，
+ * 官方不保留 "oauth token" 这类账号令牌术语。把产物里大小写不敏感的 "oauth token"
+ * 统一中性化为 "authorization credential"，确保用户与模型链路感知不到任何 OAuth
+ * 令牌概念。只改术语，不改任何运行结构（revocation 检查等字符串同步被改写，该路径
+ * 在无账号模式下本就不可达）。
+ */
+const OAUTH_TOKEN_RE = /oauth token/gi
+const OAUTH_TOKEN_REPLACED = 'authorization credential'
+
+function sanitizeOauthPhrases(file) {
+  const src = readFileSync(file, 'utf8')
+  const out = src.replace(OAUTH_TOKEN_RE, OAUTH_TOKEN_REPLACED)
+  if (out !== src) {
+    writeFileSync(file, out, 'utf8')
+    console.log(`  sanitized oauth-token phrases in ${file}`)
+  }
+  if (/(oauth\s+token)/i.test(out)) {
+    console.warn(
+      '  ⚠ 警告：bundle 中仍有 oauth token 术语残留（多为第三方依赖数据），请复查',
+    )
+  }
+}
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ESBUILD = join(ROOT, 'web', 'node_modules', 'esbuild', 'bin', 'esbuild')
 
@@ -127,4 +151,5 @@ if (r.status !== 0) {
   process.exit(r.status ?? 1)
 }
 sanitizeBrand(outfile)
+sanitizeOauthPhrases(outfile)
 console.log(`\n✔ built → ${outfile}`)

@@ -23,7 +23,7 @@ import {
   OAUTH_BETA_HEADER,
 } from '../../constants/oauth.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionApiKeyWithSource,
   getLimkenionAIOAuthTokens,
 } from '../../utils/auth.js'
@@ -301,7 +301,7 @@ async function fetchPolicyLimits(
   cachedChecksum?: string,
 ): Promise<PolicyLimitsFetchResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     const authHeaders = getAuthHeaders()
     if (authHeaders.error) {

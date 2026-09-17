@@ -17,7 +17,7 @@ import { getSessionLogsViaOAuth, getTeleportEvents } from '../services/api/sessi
 import { AppStateProvider } from '../state/AppState.js';
 import type { Message, SystemMessage } from '../types/message.js';
 import type { PermissionMode } from '../types/permissions.js';
-import { checkAndRefreshOAuthTokenIfNeeded, getLimkenionAIOAuthTokens } from './auth.js';
+import { ensureLocalAuthAvailable, getLimkenionAIOAuthTokens } from './auth.js';
 import { checkGithubAppInstalled } from './background/remote/preconditions.js';
 import { deserializeMessages, type TeleportRemoteResponse } from './conversationRecovery.js';
 import { getCwd } from './cwd.js';
@@ -800,7 +800,7 @@ export async function teleportToRemote(options: {
   } = options;
   try {
     // Check authentication
-    await checkAndRefreshOAuthTokenIfNeeded();
+    await ensureLocalAuthAvailable();
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken;
     if (!accessToken) {
       logError(new Error('No access token found for remote session creation'));

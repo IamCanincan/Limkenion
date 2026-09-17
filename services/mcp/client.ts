@@ -57,7 +57,7 @@ import { ReadMcpResourceTool } from '../../tools/ReadMcpResourceTool/ReadMcpReso
 import { createAbortController } from '../../utils/abortController.js'
 import { count } from '../../utils/array.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionAIOAuthTokens,
   handleOAuth401Error,
 } from '../../utils/auth.js'
@@ -372,7 +372,7 @@ function handleRemoteAuthFailure(
 export function createLimkenionAiProxyFetch(innerFetch: FetchLike): FetchLike {
   return async (url, init) => {
     const doRequest = async () => {
-      await checkAndRefreshOAuthTokenIfNeeded()
+      await ensureLocalAuthAvailable()
       const currentTokens = getLimkenionAIOAuthTokens()
       if (!currentTokens) {
         throw new Error('没有可用的 limkenion.ai OAuth 令牌')

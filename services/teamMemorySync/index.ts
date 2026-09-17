@@ -41,7 +41,7 @@ import {
 } from '../../memdir/teamMemPaths.js'
 import { count } from '../../utils/array.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionAIOAuthTokens,
 } from '../../utils/auth.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -191,7 +191,7 @@ async function fetchTeamMemoryOnce(
   etag?: string | null,
 ): Promise<TeamMemorySyncFetchResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     const auth = getAuthHeaders()
     if (auth.error) {
@@ -317,7 +317,7 @@ async function fetchTeamMemoryHashes(
   repoSlug: string,
 ): Promise<TeamMemoryHashesResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
     const auth = getAuthHeaders()
     if (auth.error) {
       return { success: false, error: auth.error, errorType: 'auth' }
@@ -466,7 +466,7 @@ async function uploadTeamMemory(
   ifMatchChecksum?: string | null,
 ): Promise<TeamMemorySyncUploadResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     const auth = getAuthHeaders()
     if (auth.error) {

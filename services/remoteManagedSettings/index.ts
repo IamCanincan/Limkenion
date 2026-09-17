@@ -17,7 +17,7 @@ import { createHash } from 'crypto'
 import { open, unlink } from 'fs/promises'
 import { getOauthConfig, OAUTH_BETA_HEADER } from '../../constants/oauth.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionApiKeyWithSource,
   getLimkenionAIOAuthTokens,
 } from '../../utils/auth.js'
@@ -251,7 +251,7 @@ async function fetchRemoteManagedSettings(
   try {
     // Ensure OAuth token is fresh before fetching settings
     // This prevents 401 errors from stale cached tokens
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     // Use local auth header getter to avoid circular dependency with getSettings()
     const authHeaders = getRemoteSettingsAuthHeaders()

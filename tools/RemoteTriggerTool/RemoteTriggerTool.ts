@@ -6,7 +6,7 @@ import { isPolicyAllowed } from '../../services/policyLimits/index.js'
 import type { ToolUseContext } from '../../Tool.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionAIOAuthTokens,
 } from '../../utils/auth.js'
 import { lazySchema } from '../../utils/lazySchema.js'
@@ -75,7 +75,7 @@ export const RemoteTriggerTool = buildTool({
     return PROMPT
   },
   async call(input: Input, context: ToolUseContext) {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken
     if (!accessToken) {
       throw new Error(

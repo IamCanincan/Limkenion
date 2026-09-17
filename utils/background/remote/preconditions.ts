@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../../services/analytics/growthbook.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionAIOAuthTokens,
   isLimkenionAISubscriber,
 } from '../../auth.js'
@@ -23,7 +23,7 @@ export async function checkNeedsLimkenionAiLogin(): Promise<boolean> {
   if (!isLimkenionAISubscriber()) {
     return false
   }
-  return checkAndRefreshOAuthTokenIfNeeded()
+  return ensureLocalAuthAvailable()
 }
 
 /**

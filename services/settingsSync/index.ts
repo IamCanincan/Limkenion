@@ -21,7 +21,7 @@ import {
   OAUTH_BETA_HEADER,
 } from '../../constants/oauth.js'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
+  ensureLocalAuthAvailable,
   getLimkenionAIOAuthTokens,
 } from '../../utils/auth.js'
 import { clearMemoryFileCaches } from '../../utils/limkenionmd.js'
@@ -246,7 +246,7 @@ function getSettingsSyncAuthHeaders(): {
 
 async function fetchUserSettingsOnce(): Promise<SettingsSyncFetchResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     const authHeaders = getSettingsSyncAuthHeaders()
     if (authHeaders.error) {
@@ -348,7 +348,7 @@ async function uploadUserSettings(
   entries: Record<string, string>,
 ): Promise<SettingsSyncUploadResult> {
   try {
-    await checkAndRefreshOAuthTokenIfNeeded()
+    await ensureLocalAuthAvailable()
 
     const authHeaders = getSettingsSyncAuthHeaders()
     if (authHeaders.error) {

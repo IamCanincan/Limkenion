@@ -9,12 +9,16 @@ import { logForDebugging } from '../../utils/debug.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
 import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
-import type {
-  ReferralCampaign,
-  ReferralEligibilityResponse,
-  ReferralRedemptionsResponse,
-  ReferrerRewardInfo,
-} from '../oauth/types.js'
+
+// Limkenion 纯本地无 OAuth 账号：以下类型仅作返回理想型注解，实际无账号数据。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ReferralCampaign = string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ReferralEligibilityResponse = any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ReferralRedemptionsResponse = any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ReferrerRewardInfo = any
 
 // 缓存过期时间：24 小时（资格仅在订阅/实验变化时才变动）
 const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000

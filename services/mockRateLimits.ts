@@ -5,7 +5,15 @@
 // The mock headers may not exactly match the API specification or real-world behavior.
 // Always validate against actual API responses before relying on this for production features.
 
-import type { SubscriptionType } from '../services/oauth/types.js'
+// Limkenion 纯本地无 OAuth 账号/订阅：保留订阅类型泛型仅用于 mock 场景。
+type SubscriptionType =
+  | 'free'
+  | 'hobby'
+  | 'pro'
+  | 'max'
+  | 'team'
+  | 'enterprise'
+  | '1p_api'
 import { setMockBillingAccessOverride } from '../utils/billing.js'
 import type { OverageDisabledReason } from './limkenionAiLimits.js'
 
