@@ -17,6 +17,43 @@
    `opencode`、`deepseek-reasonix`、`upstream-ref-impl`（本仓库缺失模块的来源）、
    `CC-code-source-code-leak`。
 
+## DeepSeek 接口实测结论（2026-09-17，务必以实测为准，别凭旧资料）
+Base：`https://api.deepseek.com`
+
+| 接口 | 结论 |
+|---|---|
+| `GET /models` | 只有两个模型：**`deepseek-flash`**、**`deepseek-v4-pro`** |
+| `POST /chat/completions` | OpenAI 协议。同一次响应里可同时有 `reasoning_content` 与 `tool_calls`；usage 带 `prompt_cache_hit_tokens` / `prompt_cache_miss_tokens`（自动前缀缓存）；**流式默认就返回 usage**，不需要 `stream_options.include_usage` |
+| `POST /上游兼容/v1/messages` | **存在且完整**。认 `x-api-key` + `上游兼容-version`；接受 `system` 块数组（含 `cache_control`）、`tools`（`input_schema`）、`betas` 字段；返回原生 上游 结构：`thinking`（带 `signature`）+ `text` + `tool_use`，`stop_reason: "tool_use"`，usage 带 `cache_creation_input_tokens` / `cache_read_input_tokens` |
+| `POST /上游兼容/v1/messages/count_tokens` | **可用**，返回 `{"input_tokens":N}` |
+| 上游 端点流式 | **完整 SSE**：`message_start` / `content_block_start` / `ping` / `content_block_delta`（`thinking_delta` 等），与 上游 原生事件格式一致 |
+| 注意 | 上游 端点**未显式请求 thinking 也会返回 thinking 块**，说明 deepseek-flash 的推理是默认开的 |
+
+**结论**：整个代码库本来就是按 上游 协议写的，DeepSeek 又原生支持该协议 ——
+所以"实现一个 上游 协议的 client"能一次性修好所有旁路调用，而不是逐处打补丁。
+
+## 架构决定：一个 client、两个后端（2026-09-17 用户拍板"两种都支持"）
+不要给每个调用点加协议分支（那正是 26d53b0 修的那个坑的成因）。
+应该让 `types/llm-protocol.ts` 里那个**会抛错的 `Limkenion` 占位类变成真实现**，
+内部按协议分发：
+
+- `protocol === '上游兼容'` → 直接 HTTP/SSE 打 `{baseURL}/上游兼容/v1/messages`（原生，能力最全）
+- `protocol === 'openai'` → 复用现有 `services/api/openai-compat.ts` 的翻译逻辑
+
+于是 `sideQuery` / `tokenEstimation` / `limkenionAiLimits` / `modelCapabilities` 等
+**一行都不用改**，两条协议同时可用。
+
+### 这个 client 必须实现的接口面（已实测枚举）
+- `.beta.messages.create(params)` 非流式 —— `sideQuery.ts:182`、`tokenEstimation.ts:302`、
+  `limkenion.ts:574`、`limkenion.ts:883`
+- `.beta.messages.create({...stream:true})` **返回原始事件流**（不是 BetaMessageStream）——
+  `limkenion.ts:1855`。注释说明是为了避免 O(n²) 的 partial JSON 解析，所以必须吐原始 SSE 事件
+- `.beta.messages.countTokens(params)` —— `tokenEstimation.ts:172`
+- `.models.list({betas})` —— `utils/model/modelCapabilities.ts:93`
+- getter：`.beta`、`.messages`
+- `getLimkenionClient()` 调用点：`services/api/client.ts`（工厂本身）、`limkenion.ts` ×3、
+  `limkenionAiLimits.ts`、`tokenEstimation.ts` ×2、`modelCapabilities.ts`、`sideQuery.ts`
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
