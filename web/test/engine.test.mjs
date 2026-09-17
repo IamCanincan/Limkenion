@@ -316,3 +316,54 @@ describe('子代理', () => {
     assert.ok(names.some(n => n.startsWith('Agent·')), `子代理内部调用未冒泡：${names}`)
   })
 })
+
+describe('撞到工具轮次上限时必须明说', () => {
+  // 静默停止会让用户以为模型"答完了" —— 只看到半截回答、不知道发生了什么。
+  // 桩模型脚本耗尽后会**重复最后一条**，所以给一条永远返回工具调用的脚本就能把循环逼到上限。
+
+  test('主回合撞上限 → 正文里出现明确的提示', async () => {
+    const s = sessions.createSession()
+    setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
+    // 永远只读文件 → 循环不会因为"没有工具调用"而结束
+    setScript([{ toolCalls: [{ id: 'loop', name: 'Read', args: { file_path: 'seed.txt' } }] }])
+
+    await engine.runTurn(s, '一直读文件', 'msg_limit')
+
+    const text = s.messages.at(-1).text
+    assert.match(text, /轮次上限/, `应提示撞了上限，实际尾部：${JSON.stringify(text.slice(-200))}`)
+    assert.match(text, /20/, '应写明上限是多少轮')
+    assert.equal(client.ofType('turn_complete').length, 1, '回合仍应正常结束（不是挂住）')
+  })
+
+  test('正常结束（模型不再调工具）**不该**出现上限提示', async () => {
+    const s = sessions.createSession()
+    setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
+    setScript([
+      { toolCalls: [{ id: 'one', name: 'Read', args: { file_path: 'seed.txt' } }] },
+      { text: '读完了，结论是 seed。' },
+    ])
+
+    await engine.runTurn(s, '读一次就好', 'msg_ok')
+
+    const text = s.messages.at(-1).text
+    assert.doesNotMatch(text, /轮次上限/, '正常结束不该报上限')
+    assert.match(text, /结论是 seed/)
+  })
+
+  test('子代理撞上限 → 给父模型明确说法，而不是「未产出结论」', async () => {
+    const s = sessions.createSession()
+    setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
+    setScript([
+      // 主代理派子代理
+      { toolCalls: [{ id: 'ag', name: 'Agent', args: { description: '空转', prompt: '一直读' } }] },
+      // 子代理永远只读 → 撞 MAX_SUBAGENT_ROUNDS
+      { toolCalls: [{ id: 'sl', name: 'Read', args: { file_path: 'seed.txt' } }] },
+    ])
+
+    await engine.runTurn(s, '派个会空转的子代理', 'msg_sub_limit')
+
+    const text = s.messages.at(-1).text
+    assert.match(text, /轮次上限/, `父回合应看到子代理撞上限的说明，实际：${JSON.stringify(text.slice(-300))}`)
+    assert.doesNotMatch(text, /子代理未产出结论/, '不该只回一句无信息量的兜底')
+  })
+})

@@ -139,6 +139,9 @@ async function runDeepSeekTurn(session, text, emit) {
   let totalUsage = { inputTokens: 0, outputTokens: 0 }
   let answer = ''
   let reasoning = ''
+  // 循环是因为"模型不再调工具"而正常结束，还是撞到了轮次上限？
+  // 撞上限时必须明说 —— 否则用户只看到半截回答，不知道为什么停了。
+  let finishedNaturally = false
 
   // ---- 工具执行上下文：把客户端交互能力注入给工具实现 ----
   const ctx = {
@@ -213,7 +216,10 @@ async function runDeepSeekTurn(session, text, emit) {
     totalUsage.outputTokens += usage.outputTokens
 
     // 无工具调用 → 本轮即最终回答
-    if (!toolCalls || toolCalls.length === 0) break
+    if (!toolCalls || toolCalls.length === 0) {
+      finishedNaturally = true
+      break
+    }
 
     // 记录 assistant 的工具调用意图
     messages.push({
@@ -357,6 +363,16 @@ async function runDeepSeekTurn(session, text, emit) {
     }
   }
 
+  // 撞到工具轮次上限就明说 —— 静默停止会让用户以为模型"答完了"。
+  if (!finishedNaturally && !session.cancelled) {
+    emit({
+      type: 'assistant_delta',
+      delta:
+        `\n\n---\n\n⚠️ 已达到工具调用轮次上限（${MAX_TOOL_ROUNDS} 轮），本轮提前结束。` +
+        '如果任务确实需要更多轮，建议拆成几步分别提。',
+    })
+  }
+
   session.lastReasoning = reasoning
   return totalUsage
 }
@@ -381,6 +397,7 @@ async function runSubAgent(session, prompt, description, emit) {
     { role: 'user', content: prompt },
   ]
   let answer = ''
+  let finishedNaturally = false
   const ctx = {
     session,
     emit,
@@ -408,7 +425,10 @@ async function runSubAgent(session, prompt, description, emit) {
         if (ev.type === 'text') answer += ev.delta
       },
     })
-    if (!toolCalls || toolCalls.length === 0) break
+    if (!toolCalls || toolCalls.length === 0) {
+      finishedNaturally = true
+      break
+    }
 
     messages.push({
       role: 'assistant',
@@ -452,6 +472,16 @@ async function runSubAgent(session, prompt, description, emit) {
       messages.push({ role: 'tool', tool_call_id: tc.id, content: capResult(result) })
       if (answer.length > 0) answer = ''
     }
+  }
+  // 撞到轮次上限时给父模型一个**明确说法** —— 原来只回「（子代理未产出结论）」，
+  // 父模型根本不知道是"子代理空转完了"还是"任务太大做不完"，于是容易反复重派。
+  if (!finishedNaturally && !session.cancelled) {
+    return (
+      `（子代理已达轮次上限 ${MAX_SUBAGENT_ROUNDS} 轮，未给出结论）\n` +
+      '它已经做过的探查：' +
+      (answer.trim() ? answer.trim().slice(0, 400) : '（无正文产出，可能一直在重复调用工具）') +
+      '\n建议：把任务拆得更具体，或改用主对话直接做。'
+    )
   }
   return answer.trim() || '（子代理未产出结论）'
 }
