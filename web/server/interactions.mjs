@@ -33,7 +33,9 @@ const PLAN_MODE_ALLOWED = new Set([
  * 判断某次工具调用是否需要弹窗确认。
  * @param {object} session
  * @param {string} toolName
- * @param {{escalate?: string}} [opts] escalate 非空表示强制确认（无视权限模式与「总是允许」）
+ * @param {{escalate?: string, input?: object, hook?: 'allow'|'ask'}} [opts]
+ *   escalate 非空表示强制确认（无视权限模式与「总是允许」）；
+ *   hook 是 PreToolUse 钩子的判定（`allow` 免确认、`ask` 强制确认）。
  */
 export function needsPermission(session, toolName, opts = {}) {
   const mode = settingsFor(session).permissionMode
@@ -42,13 +44,21 @@ export function needsPermission(session, toolName, opts = {}) {
   if (mode === 'plan') return !PLAN_MODE_ALLOWED.has(toolName)
 
   // 升级确认：shell 守卫或不可信内容触发，优先级高于一切 —— 包括设置文件里的 allow 规则
-  // （升级的意义就是"这次不算数，重新问一遍"）
+  // 和**钩子的 allow**（升级的意义就是"这次不算数，重新问一遍"）
   if (opts.escalate) return true
 
+  // 钩子说"问一下"：强制确认
+  if (opts.hook === 'ask') return true
+
   // 设置文件里的权限规则（与 CLI 同一套 settings.json）。
-  // `ask` 优先于 `allow`：更保守的一侧赢。
+  // `ask` 优先于 `allow`：更保守的一侧赢。**设置里的 ask 也压过钩子的 allow** ——
+  // 用户手写的规则比脚本的判定更该被信任。
   const rule = ruleDecision(toolName, opts.input)
   if (rule === 'ask') return true
+
+  // 钩子明确放行 → 免确认（但上面的 escalate / ask 已经先返回了）
+  if (opts.hook === 'allow') return false
+
   if (rule === 'allow') return false
 
   if (!DANGEROUS_TOOLS.has(toolName)) return false

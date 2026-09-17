@@ -47,6 +47,7 @@ import {
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
 import { enableTools, toolsOverview } from './toolindex.mjs'
 import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
+import { hooksSummary, refreshHooks } from './hooks.mjs'
 import { worktreeSummary } from './worktree.mjs'
 
 // ---------------------------------------------------------------------------
@@ -218,6 +219,7 @@ const NOT_IN_BUILD = {
 export const WEB_IMPLEMENTED = [
   'help', 'clear', 'compact', 'rename', 'model', 'theme', 'permissions', 'plan',
   'cost', 'status', 'context', 'version', 'session', 'resume', 'export', 'diff',
+  'hooks',       // 工具前后钩子（与 CLI 同款 settings.json 的 hooks 段）
   'files', 'memory', 'skills', 'tasks', 'todos', 'agents', 'summary', 'tag',
   'config', 'env', 'output-style', 'tools', 'cron', 'web', 'exit',
   // ---- 以下是从 CLI 搬过来的 ----
@@ -383,6 +385,11 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       return `主题已切换为 ${arg}（仅本会话）。`
     }
     return `当前主题：${settings.theme}\n用法：/theme <${THEMES.join('|')}>`
+  }
+  if (name === 'hooks') {
+    // 顺带刷新一次（用户改完 settings.json 不用重启服务）
+    refreshHooks()
+    return hooksSummary()
   }
   if (name === 'permissions') {
     if (PERMISSION_MODES.includes(arg)) {

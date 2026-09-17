@@ -30,12 +30,14 @@ import { securityBanner } from './security.mjs'
 import { loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
 import {
   allSessionInfo,
+  allSessions,
   createSession,
   loadPersisted,
   onSessionDeleted,
   persistNow,
   STATE_FILE,
 } from './sessions.mjs'
+import { hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 import { createHttpServer } from './static.mjs'
 
 // 会话被删除时清理它的定时器（sessions 不反向依赖 engine，用钩子通知）
@@ -80,10 +82,23 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
     if (shuttingDown) return
     shuttingDown = true
     clearAllCrons()
-    persistNow()
-      .catch(() => {})
+    // SessionEnd 钩子：给用户一个"服务要关了"的通知/清理点。
+    // 必须**限时**（2s）：钩子是用户脚本，卡住的钩子不能把服务关不掉。
+    const ending = hooksEnabled()
+      ? Promise.race([
+          (async () => {
+            for (const s of allSessions()) {
+              const r = await runEventHooks('SessionEnd', { hookInput: sessionHookInput(s, { reason: sig }) })
+              for (const m of r.messages) console.warn('[hooks] SessionEnd:', m)
+            }
+          })(),
+          new Promise(r => setTimeout(r, 2000)),
+        ])
+      : Promise.resolve()
+    ending
+      .then(() => persistNow().catch(() => {}))
       .finally(() => process.exit(0))
-    // 兜底：1 秒内没写完也退出
-    setTimeout(() => process.exit(0), 1000).unref()
+    // 兜底：2.5 秒内没结束也退出
+    setTimeout(() => process.exit(0), 2500).unref()
   })
 }

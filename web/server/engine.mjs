@@ -35,6 +35,7 @@ import {
 } from './sessions.mjs'
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { additionalDirectories, deniedBy } from './settings.mjs'
+import { hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './hooks.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
@@ -99,8 +100,29 @@ export function sessionToWireMessages(session) {
   return messages
 }
 
-/** 工具返回值的归一化：字符串 或 { text, diff }。 */
-function normalizeToolResult(r) {
+/**
+ * 把 `UserPromptSubmit` 钩子给的上下文挂到**最后一条用户消息**上（只在本次请求里有效）。
+ *
+ * 不新插一条 system 消息：DeepSeek 侧 system 消息一般在开头，插在中间语义不稳，
+ * 而 `sessionToWireMessages()` 本来就只认 user/assistant 两种角色。
+ *
+ * 找不到用户消息时挂到系统提示后面（正常流程里协议层已经先写了用户消息，但
+ * 定时任务 / 程序化调用 `runTurn()` 时可能没有）——**不能静默丢掉**：
+ * 钩子给了上下文却被无视，是最难查的那种"钩子没生效"。
+ */
+function attachHookContext(messages, context) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role !== 'user') continue
+    const c = messages[i].content
+    if (typeof c === 'string') messages[i].content = `${c}\n\n[UserPromptSubmit 钩子附加]\n${context}`
+    return
+  }
+  if (messages[0]?.role === 'system') {
+    messages[0].content = `${messages[0].content}\n\n[UserPromptSubmit 钩子附加]\n${context}`
+  }
+}
+
+/** 工具返回值的归一化：字符串 或 { text, diff }。 */function normalizeToolResult(r) {
   if (typeof r === 'string') return { text: r, diff: undefined }
   if (r && typeof r === 'object') return { text: String(r.text ?? ''), diff: r.diff }
   return { text: String(r ?? ''), diff: undefined }
@@ -159,9 +181,12 @@ function makeSummarizer(session) {
  * @param {(ev: object) => void} emit
  * @param {() => boolean} expired 本回合是否已过期（被中断，或被后来的回合顶掉）
  */
-async function runDeepSeekTurn(session, text, emit, expired) {
+async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
   const settings = settingsFor(session)
   const messages = sessionToWireMessages(session)
+  // UserPromptSubmit 钩子附加的上下文：**只影响这一次请求**，不写进会话记录 ——
+  // 写进去的话之后每一轮都会重复带上，越滚越长。
+  if (hookContext) attachHookContext(messages, hookContext)
   let totalUsage = { inputTokens: 0, outputTokens: 0 }
   let answer = ''
   let reasoning = ''
@@ -273,7 +298,24 @@ async function runDeepSeekTurn(session, text, emit, expired) {
         continue
       }
 
-      // ---- 0. 设置文件里的 deny 规则：硬拦截，不弹确认 ----
+      // ---- 0. PreToolUse 钩子 ----
+      // 钩子**先跑**（不是先判权限），这样审计类钩子能看到每一次调用 —— 包括之后被
+      // deny 规则挡下的那些。钩子的 deny 是硬拒；allow 可以免确认，但**不能**覆盖
+      // 设置里的 deny、shell 守卫的硬拦截，也不能绕过 escalate（见 needsPermission）。
+      let hookVerdict = null
+      if (hooksEnabled()) {
+        hookVerdict = await runEventHooks('PreToolUse', {
+          toolName: tc.name,
+          hookInput: toolHookInput(session, tc.name, input),
+        })
+        for (const m of hookVerdict.messages) emit({ type: 'notice', text: m })
+        if (hookVerdict.updatedInput) {
+          input = hookVerdict.updatedInput
+          emit({ type: 'notice', text: `钩子改写了 ${tc.name} 的输入` })
+        }
+      }
+
+      // ---- 0.5 设置文件里的 deny 规则：硬拦截，不弹确认 ----
       // 用户显式写了 `permissions.deny`，就该直接挡住 —— 给弹窗等于把决定权又还回去。
       const denyReason = deniedBy(tc.name, input)
       if (denyReason) {
@@ -318,7 +360,33 @@ async function runDeepSeekTurn(session, text, emit, expired) {
       if (!escalate && hasUntrusted(session)) {
         escalate = `本回合接触过外部内容（${untrustedInfo(session)?.source ?? 'web'}），危险操作需重新确认`
       }
-      if (needsPermission(session, tc.name, { escalate, input })) {
+      // 钩子的 deny 放在权限之前：它和权限规则一样是"决定"，不是"建议"
+      if (hookVerdict?.decision === 'deny') {
+        const hookDeniedId = 'tc_' + Math.random().toString(36).slice(2, 10)
+        const reason = `被 PreToolUse 钩子拒绝：${hookVerdict.reason ?? '（钩子未给出理由）'}`
+        emit({
+          type: 'tool_call',
+          toolCall: {
+            id: hookDeniedId,
+            name: tc.name,
+            input: summarizeToolInput(tc.name, input),
+            inputDetail: tc.arguments,
+            status: 'error',
+          },
+        })
+        emit({ type: 'tool_result', toolCallId: hookDeniedId, ok: false, result: reason, durationMs: 0 })
+        messages.push({ role: 'tool', tool_call_id: tc.id, content: reason })
+        continue
+      }
+      if (
+        needsPermission(session, tc.name, {
+          escalate,
+          input,
+          hook: hookVerdict?.decision === 'allow' || hookVerdict?.decision === 'ask'
+            ? hookVerdict.decision
+            : undefined,
+        })
+      ) {
         const decision = await requestPermission(session, tc.name, input, { escalate })
         if (decision === 'always') {
           session.allowedTools = session.allowedTools || new Set()
@@ -377,6 +445,27 @@ async function runDeepSeekTurn(session, text, emit, expired) {
         ok = false
         result = '工具执行失败：' + String(err.message ?? err)
       }
+
+      // ---- 3. PostToolUse / PostToolUseFailure 钩子 ----
+      // 成功走 PostToolUse，抛错走 PostToolUseFailure（与 CLI 的两个事件对应）。
+      // additionalContext 追加进回灌给模型的内容；钩子若 block，则用它给的理由替换结果 ——
+      // 这样"格式检查失败"这类钩子能让模型看到具体哪里不对，而不是一句笼统的报错。
+      if (hooksEnabled()) {
+        const postEvent = ok ? 'PostToolUse' : 'PostToolUseFailure'
+        const post = await runEventHooks(postEvent, {
+          toolName: tc.name,
+          hookInput: toolHookInput(session, tc.name, input, { tool_result: result }),
+        })
+        for (const m of post.messages) emit({ type: 'notice', text: m })
+        if (post.additionalContext) {
+          result = `${result}\n\n[${postEvent} 钩子附加]\n${post.additionalContext}`
+        }
+        if (post.decision === 'deny') {
+          ok = false
+          result = `被 ${postEvent} 钩子阻断：${post.reason ?? '（钩子未给出理由）'}`
+        }
+      }
+
       const durationMs = Date.now() - startedAt
       emit({ type: 'tool_result', toolCallId: tcId, ok, result, durationMs, diff })
       messages.push({ role: 'tool', tool_call_id: tc.id, content: capResult(result) })
@@ -501,7 +590,14 @@ async function runSubAgent(session, prompt, description, emit, expired) {
   }
   // 撞到轮次上限时给父模型一个**明确说法** —— 原来只回「（子代理未产出结论）」，
   // 父模型根本不知道是"子代理空转完了"还是"任务太大做不完"，于是容易反复重派。
-  if (!finishedNaturally && !expired()) {
+  const hitLimit = !finishedNaturally && !expired()
+  if (hooksEnabled()) {
+    const stop = await runEventHooks('SubagentStop', {
+      hookInput: sessionHookInput(session, { description: description ?? '', finishedNaturally, hitLimit }),
+    })
+    for (const m of stop.messages) emit({ type: 'notice', text: m })
+  }
+  if (hitLimit) {
     return (
       `（子代理已达轮次上限 ${MAX_SUBAGENT_ROUNDS} 轮，未给出结论）\n` +
       '它已经做过的探查：' +
@@ -527,10 +623,10 @@ async function runMockTurn(session, text, emit) {
 }
 
 /** 统一回合入口：真实引擎优先，失败时把错误作为正文反馈。 */
-async function runAgentTurn(session, text, emit, expired) {
+async function runAgentTurn(session, text, emit, expired, hookContext) {
   if (!getApiKey()) return runMockTurn(session, text, emit)
   try {
-    return await runDeepSeekTurn(session, text, emit, expired)
+    return await runDeepSeekTurn(session, text, emit, expired, hookContext)
   } catch (err) {
     if (expired()) return { inputTokens: 0, outputTokens: 0 }
     emit({ type: 'assistant_delta', delta: '⚠️ DeepSeek 调用失败：' + String(err.message ?? err) })
@@ -584,9 +680,36 @@ export async function runTurn(session, text, messageId = newMessageId()) {
 
   activeTurns.add(session.id)
   try {
-    const usage = await withWorkspace(sessionScope(session), () =>
-      runAgentTurn(session, text, emit, expired),
-    )
+    const usage = await withWorkspace(sessionScope(session), async () => {
+      // ---- SessionStart：只在本会话的第一个回合之前跑一次 ----
+      // （CLI 在"新建/恢复会话"时触发；web 端没有独立的会话启动点，用首回合近似。）
+      if (hooksEnabled() && session.turnCount === 0) {
+        const start = await runEventHooks('SessionStart', {
+          hookInput: sessionHookInput(session, { source: 'web' }),
+        })
+        for (const m of start.messages) emit({ type: 'notice', text: m })
+      }
+
+      // ---- UserPromptSubmit：可以往提示里加内容，也可以直接拦下 ----
+      let hookContext = null
+      if (hooksEnabled()) {
+        const ups = await runEventHooks('UserPromptSubmit', {
+          hookInput: sessionHookInput(session, { prompt: text }),
+        })
+        for (const m of ups.messages) emit({ type: 'notice', text: m })
+        if (ups.decision === 'deny' || ups.preventContinuation) {
+          const reason = ups.reason ?? ups.stopReason ?? '被 UserPromptSubmit 钩子拦下'
+          emit({ type: 'assistant_delta', delta: `消息未发送：${reason}` })
+          return { inputTokens: 0, outputTokens: 0 }
+        }
+        if (ups.additionalContext) {
+          hookContext = ups.additionalContext
+          emit({ type: 'notice', text: 'UserPromptSubmit 钩子附加了上下文（随本条消息发给模型，不写进会话记录）' })
+        }
+      }
+
+      return runAgentTurn(session, text, emit, expired, hookContext)
+    })
     session.turnCount++
     session.toolCallCount += toolCalls.length
     if (expired()) {
@@ -605,6 +728,11 @@ export async function runTurn(session, text, messageId = newMessageId()) {
         timestamp: Date.now(),
       })
       broadcast({ type: 'turn_complete', sessionId: session.id, messageId, usage })
+    }
+    // ---- Stop：回合正常结束后的钩子（日志、通知、检查清单之类）----
+    if (hooksEnabled() && !expired()) {
+      const stop = await runEventHooks('Stop', { hookInput: sessionHookInput(session, { stopped: true }) })
+      for (const m of stop.messages) emit({ type: 'notice', text: m })
     }
   } catch (err) {
     broadcast({ type: 'error', message: `回合执行失败：${String(err)}` })
