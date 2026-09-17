@@ -98,22 +98,24 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
 
 **待办（按优先级）**：
-1. **约 20 处 `<Link url="" />`**（渲染为空，用户看不见但代码脏）。
-   ⚠️ 在 react-compiler 产物里，**动前先确认不在 `$[N]` memo 区块内**。
-2. **剩余 ~980 处零散模型名**（注释、字符串、变量名）。
-3. **两处待用户拍板的行为变更**（我没动）：
+1. **剩余 ~980 处零散模型名**（注释、字符串、变量名）。
+2. **两处待用户拍板的行为变更**（我没动）：
    - `utils/context.ts` 的 `MODEL_CONTEXT_WINDOW_DEFAULT = 200_000`，DeepSeek 官方是 **1M**
    - 同文件 `MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000`，官方最大输出 **384K**
-4. **与参照实现的功能缺口**（用户还没定做不做）：
+3. **与参照实现的功能缺口**（用户还没定做不做）：
    - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
      真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
    - **图片输入**：`deepseek-flash` 支持 Vision，但适配器 `blockToText()` 对 image 块返回空串，
      **图片被静默丢弃**。
    - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
 
-**已完成的空壳清理**：`constants/product.ts`（整个远程会话模块，含 `PRODUCT_URL` /
-`getRemoteSessionUrl` / `buildBridgeConnectUrl` 等）已整文件删除；`/feedback` 的
-"去 GitHub 提 issue" 断路径（54 行）已删除；一批悬空文案与空括号已修。
+**URL 空壳清理已全部完成**：`constants/product.ts`（整个远程会话模块）整文件删除；
+`/feedback` 的"去 GitHub 提 issue" 断路径（54 行）删除；26 处 `<Link url="" />` 与
+悬空的 `Learn more:` / `For help:` 文案全部清掉；一批空括号与悬空文案修好。
+
+**react-compiler 里删 JSX 元素是安全的**（重要经验）：`tN = <JSX>` 这种记忆化
+**表达式内部**删元素**不会**改变 `$[N]` 槽位数量 —— 只有删掉整个
+`if ($[N] !== x) {...}` 赋值块才会移动后续下标。所以改 JSX 内容可以放心做。
 
 ### 其它
 - **`/login` 已能真正录入并持久化 key**（`components/ConsoleOAuthFlow.tsx` → `saveApiKey()`）。
