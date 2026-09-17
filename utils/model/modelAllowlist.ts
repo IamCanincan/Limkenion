@@ -73,7 +73,7 @@ function familyHasSpecificEntries(
     // Check if entry is a version-qualified variant of this family
     // e.g., "deepseek-v4-pro-4-5" or "limkenion-deepseek-v4-pro-4-5-20251101" for the "deepseek-v4-pro" family
     // Must match at a segment boundary (followed by '-' or end) to avoid
-    // false positives like "opusplan" matching "deepseek-v4-pro"
+    // false positives like "proplan" matching "deepseek-v4-pro"
     const idx = entry.indexOf(family)
     if (idx === -1) {
       continue

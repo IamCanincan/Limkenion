@@ -79,7 +79,7 @@ export function getAgentModel(
 
   if (agentModelWithExp === 'inherit') {
     // Apply runtime model resolution for inherit to get the effective model
-    // This ensures agents using 'inherit' get opusplan→deepseek-v4-pro resolution in plan mode
+    // This ensures agents using 'inherit' get proplan→deepseek-v4-pro resolution in plan mode
     return getRuntimeMainLoopModel({
       permissionMode: permissionMode ?? 'default',
       mainLoopModel: parentModel,
@@ -104,7 +104,7 @@ export function getAgentModel(
  * getDefaultStrongModel() returns for 3P.
  * See 
  *
- * Only bare family aliases match. `deepseek-v4-pro[1m]`, `best`, `opusplan` fall through
+ * Only bare family aliases match. `deepseek-v4-pro[1m]`, `best`, `proplan` fall through
  * since they carry semantics beyond "same tier as parent".
  */
 function aliasMatchesParentTier(alias: string, parentModel: string): boolean {

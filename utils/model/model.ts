@@ -158,16 +158,16 @@ export function getRuntimeMainLoopModel(params: {
 }): ModelName {
   const { permissionMode, mainLoopModel, exceeds200kTokens = false } = params
 
-  // opusplan uses deepseek-v4-pro in plan mode without [1m] suffix.
+  // proplan uses deepseek-v4-pro in plan mode without [1m] suffix.
   if (
-    getUserSpecifiedModelSetting() === 'opusplan' &&
+    getUserSpecifiedModelSetting() === 'proplan' &&
     permissionMode === 'plan' &&
     !exceeds200kTokens
   ) {
     return getDefaultStrongModel()
   }
 
-  // sonnetplan by default
+  // flashplan by default
   if (getUserSpecifiedModelSetting() === 'haiku' && permissionMode === 'plan') {
     return getDefaultMainModel()
   }
@@ -303,7 +303,7 @@ export function getLimkenionAiUserDefaultModelDescription(
 export function renderDefaultModelSetting(
   setting: ModelName | ModelAlias,
 ): string {
-  if (setting === 'opusplan') {
+  if (setting === 'proplan') {
     return '计划模式用 DeepSeek V4 Pro，其余用 DeepSeek Flash'
   }
   return renderModelName(parseUserSpecifiedModel(setting))
@@ -330,7 +330,7 @@ export function is1mContextMergeEnabled(): boolean {
 }
 
 export function renderModelSetting(setting: ModelName | ModelAlias): string {
-  if (setting === 'opusplan') {
+  if (setting === 'proplan') {
     return 'Plan 用强模型'
   }
   if (isModelAlias(setting)) {
@@ -417,7 +417,7 @@ export function parseUserSpecifiedModel(
 
   if (isModelAlias(modelString)) {
     switch (modelString) {
-      case 'opusplan':
+      case 'proplan':
         return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // deepseek-flash is default, deepseek-v4-pro in plan mode
       case 'sonnet':
         return getDefaultMainModel() + (has1mTag ? '[1m]' : '')

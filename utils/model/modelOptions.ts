@@ -245,11 +245,11 @@ const MaxSmallFastOption: ModelOption = {
   description: 'Haiku 4.5 · Fastest for quick answers',
 }
 
-function getOpusPlanOption(): ModelOption {
+function getPlanModeOption(): ModelOption {
   return {
-    value: 'opusplan',
-    label: 'Opus Plan Mode',
-    description: 'Use Opus 4.6 in plan mode, Sonnet 4.6 otherwise',
+    value: 'proplan',
+    label: 'Plan 用强模型',
+    description: '计划模式用 DeepSeek V4 Pro，其余用 DeepSeek Flash',
   }
 }
 
@@ -479,18 +479,8 @@ export function getModelOptions(fastMode = false): ModelOption[] {
   }
   if (customModel === null || options.some(opt => opt.value === customModel)) {
     return filterModelOptionsByAllowlist(options)
-  } else if (customModel === 'opusplan') {
-    return filterModelOptionsByAllowlist([...options, getOpusPlanOption()])
-  } else if (customModel === 'opus' && getAPIProvider() === 'firstParty') {
-    return filterModelOptionsByAllowlist([
-      ...options,
-      getMaxStrongOption(fastMode),
-    ])
-  } else if (customModel === 'opus[1m]' && getAPIProvider() === 'firstParty') {
-    return filterModelOptionsByAllowlist([
-      ...options,
-      getMerged1mContextOption(fastMode),
-    ])
+  } else if (customModel === 'proplan') {
+    return filterModelOptionsByAllowlist([...options, getPlanModeOption()])
   } else {
     // Try to show a human-readable label for known Limkenion models, with an
     // upgrade hint if the alias now resolves to a newer version.
