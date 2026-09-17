@@ -54,6 +54,8 @@ export const DANGEROUS_TOOLS = new Set([
   // 作用范围换到另一棵树上，属于安全边界改变，所以要确认。
   'EnterWorktree',
   'ExitWorktree',
+  // 一次工作流能派几十个子代理、烧掉大量 token（CLI 也是这个理由要确认）
+  'Workflow',
 ])
 
 /** 子代理只读工具白名单（Agent 工具内部使用）。 */
@@ -1143,6 +1145,45 @@ async function toolReadMcpResource({ server, uri }, ctx) {
 }
 
 /**
+ * 动态工作流：脚本里用 agent/parallel/pipeline/phase 编排多个**只读**子代理。
+ * 会花掉不少 token（所以是危险工具，要用户确认）。
+ */
+async function toolWorkflow(input, ctx) {
+  if (typeof ctx?.runWorkflow !== 'function') {
+    throw new Error('当前服务端未挂载工作流执行器（ctx.runWorkflow 缺失）')
+  }
+  const { script, scriptPath, name, resumeFromRunId, args } = input ?? {}
+
+  let source = typeof script === 'string' ? script : ''
+  if (!source && scriptPath) {
+    // scriptPath 也要过沙箱校验 —— 不能因为"是个工作流脚本"就允许读任意路径
+    const abs = safePath(scriptPath)
+    source = await readFile(abs, 'utf8')
+  }
+  if (!source && name) {
+    throw new Error(
+      'web 端不支持按名字调用预定义工作流（CLI 的 `.limkenion/workflows/` 与内置工作流未镜像）。' +
+        '请直接把脚本放在 `script` 里，或给一个沙箱内的 `scriptPath`。',
+    )
+  }
+  if (!source.trim()) throw new Error('必须提供 script（或沙箱内的 scriptPath）')
+
+  const run = await ctx.runWorkflow({
+    script: source,
+    name,
+    resumeFrom: resumeFromRunId,
+    args,
+  })
+
+  const done = run.agents.filter(a => a.status === 'done' || a.status === 'reused').length
+  const head =
+    `工作流 ${run.runId} 完成（${run.name}）：子代理 ${done} 个` +
+    `${run.phases.length ? `，阶段 ${run.phases.map(p => p.name).join(' → ')}` : ''}\n` +
+    `（用 /workflows show ${run.runId} 看每个子代理的结论）\n\n`
+  return head + (run.result ?? '（脚本没有返回值）')
+}
+
+/**
  * worktree 两个工具的真实现。
  *
  * 它们**会改动会话的沙箱根**（不只是 cwd），所以列进 DANGEROUS_TOOLS 需要用户确认：
@@ -1846,6 +1887,40 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'Workflow',
+      description:
+        '执行一段动态工作流脚本，用 agent() / parallel() / pipeline() / phase() / log() 编排多个子代理。' +
+        '子代理是只读的（与 Agent 工具同一套机制）。会花费大量 token，只在确实需要"并行派多个子代理"时使用。' +
+        '脚本可以以 `export const meta = { name, description }` 开头（会被自动处理）。',
+      parameters: {
+        type: 'object',
+        properties: {
+          script: {
+            type: 'string',
+            description:
+              '自包含的工作流脚本。可用原语：agent(prompt, {label}) 返回子代理结论；' +
+              'parallel([() => …]) 并发；pipeline(items, ...stages) 多阶段；phase(name) 标记阶段；log(...) 记日志。',
+          },
+          scriptPath: {
+            type: 'string',
+            description: '磁盘上的脚本路径（必须在工作区沙箱内）。优先级高于 script。',
+          },
+          name: { type: 'string', description: '运行名（仅用于展示）。' },
+          args: { description: '作为全局 `args` 逐字暴露给脚本的输入值。' },
+          title: { type: 'string', description: '已忽略 —— 请在 meta 里设置标题。' },
+          description: { type: 'string', description: '已忽略 —— 请在 meta 里设置描述。' },
+          resumeFromRunId: {
+            type: 'string',
+            description: '要续跑的运行 ID。prompt 未变的 agent() 会直接复用缓存结果，只重跑变化的那些。',
+          },
+        },
+        required: [],
+      },
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -1923,6 +1998,7 @@ export async function executeTool(name, input, ctx) {
     case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')(input)
     case 'EnterWorktree': return toolEnterWorktree(input, session)
     case 'ExitWorktree': return toolExitWorktree(input, session)
+    case 'Workflow': return toolWorkflow(input, ctx)
     default: throw new Error(`未知工具：${name}`)
   }
 }

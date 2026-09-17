@@ -50,6 +50,7 @@ import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
 import { hooksSummary, refreshHooks } from './hooks.mjs'
 import { mcpSummary, reloadMcp } from './mcp.mjs'
 import { generateInsights, insightsSummary } from './insights.mjs'
+import { formatRun, loadRun, workflowsSummary } from './workflow.mjs'
 import { worktreeSummary } from './worktree.mjs'
 
 // ---------------------------------------------------------------------------
@@ -712,11 +713,14 @@ export async function runCommand(session, rawName, argString, ws, registry) {
   }
 
   if (name === 'workflows') {
-    return (
-      'web 端没有挂载动态工作流（Workflow）工具，所以没有任何工作流运行可看。\n\n' +
-      'CLI 端的 /workflows 管理的是「动态工作流运行」（多子代理编排）。' +
-      'web 端的子代理走 Agent 工具（见 /agents），但没有工作流编排层。'
-    )
+    const sub = String(arg ?? '').trim()
+    if (sub.startsWith('show ') || sub.startsWith('查看 ')) {
+      const id = sub.replace(/^(show|查看)\s+/, '').trim()
+      const run = await loadRun(id)
+      if (!run) return `找不到这次运行：${id}（用 /workflows 看列表）`
+      return formatRun(run, { verbose: true })
+    }
+    return workflowsSummary()
   }
 
   // ---- 帮助 ----

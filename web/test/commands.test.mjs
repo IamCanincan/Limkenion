@@ -306,10 +306,16 @@ describe('/schedule 与 /cron', () => {
 })
 
 describe('/workflows 与命令降级说明', () => {
-  test('/workflows 如实说明 web 端没有工作流工具', async () => {
+  test('/workflows 列出运行记录与脚本原语', async () => {
     const r = makeRunner()
     const out = await r.run('/workflows')
-    assert.match(out, /没有挂载动态工作流/)
+    // 工作流现在是真实现（tools.mjs 里挂了 Workflow 工具）
+    assert.match(out, /工作流：记录/)
+    assert.match(out, /agent\(prompt, opts\)/)
+    assert.match(out, /只读/)
+
+    const shown = await r.run('/workflows show wf_不存在')
+    assert.match(shown, /找不到这次运行/)
   })
 
   test('sandbox / terminal-setup 的键名对得上（不再落到兜底说明）', async () => {

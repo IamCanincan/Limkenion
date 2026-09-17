@@ -39,6 +39,7 @@ import { hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { callMcpTool, listMcpResources, readMcpResource } from './mcp.mjs'
+import { runWorkflow } from './workflow.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
 
@@ -219,6 +220,19 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     callMcpTool: (name, args) => callMcpTool(name, args),
     listMcpResources: server => listMcpResources(server),
     readMcpResource: (server, uri) => readMcpResource(server, uri),
+    // 动态工作流：脚本里的每个 agent() 派一个**只读子代理**（与 Agent 工具同一套机制，
+    // 所以只读保证、轮次上限、事件标记都一致）。并发与预算在 workflow.mjs 里控制。
+    runWorkflow: ({ script, name, resumeFrom, args, maxAgents }) =>
+      runWorkflow({
+        script,
+        name,
+        resumeFrom,
+        args,
+        maxAgents,
+        sessionId: session.id,
+        emit: msg => emit({ type: 'notice', text: msg }),
+        runAgent: (prompt, description) => runSubAgent(session, prompt, description, emit, expired),
+      }),
   }
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -537,6 +551,8 @@ async function runSubAgent(session, prompt, description, emit, expired) {
     callMcpTool: undefined,
     listMcpResources: undefined,
     readMcpResource: undefined,
+    // 子代理里不允许再派工作流（会变成"子代理套子代理"的嵌套爆炸）
+    runWorkflow: undefined,
   }
 
   for (let round = 0; round < MAX_SUBAGENT_ROUNDS; round++) {
