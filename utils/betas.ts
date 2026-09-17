@@ -115,9 +115,11 @@ export function modelSupportsContextManagement(_model: string): boolean {
 
 // @[MODEL LAUNCH]: 若新模型支持结构化输出，请将其 ID 加入此列表。
 export function modelSupportsStructuredOutputs(_model: string): boolean {
-  // 改造前这里是一串上游模型 ID 的白名单，DeepSeek 不在其中，所以恒为 false。
-  // **注意**：DeepSeek 官方是支持 JSON 输出的，这条判定保守，未改行为。
-  return false
+  // DeepSeek 官方支持 JSON 输出；**实测**（2026-09-18）在 function 定义里带
+  // `strict: true` 两个模型都正常返回工具调用，不报错。
+  // 原本这里是一串上游模型 ID 的白名单，DeepSeek 不在其中所以恒为 false ——
+  // 但那时这个判定是"悬空"的（适配器根本不转发 strict），现在适配器也补上了。
+  return true
 }
 
 // @[MODEL LAUNCH]: 若新模型支持自动模式（特指 PI 探测），请加入该模型——可在 #proj-limkenion-safety-research 中询问。

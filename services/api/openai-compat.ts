@@ -18,6 +18,7 @@
 
 import OpenAI from 'openai'
 import { getGlobalConfig } from '../../utils/config.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
 
 /**  endpoints 默认值 */
 const DEFAULT_BASE_URL = 'https://api.deepseek.com'
@@ -62,7 +63,7 @@ function getConfig() {
 
 /**
  * 模块内可变的推理强度（low / medium / high），可会话中切换、不重启。
- * 优先级：运行时 set > REASONING_EFFORT env > 空。
+ * 优先级：运行时 set > REASONING_EFFORT env > 设置文件里的 effortLevel > 空。
  */
 let runtimeReasoningEffort: string | undefined
 
@@ -70,8 +71,36 @@ export function setRuntimeReasoningEffort(value: string | undefined): void {
   runtimeReasoningEffort = value
 }
 
+/**
+ * 从设置文件里读 `/effort` 存下的推理强度。
+ *
+ * **这里原本是个断点**：`/effort high` 会把值写进 settings.json、界面上还会显示
+ * 一个小图标，但 API 只读 `runtimeReasoningEffort`（只有 `/model low|medium|high`
+ * 会设置它）—— 也就是说 **`/effort` 是个空操作，给了用户假承诺**。
+ * 现在补上这一层回落，两个命令都能真正生效。
+ *
+ * 惰性读取（不在模块顶层调用），所以即使 settings 那条依赖链里有环也没关系。
+ */
+function getPersistedReasoningEffort(): string | undefined {
+  try {
+    const level = getInitialSettings().effortLevel
+    // DeepSeek 的 reasoning_effort 只接受这三档（'max' 是上游概念，会被过滤掉）
+    return level === 'low' || level === 'medium' || level === 'high'
+      ? level
+      : undefined
+  } catch {
+    // 设置尚未加载时静默跳过，不要因为一个可选参数炸掉整个请求
+    return undefined
+  }
+}
+
 export function getRuntimeReasoningEffort(): string {
-  return runtimeReasoningEffort ?? process.env.REASONING_EFFORT ?? ''
+  return (
+    runtimeReasoningEffort ??
+    process.env.REASONING_EFFORT ??
+    getPersistedReasoningEffort() ??
+    ''
+  )
 }
 
 /** 上游 content block -> 纯文本（OpenAI 只接受字符串或 content part 数组） */
@@ -256,6 +285,10 @@ export function toOpenAITools(tools: any): any[] | undefined {
         name: t.name,
         description: t.description ?? '',
         parameters: t.inputSchema ?? t.input_schema ?? { type: 'object', properties: {} },
+        // 结构化输出（严格模式）：让模型严格按 schema 产出参数。
+        // 上游那边是靠 beta 头开启的；OpenAI 协议里就是 function 上的 strict 字段。
+        // 实测 DeepSeek 两个模型都接受它。
+        ...(t.strict === true ? { strict: true } : {}),
       },
     }))
     // 按名字排序，保证每轮请求里 tools 数组的顺序完全一致。
