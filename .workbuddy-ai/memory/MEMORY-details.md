@@ -545,3 +545,49 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 - `entrypoints/sdk/`（23 个未使用导出）：**SDK 输出格式的公开定义**，有意保留。
 - `stubs/{chrome-mcp,computer-use-mcp-*}.ts`：由 `tsconfig.json` 的 `paths` 映射。
 - `.workbuddy-ai/i18n/`（34MB）：暂停中的注释中文化工程的**工作产物**，删了流水线没法恢复。
+
+---
+
+## 附二：为压住 MEMORY.md 体积而挪进这里的细节
+
+### CLI 源码编辑的五条硬规矩（原"关键陷阱 4–8"）
+
+- **react-compiler 产物里删代码**：删**表达式内部**的元素不改变 `$[N]` 槽位数量，安全；
+  删整个 `if ($[N] !== x) {...}` 块会移动后续下标，危险。
+- **批量改代码先 dry-run**（救过三次）；**批量删声明必须用语法校验兜底**
+  （正则算边界必然有漏网，踩过三次 → 用 esbuild 的 `transform()` 逐文件校验，
+  失败就 `git checkout` 回退那一个）。
+- **导入扫描的正则不能跨行**：`[^'"]+` 会吞掉中间的 import 行，必须用 `[^'"\n]+`。
+- **JSDoc 里不能写两个星号加斜杠**（即 `*` `*` `/` 连写）—— 会提前闭合注释块，
+  esbuild 报错、整个构建挂掉。**本轮在 server/engine.mjs 上又踩了一次**
+  （给函数加 `@param` 时多留了一个 `*/`），`node --check` 立刻能抓到。
+- **写"已移除 X"的注释时别把 X 原样写出来**（自指涉痕迹，踩过两次）。
+
+### 环境细节（原"环境要点"里挪出的部分）
+
+- `LIMKENION_GIT_BASH_PATH` =
+  `C:\Users\20653\.workbuddy-ai\binaries\PortableGit\versions\1.2.0\usr\bin\bash.exe`
+  （本会话实测托管目录是 `.workbuddy`，两处都有 PortableGit，用哪个都行）。
+- **单测 CLI 源码模块**：用 esbuild 打成单文件再 node 跑，必须带
+  `--banner:js="import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"`
+  与 `--alias:bun:bundle=./bun-bundle-stub.ts --tsconfig=./tsconfig.json`。
+  纯 node 直跑会撞 `Config accessed before allowed`（那是没走 bootstrap，不是 bug）。
+
+### DeepSeek 两端点差异（原最后一条）
+
+两套端点实测几乎等价（思考都默认开、缓存命中数都能拿到，字段名不同）。
+**唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮可原样传回。
+
+---
+
+## 附三：2026-09-18 接力轮次（第 2 个 agent）
+
+**完整记录见同目录 `2026-09-18.md`**。摘要：
+
+- 修的 bug：**中断后旧回合"复活"**（`cancelled` 共享布尔值 → 改成**回合代次**）、
+  **定时任务并发跑回合**（新增 `activeTurns` + 跳过时明说）、
+  **engine.test.mjs 1/3 概率偶发失败**（桩脚本全局游标 + `afterEach` 排空在途回合）。
+- 测试 209 → **213 项全过**，engine 连跑 8 次无失败。提交 `666f8f4`。
+- 顺手发现并记下：web 服务的 API key 取自 `~/.limkenion.json` 的 `primaryApiKey`；
+  任务分享页内容的取法（`/v2/as/p/tasks/share/<code>` + `POST .../verify`）。
+
