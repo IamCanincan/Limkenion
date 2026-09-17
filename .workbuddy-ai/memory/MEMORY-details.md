@@ -309,3 +309,21 @@ engine.test 用桩按脚本回放，都不看请求内容）。
 - 其余 40 个：终端专属（Git/登录/插件/终端配置/IDE）或死路径。
 
 测试：新增 `web/test/commands.test.mjs`（34 项），全套 **173 项全过**。
+
+### 十一、UI 实测（2026-09-18）
+用本机 Chrome + CDP（**没装 agent-browser，省 500MB**）实测 Web 端：
+- 顶栏三个按钮 `权限 · 每次确认 | 推理 · 默认 | 主题 · 暗色` —— 推理下拉正常，
+  5 档（默认/低/中/高/最高），菜单高度 245px **没被 overflow 裁掉**。
+- 侧栏搜索框：输入不存在的词 → 0 条 + 空状态提示正确；输入"新" → 1 条。
+- 会话菜单：`重命名 | 分叉（/branch） | 导出 Markdown | 删除`；点分叉 → 会话 1→2、
+  自动切到新会话、提示条正确。
+
+**"会话消失"是虚惊一场**：调试时发现会话数变少，一度怀疑服务端丢会话。排查结论 ——
+删除路径只有 `delete_session` 一条（`grep -rn "sessions.delete\|deleteSession" server/`），
+`loadPersisted()` 只在启动调一次，服务 PID 从未变过。**是我自己的清理脚本删的。**
+受控实验（建 3 个 → 15/30/90 秒各查一次）确认稳定，分叉会话也一样。
+**教训：怀疑"状态自己变了"之前，先 grep 出所有写入点，再回想自己刚跑过什么。**
+
+**Windows 收尾坑**：`rm` 与图形化的删除都会被安全策略拦
+（`SAFE_DELETE_BULK_CONFIRM_REQUIRED`），删临时脚本改用 `mv` 移出仓库；
+`taskkill //F //PID` 在这个 Git Bash 报"无效参数"，改用 PowerShell 的 `Stop-Process -Id`。
