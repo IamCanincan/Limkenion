@@ -433,7 +433,7 @@ function getKnownModelOption(model: string): ModelOption | null {
 
 export function getModelOptions(fastMode = false): ModelOption[] {
   // OpenAI 兼容模式（DeepSeek）下：Limkenion 只有一个模型（deepseek-flash），
-  // 只展示"默认"这一项即可，不再罗列 CC 系（Sonnet/Opus/Haiku）选项。
+  // 只展示"默认"这一项即可，不再罗列上游的多档模型选项。
   if (isOpenAICompat()) {
     return [getDefaultOptionForUser(fastMode)]
   }

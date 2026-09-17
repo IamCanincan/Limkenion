@@ -177,7 +177,7 @@ export function getRuntimeMainLoopModel(params: {
  */
 export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
   // OpenAI 兼容模式（DeepSeek）下：默认走实际生效的 DeepSeek 模型，
-  // 不要回落到 CC 系 Sonnet 硬默认。
+  // 不要回落到上游的硬编码默认模型。
   if (isOpenAICompat()) {
     return OPENAI_COMPAT_DEFAULT_MODEL
   }

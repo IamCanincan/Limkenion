@@ -5,7 +5,7 @@ export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
 /** 是否运行在 OpenAI 兼容模式（DeepSeek / 任意 OpenAI 格式端点）。 */
 export function isOpenAICompat(): boolean {
   // 显式 provider 标记，或检测到 DeepSeek key（走 OpenAI 协议）都算兼容模式，
-  // 这样即便漏配 provider 变量，默认模型也不会回落到 CC 系 Sonnet。
+  // 这样即便漏配 provider 变量，默认模型也不会回落到上游那套硬编码默认值。
   return (
     process.env.LIMKENION_API_PROVIDER === 'openai' ||
     !!process.env.DEEPSEEK_API_KEY
@@ -16,7 +16,7 @@ export function isOpenAICompat(): boolean {
 export const OPENAI_COMPAT_DEFAULT_MODEL = 'deepseek-flash'
 
 // Limkenion 已去除对 Amazon Bedrock / Google Vertex AI / Microsoft Foundry 等
-// 上游 第三方云供应商的路由支持，当前仅运行于 OpenAI 兼容（DeepSeek）模式。
+// 第三方云供应商的路由支持，当前仅运行于 OpenAI 兼容（DeepSeek）模式。
 // getAPIProvider 恒返回 firstParty，使全仓库基于 getAPIProvider() 的分支全部
 // 走回第一方/独立路径，不再触发任何 Bedrock/Vertex/Foundry 供应商逻辑。
 export function getAPIProvider(): APIProvider {
