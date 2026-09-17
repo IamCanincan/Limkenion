@@ -36,11 +36,24 @@
 （tsconfig paths）、`services/remoteManagedSettings/securityCheck.tsx`（被 `'./securityCheck.jsx'` 导入，
 扩展名不同导致误判）、`.workbuddy-ai/i18n/`（34MB，暂停中的注释中文化工程产物，删了流水线没法恢复）。
 
-**待用户拍板：378 个"导出了但没人用"的符号**
-分布：`utils/` 212、`services/` 38、`entrypoints/` 24、`ink/` 21、`tools/` 18 …
-其中 `entrypoints/sdk/` 23 个（SDK 输出格式定义，**属有意公开的 API，建议保留**）、
-测试专用辅助 41 个（**仓库里 0 个测试文件**，理论上是纯死代码，但上游测试套件可能会用到）。
-**注意**：仓库里没有 `.test.ts` / `.spec.ts`，所以"测试专用"的导出目前确实无人调用。
+**已删：355 个"导出了但没人用"的符号**（192 文件，-4083 行，commit 9f76507）
+用户："没用的话就删了嘛。" **保留 `entrypoints/sdk/` 的 23 个** —— 那是 SDK 输出格式的
+公开定义，属有意公开的 API 面。
+
+**边界识别的三个坑（最后用 esbuild 兜底）**：
+1. 把**参数列表的圆括号**当成声明体 → 第一个 `)` 就结束扫描，只删签名留下函数体
+   → 构建报 `Unexpected "}"`
+2. 分离圆括号/尖括号后，漏了**联合类型的行延续符号 `|`** → 构建报 `Unexpected "|"`
+3. 最终方案：**逐文件用 esbuild 的 `transform()` 做语法校验**，解析失败的文件自动
+   `git checkout` 回退。202 个改动文件里 10 个被自动回退，192 个通过。
+
+**教训：批量删除声明时靠正则算边界必然有漏网，必须有一个语法级校验兜底。
+esbuild 的 `transform()`（不 bundle）就是现成且够快的语法检查器。**
+
+**刻意保留的"疑似孤儿"**：`bun-bundle-stub.ts`（build 脚本 alias）、
+`entrypoints/cli.tsx`（package.json bin 入口）、`stubs/{chrome-mcp,computer-use-mcp-*}.ts`
+（tsconfig paths）、`services/remoteManagedSettings/securityCheck.tsx`（被 `'./securityCheck.jsx'` 导入，
+扩展名不同导致误判）、`.workbuddy-ai/i18n/`（34MB，暂停中的注释中文化工程产物，删了流水线没法恢复）。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` = **CLI（React/ink REPL）+ web 界面** 的双端 agent harness。
