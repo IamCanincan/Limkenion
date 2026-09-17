@@ -214,6 +214,26 @@ DeepSeek 前缀缓存**自动**、不收写入费 → `promptCacheWriteTokens` �
 `seven_day_opus` / `seven_day_sonnet` 限流键（33 处）、`migrateSonnet*` 迁移函数（10 处），
 以及注释/字符串里零散的模型名。改名一律用 `\b` 边界，**别误伤 `octopus`**。
 
+### 阶段二·第二批：删除迁移与按模型分档限流（commit 见 git log）
+- **删掉 6 个模型版本迁移函数**（整文件）：`migrateFennecToOpus`、`migrateLegacyOpusToCurrent`、
+  `migrateOpusToOpus1m`、`migrateSonnet1mToSonnet45`、`migrateSonnet45ToSonnet46`、
+  `resetProToOpusDefault`。它们把旧上游模型设置改写成更新的上游模型 ID —— 在 DeepSeek 下
+  可能把用户设置改成不存在的模型名；而且都被 `isProSubscriber()` 之类挡着，本地恒 false。
+  `main.tsx` 的导入与调用一并移除。
+- **删掉 `seven_day_opus` / `seven_day_sonnet` 两档限流**（服务端响应头里的按模型分档窗口，
+  DeepSeek 不发）。涉及 `limkenionAiLimits`（含用户可见的「Opus 限额」「Sonnet 限额」标签）、
+  `api/usage`、`api/errors`、SDK 输出 schema、`Settings/Usage`、`rateLimitMessages`、
+  `mockRateLimits`、`rateLimitMocking`。
+
+### 又发现的死模块（`if (true) return false` 硬关掉，可整体删）
+- `services/mockRateLimits.ts`（719 行）：`shouldProcessMockLimits()` 开头就是
+  `if (true) return false`。删除需同时处理 `services/rateLimitMocking.ts` 与
+  `utils/auth.ts` 的引用（`getMockSubscriptionType` / `shouldUseMockSubscription`）。
+- `utils/model/modelCapabilities.ts`：`isModelCapabilitiesEligible()` 同样开头 `if (true) return false`。
+
+**教训：判断"某功能是不是死的"最快的方法就是看它入口函数开头有没有 `if (true) return false`。
+这个仓库里这种硬关断有好几处，别只看调用点就下结论。**
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
