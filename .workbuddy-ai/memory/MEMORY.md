@@ -180,11 +180,15 @@ Windows 上就是写配置文件。不需要另造轮子。
 6. **`/login` 不做实际登录**：`components/ConsoleOAuthFlow.tsx` 只显示"设环境变量后重启"并等 Enter，
    不写 key。2026-09-17 已把其中那句假的"已连接 DeepSeek"改成实话。
    若要让 /login 真能录入并持久化 key，需另开一轮（要动 .tsx 结构，注意 react-compiler 记忆化）。
-7. 用户机器上的 `DEEPSEEK_API_KEY`（尾号 06ae）2026-09-17 被 DeepSeek 判为 invalid
-   （`curl https://api.deepseek.com/models` 直接 401）—— 属凭据问题，非代码问题。
-   **key 值不要写进任何记忆文件。** 用户另给过一个有效 key（放在 `D:\下载\agent\新建 文本文档.txt`，
-   也不要复制到仓库/记忆）。**注意：环境变量优先级高于 `/login` 保存的 key**，
-   所以要换 key 得改环境变量，或在 shell 里先 unset 再用 /login。
+7. **密钥现状（2026-09-17 晚）**：用户要求"把密钥都删了，以后自己输"，已完成：
+   - 注册表 `HKCU\Environment` 里的 `DEEPSEEK_API_KEY` —— 用户自行删除，已确认不存在
+   - `~/.limkenion.json` 的 `customApiKeyResponses.rejected` 里有 1 条 key 片段 —— 已清空
+     （备份在 `~/.limkenion.json.bak-20260917`）
+   - `primaryApiKey` 本来就没存过
+   - **下一步由用户自己在 `/login` 里输入 key。**
+   - **key 值、key 片段一律不要写进仓库或记忆文件。**
+   - 注意：环境变量优先级高于 `/login` 保存的 key（已实测确认），
+     所以用户若又设了环境变量，`/login` 录的会被盖住。
 
 ## 上一轮差距盘点的两处更正（2026-09-17）
 早先我按"裸调 `client.beta`"列出 12 处受影响能力，实测后有两处**本来就是死路径**，不必修：
