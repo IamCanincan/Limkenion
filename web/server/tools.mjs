@@ -40,6 +40,8 @@ export const DANGEROUS_TOOLS = new Set([
   'Edit',
   'NotebookEdit',
   'CronCreate',
+  // 取消定时任务会改变后续自动回合的行为，与 CronCreate 同等对待。
+  'CronDelete',
 ])
 
 /** 子代理只读工具白名单（Agent 工具内部使用）。 */
@@ -892,6 +894,40 @@ async function toolCronCreate({ cron, schedule, rrule, prompt, durable, recurrin
   )
 }
 
+/**
+ * CronList：列出本会话的定时任务。
+ *
+ * CLI 的 `tools/ScheduleCronTool/` 下有 CronCreate / CronList / CronDelete 三个工具，
+ * 而 web 端原先**只搬了 CronCreate** —— 于是模型建了定时任务之后列不出来、也删不掉，
+ * 只能靠用户手敲 `/cron clear`。这里补齐后两个。
+ *
+ * 只列**本会话**的：跨会话的任务对当前回合没有意义，也会把别的会话的内容泄给模型。
+ */
+async function toolCronList(_input, ctx) {
+  if (typeof ctx?.cronList !== 'function') throw new Error('当前服务端未挂载定时器（ctx.cronList 缺失）')
+  const mine = ctx.cronList().filter(c => c.sessionId === ctx.session?.id)
+  if (mine.length === 0) {
+    return '本会话没有定时任务。可用 CronCreate 创建（如 cron="5m", prompt="检查构建状态"）。'
+  }
+  return (
+    `本会话的定时任务 ${mine.length} 个：\n` +
+    mine
+      .map(c => `- ${c.id}：每 ${Math.round(c.everyMs / 1000)}s「${c.prompt.slice(0, 80)}」`)
+      .join('\n') +
+    '\n\n用 CronDelete 传入 id 可取消。'
+  )
+}
+
+/** CronDelete：按 id 取消一个定时任务（任意会话的都可以，只要拿到 id）。 */
+async function toolCronDelete({ id }, ctx) {
+  const target = String(id ?? '').trim()
+  if (!target) throw new Error('需要 id 参数（由 CronCreate 返回，或用 CronList 查看）')
+  if (typeof ctx?.cronRemove !== 'function') throw new Error('当前服务端未挂载定时器（ctx.cronRemove 缺失）')
+  return ctx.cronRemove(target)
+    ? `已取消定时任务 ${target}。`
+    : `没有找到定时任务 ${target}。用 CronList 查看当前有哪些。`
+}
+
 // ---------------------------------------------------------------------------
 // 配置 / 元工具
 // ---------------------------------------------------------------------------
@@ -1073,6 +1109,23 @@ function degraded(reason) {
   return async () => {
     throw new Error(`该工具在 Limkenion web 沙箱内不可用：${reason}`)
   }
+}
+
+/**
+ * worktree 类工具的降级原因。
+ *
+ * 原来这里写死「当前工作区不是 git 仓库」—— 但工作区**经常就是** git 仓库，
+ * 于是模型和用户会收到一句明显不实的错误。
+ *
+ * 真实原因是**设计选择**：web 端的沙箱根 `WORKSPACE_ROOT` 是模块级常量
+ * （`paths.mjs`），被 safePath / isInsideWorkspace 等所有文件工具共用；
+ * 让会话动态切换沙箱根是一次安全边界改动，没有做。
+ */
+function worktreeDegradedReason() {
+  const isRepo = existsSync(join(WORKSPACE_ROOT, '.git'))
+  return isRepo
+    ? 'web 端沙箱固定为工作区根（LIMKENION_WEB_WORKSPACE），不支持把会话切换到 git worktree'
+    : '当前工作区不是 git 仓库，也没有可切换的 worktree'
 }
 
 // ---------------------------------------------------------------------------
@@ -1584,6 +1637,28 @@ export const TOOL_SCHEMAS = [
   {
     type: 'function',
     function: {
+      name: 'CronList',
+      description: '列出本会话已登记的定时任务（id / 周期 / 内容）。只读。',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'CronDelete',
+      description: '按 id 取消一个定时任务。id 由 CronCreate 返回或用 CronList 查看。危险操作，需用户确认。',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: '要取消的定时任务 id' },
+        },
+        required: ['id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'StructuredOutput',
       description: '把结构化结果（JSON）原样回传，供程序化消费。',
       parameters: {
@@ -1741,6 +1816,8 @@ export async function executeTool(name, input, ctx) {
     case 'AskUserQuestion': return toolAskUserQuestion(input, ctx)
     case 'Sleep': return toolSleep(input)
     case 'CronCreate': return toolCronCreate(input, ctx)
+    case 'CronList': return toolCronList(input, ctx)
+    case 'CronDelete': return toolCronDelete(input, ctx)
     // 配置 / 元
     case 'Config': return toolConfig(input, ctx)
     case 'Skill': return toolSkill(input)
@@ -1753,8 +1830,8 @@ export async function executeTool(name, input, ctx) {
     case 'ReadMcpResource': return degraded('未配置 MCP 客户端连接')(input)
     case 'McpAuth': return degraded('未配置 MCP 客户端连接')(input)
     case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')(input)
-    case 'EnterWorktree': return degraded('当前工作区不是 git 仓库，无法创建 worktree')(input)
-    case 'ExitWorktree': return degraded('当前工作区不是 git 仓库，没有可退出的 worktree')(input)
+    case 'EnterWorktree': return degraded(worktreeDegradedReason())(input)
+    case 'ExitWorktree': return degraded(worktreeDegradedReason())(input)
     default: throw new Error(`未知工具：${name}`)
   }
 }

@@ -149,6 +149,10 @@ async function runDeepSeekTurn(session, text, emit) {
     notifyUntrusted: msg => emit({ type: 'notice', text: msg }),
     askQuestions: questions => requestQuestions(session, questions),
     scheduleCron: entry => scheduleCron(session, entry),
+    // 定时任务的查看与取消 —— 与 scheduleCron 一样经 ctx 注入，
+    // 避免 tools.mjs 反向 import engine.mjs 形成循环依赖。
+    cronList: () => cronList(),
+    cronRemove: id => removeCron(id),
     applySetting: (key, value) => {
       const ok = applySessionSetting(session, key, value)
       return ok
@@ -365,6 +369,8 @@ async function runSubAgent(session, prompt, description, emit) {
     // 子代理内不允许反问/定时/改设置/再派子代理
     askQuestions: undefined,
     scheduleCron: undefined,
+    cronList: undefined,
+    cronRemove: undefined,
     applySetting: undefined,
     enableTools: undefined,
     runSubAgent: undefined,

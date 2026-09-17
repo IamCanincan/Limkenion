@@ -83,10 +83,22 @@ function readCliToolNames() {
     for (const f of readdirSync(dir)) {
       if (f.endsWith('.ts')) src += readFileSync(join(dir, f), 'utf8')
     }
-    const named = src.match(/(?:[A-Z_]*TOOL_NAME)\s*=\s*'([^']+)'/)
+    // 收集**全部** TOOL_NAME 常量，不是只取第一个。
+    //
+    // 原实现用 `match()` 只拿第一个匹配，于是「一个目录里定义多个工具」的情况会漏。
+    // 真实案例：`ScheduleCronTool/` 下有 CronCreate / CronList / CronDelete 三个工具
+    // （各自的常量在 prompt.ts 里），只取第一个就只登记了 CronCreate ——
+    // 补上后两个工具时，这个测试会误报「CLI tools/ 里找不到」。
+    //
+    // 但**必须排除 `LEGACY_*_TOOL_NAME`**：那是向后兼容的旧连线名，不是独立工具。
+    // 已确认的两处：AgentTool 的 `LEGACY_AGENT_TOOL_NAME = 'Task'`、
+    // BriefTool 的 `LEGACY_BRIEF_TOOL_NAME = 'Brief'` —— 收进来会变成假的「漏镜像」。
+    const named = [...src.matchAll(/(\b[A-Z_]*TOOL_NAME)\s*=\s*'([^']+)'/g)]
+      .filter(m => !m[1].startsWith('LEGACY_'))
+      .map(m => m[2])
     const fallback = entry.replace(/Tool$/, '')
-    if (named) {
-      names.add(named[1])
+    if (named.length > 0) {
+      for (const n of named) names.add(n)
     } else if (fallback === 'MCP') {
       // MCPTool.ts 用 `name: 'mcp'` 定义工具名，不是 TOOL_NAME 常量
       names.add('mcp')

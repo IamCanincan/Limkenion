@@ -8,7 +8,7 @@
 import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFile, mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { listen, makeWorkspace } from './helpers.mjs'
 
@@ -36,6 +36,10 @@ function makeCtx(overrides = {}) {
       summarize: async () => null,
       askQuestions: async qs => qs.map(q => ({ question: q.question, answer: 'A' })),
       scheduleCron: ({ everyMs }) => ({ id: `cron_${everyMs}` }),
+      // CronList / CronDelete 经 ctx 注入（与 scheduleCron 同样的模式，
+      // 避免 tools.mjs 反向 import engine.mjs）。默认给一个空清单。
+      cronList: () => [],
+      cronRemove: () => false,
       applySetting: () => true,
       enableTools: () => [],
       runSubAgent: async () => '子代理结论',
@@ -81,8 +85,9 @@ after(async () => {
 // ---------------------------------------------------------------------------
 
 describe('注册表完整性', () => {
-  test('41 个工具，名称唯一，schema 结构合法', () => {
-    assert.equal(TOOL_SCHEMAS.length, 41)
+  // 数字故意写死：改工具集时这里会红，提醒你确认是有意为之。
+  test('43 个工具，名称唯一，schema 结构合法', () => {
+    assert.equal(TOOL_SCHEMAS.length, 43)
     const names = TOOL_SCHEMAS.map(s => s.function.name)
     assert.equal(new Set(names).size, names.length, '存在重名工具')
     for (const s of TOOL_SCHEMAS) {
@@ -362,6 +367,73 @@ describe('流程与配置工具', () => {
       () => executeTool('CronCreate', { cron: '1s', prompt: 'x' }, makeCtx().ctx),
       /无法解析|最小/,
     )
+  })
+
+  test('CronList 只列本会话的任务', async () => {
+    // CLI 的 ScheduleCronTool 有 CronCreate/CronList/CronDelete 三个工具，
+    // web 端原先只搬了 CronCreate —— 模型建了任务列不出来也删不掉。这条守住补齐后的行为。
+    const { ctx } = makeCtx({
+      cronList: () => [
+        { id: 'cron_mine', sessionId: 'test', everyMs: 300000, prompt: '检查构建' },
+        { id: 'cron_other', sessionId: '别的会话', everyMs: 60000, prompt: '不该出现' },
+      ],
+    })
+    const out = await executeTool('CronList', {}, ctx)
+    assert.match(out, /cron_mine/)
+    assert.match(out, /每 300s/)
+    assert.doesNotMatch(out, /cron_other/, '不该把别的会话的任务泄给模型')
+  })
+
+  test('CronList 无任务时给出下一步', async () => {
+    const out = await executeTool('CronList', {}, makeCtx().ctx)
+    assert.match(out, /没有定时任务/)
+    assert.match(out, /CronCreate/, '应提示怎么创建')
+  })
+
+  test('CronDelete 按 id 取消', async () => {
+    const removed = []
+    const { ctx } = makeCtx({
+      cronRemove: id => {
+        removed.push(id)
+        return id === 'cron_ok'
+      },
+    })
+    assert.match(await executeTool('CronDelete', { id: 'cron_ok' }, ctx), /已取消/)
+    assert.deepEqual(removed, ['cron_ok'])
+
+    const miss = await executeTool('CronDelete', { id: 'cron_nope' }, ctx)
+    assert.match(miss, /没有找到/)
+    assert.match(miss, /CronList/, '找不到时应引导去看列表')
+  })
+
+  test('CronDelete 缺 id 被拒', async () => {
+    await assert.rejects(() => executeTool('CronDelete', {}, makeCtx().ctx), /需要 id/)
+  })
+
+  test('CronList / CronDelete 未挂载时明确报错，而不是静默', async () => {
+    const { ctx } = makeCtx({ cronList: undefined, cronRemove: undefined })
+    await assert.rejects(() => executeTool('CronList', {}, ctx), /ctx\.cronList 缺失/)
+    await assert.rejects(() => executeTool('CronDelete', { id: 'x' }, ctx), /ctx\.cronRemove 缺失/)
+  })
+
+  test('CronDelete 算危险工具（要用户确认），CronList 不算', () => {
+    assert.ok(DANGEROUS_TOOLS.has('CronDelete'), '取消定时任务会改变后续行为，应需确认')
+    assert.ok(!DANGEROUS_TOOLS.has('CronList'), '列清单是只读的')
+  })
+
+  test('worktree 工具的降级原因与实际相符（不谎称"不是 git 仓库"）', async () => {
+    // 原实现把原因写死成「当前工作区不是 git 仓库」，但工作区经常**就是** git 仓库，
+    // 于是模型收到一句明显不实的错误。现在按实际判断。
+    const { ctx } = makeCtx()
+    await assert.rejects(() => executeTool('EnterWorktree', {}, ctx), /不是 git 仓库/)
+
+    await mkdir(join(WORKSPACE_ROOT, '.git'), { recursive: true })
+    try {
+      await assert.rejects(() => executeTool('EnterWorktree', {}, ctx), /沙箱固定为工作区根/)
+      await assert.rejects(() => executeTool('ExitWorktree', {}, ctx), /沙箱固定为工作区根/)
+    } finally {
+      await rm(join(WORKSPACE_ROOT, '.git'), { recursive: true, force: true })
+    }
   })
 
   test('StructuredOutput 回传 JSON', async () => {
