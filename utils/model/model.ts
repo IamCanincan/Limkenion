@@ -20,7 +20,7 @@ import {
 } from '../context.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
-import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
+import { formatModelPricing, getDefaultModelCostTier } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
 import {
@@ -40,7 +40,7 @@ export type ModelSetting = ModelName | ModelAlias | null
 
 export function getSmallFastModel(): ModelName {
   // OpenAI 兼容模式（DeepSeek）下必须返回真实存在的 DeepSeek 模型名。
-  // 否则会拿到 getModelStrings().haiku45 —— 那是改名后的上游模型 ID，
+  // 否则会拿到 getModelStrings().deepseekFlash —— 那是改名后的上游模型 ID，
   // 发给 DeepSeek 会 404，WebSearch 结果处理、离开回来摘要、agent hooks 全废。
   if (isOpenAICompat()) {
     return getOpenAICompatSmallFastModel()
@@ -50,10 +50,10 @@ export function getSmallFastModel(): ModelName {
 
 export function isNonCustomOpusModel(model: ModelName): boolean {
   return (
-    model === getModelStrings().opus40 ||
-    model === getModelStrings().opus41 ||
-    model === getModelStrings().opus45 ||
-    model === getModelStrings().opus46
+    model === getModelStrings().deepseekV4Pro ||
+    model === getModelStrings().deepseekV4Pro ||
+    model === getModelStrings().deepseekV4Pro ||
+    model === getModelStrings().deepseekV4Pro
   )
 }
 
@@ -121,9 +121,9 @@ export function getDefaultOpusModel(): ModelName {
   // even when values match, since 3P availability lags firstParty and
   // these will diverge again at the next model launch.
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().opus46
+    return getModelStrings().deepseekV4Pro
   }
-  return getModelStrings().opus46
+  return getModelStrings().deepseekV4Pro
 }
 
 // @[MODEL LAUNCH]: Update the default Sonnet model (3P providers may lag so keep defaults unchanged).
@@ -133,9 +133,9 @@ export function getDefaultSonnetModel(): ModelName {
   }
   // Default to Sonnet 4.5 for 3P since they may not have 4.6 yet
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().sonnet45
+    return getModelStrings().deepseekFlash
   }
-  return getModelStrings().sonnet46
+  return getModelStrings().deepseekFlash
 }
 
 // @[MODEL LAUNCH]: Update the default Haiku model (3P providers may lag so keep defaults unchanged).
@@ -145,7 +145,7 @@ export function getDefaultHaikuModel(): ModelName {
   }
 
   // Haiku 4.5 is available on all platforms (first-party, Foundry, Bedrock, Vertex)
-  return getModelStrings().haiku45
+  return getModelStrings().deepseekFlash
 }
 
 /**
@@ -318,7 +318,7 @@ export function renderDefaultModelSetting(
 
 export function getOpus46PricingSuffix(fastMode: boolean): string {
   if (getAPIProvider() !== 'firstParty') return ''
-  const pricing = formatModelPricing(getOpus46CostTier(fastMode))
+  const pricing = formatModelPricing(getDefaultModelCostTier())
   const fastModeIndicator = fastMode ? ` (${LIGHTNING_BOLT})` : ''
   return ` ·${fastModeIndicator} ${pricing}`
 }
@@ -353,43 +353,20 @@ export function renderModelSetting(setting: ModelName | ModelAlias): string {
   return renderModelName(setting)
 }
 
-// @[MODEL LAUNCH]: Add display name cases for the new model (base + [1m] variant if applicable).
 /**
- * Returns a human-readable display name for known public models, or null
- * if the model is not recognized as a public model.
+ * Returns a human-readable display name for known models, or null if the model
+ * is not recognized.
+ *
+ * 本构建只有 DeepSeek 两个模型。原本这里是一长串 case，把各个上游模型 ID
+ * 映射成 "Opus 4.6" / "Sonnet 4.6" 之类的营销名 —— 那些模型都不存在了，
+ * 而且重复 case 会让 switch 退化成只命中第一条，属于会骗人的死代码。
  */
 export function getPublicModelDisplayName(model: ModelName): string | null {
   switch (model) {
-    case getModelStrings().opus46:
-      return 'Opus 4.6'
-    case getModelStrings().opus46 + '[1m]':
-      return 'Opus 4.6 (1M context)'
-    case getModelStrings().opus45:
-      return 'Opus 4.5'
-    case getModelStrings().opus41:
-      return 'Opus 4.1'
-    case getModelStrings().opus40:
-      return 'Opus 4'
-    case getModelStrings().sonnet46 + '[1m]':
-      return 'Sonnet 4.6 (1M context)'
-    case getModelStrings().sonnet46:
-      return 'Sonnet 4.6'
-    case getModelStrings().sonnet45 + '[1m]':
-      return 'Sonnet 4.5 (1M context)'
-    case getModelStrings().sonnet45:
-      return 'Sonnet 4.5'
-    case getModelStrings().sonnet40:
-      return 'Sonnet 4'
-    case getModelStrings().sonnet40 + '[1m]':
-      return 'Sonnet 4 (1M context)'
-    case getModelStrings().sonnet37:
-      return 'Sonnet 3.7'
-    case getModelStrings().sonnet35:
-      return 'Sonnet 3.5'
-    case getModelStrings().haiku45:
-      return 'Haiku 4.5'
-    case getModelStrings().haiku35:
-      return 'Haiku 3.5'
+    case getModelStrings().deepseekFlash:
+      return 'DeepSeek Flash'
+    case getModelStrings().deepseekV4Pro:
+      return 'DeepSeek V4 Pro'
     default:
       return null
   }

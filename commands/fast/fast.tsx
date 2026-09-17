@@ -11,7 +11,7 @@ import { type AppState, useAppState, useSetAppState } from '../../state/AppState
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
 import { clearFastModeCooldown, FAST_MODE_MODEL_DISPLAY, getFastModeModel, getFastModeRuntimeState, getFastModeUnavailableReason, isFastModeEnabled, isFastModeSupportedByModel, prefetchFastModeStatus } from '../../utils/fastMode.js';
 import { formatDuration } from '../../utils/format.js';
-import { formatModelPricing, getOpus46CostTier } from '../../utils/modelCost.js';
+import { formatModelPricing, getDefaultModelCostTier } from '../../utils/modelCost.js';
 import { updateSettingsForSource } from '../../utils/settings/settings.js';
 function applyFastMode(enable: boolean, setAppState: (f: (prev: AppState) => AppState) => void): void {
   clearFastModeCooldown();
@@ -60,7 +60,7 @@ export function FastModePicker(t0) {
   const isUnavailable = unavailableReason !== null;
   let t2;
   if ($[1] === Symbol.for("react.memo_cache_sentinel")) {
-    t2 = formatModelPricing(getOpus46CostTier(true));
+    t2 = formatModelPricing(getDefaultModelCostTier());
     $[1] = t2;
   } else {
     t2 = $[1];
@@ -239,7 +239,7 @@ async function handleFastModeShortcut(enable: boolean, getAppState: () => AppSta
   if (enable) {
     const fastIcon = getFastIconString(true);
     const modelUpdated = !isFastModeSupportedByModel(mainLoopModel) ? ` · model set to ${FAST_MODE_MODEL_DISPLAY}` : '';
-    const pricing = formatModelPricing(getOpus46CostTier(true));
+    const pricing = formatModelPricing(getDefaultModelCostTier());
     return `${fastIcon} Fast mode ON${modelUpdated} · ${pricing}`;
   } else {
     return `Fast mode OFF`;

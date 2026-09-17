@@ -2,19 +2,9 @@ import type { BetaUsage as Usage } from '../types/llm-protocol.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 'src/services/analytics/index.js'
 import { logEvent } from 'src/services/analytics/index.js'
 import { setHasUnknownModelCost } from '../bootstrap/state.js'
-import { isFastModeEnabled } from './fastMode.js'
 import {
-  LIMKENION_3_5_HAIKU_CONFIG,
-  LIMKENION_3_5_V2_SONNET_CONFIG,
-  LIMKENION_3_7_SONNET_CONFIG,
-  LIMKENION_HAIKU_4_5_CONFIG,
-  LIMKENION_OPUS_4_1_CONFIG,
-  LIMKENION_OPUS_4_5_CONFIG,
-  LIMKENION_OPUS_4_6_CONFIG,
-  LIMKENION_OPUS_4_CONFIG,
-  LIMKENION_SONNET_4_5_CONFIG,
-  LIMKENION_SONNET_4_6_CONFIG,
-  LIMKENION_SONNET_4_CONFIG,
+  DEEPSEEK_FLASH_CONFIG,
+  DEEPSEEK_V4_PRO_CONFIG,
 } from './model/configs.js'
 import {
   firstPartyNameToCanonical,
@@ -32,97 +22,50 @@ export type ModelCosts = {
   webSearchRequests: number
 }
 
-// Standard pricing tier for Sonnet models: $3 input / $15 output per Mtok
-export const COST_TIER_3_15 = {
-  inputTokens: 3,
-  outputTokens: 15,
-  promptCacheWriteTokens: 3.75,
-  promptCacheReadTokens: 0.3,
-  webSearchRequests: 0.01,
+/**
+ * DeepSeek 官方定价（USD / 1M tokens），取**峰时**价作为保守上界。
+ * 峰时为 UTC 周一至周五 01:00-04:00 与 06:00-10:00，其余时段为半价。
+ * 来源：https://api-docs.deepseek.com/quick_start/pricing （2026-09-17 核对）
+ *
+ * DeepSeek 的前缀缓存是**自动**的、不额外收取写入费用，所以
+ * promptCacheWriteTokens 记 0，只有命中时的读取价。
+ * 也没有 web search 计费项。
+ */
+export const COST_DEEPSEEK_FLASH = {
+  inputTokens: 0.3,
+  outputTokens: 1.2,
+  promptCacheWriteTokens: 0,
+  promptCacheReadTokens: 0.006,
+  webSearchRequests: 0,
 } as const satisfies ModelCosts
 
-// Pricing tier for Opus 4/4.1: $15 input / $75 output per Mtok
-export const COST_TIER_15_75 = {
-  inputTokens: 15,
-  outputTokens: 75,
-  promptCacheWriteTokens: 18.75,
-  promptCacheReadTokens: 1.5,
-  webSearchRequests: 0.01,
+export const COST_DEEPSEEK_V4_PRO = {
+  inputTokens: 1.32,
+  outputTokens: 3.96,
+  promptCacheWriteTokens: 0,
+  promptCacheReadTokens: 0.044,
+  webSearchRequests: 0,
 } as const satisfies ModelCosts
 
-// Pricing tier for Opus 4.5: $5 input / $25 output per Mtok
-export const COST_TIER_5_25 = {
-  inputTokens: 5,
-  outputTokens: 25,
-  promptCacheWriteTokens: 6.25,
-  promptCacheReadTokens: 0.5,
-  webSearchRequests: 0.01,
-} as const satisfies ModelCosts
-
-// Fast mode pricing for Opus 4.6: $30 input / $150 output per Mtok
-export const COST_TIER_30_150 = {
-  inputTokens: 30,
-  outputTokens: 150,
-  promptCacheWriteTokens: 37.5,
-  promptCacheReadTokens: 3,
-  webSearchRequests: 0.01,
-} as const satisfies ModelCosts
-
-// Pricing for Haiku 3.5: $0.80 input / $4 output per Mtok
-export const COST_HAIKU_35 = {
-  inputTokens: 0.8,
-  outputTokens: 4,
-  promptCacheWriteTokens: 1,
-  promptCacheReadTokens: 0.08,
-  webSearchRequests: 0.01,
-} as const satisfies ModelCosts
-
-// Pricing for Haiku 4.5: $1 input / $5 output per Mtok
-export const COST_HAIKU_45 = {
-  inputTokens: 1,
-  outputTokens: 5,
-  promptCacheWriteTokens: 1.25,
-  promptCacheReadTokens: 0.1,
-  webSearchRequests: 0.01,
-} as const satisfies ModelCosts
-
-const DEFAULT_UNKNOWN_MODEL_COST = COST_TIER_5_25
+const DEFAULT_UNKNOWN_MODEL_COST = COST_DEEPSEEK_FLASH
 
 /**
- * Get the cost tier for Opus 4.6 based on fast mode.
+ * 主模型（默认 deepseek-flash）的成本档。
+ *
+ * 原本是 `getOpus46CostTier(fastMode)`，带一个"快速模式"高价档 ——
+ * 那是上游概念，DeepSeek 没有对应计价，已随模型表一起移除。
  */
-export function getOpus46CostTier(fastMode: boolean): ModelCosts {
-  if (isFastModeEnabled() && fastMode) {
-    return COST_TIER_30_150
-  }
-  return COST_TIER_5_25
+export function getDefaultModelCostTier(): ModelCosts {
+  return COST_DEEPSEEK_FLASH
 }
 
-// @[MODEL LAUNCH]: Add a pricing entry for the new model below.
-// Costs from https://platform.limkenion.com/docs/en/about-limkenion/pricing
-// Web search cost: $10 per 1000 requests = $0.01 per request
+// @[MODEL LAUNCH]: 新增模型时在这里补一条定价。
+// 价格来源：https://api-docs.deepseek.com/quick_start/pricing
 export const MODEL_COSTS: Record<ModelShortName, ModelCosts> = {
-  [firstPartyNameToCanonical(LIMKENION_3_5_HAIKU_CONFIG.firstParty)]:
-    COST_HAIKU_35,
-  [firstPartyNameToCanonical(LIMKENION_HAIKU_4_5_CONFIG.firstParty)]:
-    COST_HAIKU_45,
-  [firstPartyNameToCanonical(LIMKENION_3_5_V2_SONNET_CONFIG.firstParty)]:
-    COST_TIER_3_15,
-  [firstPartyNameToCanonical(LIMKENION_3_7_SONNET_CONFIG.firstParty)]:
-    COST_TIER_3_15,
-  [firstPartyNameToCanonical(LIMKENION_SONNET_4_CONFIG.firstParty)]:
-    COST_TIER_3_15,
-  [firstPartyNameToCanonical(LIMKENION_SONNET_4_5_CONFIG.firstParty)]:
-    COST_TIER_3_15,
-  [firstPartyNameToCanonical(LIMKENION_SONNET_4_6_CONFIG.firstParty)]:
-    COST_TIER_3_15,
-  [firstPartyNameToCanonical(LIMKENION_OPUS_4_CONFIG.firstParty)]: COST_TIER_15_75,
-  [firstPartyNameToCanonical(LIMKENION_OPUS_4_1_CONFIG.firstParty)]:
-    COST_TIER_15_75,
-  [firstPartyNameToCanonical(LIMKENION_OPUS_4_5_CONFIG.firstParty)]:
-    COST_TIER_5_25,
-  [firstPartyNameToCanonical(LIMKENION_OPUS_4_6_CONFIG.firstParty)]:
-    COST_TIER_5_25,
+  [firstPartyNameToCanonical(DEEPSEEK_FLASH_CONFIG.firstParty)]:
+    COST_DEEPSEEK_FLASH,
+  [firstPartyNameToCanonical(DEEPSEEK_V4_PRO_CONFIG.firstParty)]:
+    COST_DEEPSEEK_V4_PRO,
 }
 
 /**
@@ -143,14 +86,6 @@ function tokensToUSDCost(modelCosts: ModelCosts, usage: Usage): number {
 
 export function getModelCosts(model: string, usage: Usage): ModelCosts {
   const shortName = getCanonicalName(model)
-
-  // Check if this is an Opus 4.6 model with fast mode active.
-  if (
-    shortName === firstPartyNameToCanonical(LIMKENION_OPUS_4_6_CONFIG.firstParty)
-  ) {
-    const isFastMode = usage.speed === 'fast'
-    return getOpus46CostTier(isFastMode)
-  }
 
   const costs = MODEL_COSTS[shortName]
   if (!costs) {

@@ -147,13 +147,13 @@ function get3PFallbackSuggestion(model: string): string | undefined {
   }
   const lowerModel = model.toLowerCase()
   if (lowerModel.includes('opus-4-6') || lowerModel.includes('opus_4_6')) {
-    return getModelStrings().opus41
+    return getModelStrings().deepseekV4Pro
   }
   if (lowerModel.includes('sonnet-4-6') || lowerModel.includes('sonnet_4_6')) {
-    return getModelStrings().sonnet45
+    return getModelStrings().deepseekFlash
   }
   if (lowerModel.includes('sonnet-4-5') || lowerModel.includes('sonnet_4_5')) {
-    return getModelStrings().sonnet40
+    return getModelStrings().deepseekFlash
   }
   return undefined
 }

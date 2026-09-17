@@ -28,7 +28,7 @@ export const CCR_TERMS_URL = 'https://code.limkenion.com/docs/en/limkenion-on-th
 // Bedrock ARN 或 Vertex ID）。在调用时而非模块加载时读取：import 时
 // GrowthBook 缓存为空，且 `/config` Gates 可在两次调用之间切换它。
 function getUltraplanModel(): string {
-  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_ultraplan_model', ALL_MODEL_CONFIGS.opus46.firstParty);
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_ultraplan_model', ALL_MODEL_CONFIGS.deepseekV4Pro.firstParty);
 }
 
 // prompt.txt 被包裹在 <system-reminder> 中，使 CCR 浏览器隐藏脚手架

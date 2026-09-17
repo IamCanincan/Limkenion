@@ -926,15 +926,15 @@ function get3PModelFallbackSuggestion(model: string): string | undefined {
   const m = model.toLowerCase()
   // 若失败的模型看起来像 Opus 4.6 变体，则建议默认 Opus（对 3P 为 4.1）
   if (m.includes('opus-4-6') || m.includes('opus_4_6')) {
-    return getModelStrings().opus41
+    return getModelStrings().deepseekV4Pro
   }
   // 若失败的模型看起来像 Sonnet 4.6 变体，则建议 Sonnet 4.5
   if (m.includes('sonnet-4-6') || m.includes('sonnet_4_6')) {
-    return getModelStrings().sonnet45
+    return getModelStrings().deepseekFlash
   }
   // 若失败的模型看起来像 Sonnet 4.5 变体，则建议 Sonnet 4
   if (m.includes('sonnet-4-5') || m.includes('sonnet_4_5')) {
-    return getModelStrings().sonnet40
+    return getModelStrings().deepseekFlash
   }
   return undefined
 }
