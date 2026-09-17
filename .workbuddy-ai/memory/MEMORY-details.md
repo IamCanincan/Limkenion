@@ -580,6 +580,25 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 
 ---
 
+## 附四：未搬五项的量级（用户问过一次"解释一下"，实测数据）
+
+用户问过"这没搬的几个解释一下"。以下是**实测**（不是估计），下次直接引用：
+
+| 项 | CLI 侧规模 | 卡点性质 |
+|---|---|---|
+| **MCP 客户端** | `services/mcp` 23 文件/12,242 行 + `components/mcp` 14/3,938 + `commands/mcp` 4/639 + `utils/mcp` 2/423 = **≈17,200 行**；含 stdio/HTTP/SSE 传输、OAuth、channel allowlist、elicitation、registry | 大工程：要引入子进程与授权回调；**用户当前 0 个 MCP 配置** |
+| **hooks** | `utils/hooks` 17 文件/**3,622 行**；`HOOK_EVENTS` **27 种**（PreToolUse/PostToolUse/UserPromptSubmit/Stop/PreCompact/WorktreeCreate/FileChanged…）；执行方式 4 种（command/prompt/agent/http）；含 `ssrfGuard.ts` | 大子系统，但 `command` 子集是**性价比最高**的一个；**用户当前 0 个钩子配置** |
+| **WorkflowTool** | `utils/workflows` 17 文件/3,007 行 + `tools/WorkflowTool` 1,190 行 = **≈4,200 行**；原语 `agent()/parallel()/pipeline()/phase()`，含 compile/harness/journal/limiter/断点续跑；规模指引 small 5 / medium 15 / large 50 个子代理，>150 万 token 会警告 | 等于**重做一层子代理编排运行时**（web 现有 `Agent` 是单层、只读、≤8 轮） |
+| **worktree / `additionalDirectories`** | CLI 侧 **跨 30+ 文件**（bootstrap/state、cli/print、commands/init、components/WorktreeExitDialog、hooks/fileSuggestions、memdir/paths…），因为它改的是"根路径"这个全局前提 | **唯一需要用户拍板的**：要动安全边界 —— `web/server/paths.mjs` 的 `WORKSPACE_ROOT` 是模块级常量，被 `safePath`/`isInsideWorkspace` 与**所有**文件工具共用 |
+| **`/insights`** | `commands/insights.ts` 单文件 **2,876 行**；用 `getProjectsDir`/`getSessionFilesWithMtime`/`loadAllLogsFromSessionFile` 读 CLI 的 JSONL 项目日志，调 v4-pro 抽 facet，产 `facets.json`/`meta.json` + 自包含 `report.html`（还带分享提示） | web 用的是 `~/.limkenion-web/sessions.json`（字段结构不同）→ 等于对着另一套存储重写；**用户会话历史还很少** |
+
+**给用户的口径**：四项不是"难"，是**没有需求驱动**（无 MCP 配置、无钩子配置、会话历史少）；
+真正卡在用户身上的只有 **worktree**（安全边界）。若用户要挑一个，**推荐 hooks 的 `command`
+子集**（能拦工具调用 + 能自动格式化，收益最直接、代价最小）。
+
+**顺便**：分享任务的会话内容取法见 `2026-09-18.md`（`/v2/as/p/tasks/share/<code>` 拿元信息、
+`POST .../verify` 拿完整 conversationData）。
+
 ## 附三：2026-09-18 接力轮次（第 2 个 agent）
 
 **完整记录见同目录 `2026-09-18.md`**。摘要：
