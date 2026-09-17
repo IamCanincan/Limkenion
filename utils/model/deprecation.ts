@@ -31,7 +31,7 @@ type DeprecationEntry = {
  * To add a new deprecated model, add an entry to this object.
  */
 // 本构建只有 DeepSeek 两个模型，没有会退役的上游模型。
-// 原本这里是一张上游模型的退役日期表（Limkenion 3 Opus / 3.7 Sonnet / 3.5 Haiku …），
+// 原本这里是一张上游模型的退役日期表（deepseek-v4-pro / 3.7 deepseek-flash / 3.5 deepseek-flash …），
 // 那些模型都不存在，整张表已清空 —— getDeprecationInfo() 因此恒返回 undefined。
 const DEPRECATED_MODELS: Record<string, DeprecationEntry> = {}
 

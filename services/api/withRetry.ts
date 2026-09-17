@@ -313,9 +313,9 @@ export async function* withRetry<T>(
       // 追踪连续 529 错误
       if (
         is529Error(error) &&
-        // 若未设置 FALLBACK_FOR_ALL_PRIMARY_MODELS，则仅在主模型为非自定义 Opus 模型时继续。
+        // 若未设置 FALLBACK_FOR_ALL_PRIMARY_MODELS，则仅在主模型为非自定义 deepseek-v4-pro 模型时继续。
         // TODO: 重新审视 isNonCustomStrongModel 检查是否仍应存在，或者说
-        // isNonCustomStrongModel 是否只是 Limkenion 曾硬编码在 Opus 上时的过时产物。
+        // isNonCustomStrongModel 是否只是 Limkenion 曾硬编码在 deepseek-v4-pro 上时的过时产物。
         (process.env.FALLBACK_FOR_ALL_PRIMARY_MODELS ||
           (!isLimkenionAISubscriber() && isNonCustomStrongModel(options.model)))
       ) {

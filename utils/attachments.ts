@@ -868,7 +868,7 @@ export async function getAttachments(
     // Inter-turn skill discovery now runs via startSkillDiscoveryPrefetch
     // (query.ts, concurrent with the main turn). The blocking call that
     // previously lived here was the assistant_turn signal — 97% of those
-    // Haiku calls found nothing in prod. Prefetch + await-at-collection
+    // deepseek-flash calls found nothing in prod. Prefetch + await-at-collection
     // replaces it; see src/services/skillSearch/prefetch.ts.
     maybe('plan_mode', () => getPlanModeAttachments(messages, toolUseContext)),
     maybe('plan_mode_exit', () => getPlanModeExitAttachment(toolUseContext)),
@@ -2215,7 +2215,7 @@ async function getRelevantMemoryAttachments(
       ).catch(() => []),
     ),
   )
-  // alreadySurfaced is filtered inside the selector so Sonnet spends its
+  // alreadySurfaced is filtered inside the selector so deepseek-flash spends its
   // 5-slot budget on fresh candidates; readFileState catches files the
   // model read via FileReadTool. The redundant alreadySurfaced check here
   // is a belt-and-suspenders guard (multi-dir results may re-introduce a

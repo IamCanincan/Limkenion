@@ -8,7 +8,7 @@ export type DateTimeParseResult =
   | { success: false; error: string }
 
 /**
- * Parse natural language date/time input into ISO 8601 format using Haiku.
+ * Parse natural language date/time input into ISO 8601 format using deepseek-flash.
  *
  * Examples:
  * - "tomorrow at 3pm" → "2025-10-15T15:00:00-07:00"

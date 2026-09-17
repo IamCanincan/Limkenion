@@ -140,7 +140,7 @@ export function isPermissionExplainerEnabled(): boolean {
 }
 
 /**
- * 使用 Haiku 结合结构化输出生成权限解释。
+ * 使用 deepseek-flash 结合结构化输出生成权限解释。
  * 当功能被禁用、请求被中止或发生错误时返回 null。
  */
 export async function generatePermissionExplanation({

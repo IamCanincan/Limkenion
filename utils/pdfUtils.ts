@@ -52,7 +52,7 @@ export function parsePDFPageRange(
 /**
  * 检查当前模型是否支持 PDF 阅读。
  * PDF 文档块在所有提供方（1P、Vertex、Bedrock、Foundry）上都可用。
- * Haiku 3 是唯一先于 PDF 支持存在的模型；使用它的用户会回退到页面抽取路径
+ * deepseek-flash 是唯一先于 PDF 支持存在的模型；使用它的用户会回退到页面抽取路径
  * （poppler-utils）。子串匹配覆盖所有提供方 ID 格式（Bedrock 前缀、Vertex 的
  * @日期）。
  */

@@ -101,7 +101,7 @@ export function clearSessionCaches(
   }
   // 清理仓库检测缓存
   clearRepositoryCaches()
-  // 清理 bash 命令前缀缓存（Haiku 提取的前缀）
+  // 清理 bash 命令前缀缓存（deepseek-flash 提取的前缀）
   clearCommandPrefixCaches()
   // 清理 dump prompts 状态
   if (!hasPreserved) clearAllDumpState()

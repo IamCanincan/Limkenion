@@ -276,16 +276,16 @@ export type GlobalConfig = {
   // Memory usage tracking
   memoryUsageCount: number // Number of times user has added to memory
 
-  // Sonnet-1M configs
-  hasShownS1MWelcomeV2?: Record<string, boolean> // Whether the Sonnet-1M v2 welcome message has been shown per org
-  // Cache of Sonnet-1M subscriber access per org - key is org ID
+  // deepseek-flash-1M configs
+  hasShownS1MWelcomeV2?: Record<string, boolean> // Whether the deepseek-flash-1M v2 welcome message has been shown per org
+  // Cache of deepseek-flash-1M subscriber access per org - key is org ID
   // hasAccess means "hasAccessAsDefault" but the old name is kept for backward
   // compatibility.
   s1mAccessCache?: Record<
     string,
     { hasAccess: boolean; hasAccessNotAsDefault?: boolean; timestamp: number }
   >
-  // Cache of Sonnet-1M PayG access per org - key is org ID
+  // Cache of deepseek-flash-1M PayG access per org - key is org ID
   // hasAccess means "hasAccessAsDefault" but the old name is kept for backward
   // compatibility.
   s1mNonSubscriberAccessCache?: Record<
@@ -335,8 +335,8 @@ export type GlobalConfig = {
   voiceLangHintLastLanguage?: string // Resolved STT language code when the hint was last shown — reset count when it changes
   voiceFooterHintSeenCount?: number // Number of sessions the "hold X to speak" footer hint has been shown
 
-  // Opus 1M merge notice tracking
-  opus1mMergeNoticeSeenCount?: number // Number of times the opus-1m-merge notice has been shown
+  // deepseek-v4-pro（1M 上下文） merge notice tracking
+  opus1mMergeNoticeSeenCount?: number // Number of times the deepseek-v4-pro-1m-merge notice has been shown
 
   // Experiment enrollment notice tracking (keyed by experiment id)
   experimentNoticesSeenCount?: Record<string, number>
@@ -396,7 +396,7 @@ export type GlobalConfig = {
   modelSwitchCalloutLastShown?: number // Timestamp of last shown (don't show for 24h)
   modelSwitchCalloutVersion?: string
 
-  // Effort callout tracking - shown once for Opus 4.6 users
+  // Effort callout tracking - shown once for deepseek-v4-pro users
   effortCalloutDismissed?: boolean // v1 - legacy, read to suppress v2 for Pro users who already saw it
   effortCalloutV2Dismissed?: boolean
 
@@ -419,17 +419,17 @@ export type GlobalConfig = {
   // Idle-return dialog tracking
   idleReturnDismissed?: boolean // "Don't ask again" picked
 
-  // Opus 4.5 Pro migration tracking
+  // deepseek-v4-pro Pro migration tracking
   opusProMigrationComplete?: boolean
   opusProMigrationTimestamp?: number
 
-  // Sonnet 4.5 1m migration tracking
+  // deepseek-flash 1m migration tracking
   sonnet1m45MigrationComplete?: boolean
 
-  // Opus 4.0/4.1 → current Opus migration (shows one-time notif)
+  // deepseek-v4-pro/4.1 → current deepseek-v4-pro migration (shows one-time notif)
   legacyOpusMigrationTimestamp?: number
 
-  // Sonnet 4.5 → 4.6 migration (pro/max/team premium)
+  // deepseek-flash → 4.6 migration (pro/max/team premium)
   sonnet45To46MigrationTimestamp?: number
 
   // Cached statsig gate values
@@ -515,12 +515,12 @@ export type GlobalConfig = {
   }
 
   // Permission explainer configuration
-  permissionExplainerEnabled?: boolean // Enable Haiku-generated explanations for permission requests (default: true)
+  permissionExplainerEnabled?: boolean // Enable deepseek-flash-generated explanations for permission requests (default: true)
 
   // Teammate spawn mode: 'auto' | 'tmux' | 'in-process'
   teammateMode?: 'auto' | 'tmux' | 'in-process' // How to spawn teammates (default: 'auto')
   // Model for new teammates when the tool call doesn't pass one.
-  // undefined = hardcoded Opus (backward-compat); null = leader's model; string = model alias/ID.
+  // undefined = hardcoded deepseek-v4-pro (backward-compat); null = leader's model; string = model alias/ID.
   teammateDefaultModel?: string | null
 
   // PR status footer configuration (feature-flagged via GrowthBook)

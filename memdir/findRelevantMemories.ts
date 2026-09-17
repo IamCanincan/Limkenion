@@ -25,7 +25,7 @@ Return a list of filenames for the memories that will clearly be useful to Limke
 
 /**
  * Find memory files relevant to a query by scanning memory file headers
- * and asking Sonnet to select the most relevant ones.
+ * and asking deepseek-flash to select the most relevant ones.
  *
  * Returns absolute file paths + mtime of the most relevant memories
  * (up to 5). Excludes MEMORY.md (already loaded in system prompt).
@@ -33,7 +33,7 @@ Return a list of filenames for the memories that will clearly be useful to Limke
  * main model without a second stat.
  *
  * `alreadySurfaced` filters paths shown in prior turns before the
- * Sonnet call, so the selector spends its 5-slot budget on fresh
+ * deepseek-flash call, so the selector spends its 5-slot budget on fresh
  * candidates instead of re-picking files the caller will discard.
  */
 export async function findRelevantMemories(

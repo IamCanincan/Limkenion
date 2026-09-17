@@ -1,7 +1,7 @@
 /**
  * Tool Use Summary Generator
  *
- * Generates human-readable summaries of completed tool batches using Haiku.
+ * Generates human-readable summaries of completed tool batches using deepseek-flash.
  * Used by the SDK to provide high-level progress updates to clients.
  */
 

@@ -311,7 +311,7 @@ async function logStartupTelemetry(): Promise<void> {
   });
 }
 
-// 上游的模型版本迁移（Sonnet/Opus 各代之间的设置改写）已全部删除 ——
+// 上游的模型版本迁移（deepseek-flash/deepseek-v4-pro 各代之间的设置改写）已全部删除 ——
 // 那些模型在本构建里不存在，迁移只会把用户设置改写成无效的模型名。
 // 添加新的同步迁移时递增此值，使现有用户重新运行整组迁移。
 const CURRENT_MIGRATION_VERSION = 11;

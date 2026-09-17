@@ -230,7 +230,7 @@ function getUnsupportedToolReferencePatterns(): string[] {
  * UNLESS they match a pattern in the unsupported list. This ensures new
  * models work by default without code changes.
  *
- * Currently, Haiku models do NOT support tool_reference. This can be
+ * Currently, deepseek-flash models do NOT support tool_reference. This can be
  * updated via GrowthBook feature 'limkenion_tool_search_unsupported_models'.
  *
  * @param model The model name to check
@@ -369,7 +369,7 @@ async function calculateDeferredToolDescriptionChars(
  *
  * This is the definitive check that includes:
  * - MCP mode (Tst, TstAuto, McpCli, Standard)
- * - Model compatibility (haiku doesn't support tool_reference)
+ * - Model compatibility (deepseek-flash doesn't support tool_reference)
  * - ToolSearchTool availability (must be in tools list)
  * - Threshold check for TstAuto mode
  *
@@ -405,7 +405,7 @@ export async function isToolSearchEnabled(
         reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       // Log the actual model being checked, not the session's main model.
       // This is important for debugging subagent tool search decisions where
-      // the subagent model (e.g., haiku) differs from the session model (e.g., opus).
+      // the subagent model (e.g., deepseek-flash) differs from the session model (e.g., deepseek-v4-pro).
       checkedModel:
         model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       mcpToolCount,

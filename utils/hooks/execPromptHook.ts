@@ -51,7 +51,7 @@ export async function execPromptHook(
       `Hooks: Querying model with ${messagesToQuery.length} messages`,
     )
 
-    // Query the model with Haiku
+    // Query the model with deepseek-flash
     const hookTimeoutMs = hook.timeout ? hook.timeout * 1000 : 30000
 
     // Combined signal: aborts if either the hook signal or timeout triggers

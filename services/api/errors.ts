@@ -445,7 +445,7 @@ export function getAssistantMessageFromError(
     })
   }
 
-  // 检查 Opus 按量付费用户的紧急容量关闭开关
+  // 检查 deepseek-v4-pro 按量付费用户的紧急容量关闭开关
   if (
     error instanceof Error &&
     error.message.includes(CUSTOM_OFF_SWITCH_MESSAGE)
@@ -519,7 +519,7 @@ export function getAssistantMessageFromError(
       }
 
       // 若 getRateLimitErrorMessage 返回 null，说明该回退机制会静默处理此情况
-      // （例如符合条件用户的 Opus -> Sonnet 回退）。
+      // （例如符合条件用户的 deepseek-v4-pro -> deepseek-flash 回退）。
       // 返回 NO_RESPONSE_REQUESTED，这样不向用户展示错误，但该消息仍会
       // 记录在对话历史中供 Limkenion 查看。
       return createAssistantAPIErrorMessage({
@@ -717,7 +717,7 @@ export function getAssistantMessageFromError(
     })
   }
 
-  // 检查订阅用户尝试使用 Opus 时的无效模型名错误
+  // 检查订阅用户尝试使用 deepseek-v4-pro 时的无效模型名错误
   if (
     isLimkenionAISubscriber() &&
     error instanceof APIError &&
@@ -924,15 +924,15 @@ function get3PModelFallbackSuggestion(model: string): string | undefined {
   }
   // @[MODEL LAUNCH]: 为新模型 → 前一版本为 3P 添加回退建议链
   const m = model.toLowerCase()
-  // 若失败的模型看起来像 Opus 4.6 变体，则建议默认 Opus（对 3P 为 4.1）
+  // 若失败的模型看起来像 deepseek-v4-pro 变体，则建议默认 deepseek-v4-pro（对 3P 为 4.1）
   if (m.includes('opus-4-6') || m.includes('opus_4_6')) {
     return getModelStrings().deepseekV4Pro
   }
-  // 若失败的模型看起来像 Sonnet 4.6 变体，则建议 Sonnet 4.5
+  // 若失败的模型看起来像 deepseek-flash 变体，则建议 deepseek-flash
   if (m.includes('sonnet-4-6') || m.includes('sonnet_4_6')) {
     return getModelStrings().deepseekFlash
   }
-  // 若失败的模型看起来像 Sonnet 4.5 变体，则建议 Sonnet 4
+  // 若失败的模型看起来像 deepseek-flash 变体，则建议 deepseek-flash
   if (m.includes('sonnet-4-5') || m.includes('sonnet_4_5')) {
     return getModelStrings().deepseekFlash
   }

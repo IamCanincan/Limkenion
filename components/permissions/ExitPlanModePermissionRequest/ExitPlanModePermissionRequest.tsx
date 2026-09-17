@@ -91,7 +91,7 @@ export function autoNameSessionFromPlan(plan: string, setAppState: (updater: (pr
   void generateSessionName(
   // generateSessionName tail-slices to the last 1000 chars (correct for
   // conversations, where recency matters). Plans front-load the goal and
-  // end with testing steps — head-slice so Haiku sees the summary.
+  // end with testing steps — head-slice so deepseek-flash sees the summary.
   [createUserMessage({
     content: plan.slice(0, 1000)
   })], new AbortController().signal).then(async name => {

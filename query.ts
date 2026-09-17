@@ -1037,7 +1037,7 @@ async function* queryLoop(
       return { reason: 'aborted_streaming' }
     }
 
-    // 产出上一回合的工具调用摘要 —— haiku（约 1s）在模型流式输出（5-30s）期间已解析完成
+    // 产出上一回合的工具调用摘要 —— deepseek-flash（约 1s）在模型流式输出（5-30s）期间已解析完成
     if (pendingToolUseSummary) {
       const summary = await pendingToolUseSummary
       if (summary) {
@@ -1400,7 +1400,7 @@ async function* queryLoop(
       config.gates.emitToolUseSummaries &&
       toolUseBlocks.length > 0 &&
       !toolUseContext.abortController.signal.aborted &&
-      !toolUseContext.agentId // 子代理不会出现在移动端 UI 中 —— 跳过这次 Haiku 调用
+      !toolUseContext.agentId // 子代理不会出现在移动端 UI 中 —— 跳过这次 deepseek-flash 调用
     ) {
       // 提取最后的 assistant 文本块作为上下文
       const lastAssistantMessage = assistantMessages.at(-1)
@@ -1599,7 +1599,7 @@ async function* queryLoop(
 
     // 注入预取到的技能发现结果。collectSkillDiscoveryPrefetch 会输出
     // hidden_by_main_turn —— 当预取在此时间点之前解析完成时该值为 true
-    // （AKI@250ms / Haiku@573ms 对比 2-30s 的回合时长，应当 >98%）。
+    // （AKI@250ms / deepseek-flash@573ms 对比 2-30s 的回合时长，应当 >98%）。
     if (skillPrefetch && pendingSkillPrefetch) {
       const skillAttachments =
         await skillPrefetch.collectSkillDiscoveryPrefetch(pendingSkillPrefetch)

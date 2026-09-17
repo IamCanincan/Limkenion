@@ -10,7 +10,7 @@ import { getGitEmail } from './user.js'
 
 // Patterns that mark a file as non-core (auto-generated, dependency, or config).
 // Used to filter example-command filename suggestions deterministically
-// instead of shelling out to Haiku.
+// instead of shelling out to deepseek-flash.
 const NON_CORE_PATTERNS = [
   // lock / dependency manifests
   /(?:^|\/)(?:package-lock\.json|yarn\.lock|bun\.lock|bun\.lockb|pnpm-lock\.yaml|Pipfile\.lock|poetry\.lock|Cargo\.lock|Gemfile\.lock|go\.sum|composer\.lock|uv\.lock)$/,

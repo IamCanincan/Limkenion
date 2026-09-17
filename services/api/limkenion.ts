@@ -339,13 +339,13 @@ export function getPromptCachingEnabled(model: string): boolean {
     if (model === smallFastModel) return false
   }
 
-  // 检查是否应针对默认 Sonnet 禁用它
+  // 检查是否应针对默认 deepseek-flash 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
     const defaultSonnet = getDefaultMainModel()
     if (model === defaultSonnet) return false
   }
 
-  // 检查是否应针对默认 Opus 禁用它
+  // 检查是否应针对默认 deepseek-v4-pro 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
     const defaultOpus = getDefaultStrongModel()
     if (model === defaultOpus) return false
@@ -555,7 +555,7 @@ export async function verifyApiKey(
   }
 
   try {
-    // 警告：如果你把它改成非 Haiku 模型，除非使用 getCLISyspromptPrefix，否则在 1P 中此请求会失败。
+    // 警告：如果你把它改成非 deepseek-flash 模型，除非使用 getCLISyspromptPrefix，否则在 1P 中此请求会失败。
     const model = getSmallFastModel()
     const betas = getModelBetas(model)
     return await returnValue(
@@ -1062,7 +1062,7 @@ async function* queryModel(
   }
 
   // 先检查廉价条件——off-switch 的 await 会阻塞在 GrowthBook
-  // 初始化上（约 10ms）。对非 Opus 模型（haiku、sonnet）完全跳过该 await。
+  // 初始化上（约 10ms）。对非 deepseek-v4-pro 模型（deepseek-flash、deepseek-flash）完全跳过该 await。
   // 订阅用户完全不会走到此路径。
   if (
     !isLimkenionAISubscriber() &&
@@ -1309,7 +1309,7 @@ async function* queryModel(
   //   约 20 处被调用（analytics、feedback、sharing 等），其中多数
   //   没有模型上下文。在它的签名中增加 model 将是一次大重构。
   // - 该后处理使用带模型感知的 isToolSearchEnabled() 检查
-  // - 它处理会话中途的模型切换（例如 Sonnet → Haiku），此时
+  // - 它处理会话中途的模型切换（例如 deepseek-flash → deepseek-flash），此时
   //   前一个模型遗留的陈旧工具搜索字段会导致 400 错误
   //
   // 注意：对 assistant 消息，normalizeMessagesForAPI 已归一化
@@ -1571,7 +1571,7 @@ async function* queryModel(
   const paramsFromContext = (retryContext: RetryContext) => {
     const betasParams = [...betas]
 
-    // 为 Sonnet 1M 实验动态追加 1M beta。
+    // 为 deepseek-flash（1M 上下文） 实验动态追加 1M beta。
     if (
       !betasParams.includes(CONTEXT_1M_BETA_HEADER) &&
       getSonnet1mExpTreatmentEnabled(retryContext.model)
@@ -3295,7 +3295,7 @@ export async function querySmallFastModel({
       return [result]
     },
   )
-  // We don't use streaming for Haiku so this is safe
+  // We don't use streaming for deepseek-flash so this is safe
   return result[0]! as AssistantMessage
 }
 
@@ -3412,7 +3412,7 @@ export function getMaxOutputTokensForModel(model: string): number {
   // = 4,911 tokens; 32k/64k defaults over-reserve 8-16× slot capacity.
   // Requests hitting the cap get one clean retry at 64k (query.ts
   // max_output_tokens_escalate). Math.min keeps models with lower native
-  // defaults (e.g. limkenion-3-opus at 4k) at their native value. Applied
+  // defaults (e.g. limkenion-3-deepseek-v4-pro at 4k) at their native value. Applied
   // before the env-var override so LIMKENION_MAX_OUTPUT_TOKENS still wins.
   const defaultTokens = isMaxTokensCapEnabled()
     ? Math.min(maxOutputTokens.default, CAPPED_DEFAULT_MAX_TOKENS)

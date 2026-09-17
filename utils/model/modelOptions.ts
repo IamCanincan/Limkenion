@@ -63,7 +63,7 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
 function getCustomSonnetOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
   const customSonnetModel = process.env.LIMKENION_DEFAULT_SONNET_MODEL
-  // When a 3P user has a custom sonnet model string, show it directly
+  // When a 3P user has a custom deepseek-flash model string, show it directly
   if (is3P && customSonnetModel) {
     const is1m = has1mContext(customSonnetModel)
     return {
@@ -94,7 +94,7 @@ function getSonnet46Option(): ModelOption {
 function getCustomOpusOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
   const customOpusModel = process.env.LIMKENION_DEFAULT_OPUS_MODEL
-  // When a 3P user has a custom opus model string, show it directly
+  // When a 3P user has a custom deepseek-v4-pro model string, show it directly
   if (is3P && customOpusModel) {
     const is1m = has1mContext(customOpusModel)
     return {
@@ -152,7 +152,7 @@ export function getOpus46_1MOption(fastMode = false): ModelOption {
 function getCustomHaikuOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
   const customHaikuModel = process.env.LIMKENION_DEFAULT_HAIKU_MODEL
-  // When a 3P user has a custom haiku model string, show it directly
+  // When a 3P user has a custom deepseek-flash model string, show it directly
   if (is3P && customHaikuModel) {
     return {
       value: 'haiku',
@@ -188,7 +188,7 @@ function getHaiku35Option(): ModelOption {
 }
 
 function getHaikuOption(): ModelOption {
-  // Return correct Haiku option based on provider
+  // Return correct deepseek-flash option based on provider
   const haikuModel = getDefaultSmallFastModel()
   return haikuModel === getModelStrings().deepseekFlash
     ? getHaiku45Option()
@@ -260,7 +260,7 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
 
   if (isLimkenionAISubscriber()) {
     if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
-      // Max and Team Premium users: Opus is default, show Sonnet as alternative
+      // Max and Team Premium users: deepseek-v4-pro is default, show deepseek-flash as alternative
       const premiumOptions = [getDefaultOptionForUser(fastMode)]
       if (!isOpus1mMergeEnabled() && checkOpus1mAccess()) {
         premiumOptions.push(getMaxOpus46_1MOption(fastMode))
@@ -275,7 +275,7 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
       return premiumOptions
     }
 
-    // Pro/Team Standard/Enterprise users: Sonnet is default, show Opus as alternative
+    // Pro/Team Standard/Enterprise users: deepseek-flash is default, show deepseek-v4-pro as alternative
     const standardOptions = [getDefaultOptionForUser(fastMode)]
     if (checkSonnet1mAccess()) {
       standardOptions.push(getMaxSonnet46_1MOption())
@@ -294,7 +294,7 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     return standardOptions
   }
 
-  // PAYG 1P API: Default (Sonnet) + Sonnet 1M + Opus 4.6 + Opus 1M + Haiku
+  // PAYG 1P API: Default (deepseek-flash) + deepseek-flash（1M 上下文） + deepseek-v4-pro + deepseek-v4-pro（1M 上下文） + deepseek-flash
   if (getAPIProvider() === 'firstParty') {
     const payg1POptions = [getDefaultOptionForUser(fastMode)]
     if (checkSonnet1mAccess()) {
@@ -312,14 +312,14 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     return payg1POptions
   }
 
-  // PAYG 3P: Default (Sonnet 4.5) + Sonnet (3P custom) or Sonnet 4.6/1M + Opus (3P custom) or Opus 4.1/Opus 4.6/Opus1M + Haiku + Opus 4.1
+  // PAYG 3P: Default (deepseek-flash) + deepseek-flash (3P custom) or deepseek-flash/1M + deepseek-v4-pro (3P custom) or deepseek-v4-pro/deepseek-v4-pro/Opus1M + deepseek-flash + deepseek-v4-pro
   const payg3pOptions = [getDefaultOptionForUser(fastMode)]
 
   const customSonnet = getCustomSonnetOption()
   if (customSonnet !== undefined) {
     payg3pOptions.push(customSonnet)
   } else {
-    // Add Sonnet 4.6 since Sonnet 4.5 is the default
+    // Add deepseek-flash since deepseek-flash is the default
     payg3pOptions.push(getSonnet46Option())
     if (checkSonnet1mAccess()) {
       payg3pOptions.push(getSonnet46_1MOption())
@@ -330,8 +330,8 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
   if (customOpus !== undefined) {
     payg3pOptions.push(customOpus)
   } else {
-    // Add Opus 4.1, Opus 4.6 and Opus 4.6 1M
-    payg3pOptions.push(getOpus41Option()) // This is the default opus
+    // Add deepseek-v4-pro, deepseek-v4-pro and deepseek-v4-pro 1M
+    payg3pOptions.push(getOpus41Option()) // This is the default deepseek-v4-pro
     payg3pOptions.push(getOpus46Option(fastMode))
     if (checkOpus1mAccess()) {
       payg3pOptions.push(getOpus46_1MOption(fastMode))
@@ -358,7 +358,7 @@ function getModelFamilyInfo(
 ): { alias: string; currentVersionName: string } | null {
   const canonical = getCanonicalName(model)
 
-  // Sonnet family
+  // deepseek-flash family
   if (
     canonical.includes('limkenion-sonnet-4-6') ||
     canonical.includes('limkenion-sonnet-4-5') ||
@@ -372,7 +372,7 @@ function getModelFamilyInfo(
     }
   }
 
-  // Opus family
+  // deepseek-v4-pro family
   if (canonical.includes('limkenion-opus-4')) {
     const currentName = getMarketingNameForModel(getDefaultStrongModel())
     if (currentName) {
@@ -380,7 +380,7 @@ function getModelFamilyInfo(
     }
   }
 
-  // Haiku family
+  // deepseek-flash family
   if (
     canonical.includes('limkenion-haiku') ||
     canonical.includes('limkenion-3-5-haiku')
@@ -431,7 +431,7 @@ function getKnownModelOption(model: string): ModelOption | null {
 
 export function getModelOptions(fastMode = false): ModelOption[] {
   // OpenAI 兼容模式（DeepSeek）下：只列 DeepSeek 真实存在的模型，
-  // 不再罗列上游那套多档模型选项（Sonnet/Opus/Haiku 在这里都不存在）。
+  // 不再罗列上游那套多档模型选项（deepseek-flash/deepseek-v4-pro/deepseek-flash 在这里都不存在）。
   if (isOpenAICompat()) {
     return [
       getDefaultOptionForUser(fastMode),

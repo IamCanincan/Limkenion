@@ -74,10 +74,10 @@ export type PewterLedgerVariant = 'trim' | 'cut' | 'cap' | null
  * 指导逐渐收紧。
  *
  * 基线（对照，结算至 2026-03-02，N=26.3M）：
- *   p50 4,906 字符 | p90 11,617 | 均值 6,207 | 82% Opus 4.6
+ *   p50 4,906 字符 | p90 11,617 | 均值 6,207 | 82% deepseek-v4-pro
  *   拒绝率随大小单调递增：<2K 时为 20% → 20K+ 时50%
  *
- * 主要指标：会话级平均成本（fact__201omjcij85f）——Opus 输出价格为
+ * 主要指标：会话级平均成本（fact__201omjcij85f）——deepseek-v4-pro 输出价格为
  *   输入价格的 5 倍，因此成本是输出加权代理。limkenion_plan_exit 上的
  *   planLengthChars 是机制，但不是目标——cap 分支可能通过
  *   write→count→edit 循环在缩小计划文件的同时增加总输出。

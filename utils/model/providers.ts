@@ -13,7 +13,7 @@ export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
  * 这里踩过一个坑（2026-09-17，用户清空 key 后暴露）：早先把它写成
  * "检测到 key 才算兼容模式"，于是 key 一空 → 返回 false → 全仓库回落到已删除的上游
  * 路径，表现为每次请求都报「上游 client 已移除」，连欢迎屏的模型名都变回上游的
- * Sonnet。**"用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**
+ * deepseek-flash。**"用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**
  * 有没有 key 由 services/api/openai-compat.ts 的 getConfig() 负责判断并给出提示。
  */
 export function isOpenAICompat(): boolean {

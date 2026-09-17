@@ -37,12 +37,12 @@ import { countCharInString } from '../utils/stringUtils.js'
 import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { escapeXmlAttr as escapeHtml } from '../utils/xml.js'
 
-// 用于 facet 提取与摘要的模型（Opus —— 最佳质量）
+// 用于 facet 提取与摘要的模型（deepseek-v4-pro —— 最佳质量）
 function getAnalysisModel(): string {
   return getDefaultStrongModel()
 }
 
-// 用于叙述式洞察的模型（Opus —— 最佳质量）
+// 用于叙述式洞察的模型（deepseek-v4-pro —— 最佳质量）
 function getInsightsModel(): string {
   return getDefaultStrongModel()
 }

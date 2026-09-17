@@ -307,7 +307,7 @@ async function handleSpawnSplitPane(
   const { setAppState, getAppState } = context
   const { name, prompt, agent_type, cwd, plan_mode_required } = input
 
-  // 解析模型：'inherit' → 主控模型；undefined → 默认 Opus
+  // 解析模型：'inherit' → 主控模型；undefined → 默认 deepseek-v4-pro
   const model = resolveTeammateModel(input.model, getAppState().mainLoopModel)
 
   if (!name || !prompt) {
@@ -546,7 +546,7 @@ async function handleSpawnSeparateWindow(
   const { setAppState, getAppState } = context
   const { name, prompt, agent_type, cwd, plan_mode_required } = input
 
-  // 解析模型：'inherit' → 主控模型；undefined → 默认 Opus
+  // 解析模型：'inherit' → 主控模型；undefined → 默认 deepseek-v4-pro
   const model = resolveTeammateModel(input.model, getAppState().mainLoopModel)
 
   if (!name || !prompt) {
@@ -841,7 +841,7 @@ async function handleSpawnInProcess(
   const { setAppState, getAppState } = context
   const { name, prompt, agent_type, plan_mode_required } = input
 
-  // 解析模型：'inherit' → 主控模型；undefined → 默认 Opus
+  // 解析模型：'inherit' → 主控模型；undefined → 默认 deepseek-v4-pro
   const model = resolveTeammateModel(input.model, getAppState().mainLoopModel)
 
   if (!name || !prompt) {

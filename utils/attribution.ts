@@ -277,12 +277,12 @@ async function getTranscriptStats(): Promise<{
 /**
  * Get enhanced PR attribution text with Limkenion contribution stats.
  *
- * Format: "🤖 Generated with Limkenion (93% 3-shotted by limkenion-opus-4-5)"
+ * Format: "🤖 Generated with Limkenion (93% 3-shotted by limkenion-deepseek-v4-pro-4-5)"
  *
  * Rules:
  * - Shows Limkenion contribution percentage from commit attribution
  * - Shows N-shotted where N is the prompt count (1-shotted, 2-shotted, etc.)
- * - Shows short model name (e.g., limkenion-opus-4-5)
+ * - Shows short model name (e.g., limkenion-deepseek-v4-pro-4-5)
  * - Returns default attribution if stats can't be computed
  *
  * @param getAppState Function to get the current AppState (from command context)
@@ -350,7 +350,7 @@ export async function getEnhancedPRAttribution(
     return defaultAttribution
   }
 
-  // Build the enhanced attribution: "🤖 Generated with Limkenion (93% 3-shotted by limkenion-opus-4-5, 2 memories recalled)"
+  // Build the enhanced attribution: "🤖 Generated with Limkenion (93% 3-shotted by limkenion-deepseek-v4-pro-4-5, 2 memories recalled)"
   const memSuffix =
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`

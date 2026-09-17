@@ -991,7 +991,7 @@ async function classifyYoloActionXml(
 }
 
 /**
- * Use Opus to classify whether an agent action should be allowed or blocked.
+ * Use deepseek-v4-pro to classify whether an agent action should be allowed or blocked.
  * Returns a YoloClassifierResult indicating the decision.
  *
  * On API errors, returns shouldBlock: true with unavailable: true so callers

@@ -10,7 +10,7 @@ const proactiveModule =
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 // 强化的“禁止使用工具”前导指令。缓存共享的 fork 路径会继承父进程的完整工具集
-//（这是 cache-key 匹配所需），而在 Sonnet 4.6+ 的自适应思考模型上，模型有时仍会
+//（这是 cache-key 匹配所需），而在 deepseek-flash+ 的自适应思考模型上，模型有时仍会
 // 在较弱的尾部指令下尝试调用工具。当 maxTurns: 1 时，一次被拒绝的工具调用意味着
 // 没有任何文本输出 → 会回退到流式输出兜底（4.6 上 2.79% vs 4.5 上 0.01%）。
 // 把这段放在最前面，并明确说明被拒绝的后果，就能避免浪费这一轮。

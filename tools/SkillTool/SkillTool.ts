@@ -777,7 +777,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
           }
         }
 
-        // 保留 [1m] 后缀 —— 否则在 opus[1m] 会话上使用 `model: opus` 的技能
+        // 保留 [1m] 后缀 —— 否则在 deepseek-v4-pro[1m] 会话上使用 `model: deepseek-v4-pro` 的技能
         // 会把有效窗口降到 200K 并触发自动压缩。
         if (model) {
           modifiedContext = {

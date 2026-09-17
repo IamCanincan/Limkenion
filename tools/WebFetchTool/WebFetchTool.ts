@@ -278,7 +278,7 @@ To complete your request, I need to fetch content from the redirected URL. Pleas
     }
 
     // 二进制内容（PDF 等）还以 mime 推导的扩展名额外保存到了磁盘。
-    // 在此说明，以便在上面的 Haiku 摘要不够时，
+    // 在此说明，以便在上面的 deepseek-flash 摘要不够时，
     // Limkenion 可以检查原始文件。
     if (persistedPath) {
       result += `\n\n[Binary content (${contentType}, ${formatFileSize(persistedSize ?? bytes)}) also saved to ${persistedPath}]`

@@ -73,7 +73,7 @@ export const EXPLORE_AGENT: BuiltInAgentDefinition = {
   ],
   source: 'built-in',
   baseDir: 'built-in',
-  // ant 使用 inherit 以复用主 agent 的模型；外部用户使用 haiku 以求速度
+  // ant 使用 inherit 以复用主 agent 的模型；外部用户使用 deepseek-flash 以求速度
   // 注意：对于 ant，getAgentModel() 在运行时检查 limkenion_explore_agent GrowthBook 标志
   model: 'haiku',
   // Explore 是快速的只读搜索 agent——它不需要 LIMKENION.md 中的

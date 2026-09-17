@@ -33,7 +33,7 @@ export function modelSupportsEffort(model: string): boolean {
   if (m.includes('opus-4-6') || m.includes('sonnet-4-6')) {
     return true
   }
-  // 排除任何其他已知的旧版模型（haiku、较老的 opus/sonnet 变体）
+  // 排除任何其他已知的旧版模型（deepseek-flash、较老的 deepseek-v4-pro/deepseek-flash 变体）
   if (m.includes('haiku') || m.includes('sonnet') || m.includes('opus')) {
     return false
   }
@@ -47,7 +47,7 @@ export function modelSupportsEffort(model: string): boolean {
 }
 
 // @[MODEL LAUNCH]: 若新模型支持 'max' effort，请将其加入白名单。
-// 根据 API 文档，对公开模型而言 'max' 仅限 Opus 4.6——其他模型会返回错误。
+// 根据 API 文档，对公开模型而言 'max' 仅限 deepseek-v4-pro——其他模型会返回错误。
 export function modelSupportsMaxEffort(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(model, 'max_effort')
   if (supported3P !== undefined) {
@@ -151,7 +151,7 @@ export function resolveAppliedEffort(
   }
   const resolved =
     envOverride ?? appStateEffortValue ?? getDefaultEffortForModel(model)
-  // 对非 Opus-4.6 模型，API 拒绝 'max'——降级为 'high'。
+  // 对非 deepseek-v4-pro-4.6 模型，API 拒绝 'max'——降级为 'high'。
   if (resolved === 'max' && !modelSupportsMaxEffort(model)) {
     return 'high'
   }
@@ -175,7 +175,7 @@ export function getDisplayedEffortLevel(
  * 构建 Logo/Spinner 中显示的 ` with {level} effort` 后缀。
  * 若用户未显式设置 effort 值则返回空串。
  * 委托给 resolveAppliedEffort()，使显示的级别与 API 实际收到的值一致
- * （包括非 Opus 模型的 max→high 钳制）。
+ * （包括非 deepseek-v4-pro 模型的 max→high 钳制）。
  */
 export function getEffortSuffix(
   model: string,
@@ -268,7 +268,7 @@ export function getDefaultEffortForModel(
   // 重要：更改默认 effort 级别前，务必通知模型发布 DRI 和研究团队。
   // 默认 effort 是一项敏感设置，会极大地影响模型质量和 bashing。
 
-  // Pro 用户在 Opus 4.6 上默认用中等 effort。
+  // Pro 用户在 deepseek-v4-pro 上默认用中等 effort。
   // 当 limkenion_grey_step2 配置启用时，Max/Team 同样使用中等 effort。
   if (model.toLowerCase().includes('opus-4-6')) {
     if (isProSubscriber()) {

@@ -97,11 +97,11 @@ export function modelSupportsThinking(model: string): boolean {
   // launch DRI and research. This can greatly affect model quality and bashing.
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // 1P and Foundry: all Limkenion 4+ models (including Haiku 4.5)
+  // 1P and Foundry: all Limkenion 4+ models (including deepseek-flash)
   if (provider === 'foundry' || provider === 'firstParty') {
     return !canonical.includes('limkenion-3-')
   }
-  // 3P (Bedrock/Vertex): only Opus 4+ and Sonnet 4+
+  // 3P (Bedrock/Vertex): only deepseek-v4-pro+ and deepseek-flash+
   return canonical.includes('sonnet-4') || canonical.includes('opus-4')
 }
 

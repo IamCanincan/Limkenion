@@ -53,7 +53,7 @@ export function bashToolUseOptions({
   existingAllowDescriptions?: string[];
   yesInputMode?: boolean;
   noInputMode?: boolean;
-  /** 可编辑的前缀规则内容（例如 "npm run:*"）。设置后会替换 Haiku 生成的建议。 */
+  /** 可编辑的前缀规则内容（例如 "npm run:*"）。设置后会替换 deepseek-flash 生成的建议。 */
   editablePrefix?: string;
   /** 用户编辑前缀值时的回调。 */
   onEditablePrefixChange?: (value: string) => void;
@@ -77,7 +77,7 @@ export function bashToolUseOptions({
 
   // 仅当未被 allowManagedPermissionRulesOnly 限制时才显示"始终允许"选项
   if (shouldShowAlwaysAllowOptions()) {
-    // 为前缀规则显示可编辑输入，而不是 Haiku 生成的建议标签——
+    // 为前缀规则显示可编辑输入，而不是 deepseek-flash 生成的建议标签——
     // 但仅当建议不包含可编辑前缀无法表示的非 Bash 项目
     //（addDirectories、Read 规则）时才这样做。
     const hasNonBashSuggestions = suggestions.some(s => s.type === 'addDirectories' || s.type === 'addRules' && s.rules?.some(r => r.toolName !== BASH_TOOL_NAME));

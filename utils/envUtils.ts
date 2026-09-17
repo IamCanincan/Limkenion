@@ -142,7 +142,7 @@ export function isInProtectedNamespace(): boolean {
 /**
  * 模型前缀 → Vertex 区域覆盖的环境变量。
  * 顺序很重要：更具体的前缀必须放在更不具体的前缀之前
- * （例如 'limkenion-opus-4-1' 在 'limkenion-opus-4' 之前）。
+ * （例如 'limkenion-deepseek-v4-pro-4-1' 在 'limkenion-deepseek-v4-pro-4' 之前）。
  */
 const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = [
   ['limkenion-haiku-4-5', 'VERTEX_REGION_LIMKENION_HAIKU_4_5'],

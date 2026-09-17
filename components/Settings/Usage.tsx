@@ -228,7 +228,7 @@ export function Usage(): React.ReactNode {
       </Box>;
   }
 
-  // 上游的「Sonnet 专属周用量」条已移除 —— 本构建只有 DeepSeek，没有按模型分档的限流。
+  // 上游的「deepseek-flash 专属周用量」条已移除 —— 本构建只有 DeepSeek，没有按模型分档的限流。
   const limits = [{
     title: 'Current session',
     limit: utilization.five_hour

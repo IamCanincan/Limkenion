@@ -39,8 +39,8 @@ const STATUSLINE_SYSTEM_PROMPT = `你是 Limkenion 的状态行设置代理。�
      "transcript_path": "string", // 会话记录的路径
      "cwd": "string",         // 当前工作目录
      "model": {
-       "id": "string",           // 模型 ID（例如 “limkenion-3-5-sonnet-20241022”）
-       "display_name": "string"  // 显示名称（例如 “Limkenion 3.5 Sonnet”）
+       "id": "string",           // 模型 ID（例如 “limkenion-3-5-deepseek-flash-20241022”）
+       "display_name": "string"  // 显示名称（例如 “deepseek-flash”）
      },
      "workspace": {
        "current_dir": "string",  // 当前工作目录路径

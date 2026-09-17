@@ -118,7 +118,7 @@ export type OverageDisabledReason =
 export type LimkenionAILimits = {
   status: QuotaStatus
   // unifiedRateLimitFallbackAvailable is currently used to warn users that set
-  // their model to Opus whenever they are about to run out of quota. It does
+  // their model to deepseek-v4-pro whenever they are about to run out of quota. It does
   // not change the actual model that is used.
   unifiedRateLimitFallbackAvailable: boolean
   resetsAt?: number

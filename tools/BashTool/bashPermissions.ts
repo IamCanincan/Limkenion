@@ -191,7 +191,7 @@ export function getSimpleCommandPrefix(command: string): string | null {
 // `env` 不在 SAFE_WRAPPER_PATTERNS 中，所以 `env bash -c "evil"` 能
 // 原样通过 stripSafeWrappers，并命中前缀规则匹配器中的 startsWith("env ") 检查。
 // shell 列表镜像了 src/utils/shell/prefix.ts 中的 DANGEROUS_SHELL_PREFIXES，
-// 后者守护了旧的 Haiku 提取器。
+// 后者守护了旧的 deepseek-flash 提取器。
 const BARE_SHELL_PREFIXES = new Set([
   'sh',
   'bash',
@@ -1848,7 +1848,7 @@ export async function bashToolHasPermission(
     return exactMatchResult
   }
 
-  // 并行检查 Bash 提示 deny 与 ask 规则（两者都使用 Haiku）。
+  // 并行检查 Bash 提示 deny 与 ask 规则（两者都使用 deepseek-flash）。
   // deny 优先于 ask，两者都优先于 allow 规则。
   // 自动模式跳过——自动模式分类器处理所有权限决策
   if (
@@ -1925,7 +1925,7 @@ export async function bashToolHasPermission(
       }
 
       if (askResult?.matches && askResult.confidence === 'high') {
-        // 跳过 Haiku 调用——UI 在本地计算前缀
+        // 跳过 deepseek-flash 调用——UI 在本地计算前缀
         // 并允许用户编辑它。当测试覆写它时仍调用注入的函数。
         let suggestions: PermissionUpdate[]
         if (getCommandSubcommandPrefixFn === getCommandSubcommandPrefix) {
@@ -2381,8 +2381,8 @@ export async function bashToolHasPermission(
     }
   }
 
-  // 为命令前缀查询 Haiku
-  // 跳过 Haiku 调用——UI 在本地计算前缀并
+  // 为命令前缀查询 deepseek-flash
+  // 跳过 deepseek-flash 调用——UI 在本地计算前缀并
   // 允许用户编辑它。当注入了自定义 fn 时仍调用（测试）。
   let commandSubcommandPrefix: Awaited<
     ReturnType<typeof getCommandSubcommandPrefixFn>

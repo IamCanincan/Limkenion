@@ -1096,12 +1096,12 @@ export function REPL({
 
   // -- Terminal title management
   // Session title (set via /rename or restored on resume) wins over
-  // the agent name, which wins over the Haiku-extracted topic;
+  // the agent name, which wins over the deepseek-flash-extracted topic;
   // all fall back to the product name.
   const terminalTitleFromRename = useAppState(s => s.settings.terminalTitleFromRename) !== false;
   const sessionTitle = terminalTitleFromRename ? getCurrentSessionTitle(getSessionId()) : undefined;
   const [haikuTitle, setHaikuTitle] = useState<string>();
-  // Gates the one-shot Haiku call that generates the tab title. Seeded true
+  // Gates the one-shot deepseek-flash call that generates the tab title. Seeded true
   // on resume (initialMessages present) so we don't re-title a resumed
   // session from mid-conversation context.
   const haikuTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
@@ -1117,7 +1117,7 @@ export function REPL({
   // Title animation state lives in <AnimatedTerminalTitle> so the 960ms tick
   // doesn't re-render REPL. titleDisabled/terminalTitle are still computed
   // here because onQueryImpl reads them (background session description,
-  // haiku title extraction gate).
+  // deepseek-flash title extraction gate).
 
   // Prevent macOS from sleeping while Limkenion is working
   useEffect(() => {
@@ -1798,7 +1798,7 @@ export function REPL({
       restoreSessionMetadata(log);
       // Resumed sessions shouldn't re-title from mid-conversation context
       // (same reasoning as the useRef seed), and the previous session's
-      // Haiku title shouldn't carry over.
+      // deepseek-flash title shouldn't carry over.
       haikuTitleAttemptedRef.current = true;
       setHaikuTitle(undefined);
 
@@ -1984,7 +1984,7 @@ export function REPL({
     // Undercover auto-enable explainer (ant-only, eliminated from external builds)
     
 
-    // Effort callout (shown once for Opus 4.6 users when effort is enabled)
+    // Effort callout (shown once for deepseek-v4-pro users when effort is enabled)
     if (allowDialogsWithAnimation && showEffortCallout) return 'effort-callout';
 
     // Remote callout (shown once before first bridge enable)
@@ -2603,7 +2603,7 @@ export function REPL({
 
     // Extract a session title from the first real user message. One-shot
     // via ref (was limkenion_birch_mist experiment: first-message-only to save
-    // Haiku calls). The ref replaces the old `messages.length <= 1` check,
+    // deepseek-flash calls). The ref replaces the old `messages.length <= 1` check,
     // which was broken by SessionStart hook messages (prepended via
     // useDeferredHookMessages) and attachment messages (appended by
     // processTextPrompt) — both pushed length past 1 on turn one, so the

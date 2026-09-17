@@ -372,7 +372,7 @@ export function splitCommand_DEPRECATED(command: string): string[] {
  * Checks if a command is a help command (e.g., "foo --help" or "foo bar --help")
  * and should be allowed as-is without going through prefix extraction.
  *
- * We bypass Haiku prefix extraction for simple --help commands because:
+ * We bypass deepseek-flash prefix extraction for simple --help commands because:
  * 1. Help commands are read-only and safe
  * 2. We want to allow the full command (e.g., "python --help"), not a prefix
  *    that would be too broad (e.g., "python:*")

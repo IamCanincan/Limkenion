@@ -429,8 +429,8 @@ export async function getURLMarkdownContent(
 
   // 二进制内容：以恰当的扩展名把原始字节保存到磁盘，以便 Limkenion
   // 之后检查该文件。我们仍会落入下面的 utf-8 解码 +
-  // Haiku 路径 —— 尤其对 PDF 而言，解码后的字符串有足够的
-  // ASCII 结构（/Title、文本流）让 Haiku 能够总结，而
+  // deepseek-flash 路径 —— 尤其对 PDF 而言，解码后的字符串有足够的
+  // ASCII 结构（/Title、文本流）让 deepseek-flash 能够总结，而
   // 保存的文件是补充而非替代。
   let persistedPath: string | undefined
   let persistedSize: number | undefined

@@ -38,7 +38,7 @@ import {
  * AWS Bedrock：
  * - 通过 aws-sdk 默认值配置 AWS 凭据
  * - AWS_REGION 或 AWS_DEFAULT_REGION：设置所有模型的 AWS 区域（默认：us-east-1）
- * - LIMKENION_SMALL_FAST_MODEL_AWS_REGION：可选。专门为小快模型（Haiku）覆盖 AWS 区域
+ * - LIMKENION_SMALL_FAST_MODEL_AWS_REGION：可选。专门为小快模型（deepseek-flash）覆盖 AWS 区域
  *
  * Foundry (Azure)：
  * - LIMKENION_FOUNDRY_RESOURCE：你的 Azure 资源名（例如 'my-resource'）
@@ -54,10 +54,10 @@ import {
  *
  * Vertex AI：
  * - 模型特定区域变量（最高优先级）：
- *   - VERTEX_REGION_LIMKENION_3_5_HAIKU：Limkenion 3.5 Haiku 模型的区域
- *   - VERTEX_REGION_LIMKENION_HAIKU_4_5：Limkenion Haiku 4.5 模型的区域
- *   - VERTEX_REGION_LIMKENION_3_5_SONNET：Limkenion 3.5 Sonnet 模型的区域
- *   - VERTEX_REGION_LIMKENION_3_7_SONNET：Limkenion 3.7 Sonnet 模型的区域
+ *   - VERTEX_REGION_LIMKENION_3_5_HAIKU：deepseek-flash 模型的区域
+ *   - VERTEX_REGION_LIMKENION_HAIKU_4_5：Limkenion deepseek-flash 模型的区域
+ *   - VERTEX_REGION_LIMKENION_3_5_SONNET：deepseek-flash 模型的区域
+ *   - VERTEX_REGION_LIMKENION_3_7_SONNET：deepseek-flash 模型的区域
  * - CLOUD_ML_REGION：可选。所有模型默认使用的 GCP 区域
  *   若上面未指定特定模型区域时
  * - LIMKENION_VERTEX_PROJECT_ID：必需。你的 GCP 项目 ID

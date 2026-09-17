@@ -110,7 +110,7 @@ export function getBestModel(): ModelName {
   return getDefaultStrongModel()
 }
 
-// @[MODEL LAUNCH]: Update the default Opus model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: Update the default deepseek-v4-pro model (3P providers may lag so keep defaults unchanged).
 export function getDefaultStrongModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_OPUS_MODEL) {
     return process.env.LIMKENION_DEFAULT_OPUS_MODEL
@@ -124,25 +124,25 @@ export function getDefaultStrongModel(): ModelName {
   return getModelStrings().deepseekV4Pro
 }
 
-// @[MODEL LAUNCH]: Update the default Sonnet model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: Update the default deepseek-flash model (3P providers may lag so keep defaults unchanged).
 export function getDefaultMainModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_SONNET_MODEL) {
     return process.env.LIMKENION_DEFAULT_SONNET_MODEL
   }
-  // Default to Sonnet 4.5 for 3P since they may not have 4.6 yet
+  // Default to deepseek-flash for 3P since they may not have 4.6 yet
   if (getAPIProvider() !== 'firstParty') {
     return getModelStrings().deepseekFlash
   }
   return getModelStrings().deepseekFlash
 }
 
-// @[MODEL LAUNCH]: Update the default Haiku model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: Update the default deepseek-flash model (3P providers may lag so keep defaults unchanged).
 export function getDefaultSmallFastModel(): ModelName {
   if (process.env.LIMKENION_DEFAULT_HAIKU_MODEL) {
     return process.env.LIMKENION_DEFAULT_HAIKU_MODEL
   }
 
-  // Haiku 4.5 is available on all platforms (first-party, Foundry, Bedrock, Vertex)
+  // deepseek-flash is available on all platforms (first-party, Foundry, Bedrock, Vertex)
   return getModelStrings().deepseekFlash
 }
 
@@ -158,7 +158,7 @@ export function getRuntimeMainLoopModel(params: {
 }): ModelName {
   const { permissionMode, mainLoopModel, exceeds200kTokens = false } = params
 
-  // opusplan uses Opus in plan mode without [1m] suffix.
+  // opusplan uses deepseek-v4-pro in plan mode without [1m] suffix.
   if (
     getUserSpecifiedModelSetting() === 'opusplan' &&
     permissionMode === 'plan' &&
@@ -179,8 +179,8 @@ export function getRuntimeMainLoopModel(params: {
  * Get the default main loop model setting.
  *
  * This handles the built-in default:
- * - Opus for Max and Team Premium users
- * - Sonnet 4.6 for all other users (including Team Standard, Pro, Enterprise)
+ * - deepseek-v4-pro for Max and Team Premium users
+ * - deepseek-flash for all other users (including Team Standard, Pro, Enterprise)
  *
  * @returns The default model setting to use
  */
@@ -191,21 +191,21 @@ export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
     return OPENAI_COMPAT_DEFAULT_MODEL
   }
 
-  // Ants default to defaultModel from flag config, or Opus 1M if not configured
+  // Ants default to defaultModel from flag config, or deepseek-v4-pro（1M 上下文） if not configured
   
 
-  // Max users get Opus as default
+  // Max users get deepseek-v4-pro as default
   if (isMaxSubscriber()) {
     return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
 
-  // Team Premium gets Opus (same as Max)
+  // Team Premium gets deepseek-v4-pro (same as Max)
   if (isTeamPremiumSubscriber()) {
     return getDefaultStrongModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
 
-  // PAYG (1P and 3P), Enterprise, Team Standard, and Pro get Sonnet as default
-  // Note that PAYG (3P) may default to an older Sonnet model
+  // PAYG (1P and 3P), Enterprise, Team Standard, and Pro get deepseek-flash as default
+  // Note that PAYG (3P) may default to an older deepseek-flash model
   return getDefaultMainModel()
 }
 
@@ -220,8 +220,8 @@ export function getDefaultMainLoopModel(): ModelName {
 // @[MODEL LAUNCH]: Add a canonical name mapping for the new model below.
 /**
  * Pure string-match that strips date/provider suffixes from a first-party model
- * name. Input must already be a 1P-format ID (e.g. 'limkenion-3-7-sonnet-20250219',
- * 'us.limkenion.limkenion-opus-4-6-v1:0'). Does not touch settings, so safe at
+ * name. Input must already be a 1P-format ID (e.g. 'limkenion-3-7-deepseek-flash-20250219',
+ * 'us.limkenion.limkenion-deepseek-v4-pro-4-6-v1:0'). Does not touch settings, so safe at
  * module top-level (see MODEL_COSTS in modelCost.ts).
  */
 export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
@@ -281,10 +281,10 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
 
 /**
  * Maps a full model string to a shorter canonical version that's unified across 1P and 3P providers.
- * For example, 'limkenion-3-5-haiku-20241022' and 'us.limkenion.limkenion-3-5-haiku-20241022-v1:0'
- * would both be mapped to 'limkenion-3-5-haiku'.
- * @param fullModelName The full model name (e.g., 'limkenion-3-5-haiku-20241022')
- * @returns The short name (e.g., 'limkenion-3-5-haiku') if found, or the original name if no mapping exists
+ * For example, 'limkenion-3-5-deepseek-flash-20241022' and 'us.limkenion.limkenion-3-5-deepseek-flash-20241022-v1:0'
+ * would both be mapped to 'limkenion-3-5-deepseek-flash'.
+ * @param fullModelName The full model name (e.g., 'limkenion-3-5-deepseek-flash-20241022')
+ * @returns The short name (e.g., 'limkenion-3-5-deepseek-flash') if found, or the original name if no mapping exists
  */
 export function getCanonicalName(fullModelName: ModelName): ModelShortName {
   // Resolve overridden model IDs (e.g. Bedrock ARNs) back to canonical names.
@@ -321,7 +321,7 @@ export function isOpus1mMergeEnabled(): boolean {
   // config-loading subprocess can have OAuth tokens with valid scopes but no
   // subscriptionType field (stale or partial refresh). Without this guard,
   // isProSubscriber() returns false for such users and the merge leaks
-  // opus[1m] into the model dropdown — the API then rejects it with a
+  // deepseek-v4-pro[1m] into the model dropdown — the API then rejects it with a
   // misleading "rate limit reached" error.
   if (isLimkenionAISubscriber() && getSubscriptionType() === null) {
     return false
@@ -344,7 +344,7 @@ export function renderModelSetting(setting: ModelName | ModelAlias): string {
  * is not recognized.
  *
  * 本构建只有 DeepSeek 两个模型。原本这里是一长串 case，把各个上游模型 ID
- * 映射成 "Opus 4.6" / "Sonnet 4.6" 之类的营销名 —— 那些模型都不存在了，
+ * 映射成 "deepseek-v4-pro" / "deepseek-flash" 之类的营销名 —— 那些模型都不存在了，
  * 而且重复 case 会让 switch 退化成只命中第一条，属于会骗人的死代码。
  */
 export function getPublicModelDisplayName(model: ModelName): string | null {
@@ -399,7 +399,7 @@ export function getPublicModelName(model: ModelName): string {
  * This function intentionally does not support version numbers to align with
  * the model switcher.
  *
- * Supports [1m] suffix on any model alias (e.g., haiku[1m], sonnet[1m]) to enable
+ * Supports [1m] suffix on any model alias (e.g., deepseek-flash[1m], deepseek-flash[1m]) to enable
  * 1M context window without requiring each variant to be in MODEL_ALIASES.
  *
  * @param modelInput The model alias or name provided by the user.
@@ -418,7 +418,7 @@ export function parseUserSpecifiedModel(
   if (isModelAlias(modelString)) {
     switch (modelString) {
       case 'opusplan':
-        return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // Sonnet is default, Opus in plan mode
+        return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // deepseek-flash is default, deepseek-v4-pro in plan mode
       case 'sonnet':
         return getDefaultMainModel() + (has1mTag ? '[1m]' : '')
       case 'haiku':
@@ -431,8 +431,8 @@ export function parseUserSpecifiedModel(
     }
   }
 
-  // Opus 4/4.1 are no longer available on the first-party API (same as
-  // Limkenion.ai) — silently remap to the current Opus default. The 'opus'
+  // deepseek-v4-pro/4.1 are no longer available on the first-party API (same as
+  // Limkenion.ai) — silently remap to the current deepseek-v4-pro default. The 'deepseek-v4-pro'
   // alias already resolves to 4.6, so the only users on these explicit
   // strings pinned them in settings/env/--model/SDK before 4.5 launched.
   // 3P providers may not yet have 4.6 capacity, so pass through unchanged.
@@ -458,14 +458,14 @@ export function parseUserSpecifiedModel(
  * Resolves a skill's `model:` frontmatter against the current model, carrying
  * the `[1m]` suffix over when the target family supports it.
  *
- * A skill author writing `model: opus` means "use opus-class reasoning" — not
- * "downgrade to 200K". If the user is on opus[1m] at 230K tokens and invokes a
- * skill with `model: opus`, passing the bare alias through drops the effective
+ * A skill author writing `model: deepseek-v4-pro` means "use deepseek-v4-pro-class reasoning" — not
+ * "downgrade to 200K". If the user is on deepseek-v4-pro[1m] at 230K tokens and invokes a
+ * skill with `model: deepseek-v4-pro`, passing the bare alias through drops the effective
  * context window from 1M to 200K, which trips autocompact at 23% apparent usage
  * and surfaces "Context limit reached" even though nothing overflowed.
  *
- * We only carry [1m] when the target actually supports it (sonnet/opus). A skill
- * with `model: haiku` on a 1M session still downgrades — haiku has no 1M variant,
+ * We only carry [1m] when the target actually supports it (deepseek-flash/deepseek-v4-pro). A skill
+ * with `model: deepseek-flash` on a 1M session still downgrades — deepseek-flash has no 1M variant,
  * so the autocompact that follows is correct. Skills that already specify [1m]
  * are left untouched.
  */
@@ -476,8 +476,8 @@ export function resolveSkillModelOverride(
   if (has1mContext(skillModel) || !has1mContext(currentModel)) {
     return skillModel
   }
-  // modelSupports1M matches on canonical IDs ('limkenion-opus-4-6', 'limkenion-sonnet-4');
-  // a bare 'opus' alias falls through getCanonicalName unmatched. Resolve first.
+  // modelSupports1M matches on canonical IDs ('limkenion-deepseek-v4-pro-4-6', 'limkenion-deepseek-flash-4');
+  // a bare 'deepseek-v4-pro' alias falls through getCanonicalName unmatched. Resolve first.
   if (modelSupports1M(parseUserSpecifiedModel(skillModel))) {
     return skillModel + '[1m]'
   }
@@ -496,7 +496,7 @@ function isLegacyOpusFirstParty(model: string): boolean {
 }
 
 /**
- * Opt-out for the legacy Opus 4.0/4.1 → current Opus remap.
+ * Opt-out for the legacy deepseek-v4-pro/4.1 → current deepseek-v4-pro remap.
  */
 export function isLegacyModelRemapEnabled(): boolean {
   return !isEnvTruthy(process.env.LIMKENION_DISABLE_LEGACY_MODEL_REMAP)
@@ -517,7 +517,7 @@ export function modelDisplayString(model: ModelSetting): string {
 /**
  * 把模型 ID 映射成给用户看的名字。
  * 本构建只有 DeepSeek 两个模型；原本那一长串上游模型名
- * （Opus 4.6 / Sonnet 4.6 / Haiku 4.5 …）已全部移除。
+ * （deepseek-v4-pro / deepseek-flash / deepseek-flash …）已全部移除。
  */
 export function getMarketingNameForModel(modelId: string): string | undefined {
   const canonical = getCanonicalName(modelId)

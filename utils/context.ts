@@ -76,7 +76,7 @@ export function getSonnet1mExpTreatmentEnabled(model: string): boolean {
   if (is1mContextDisabled()) {
     return false
   }
-  // Only applies to sonnet 4.6 without an explicit [1m] suffix
+  // Only applies to deepseek-flash 4.6 without an explicit [1m] suffix
   if (has1mContext(model)) {
     return false
   }
@@ -125,7 +125,7 @@ export function calculateContextPercentages(
  * （https://api-docs.deepseek.com/quick_start/pricing），
  * 但这里沿用保守的通用上限 —— 放开到 384K 属于行为变更，另行确认。
  *
- * 原本那一长串按上游模型名分档的判断（opus-4-6 / sonnet-4-6 / haiku-4 /
+ * 原本那一长串按上游模型名分档的判断（deepseek-v4-pro-4-6 / deepseek-flash-4-6 / deepseek-flash-4 /
  * limkenion-3-* …）已随模型表一起删除。
  */
 export function getModelMaxOutputTokens(_model: string): {

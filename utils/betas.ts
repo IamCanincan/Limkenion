@@ -248,7 +248,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(INTERLEAVED_THINKING_BETA_HEADER)
   }
 
-  // 跳过 API 侧的 Haiku 思考摘要器——摘要仅用于
+  // 跳过 API 侧的 deepseek-flash 思考摘要器——摘要仅用于
   // ctrl+o 显示，交互式用户很少打开。API 改为返回
   // redacted_thinking 块；AssistantRedactedThinkingMessage 已把它们
   // 渲染为 stub。SDK / print 模式保留摘要，因为调用方
@@ -370,7 +370,7 @@ export const getBedrockExtraBodyParamsBetas = memoize(
  * 订阅者检查和白名单校验并发出警告。
  *
  * @param options.isAgenticQuery - 为 true 时，确保代理查询所需的 beta 头
- *   存在。对非 Haiku 模型这些已由 getAllModelBetas() 包含；对 Haiku 它们
+ *   存在。对非 deepseek-flash 模型这些已由 getAllModelBetas() 包含；对 deepseek-flash 它们
  *   被排除，因为非代理调用（压缩、分类器、token 估算）不需要它们。
  */
 export function getMergedBetas(
@@ -380,8 +380,8 @@ export function getMergedBetas(
   const baseBetas = [...getModelBetas(model)]
 
   // 代理查询始终需要 limkenion 和 cli-internal 的 beta 头。
-  // 对非 Haiku 模型它们已在 baseBetas 中；对 Haiku 它们被
-  // getAllModelBetas() 排除，因为非代理 Haiku 调用不需要它们。
+  // 对非 deepseek-flash 模型它们已在 baseBetas 中；对 deepseek-flash 它们被
+  // getAllModelBetas() 排除，因为非代理 deepseek-flash 调用不需要它们。
   if (options?.isAgenticQuery) {
     if (!baseBetas.includes(LIMKENION_20250219_BETA_HEADER)) {
       baseBetas.push(LIMKENION_20250219_BETA_HEADER)

@@ -153,7 +153,7 @@ export function unstable_v2_resumeSession(
  * @example
  * ```typescript
  * const result = await unstable_v2_prompt("What files are here?", {
- *   model: 'limkenion-sonnet-4-6'
+ *   model: 'limkenion-deepseek-flash-4-6'
  * })
  * ```
  */

@@ -11,7 +11,7 @@ function modelBelongsToFamily(model: string, family: string): boolean {
   if (model.includes(family)) {
     return true
   }
-  // Resolve aliases like "best" → "limkenion-opus-4-6" to check family membership
+  // Resolve aliases like "best" → "limkenion-deepseek-v4-pro-4-6" to check family membership
   if (isModelAlias(model)) {
     const resolved = parseUserSpecifiedModel(model).toLowerCase()
     return resolved.includes(family)
@@ -22,7 +22,7 @@ function modelBelongsToFamily(model: string, family: string): boolean {
 /**
  * Check if a model name starts with a prefix at a segment boundary.
  * The prefix must match up to the end of the name or a "-" separator.
- * e.g. "limkenion-opus-4-5" matches "limkenion-opus-4-5-20251101" but not "limkenion-opus-4-50".
+ * e.g. "limkenion-deepseek-v4-pro-4-5" matches "limkenion-deepseek-v4-pro-4-5-20251101" but not "limkenion-deepseek-v4-pro-4-50".
  */
 function prefixMatchesModel(modelName: string, prefix: string): boolean {
   if (!modelName.startsWith(prefix)) {
@@ -33,8 +33,8 @@ function prefixMatchesModel(modelName: string, prefix: string): boolean {
 
 /**
  * Check if a model matches a version-prefix entry in the allowlist.
- * Supports shorthand like "opus-4-5" (mapped to "limkenion-opus-4-5") and
- * full prefixes like "limkenion-opus-4-5". Resolves input aliases before matching.
+ * Supports shorthand like "deepseek-v4-pro-4-5" (mapped to "limkenion-deepseek-v4-pro-4-5") and
+ * full prefixes like "limkenion-deepseek-v4-pro-4-5". Resolves input aliases before matching.
  */
 function modelMatchesVersionPrefix(model: string, entry: string): boolean {
   // Resolve the input model to a full name if it's an alias
@@ -42,11 +42,11 @@ function modelMatchesVersionPrefix(model: string, entry: string): boolean {
     ? parseUserSpecifiedModel(model).toLowerCase()
     : model
 
-  // Try the entry as-is (e.g. "limkenion-opus-4-5")
+  // Try the entry as-is (e.g. "limkenion-deepseek-v4-pro-4-5")
   if (prefixMatchesModel(resolvedModel, entry)) {
     return true
   }
-  // Try with "limkenion-" prefix (e.g. "opus-4-5" → "limkenion-opus-4-5")
+  // Try with "limkenion-" prefix (e.g. "deepseek-v4-pro-4-5" → "limkenion-deepseek-v4-pro-4-5")
   if (
     !entry.startsWith('limkenion-') &&
     prefixMatchesModel(resolvedModel, `limkenion-${entry}`)
@@ -58,8 +58,8 @@ function modelMatchesVersionPrefix(model: string, entry: string): boolean {
 
 /**
  * Check if a family alias is narrowed by more specific entries in the allowlist.
- * When the allowlist contains both "opus" and "opus-4-5", the specific entry
- * takes precedence — "opus" alone would be a wildcard, but "opus-4-5" narrows
+ * When the allowlist contains both "deepseek-v4-pro" and "deepseek-v4-pro-4-5", the specific entry
+ * takes precedence — "deepseek-v4-pro" alone would be a wildcard, but "deepseek-v4-pro-4-5" narrows
  * it to only that version.
  */
 function familyHasSpecificEntries(
@@ -71,9 +71,9 @@ function familyHasSpecificEntries(
       continue
     }
     // Check if entry is a version-qualified variant of this family
-    // e.g., "opus-4-5" or "limkenion-opus-4-5-20251101" for the "opus" family
+    // e.g., "deepseek-v4-pro-4-5" or "limkenion-deepseek-v4-pro-4-5-20251101" for the "deepseek-v4-pro" family
     // Must match at a segment boundary (followed by '-' or end) to avoid
-    // false positives like "opusplan" matching "opus"
+    // false positives like "opusplan" matching "deepseek-v4-pro"
     const idx = entry.indexOf(family)
     if (idx === -1) {
       continue
@@ -91,11 +91,11 @@ function familyHasSpecificEntries(
  * If availableModels is not set, all models are allowed.
  *
  * Matching tiers:
- * 1. Family aliases ("opus", "sonnet", "haiku") — wildcard for the entire family,
- *    UNLESS more specific entries for that family also exist (e.g., "opus-4-5").
+ * 1. Family aliases ("deepseek-v4-pro", "deepseek-flash", "deepseek-flash") — wildcard for the entire family,
+ *    UNLESS more specific entries for that family also exist (e.g., "deepseek-v4-pro-4-5").
  *    In that case, the family wildcard is ignored and only the specific entries apply.
- * 2. Version prefixes ("opus-4-5", "limkenion-opus-4-5") — any build of that version
- * 3. Full model IDs ("limkenion-opus-4-5-20251101") — exact match only
+ * 2. Version prefixes ("deepseek-v4-pro-4-5", "limkenion-deepseek-v4-pro-4-5") — any build of that version
+ * 3. Full model IDs ("limkenion-deepseek-v4-pro-4-5-20251101") — exact match only
  */
 export function isModelAllowed(model: string): boolean {
   const settings = getSettings_DEPRECATED() || {}
@@ -113,8 +113,8 @@ export function isModelAllowed(model: string): boolean {
 
   // Direct match (alias-to-alias or full-name-to-full-name)
   // Skip family aliases that have been narrowed by specific entries —
-  // e.g., "opus" in ["opus", "opus-4-5"] should NOT directly match,
-  // because the admin intends to restrict to opus 4.5 only.
+  // e.g., "deepseek-v4-pro" in ["deepseek-v4-pro", "deepseek-v4-pro-4-5"] should NOT directly match,
+  // because the admin intends to restrict to deepseek-v4-pro 4.5 only.
   if (normalizedAllowlist.includes(normalizedModel)) {
     if (
       !isModelFamilyAlias(normalizedModel) ||
@@ -126,7 +126,7 @@ export function isModelAllowed(model: string): boolean {
 
   // Family-level aliases in the allowlist match any model in that family,
   // but only if no more specific entries exist for that family.
-  // e.g., ["opus"] allows all opus, but ["opus", "opus-4-5"] only allows opus 4.5.
+  // e.g., ["deepseek-v4-pro"] allows all deepseek-v4-pro, but ["deepseek-v4-pro", "deepseek-v4-pro-4-5"] only allows deepseek-v4-pro 4.5.
   for (const entry of normalizedAllowlist) {
     if (
       isModelFamilyAlias(entry) &&
@@ -156,8 +156,8 @@ export function isModelAllowed(model: string): boolean {
     }
   }
 
-  // Version-prefix matching: "opus-4-5" or "limkenion-opus-4-5" matches
-  // "limkenion-opus-4-5-20251101" at a segment boundary
+  // Version-prefix matching: "deepseek-v4-pro-4-5" or "limkenion-deepseek-v4-pro-4-5" matches
+  // "limkenion-deepseek-v4-pro-4-5-20251101" at a segment boundary
   for (const entry of normalizedAllowlist) {
     if (!isModelFamilyAlias(entry) && !isModelAlias(entry)) {
       if (modelMatchesVersionPrefix(normalizedModel, entry)) {

@@ -1,9 +1,9 @@
 /**
- * Shared command prefix extraction using Haiku LLM
+ * Shared command prefix extraction using deepseek-flash LLM
  *
  * This module provides a factory for creating command prefix extractors
  * that can be used by different shell tools. The core logic
- * (Haiku query, response validation) is shared, while tool-specific
+ * (deepseek-flash query, response validation) is shared, while tool-specific
  * aspects (examples, pre-checks) are configurable.
  */
 
@@ -65,7 +65,7 @@ export type PrefixExtractorConfig = {
   /** Tool name for logging and warning messages */
   toolName: string
 
-  /** The policy spec containing examples for Haiku */
+  /** The policy spec containing examples for deepseek-flash */
   policySpec: string
   /** Analytics event name for logging */
   eventName: string
@@ -73,7 +73,7 @@ export type PrefixExtractorConfig = {
   /** Query source identifier for the API call */
   querySource: QuerySource
 
-  /** Optional pre-check function that can short-circuit the Haiku call */
+  /** Optional pre-check function that can short-circuit the deepseek-flash call */
   preCheck?: (command: string) => CommandPrefixResult | null
 }
 
@@ -82,7 +82,7 @@ export type PrefixExtractorConfig = {
  *
  * Uses two-layer memoization: the outer memoized function creates the promise
  * and attaches a .catch handler that evicts the cache entry on rejection.
- * This prevents aborted or failed Haiku calls from poisoning future lookups.
+ * This prevents aborted or failed deepseek-flash calls from poisoning future lookups.
  *
  * Bounded to 200 entries via LRU to prevent unbounded growth in heavy sessions.
  *
@@ -262,7 +262,7 @@ async function getCommandPrefixImpl(
       })
       result = null
     } else if (prefix === 'command_injection_detected') {
-      // Haiku detected something suspicious - treat as no prefix available
+      // deepseek-flash detected something suspicious - treat as no prefix available
       logEvent(eventName, {
         success: false,
         error:
