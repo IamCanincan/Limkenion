@@ -1,9 +1,11 @@
 /**
  * 斜杠命令语义。
  *
- * 分三类：
+ * 分四类：
  *   - web 端有真实语义（WEB_IMPLEMENTED）：会话/设置/统计/内容查看/工具管理；
  *   - CLI 终端专属（TERMINAL_ONLY）：逐条写明不可用的具体原因，不糊弄；
+ *   - 本构建里不存在（NOT_IN_BUILD）：上游有名字但实现是占位桩、或已停用、
+ *     或依赖本构建没有的云端账号体系；
  *   - 其余：明确报「未知命令」。
  */
 
@@ -15,21 +17,32 @@ import {
   applySessionSetting,
   CLI_ROOT,
   COMMANDS_DIR,
+  EFFORT_LEVELS,
   engineName,
   HAS_CLI_SOURCE,
   MODELS,
+  modelSupportsMaxEffort,
   PERMISSION_MODES,
   PORT,
   publicSettings,
+  resolveEffort,
   SERVER_VERSION,
   settingsFor,
   startedAt,
   THEMES,
   WORKSPACE_ROOT,
 } from './config.mjs'
-import { clearCronsForSession, cronCount, cronList } from './engine.mjs'
+import { chatCompletion, getApiKey } from './deepseek.mjs'
+import { clearCronsForSession, cronCount, cronList, newMessageId, removeCron, runTurn } from './engine.mjs'
 import { pendingCounts } from './interactions.mjs'
-import { allSessions, broadcastSessions, collectStats, sessionCount } from './sessions.mjs'
+import {
+  allSessions,
+  broadcastSessions,
+  collectStats,
+  forkSession,
+  rewindSession,
+  sessionCount,
+} from './sessions.mjs'
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
 import { enableTools, toolsOverview } from './toolindex.mjs'
 import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
@@ -44,18 +57,33 @@ import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
 export async function loadCommandRegistry() {
   const commands = []
   const scanSource = (src, fallbackName) => {
-    const name = src.match(/^\s*name:\s*'([^']+)'/m)?.[1] ?? fallbackName
+    // name 取**缩进最浅**的那个匹配，而不是第一个匹配。
+    //
+    // 原来取第一个匹配，结果 `commands/insights.ts` 被注册成了 `project_areas`
+    // —— 那是 /insights 报告里一个嵌套的分节名（缩进 4），而真正的命令名
+    // `insights`（缩进 2）在 1600 行之后，根本没被扫到。于是注册表里多了一个
+    // 不存在的命令、又少了一个真实命令。
+    const nameMatches = [...src.matchAll(/^([ \t]*)name:\s*'([^']+)'/gm)]
+    const best = nameMatches.length > 0
+      ? nameMatches.reduce((a, b) => (b[1].length < a[1].length ? b : a))
+      : null
+    const name = best?.[2] ?? fallbackName
     if (!name) return
+
+    // description / aliases / argumentHint 只在 name 之后的窗口里找，
+    // 免得又抓到这个文件里别的对象（比如报告分节的字段）。
+    const after = best ? src.slice(best.index, best.index + 3000) : src
     const description =
+      after.match(/^\s*description:\s*'([^']+)'/m)?.[1] ??
+      after.match(/^\s*description:\s*`([^`]+)`/m)?.[1] ??
+      after.match(/return\s+`([^`]+)`/m)?.[1] ??
       src.match(/^\s*description:\s*'([^']+)'/m)?.[1] ??
-      src.match(/^\s*description:\s*`([^`]+)`/m)?.[1] ??
-      src.match(/return\s+`([^`]+)`/m)?.[1] ??
       ''
-    const aliases = [...src.matchAll(/aliases:\s*\[([^\]]*)\]/g)]
+    const aliases = [...after.matchAll(/aliases:\s*\[([^\]]*)\]/g)]
       .flatMap(m => [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]))
     const argumentHint =
-      src.match(/argumentHint:\s*'([^']*)'/)?.[1] ??
-      src.match(/argumentHint:\s*`([^`]*)`/)?.[1]
+      after.match(/argumentHint:\s*'([^']*)'/)?.[1] ??
+      after.match(/argumentHint:\s*`([^`]*)`/)?.[1]
     commands.push({ name, description, aliases, argumentHint })
   }
 
@@ -109,12 +137,18 @@ const TERMINAL_ONLY = {
   'remote-setup': '远端配置属于 CLI 托管能力',
   'remote-control-server': '远端控制服务属于 CLI 托管能力',
   'add-dir': 'web 端沙箱固定为工作区根（LIMKENION_WEB_WORKSPACE）',
+  // 注意：这个命令在 commands/sandbox-toggle/index.ts 里，但 name 是 'sandbox'。
+  // 原来这里只写了 'sandbox-toggle'，键名对不上，于是 /sandbox 会落到
+  // 兜底的"CLI 终端专属（描述）"上，说明不够准确。两个键都留着。
+  sandbox: 'CLI 沙箱开关；web 端沙箱固定为工作区根',
   'sandbox-toggle': 'CLI 沙箱开关；web 端沙箱固定为工作区根',
   install: '安装/升级 CLI 属于终端操作',
   upgrade: '升级 CLI 属于终端操作',
   'install-github-app': '需要 GitHub App 授权回调',
   'install-slack-app': '需要 Slack App 授权回调',
   terminalSetup: '需要写入终端配置文件',
+  // 同上：真实 name 是 'terminal-setup'（commands/terminalSetup/index.ts）。
+  'terminal-setup': '需要写入终端配置文件',
   'reload-plugins': '插件加载在 CLI 进程内',
   plugin: '插件管理写入 CLI 配置，web 端只读展示',
   mcp: 'MCP 客户端未在 web 服务端挂载',
@@ -149,23 +183,65 @@ const TERMINAL_ONLY = {
   bughunter: '需要多代理编排基础设施',
 }
 
+/**
+ * 上游有这个名字、但**本构建里没有实现**的命令。
+ *
+ * 与 TERMINAL_ONLY 分开，是因为"没有实现"和"只在终端里可用"是两件事 ——
+ * 全都塞进 TERMINAL_ONLY 会给出不准确的说明（用户会以为换个环境就能用）。
+ *
+ * 三类来源：
+ *   ① 上游专属的 feature-gated 模块，本构建里被替换成 Proxy 占位桩
+ *      （见 bun-bundle-stub.ts 的注释）；
+ *   ② 已被停用的命令；
+ *   ③ 依赖云端账号体系的命令（本仓库没有任何网站与云服务）。
+ */
+const NOT_IN_BUILD = {
+  assistant: '上游专属功能，本构建里是占位桩，没有实现',
+  peers: '上游专属功能，本构建里是占位桩，没有实现',
+  'force-snip': '上游专属功能，本构建里是占位桩，没有实现',
+  proactive: '上游专属功能，本构建里是占位桩，没有实现',
+  'subscribe-pr': '上游专属功能，本构建里是占位桩，没有实现',
+  torch: '上游专属功能，本构建里是占位桩，没有实现',
+  brief: 'KAIROS 能力在本构建里被关闭（见 bun-bundle-stub.ts 的 UNSUPPORTED_UPSTREAM_FEATURES），/brief 无法启用',
+  'think-back': '已停用',
+  'thinkback-play': '已停用',
+  fast: '需要云端订阅（本构建没有云端账号体系）',
+  'web-setup': '需要云端订阅（本构建没有云端账号体系）',
+  // 注意：/usage 不在这里 —— 它被 COMMAND_ALIASES 映射到 /cost 了（见上面的注释）。
+  'privacy-settings': '需要云端订阅（本构建没有云端账号体系）',
+  project_areas: '这不是命令 —— 它是 /insights 报告里的一个分节名（注册表扫描的误报）',
+}
+
 /** web 端有真实语义的命令。 */
 export const WEB_IMPLEMENTED = [
   'help', 'clear', 'compact', 'rename', 'model', 'theme', 'permissions', 'plan',
   'cost', 'status', 'context', 'version', 'session', 'resume', 'export', 'diff',
   'files', 'memory', 'skills', 'tasks', 'todos', 'agents', 'summary', 'tag',
   'config', 'env', 'output-style', 'tools', 'cron', 'web', 'exit',
+  // ---- 以下是从 CLI 搬过来的 ----
+  'effort',      // 推理强度（与 CLI 的 EFFORT_LEVELS 对齐）
+  'branch',      // 会话分叉
+  'rewind',      // 对话回退
+  'btw',         // 旁路提问
+  'init',        // 生成 LIMKENION.md
+  'schedule',    // 与 /cron 同一实现（CLI 叫 /schedule）
+  'workflows',   // 动态工作流运行（web 端未挂载该工具，如实说明）
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
 const COMMAND_ALIASES = {
   stats: 'cost',
+  // CLI 的 /usage 是「显示套餐用量限制」，需要云端订阅 —— 本构建里是死路径。
+  // web 端没有套餐概念，映射到 /cost（会话与累计 token 用量）更有用。
   usage: 'cost',
   quit: 'exit',
   todo: 'todos',
   ctx_viz: 'context',
   color: 'theme',
   doctor: 'status',
+  // CLI 的 /fork 就是 /branch（commands/branch/index.ts 在 FORK_SUBAGENT 关闭时
+  // 自己带 'fork' 别名）。web 端没有独立的 /fork，直接映射过去。
+  fork: 'branch',
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +260,10 @@ const COMMAND_ALIASES = {
 export async function runCommand(session, rawName, argString, ws, registry) {
   const name = COMMAND_ALIASES[rawName] ?? rawName
   const cmd = registry.find(c => c.name === name || c.aliases.includes(name))
-  if (!WEB_COMMANDS.has(name) && !cmd) {
+  // 注册表里没有、web 也没实现 —— 但如果我们能说清它为什么不可用，
+  // 就交给下面的分类分支去说，别一律报「未知命令」。
+  // （比如 /assistant 是个没有 index.ts 的占位桩目录，注册表里根本扫不到。）
+  if (!WEB_COMMANDS.has(name) && !cmd && !NOT_IN_BUILD[name] && !TERMINAL_ONLY[name]) {
     return `未知命令：/${rawName}。输入 / 查看全部命令。`
   }
   const arg = argString.trim()
@@ -240,6 +319,51 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     )
   }
 
+  if (name === 'branch') {
+    // CLI 的 /branch [name]：在当前会话的此处分叉出一个分支。
+    // web 端同理，但分叉出来的是一条**独立会话**（侧栏里能看到、能单独继续）。
+    const forked = forkSession(session, arg)
+    if (!forked) return '分叉失败：找不到当前会话。'
+    broadcastSessions()
+    return (
+      `已从当前会话分叉：${forked.id}「${forked.title}」\n` +
+      `带过去 ${forked.messages.length} 条消息、${forked.filesChanged.length} 个改动文件记录。\n\n` +
+      '新会话是独立的一份，在侧栏里点它即可继续；改它不会影响原会话。'
+    )
+  }
+  if (name === 'rewind') {
+    // CLI 的 /rewind 会连同代码检查点一起回退；web 端没有文件快照，
+    // 只能回退对话本身 —— 这一点必须说清楚，别让用户以为文件也回滚了。
+    const total = session.messages.length
+    if (!arg) {
+      const shown = session.messages.slice(-10)
+      const start = Math.max(0, total - shown.length)
+      return (
+        `当前会话共 ${total} 条消息。最近 ${shown.length} 条：\n` +
+        shown
+          .map((m, i) => {
+            const idx = start + i
+            const who = m.role === 'user' ? '用户' : m.role === 'assistant' ? '模型' : '系统'
+            const text = (m.text ?? '').replace(/\s+/g, ' ').slice(0, 50)
+            return `- [${idx}] ${who}：${text}`
+          })
+          .join('\n') +
+        '\n\n用法：/rewind <保留条数> —— 例如 /rewind 4 表示只保留前 4 条。\n' +
+        '注意：只回退**对话**，不会回滚已经写进磁盘的文件改动。'
+      )
+    }
+    const keep = Number.parseInt(arg, 10)
+    if (!Number.isFinite(keep) || keep < 0) {
+      return `参数无效：${arg}。用法：/rewind <保留条数>（0 表示清空对话）`
+    }
+    const { removed, kept } = rewindSession(session, keep)
+    broadcastSessions()
+    return (
+      `已回退：删掉 ${removed} 条消息，保留 ${kept} 条。\n` +
+      '注意：只回退了**对话**；已经写进磁盘的文件改动没有回滚。'
+    )
+  }
+
   // ---- 模型与设置 ----
   if (name === 'model') {
     if (arg && MODELS.some(m => m.value === arg)) {
@@ -284,6 +408,34 @@ export async function runCommand(session, rawName, argString, ws, registry) {
   }
   if (name === 'output-style') {
     return `当前输出风格：${settings.outputStyle}（web 端渲染统一为 Markdown，风格仅记录在设置里）`
+  }
+  if (name === 'effort') {
+    const cur = settings.effortLevel ?? null
+    const eff = resolveEffort(settings.model, cur)
+    if (!arg) {
+      return (
+        `当前推理强度：${cur ?? '（未设置 —— 用服务端默认，思考链开启）'}\n` +
+        `当前模型：${settings.model}\n` +
+        `实际发给 API：${eff ?? '（不带 reasoning_effort 参数）'}\n\n` +
+        `用法：/effort <${EFFORT_LEVELS.join('|')}|default>\n` +
+        '- low / medium / high：思考链长度递增\n' +
+        '- max：最深的思考（仅 deepseek-v4-pro 支持）\n' +
+        '- default：清除设置，回到服务端默认\n' +
+        (modelSupportsMaxEffort(settings.model)
+          ? ''
+          : `\n注意：当前模型不支持 max，设成 max 会被降级为 high（与 CLI 行为一致）。`)
+      )
+    }
+    const v = arg === 'default' || arg === 'clear' || arg === 'off' ? null : arg
+    if (v !== null && !EFFORT_LEVELS.includes(v)) {
+      return `未知档位：${arg}\n可选：${EFFORT_LEVELS.join(' | ')} | default`
+    }
+    applySessionSetting(session, 'effortLevel', v)
+    if (v === null) return '已清除推理强度设置（回到服务端默认：思考链开启）。'
+    const actual = resolveEffort(settings.model, v)
+    return actual === v
+      ? `推理强度已设为 ${v}（仅本会话）。`
+      : `推理强度已设为 ${v}，但当前模型 ${settings.model} 不支持 ${v}，实际按 ${actual} 生效。`
   }
 
   // ---- 统计与状态 ----
@@ -354,11 +506,17 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     }
     return toolsOverview(session)
   }
-  if (name === 'cron') {
+  if (name === 'cron' || name === 'schedule') {
+    // CLI 叫 /schedule（commands/schedule/），web 端原先只有 /cron。两个名字都认。
     const list = cronList()
     if (arg === 'clear') {
       const n = clearCronsForSession(session.id)
       return n > 0 ? `已清理本会话的 ${n} 个定时任务。` : '本会话没有定时任务。'
+    }
+    if (arg.startsWith('remove')) {
+      const id = arg.replace(/^remove\s*/, '').trim()
+      if (!id) return '用法：/schedule remove <id>'
+      return removeCron(id) ? `已删除定时任务 ${id}。` : `没有找到定时任务 ${id}。`
     }
     if (list.length === 0) return '当前没有定时任务。模型可通过 CronCreate 创建。'
     return (
@@ -366,7 +524,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       list
         .map(c => `- ${c.id}（会话 ${c.sessionId}）：每 ${Math.round(c.everyMs / 1000)}s「${c.prompt.slice(0, 60)}」`)
         .join('\n') +
-      '\n\n用 /cron clear 清理本会话的定时任务。'
+      '\n\n用 /schedule remove <id> 删掉某一个，或用 /schedule clear 清理本会话的全部。'
     )
   }
 
@@ -435,6 +593,77 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     return `已导出 ${session.messages.length} 条消息（Markdown），浏览器应已开始下载。`
   }
 
+  // ---- 旁路提问 / 初始化 / 工作流 ----
+
+  if (name === 'btw') {
+    // CLI 的 /btw：不打断主对话地快速问一个问题（immediate 命令，不进历史）。
+    // web 端同理：答案作为命令输出返回，而命令输出在 session.messages 里是
+    // role:'system' —— engine 的 sessionToWireMessages 会跳过 system，
+    // 所以这段内容**不会**进入模型下一轮的上下文。语义与 CLI 一致。
+    if (!arg) {
+      return '用法：/btw <问题>\n在不打断主对话的前提下问一个问题；回答不会进入后续对话上下文。'
+    }
+    if (!getApiKey()) return '未配置 DEEPSEEK_API_KEY，无法提问。'
+    try {
+      const res = await chatCompletion({
+        model: settings.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              '你是 Limkenion。用户提的是一个「旁路问题」——它不进入主对话上下文。' +
+              '直接、简短地回答这个问题本身，不要调用工具，不要展开成实施方案。',
+          },
+          { role: 'user', content: arg },
+        ],
+        tools: [],
+        reasoningEffort: resolveEffort(settings.model, settings.effortLevel),
+        onDelta: () => {},
+      })
+      const answer = (res.text ?? '').trim()
+      return `**旁路回答**（不进主对话上下文，模型下一轮看不到这段）\n\n${answer || '（模型没有返回内容）'}`
+    } catch (err) {
+      return `旁路提问失败：${err?.message ?? String(err)}`
+    }
+  }
+
+  if (name === 'init') {
+    // 改写自 CLI 的 commands/init/index.ts（NEW_INIT_PROMPT 的精简版）。
+    const prompt =
+      '为当前仓库搭建一份精简的 LIMKENION.md。\n\n' +
+      '要求：\n' +
+      '1. LIMKENION.md 会被加载进每一个会话，必须保持简洁 —— 只写「缺少它就会犯错」的内容。\n' +
+      '2. 必须包含：常用命令（构建 / lint / 测试，以及如何只跑单个测试）、需要读多个文件才能理解的架构要点。\n' +
+      '3. 如果已存在 LIMKENION.md，不要重写，改为提出改进建议。\n' +
+      '4. 不要写显而易见的内容（如"写有帮助的错误信息""不要提交密钥"），不要罗列一眼就能发现的目录结构，不要写通用开发实践。\n' +
+      '5. 如果存在 README.md、.cursor/rules/、.cursorrules、.github/copilot-instructions.md，把其中的重要部分纳入。\n' +
+      '6. 不要编造。\n' +
+      '7. 文件开头固定为：\n\n' +
+      '# LIMKENION.md\n\n' +
+      'This file provides guidance to Limkenion when working with code in this repository.\n\n' +
+      '先探查仓库（读 README、package.json 等），再写文件。'
+
+    const userMessage = { id: newMessageId(), role: 'user', text: prompt, timestamp: Date.now() }
+    session.messages.push(userMessage)
+    session.updatedAt = Date.now()
+    broadcast({ type: 'user_message', sessionId: session.id, message: userMessage })
+
+    const messageId = newMessageId()
+    broadcast({ type: 'assistant_start', sessionId: session.id, messageId })
+    // 不 await：命令要立刻返回，回合在后台跑完（事件照常 broadcast 给前端）。
+    void runTurn(session, prompt, messageId)
+
+    return '已开始生成 LIMKENION.md —— 模型会先探查仓库结构，再写文件（写文件前会请求你确认）。'
+  }
+
+  if (name === 'workflows') {
+    return (
+      'web 端没有挂载动态工作流（Workflow）工具，所以没有任何工作流运行可看。\n\n' +
+      'CLI 端的 /workflows 管理的是「动态工作流运行」（多子代理编排）。' +
+      'web 端的子代理走 Agent 工具（见 /agents），但没有工作流编排层。'
+    )
+  }
+
   // ---- 帮助 ----
   if (name === 'help') {
     return (
@@ -442,11 +671,18 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       `web 端有真实语义（${WEB_IMPLEMENTED.length} 个）：\n` +
       WEB_IMPLEMENTED.map(r => `- /${r}`).join('\n') +
       `\n\n工具共 ${TOOL_SCHEMAS.length} 个，常驻一部分、其余按需启用（/tools 查看）。\n\n` +
-      `其余命令为 CLI 终端专属（登录/Git/插件管理等），web 上返回说明。`
+      `其余命令分两类：CLI 终端专属（登录 / Git / 插件管理等），以及本构建里没有实现的` +
+      `（上游占位桩、已停用、需要云端账号体系）。执行它们会给出具体原因。`
     )
   }
   if (name === 'web') {
     return `Limkenion web 服务已在运行：http://localhost:${PORT}\nWebSocket：ws://localhost:${PORT}/ws\n版本：${SERVER_VERSION}`
+  }
+
+  // ---- 本构建里没有实现 ----
+  const notInBuild = NOT_IN_BUILD[name]
+  if (notInBuild) {
+    return `/${name} 在本构建里不可用：${notInBuild}。\n\n用 /help 查看 web 端可用命令。`
   }
 
   // ---- CLI 终端专属 ----

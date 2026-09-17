@@ -296,3 +296,44 @@ describe('请求追踪协议', () => {
     client.close()
   })
 })
+
+describe('会话分叉协议（对应 CLI 的 /branch）', () => {
+  test('fork_session 回报 session_forked 并自动切到新会话', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+
+    client.ws.send(JSON.stringify({ type: 'new_session' }))
+    const created = await client.next('session_messages')
+    const srcId = created.sessionId
+
+    client.ws.send(JSON.stringify({ type: 'fork_session', sessionId: srcId, title: '分叉测试' }))
+    const forked = await client.next('session_forked')
+    assert.equal(forked.fromId, srcId, '应记录源会话')
+    assert.equal(forked.title, '分叉测试', '标题应生效')
+    assert.notEqual(forked.sessionId, srcId, '必须是新会话 id')
+
+    const switched = await client.next('session_messages')
+    assert.equal(switched.sessionId, forked.sessionId, '应自动切到分叉出来的会话')
+
+    // 分叉出来的会话要出现在会话列表里。
+    // 这里另开一条连接看 hello 里的列表 —— 复用原连接会先拿到分叉之前那次
+    // broadcastSessions 的广播，断言不到新会话。
+    const probe = await connect(`?token=${token}`)
+    const hello2 = await probe.next('hello')
+    assert.ok(
+      hello2.sessions.some(s => s.id === forked.sessionId),
+      '新会话应出现在会话列表',
+    )
+    probe.close()
+    client.close()
+  })
+
+  test('对不存在的会话分叉会回错误', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'fork_session', sessionId: 's_不存在' }))
+    const err = await client.next('error')
+    assert.match(err.message, /会话不存在/)
+    client.close()
+  })
+})

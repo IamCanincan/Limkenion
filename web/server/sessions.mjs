@@ -67,6 +67,67 @@ export function getSession(id) {
   return sessions.get(id)
 }
 
+/**
+ * 从某个会话分叉出一个新会话（对应 CLI 的 `/branch`）。
+ *
+ * 复制的是**对话状态**（消息、设置、待办、任务、改动记录、用量计数），
+ * 不复制运行时状态（cancelled / 定时器）。新会话是独立的一份，改它不影响源会话。
+ *
+ * @param {object} source 源会话
+ * @param {string} [title] 新会话标题；省略则用「源标题（分叉）」
+ * @param {number} [atIndex] 只复制到第 atIndex 条消息（含）。省略则复制全部。
+ *   给 `atIndex` 就是"在此处分叉"——前端从某条消息上点分叉时用。
+ * @returns {object|null} 新会话
+ */
+export function forkSession(source, title, atIndex) {
+  if (!source) return null
+  const forked = blankSession()
+  const cut = Number.isInteger(atIndex)
+    ? Math.max(0, Math.min(atIndex + 1, source.messages.length))
+    : source.messages.length
+
+  // 消息浅拷贝：消息对象本身在两侧都不再被原地修改（引擎每轮 push 新对象），
+  // 但 images / toolCalls 是数组，深拷一层避免共享引用。
+  forked.messages = source.messages.slice(0, cut).map(m => ({
+    ...m,
+    images: m.images ? m.images.map(i => ({ ...i })) : undefined,
+    toolCalls: m.toolCalls ? m.toolCalls.map(t => ({ ...t })) : undefined,
+  }))
+
+  const trimmed = String(title ?? '').trim()
+  forked.title = trimmed ? trimmed.slice(0, 40) : `${source.title}（分叉）`
+  forked.settings = { ...(source.settings ?? {}) }
+  forked.planMode = Boolean(source.planMode)
+  forked.tags = [...(source.tags ?? [])]
+  forked.usage = { ...source.usage }
+  forked.turnCount = source.turnCount
+  forked.toolCallCount = source.toolCallCount
+  forked.filesChanged = [...source.filesChanged]
+  forked.todos = (source.todos ?? []).map(t => ({ ...t }))
+  forked.tasks = (source.tasks ?? []).map(t => ({ ...t }))
+  forked.enabledTools = new Set(source.enabledTools ?? [])
+  forked.allowedTools = new Set(source.allowedTools ?? [])
+
+  sessions.set(forked.id, forked)
+  schedulePersist()
+  return forked
+}
+
+/**
+ * 回退会话到第 n 条消息（对应 CLI 的 `/rewind`，但 web 端只做对话级回退）。
+ * @param {object} session
+ * @param {number} keep 保留的消息条数
+ * @returns {{removed: number, kept: number}}
+ */
+export function rewindSession(session, keep) {
+  const before = session.messages.length
+  const n = Math.max(0, Math.min(Math.floor(keep), before))
+  session.messages = session.messages.slice(0, n)
+  session.updatedAt = Date.now()
+  schedulePersist()
+  return { removed: before - n, kept: n }
+}
+
 export function allSessions() {
   return sessions.values()
 }

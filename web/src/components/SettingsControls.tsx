@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PermissionMode, Settings, ThemeMode } from '../types'
+import type { EffortLevel, PermissionMode, Settings, ThemeMode } from '../types'
 
 interface Props {
   settings: Settings | null
-  onSet: (key: 'theme' | 'permissionMode', value: string) => void
+  onSet: (key: 'theme' | 'permissionMode' | 'effortLevel', value: string | null) => void
 }
 
 const PERMISSION_LABEL: Record<PermissionMode, string> = {
@@ -26,11 +26,27 @@ const THEME_LABEL: Record<ThemeMode, string> = {
   system: '跟随系统',
 }
 
+/** 推理强度档位 —— 与 CLI 的 /effort 一致（utils/effort.ts 的 EFFORT_LEVELS）。 */
+const EFFORT_LABEL: Record<EffortLevel, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+  max: '最高',
+}
+
+const EFFORT_DESC: Record<EffortLevel, string> = {
+  low: '思考链最短，最快最省',
+  medium: '均衡',
+  high: '思考更充分，适合复杂改动',
+  max: '最深的思考链（仅 deepseek-v4-pro）',
+}
+
 /**
- * 顶栏设置：权限模式 + 主题（对齐 CLI 的 /permissions 与 /theme）。
+ * 顶栏设置：权限模式 + 主题 + 推理强度
+ * （对齐 CLI 的 /permissions、/theme、/effort）。
  */
 export function SettingsControls({ settings, onSet }: Props) {
-  const [open, setOpen] = useState<'permission' | 'theme' | null>(null)
+  const [open, setOpen] = useState<'permission' | 'theme' | 'effort' | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,6 +59,9 @@ export function SettingsControls({ settings, onSet }: Props) {
 
   const mode: PermissionMode = settings?.permissionMode ?? 'default'
   const theme: ThemeMode = settings?.theme ?? 'dark'
+  const effort: EffortLevel | null = settings?.effortLevel ?? null
+  // max 在当前模型上会被降级 —— 按钮上标出来，避免用户以为没生效
+  const downgraded = effort === 'max' && settings?.effectiveEffort === 'high'
 
   return (
     <div className="settings-controls" ref={ref}>
@@ -67,6 +86,43 @@ export function SettingsControls({ settings, onSet }: Props) {
               >
                 <span className="setting-name">{PERMISSION_LABEL[m]}</span>
                 <span className="setting-desc">{PERMISSION_DESC[m]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="setting-group">
+        <button
+          className="setting-btn"
+          onClick={() => setOpen(open === 'effort' ? null : 'effort')}
+          title="推理强度（/effort）—— 控制模型的思考链长度"
+        >
+          推理 · {effort ? EFFORT_LABEL[effort] : '默认'}
+          {downgraded ? '（实为高）' : ''}
+        </button>
+        {open === 'effort' && (
+          <div className="setting-menu">
+            <button
+              className={effort === null ? 'active' : ''}
+              onClick={() => {
+                onSet('effortLevel', null)
+                setOpen(null)
+              }}
+            >
+              <span className="setting-name">默认</span>
+              <span className="setting-desc">不指定，由服务端决定（思考链开启）</span>
+            </button>
+            {(Object.keys(EFFORT_LABEL) as EffortLevel[]).map(l => (
+              <button
+                key={l}
+                className={l === effort ? 'active' : ''}
+                onClick={() => {
+                  onSet('effortLevel', l)
+                  setOpen(null)
+                }}
+              >
+                <span className="setting-name">{EFFORT_LABEL[l]}</span>
+                <span className="setting-desc">{EFFORT_DESC[l]}</span>
               </button>
             ))}
           </div>

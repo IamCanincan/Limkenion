@@ -28,6 +28,7 @@ import {
   collectStats,
   createSession,
   deleteSession,
+  forkSession,
   getSession,
   schedulePersist,
 } from './sessions.mjs'
@@ -128,6 +129,36 @@ async function handleClientMessage(ws, msg, registry) {
         broadcastSessions()
         schedulePersist()
       }
+      break
+    }
+
+    case 'fork_session': {
+      // 对应 CLI 的 /branch：在某处分叉出一条独立会话。
+      // 带上 atIndex 就是「从第 N 条消息处分叉」（前端在消息上点分叉时用）。
+      const src = requireSession(ws, msg.sessionId)
+      if (!src) return
+      const forked = forkSession(src, msg.title, msg.atIndex)
+      if (!forked) {
+        send(ws, { type: 'error', message: '分叉失败：找不到源会话' })
+        return
+      }
+      broadcastSessions()
+      send(ws, {
+        type: 'session_forked',
+        sessionId: forked.id,
+        fromId: src.id,
+        title: forked.title,
+        messageCount: forked.messages.length,
+      })
+      // 直接把新会话的内容推过去 —— 前端收到 session_messages 会自动切到它
+      send(ws, { type: 'session_messages', sessionId: forked.id, messages: forked.messages })
+      send(ws, { type: 'settings', sessionId: forked.id, settings: publicSettings(forked) })
+      // 切换之后再补一条提示（顺序上必须在这之后，否则会被 session_messages 覆盖掉）
+      broadcast({
+        type: 'notice',
+        sessionId: forked.id,
+        text: `已分叉出「${forked.title}」（${forked.messages.length} 条消息）。这是独立的一份，改它不影响原会话。`,
+      })
       break
     }
 

@@ -320,6 +320,11 @@ export function App() {
     connectionRef.current.send({ type: 'export_session', sessionId: id })
   }, [])
 
+  /** 分叉会话（对应 CLI 的 /branch）。服务端会回 session_forked + session_messages，自动切过去。 */
+  const onForkSession = useCallback((id: string, title?: string) => {
+    connectionRef.current.send({ type: 'fork_session', sessionId: id, title })
+  }, [])
+
   const onSend = useCallback((text: string, images?: ImageAttachment[]) => {
     const sessionId = activeSessionIdRef.current
     if (sessionId === null) {
@@ -338,14 +343,17 @@ export function App() {
     connectionRef.current.send({ type: 'set_model', model, sessionId: activeSessionIdRef.current ?? undefined })
   }, [])
 
-  const onSetSetting = useCallback((key: 'theme' | 'permissionMode', value: string) => {
-    connectionRef.current.send({
-      type: 'set_setting',
-      key,
-      value,
-      sessionId: activeSessionIdRef.current ?? undefined,
-    })
-  }, [])
+  const onSetSetting = useCallback(
+    (key: 'theme' | 'permissionMode' | 'effortLevel', value: string | null) => {
+      connectionRef.current.send({
+        type: 'set_setting',
+        key,
+        value,
+        sessionId: activeSessionIdRef.current ?? undefined,
+      })
+    },
+    [],
+  )
 
   const onRequestFiles = useCallback(() => {
     connectionRef.current.send({ type: 'list_files' })
@@ -385,6 +393,7 @@ export function App() {
         onRename={onRenameSession}
         onDelete={onDeleteSession}
         onExport={onExportSession}
+        onFork={onForkSession}
       />
       <main className="main">
         <header className="chat-header">

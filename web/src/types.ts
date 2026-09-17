@@ -15,6 +15,7 @@ export type ClientMessage =
   | { type: 'run_command'; sessionId: string; command: string }
   | { type: 'get_models' }
   | { type: 'set_model'; model: string; sessionId?: string }
+  | { type: 'fork_session'; sessionId: string; title?: string; atIndex?: number }
   | { type: 'get_settings'; sessionId?: string }
   | { type: 'set_setting'; key: string; value: unknown; sessionId?: string }
   | { type: 'get_stats' }
@@ -29,6 +30,8 @@ export type ClientMessage =
 export type ServerMessage =
   | { type: 'hello'; sessions: SessionInfo[]; serverVersion: string }
   | { type: 'session_messages'; sessionId: string; messages: ChatMessage[] }
+  /** 会话分叉成功（对应 CLI 的 /branch）。随后会紧跟一条 session_messages 切过去。 */
+  | { type: 'session_forked'; sessionId: string; fromId: string; title: string; messageCount: number }
   | {
       type: 'user_message'
       sessionId: string
@@ -109,9 +112,22 @@ export interface Settings {
   permissionMode: PermissionMode
   model: string
   outputStyle: string
+  /** 推理强度档位；null 表示未设置（用服务端默认，思考链开启）。 */
+  effortLevel: EffortLevel | null
+  /** 按当前模型解析后的实际档位（max 在非 v4-pro 上会降级为 high）。 */
+  effectiveEffort: EffortLevel | null
   workspace: string
   engine: 'deepseek' | 'mock'
 }
+
+/**
+ * 推理强度档位 —— **与 CLI 的 EFFORT_LEVELS 保持一致**（utils/effort.ts）。
+ *
+ * 实测 `POST /chat/completions` 的 reasoning_effort 取值：
+ * none（关思考）/ minimal / low / medium / high / max 可用，`auto` 会 400。
+ * CLI 只暴露 low|medium|high|max，所以这里也只暴露这四档。
+ */
+export type EffortLevel = 'low' | 'medium' | 'high' | 'max'
 
 export type ToolCallStatus = 'running' | 'done' | 'error'
 

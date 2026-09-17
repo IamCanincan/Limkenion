@@ -16,6 +16,7 @@ import {
   MAX_SUBAGENT_ROUNDS,
   MAX_TOOL_RESULT_CHARS,
   MAX_TOOL_ROUNDS,
+  resolveEffort,
   settingsFor,
   sleep,
 } from './config.mjs'
@@ -49,8 +50,13 @@ function baseSystemPrompt() {
   )
 }
 
-/** 把会话历史映射为 chat-completions 消息数组（跳过 system 回显和工具元数据）。 */
-function sessionToWireMessages(session) {
+/**
+ * 把会话历史映射为 chat-completions 消息数组（跳过 system 回显和工具元数据）。
+ *
+ * 跳过 system 这一点是 `/btw` 语义成立的前提：命令输出在会话里存成 role:'system'，
+ * 因此「旁路回答」会显示在界面上，但不会被发给模型。导出供测试直接验证。
+ */
+export function sessionToWireMessages(session) {
   const messages = [{ role: 'system', content: baseSystemPrompt() }]
   for (const m of session.messages) {
     if (m.role === 'user') {
@@ -107,6 +113,9 @@ function makeSummarizer(session) {
           { role: 'user', content: `网页内容：\n---\n${content}\n---\n\n${prompt}` },
         ],
         tools: [],
+        // 提炼是纯抽取任务，不需要推理链：关掉思考更快也更省。
+        // （`none` 是实测唯一能关掉思考链的取值。）
+        reasoningEffort: 'none',
       })
       return res.text ?? null
     } catch {
@@ -161,6 +170,9 @@ async function runDeepSeekTurn(session, text, emit) {
         model: settings.model,
         messages,
         tools: schemasFor(session),
+        // 推理强度：设置里没指定就不带该参数（由服务端默认）。
+        // max 在非 v4-pro 上会降级为 high，与 CLI 一致。
+        reasoningEffort: resolveEffort(settings.model, settings.effortLevel),
         onDelta: ev => {
           if (ev.type === 'reasoning') {
             reasoning += ev.delta
@@ -364,6 +376,7 @@ async function runSubAgent(session, prompt, description, emit) {
       model: settingsFor(session).model,
       messages,
       tools: subTools,
+      reasoningEffort: resolveEffort(settingsFor(session).model, settingsFor(session).effortLevel),
       onDelta: ev => {
         if (ev.type === 'text') answer += ev.delta
       },
@@ -541,6 +554,18 @@ export function clearCronsForSession(sessionId) {
     }
   }
   return n
+}
+
+/**
+ * 按 id 删除单个定时任务（供 `/schedule remove <id>` 用）。
+ * @returns {boolean} 是否真的删掉了
+ */
+export function removeCron(id) {
+  const entry = crons.get(id)
+  if (!entry) return false
+  clearInterval(entry.timer)
+  crons.delete(id)
+  return true
 }
 
 /** 清理全部定时器（进程退出前）。 */

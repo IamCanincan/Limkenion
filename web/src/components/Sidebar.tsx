@@ -10,6 +10,8 @@ interface Props {
   onRename: (id: string, title: string) => void
   onDelete: (id: string) => void
   onExport: (id: string) => void
+  /** 分叉会话（对应 CLI 的 /branch）。 */
+  onFork: (id: string, title?: string) => void
 }
 
 function formatTime(ts: number): string {
@@ -37,11 +39,14 @@ export function Sidebar({
   onRename,
   onDelete,
   onExport,
+  onFork,
 }: Props) {
   const sorted = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt)
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  // 会话搜索：CLI 的 /resume <关键词> 能按标题过滤，web 侧栏原来只能滚。
+  const [query, setQuery] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -51,6 +56,15 @@ export function Sidebar({
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  const q = query.trim().toLowerCase()
+  const visible = q
+    ? sorted.filter(
+        s =>
+          s.title.toLowerCase().includes(q) ||
+          (s.tags ?? []).some(t => t.toLowerCase().includes(q)),
+      )
+    : sorted
 
   const startRename = (s: SessionInfo) => {
     setRenaming(s.id)
@@ -71,6 +85,19 @@ export function Sidebar({
           ＋
         </button>
       </div>
+      <div className="session-search">
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="搜索会话（标题 / 标签）"
+          aria-label="搜索会话"
+        />
+        {query && (
+          <button className="session-search-clear" onClick={() => setQuery('')} title="清除">
+            ×
+          </button>
+        )}
+      </div>
       <div className="session-list">
         {sorted.length === 0 && (
           <div className="session-empty">
@@ -79,7 +106,10 @@ export function Sidebar({
             点击 ＋ 开始
           </div>
         )}
-        {sorted.map(s =>
+        {sorted.length > 0 && visible.length === 0 && (
+          <div className="session-empty">没有匹配「{query.trim()}」的会话</div>
+        )}
+        {visible.map(s =>
           renaming === s.id ? (
             <div key={s.id} className="session-rename">
               <input
@@ -120,6 +150,7 @@ export function Sidebar({
               {menuFor === s.id && (
                 <div className="session-menu" ref={menuRef} onClick={e => e.stopPropagation()}>
                   <button onClick={() => startRename(s)}>重命名</button>
+                  <button onClick={() => { setMenuFor(null); onFork(s.id) }}>分叉（/branch）</button>
                   <button onClick={() => { setMenuFor(null); onExport(s.id) }}>导出 Markdown</button>
                   <button className="danger" onClick={() => { setMenuFor(null); onDelete(s.id) }}>
                     删除

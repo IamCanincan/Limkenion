@@ -43,9 +43,12 @@ export function getApiKey() {
  * @param {Array<object>} [opts.tools] OpenAI function-calling 工具 schema
  * @param {(ev: {type: 'text'|'reasoning'|'tool_call', delta: string, toolCall?: object}) => void} opts.onDelta 流式增量
  * @param {AbortSignal} [opts.signal] 取消信号
- * @returns {Promise<{usage: {inputTokens: number, outputTokens: number}, toolCalls: Array<{id: string, name: string, arguments: string}>}>}
+ * @param {string} [opts.reasoningEffort] 推理强度。实测 DeepSeek 接受
+ *   `none|minimal|low|medium|high|max`（`auto` 会 400）；`none` 是唯一能关掉思考链的取值。
+ *   不传则由服务端默认（deepseek-flash 默认就是开思考）。
+ * @returns {Promise<{usage: {inputTokens: number, outputTokens: number}, toolCalls: Array<{id: string, name: string, arguments: string}>, text: string}>}
  */
-export async function chatCompletion({ model, messages, tools, onDelta, signal }) {
+export async function chatCompletion({ model, messages, tools, onDelta, signal, reasoningEffort }) {
   const apiKey = getApiKey()
   if (!apiKey) {
     const err = new Error(`缺少 ${API_KEY_ENV} 环境变量。请设置后重启服务：set ${API_KEY_ENV}=sk-...`)
@@ -53,6 +56,12 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
     throw err
   }
 
+  // 请求体集中构造。
+  //
+  // 这里曾经出过一个**严重 bug**：body 构造在这个对象里（含 tools），
+  // 但下面的 fetch 又手写了一份内联字面量（不含 tools），于是工具 schema
+  // 从来没发给过模型 —— 模型永远调不了工具，web 端的 agent 实际只能聊天。
+  // 现在只保留这一份 body，fetch 直接引用它。
   const body = {
     model,
     messages,
@@ -61,6 +70,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
     stream_options: { include_usage: true },
   }
   if (tools?.length) body.tools = tools
+  if (reasoningEffort) body.reasoning_effort = reasoningEffort
 
   let response
   try {
@@ -70,13 +80,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
         'content-type': 'application/json',
         authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        // stream_options 让 API 在最后一个 chunk 回报累计 usage
-        stream_options: { include_usage: true },
-      }),
+      body: JSON.stringify(body),
       signal,
     })
   } catch (error) {
@@ -106,6 +110,11 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
   let usage = { inputTokens: 0, outputTokens: 0 }
   // tool_calls 流式累积：按 delta.tool_calls[].index 聚合 id/name/arguments 片段
   const toolCallAcc = new Map()
+  // 正文也在这里累积并随返回值给出。
+  // 之前只经 onDelta 往外抛、返回值里没有 text，于是 engine.mjs 里
+  // `const res = await chatCompletion(...); return res.text ?? null`
+  // （WebFetch 的网页提炼器）永远拿到 undefined —— 提炼器静默失效。
+  let text = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -143,6 +152,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
           onDelta({ type: 'reasoning', delta: delta.reasoning_content })
         }
         if (typeof delta.content === 'string' && delta.content.length > 0) {
+          text += delta.content
           onDelta({ type: 'text', delta: delta.content })
         }
         for (const call of delta.tool_calls ?? []) {
@@ -166,5 +176,5 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal }
     .sort(([a], [b]) => a - b)
     .map(([, acc]) => ({ id: acc.id, name: acc.name, arguments: acc.arguments }))
 
-  return { usage, toolCalls }
+  return { usage, toolCalls, text }
 }
