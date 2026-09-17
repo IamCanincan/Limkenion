@@ -1,8 +1,8 @@
 # Limkenion 项目长期记忆
 
 > **这是会话启动时自动注入的文件，必须保持精简**（超过注入上限会被截断，接力就断了）。
-> 详细的分阶段记录、端点清单、命令级清单已移到同目录的 **`MEMORY-details.md`**，按需读取。
-> 逐轮流水在 `YYYY-MM-DD.md`。
+> 详细的分阶段记录、端点清单、命令级清单、清理日志都在同目录的 **`MEMORY-details.md`**，按需读取。
+> 逐轮流水在 `YYYY-MM-DD.md`。**加内容前先想清楚该放哪一份。**
 
 ---
 
@@ -14,46 +14,8 @@
 5. **尽量不要删功能；发现问题先提出来，不要擅自删。**
 6. 是**本地 agent**，无云、无账号、**无网站、无邮箱**。
 7. **DeepSeek 模型/价格以官网实测为准，不要凭印象写死。**
-8. **API key 由用户自己输入**（`/login` 已能录入并持久化，见下）。
-9. **不要桌宠**（2026-09-18 用户明确："桌宠不要了"）—— `buddy/` 与 `commands/buddy/`
-   已整块删除，`feature('BUDDY')` 的守卫点也清了。
-
-### 源码冗余清理（2026-09-18 用户下达"源码中多余的都删掉"）
-**已删：8 个零引用的死文件**
-`cli/transports/ccrClient.ts`、`cli/transports/transportUtils.ts`、
-`services/api/firstTokenDate.ts`、`utils/model/check1mAccess.ts`、`utils/taggedId.ts`、
-`utils/workflows/ultracode.ts`、`constants/sessionIdCompat.ts`、`utils/sessionIdCompat.ts`。
-（后两个的调用方是已删除的 `constants/product.ts`；`check1mAccess` 的调用方在早前清理中被移除。）
-
-**扫描方法（踩了两个坑，都修了）**
-1. 非相对路径（`src/` 别名）的说明符要归一到 basename，否则大量误判
-2. **正则的 `[^'"]+` 会跨行** —— 注释里出现的 `from` 会一路吞到很后面的引号，
-   把中间的 import 行整个吃掉。这让 `cli/print.ts`（5261 行，被 main.tsx 用）被误判成孤儿。
-   必须用 `[^'"\n]+`。**这个坑很隐蔽，以后写类似的导入扫描要直接排除换行。**
-
-**刻意保留的"疑似孤儿"**：`bun-bundle-stub.ts`（build 脚本 alias）、
-`entrypoints/cli.tsx`（package.json bin 入口）、`stubs/{chrome-mcp,computer-use-mcp-*}.ts`
-（tsconfig paths）、`services/remoteManagedSettings/securityCheck.tsx`（被 `'./securityCheck.jsx'` 导入，
-扩展名不同导致误判）、`.workbuddy-ai/i18n/`（34MB，暂停中的注释中文化工程产物，删了流水线没法恢复）。
-
-**已删：355 个"导出了但没人用"的符号**（192 文件，-4083 行，commit 9f76507）
-用户："没用的话就删了嘛。" **保留 `entrypoints/sdk/` 的 23 个** —— 那是 SDK 输出格式的
-公开定义，属有意公开的 API 面。
-
-**边界识别的三个坑（最后用 esbuild 兜底）**：
-1. 把**参数列表的圆括号**当成声明体 → 第一个 `)` 就结束扫描，只删签名留下函数体
-   → 构建报 `Unexpected "}"`
-2. 分离圆括号/尖括号后，漏了**联合类型的行延续符号 `|`** → 构建报 `Unexpected "|"`
-3. 最终方案：**逐文件用 esbuild 的 `transform()` 做语法校验**，解析失败的文件自动
-   `git checkout` 回退。202 个改动文件里 10 个被自动回退，192 个通过。
-
-**教训：批量删除声明时靠正则算边界必然有漏网，必须有一个语法级校验兜底。
-esbuild 的 `transform()`（不 bundle）就是现成且够快的语法检查器。**
-
-**刻意保留的"疑似孤儿"**：`bun-bundle-stub.ts`（build 脚本 alias）、
-`entrypoints/cli.tsx`（package.json bin 入口）、`stubs/{chrome-mcp,computer-use-mcp-*}.ts`
-（tsconfig paths）、`services/remoteManagedSettings/securityCheck.tsx`（被 `'./securityCheck.jsx'` 导入，
-扩展名不同导致误判）、`.workbuddy-ai/i18n/`（34MB，暂停中的注释中文化工程产物，删了流水线没法恢复）。
+8. **API key 由用户自己输入**（`/login` 已能录入并持久化）。
+9. **不要桌宠**（`buddy/` 与 `commands/buddy/` 已整块删除）。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` = **CLI（React/ink REPL）+ web 界面** 的双端 agent harness。
@@ -63,7 +25,8 @@ esbuild 的 `transform()`（不 bundle）就是现成且够快的语法检查器
   **只能改文案 / 删整块 / 改小逻辑，不能重排结构**（见"关键陷阱"）。
 - **构建**：`node scripts/build-cli.mjs` → `dist/cli.mjs`（约 27MB esbuild ESM bundle）。
 - **web 侧**（`web/`）：Vite + React 18 + 自研本地 Node 服务，可构建可运行。
-- git 仓库，分支 `master`。备份在 `..\Limkenion_backup_2026-09-16.tar.gz`，移除的模块在 `..\Limkenion_removed`。
+  **web 端不引用 CLI 源码**（只被 `web/test/drift.test.mjs` 按文件路径解析 `tools/*/`）。
+- git 仓库，分支 `master`。备份在 `..\Limkenion_backup_2026-09-16.tar.gz`。
 
 ## 硬约束与每轮惯例
 - **无任何在线账号 / OAuth / 订阅 / 云供应商**。登录 = 设 `DEEPSEEK_API_KEY` 或 `OPENAI_API_KEY`
@@ -71,15 +34,14 @@ esbuild 的 `transform()`（不 bundle）就是现成且够快的语法检查器
 - **模型只有两个**：`deepseek-flash`（默认/快）与 `deepseek-v4-pro`（强）。
   `utils/model/configs.ts` 的 `ALL_MODEL_CONFIGS` 是唯一模型表。
 - **源码不得出现 `CC` / `上游兼容` / `内部代号`**。唯一例外是 `scripts/build-cli.mjs` 的
-  `BRAND_TOKENS` 清洗名单 —— 那是**故意保留**的（它就是用来从产物里抹掉它们的）。
+  `BRAND_TOKENS` 清洗名单 —— **故意保留**（它就是用来从产物里抹掉它们的）。
 - **判断"是否 OpenAI 兼容模式"只许用 `isOpenAICompat()`**（`utils/model/providers.ts`）。
-  **它恒返回 `true`，不是"检测"出来的** —— 上游协议在本项目已永久移除，没有"另一种模式"可回退。
+  **它恒返回 `true`，不是"检测"出来的** —— 上游协议已永久移除，没有"另一种模式"可回退。
   **"用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**
   有没有 key 用 `hasAnyApiKeyConfigured()`（`utils/auth.ts`）。这个坑**踩过两次**。
 - **每轮改完的惯例**：`node scripts/build-cli.mjs` 0 错误 → **冒烟** → `npm install -g .` → git commit
   （**不 push、不动 git config**）。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾。
-- 官方插件市场自动安装**默认关闭**；要开得显式设 `LIMKENION_ENABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1`。
 
 ## 环境要点
 - 有 HTTP 代理（`HTTP_PROXY=http://127.0.0.1:7907`）：访问 localhost 必须 `curl --noproxy '*'`。
@@ -90,184 +52,94 @@ esbuild 的 `transform()`（不 bundle）就是现成且够快的语法检查器
   **冒烟命令**：`limkenion -p "只回复两个字：收到" --no-session-persistence`
 - **全局安装 npm 前必须** `export APPDATA='C:\Users\20653\AppData\Roaming'`
   （Git Bash 里 `APPDATA` 为空，否则 prefix 会被解析到 `<cwd>\${APPDATA}\npm`）。
-- 系统 Node `D:\nodejs\node.exe`（v24）+ `D:\nodejs\npm.cmd`；托管 Node/Python 在
-  `C:\Users\20653\.workbuddy-ai\binaries\`。
+- 系统 Node `D:\nodejs\node.exe`（v24）+ `D:\nodejs\npm.cmd`。
 - **单测某个源码模块**：用 esbuild 打成单文件再 node 跑，必须带
   `--banner:js="import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"`
   与 `--alias:bun:bundle=./bun-bundle-stub.ts --tsconfig=./tsconfig.json`。
   纯 node 直跑会撞 `Config accessed before allowed` —— 那是没走 bootstrap，不是 bug。
 - `NODE_ENV=test` 会让 `services/vcr.ts` 写 `fixtures/*.json` 到 cwd，跑完记得 `rm -rf fixtures`。
 
-## DeepSeek 接口实测事实（2026-09-17/18，别凭旧资料）
-Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支持**
-（但本项目只走 OpenAI，用户拍板）。
+## DeepSeek 接口实测事实（别凭旧资料）
+Base：`https://api.deepseek.com`。**OpenAI 协议与 上游 协议（`/上游兼容`）都原生支持**，
+但本项目**只走 OpenAI**（用户拍板）。
 
-- **`GET /models` 只有两个模型**：`deepseek-flash`、`deepseek-v4-pro`。
-- **usage 字段**：`prompt_tokens` / `completion_tokens` / `total_tokens`，
-  外加 `prompt_tokens_details.cached_tokens`（= `prompt_cache_hit_tokens`）、
-  `prompt_cache_miss_tokens`、`completion_tokens_details.reasoning_tokens`。
-  **适配器读 `prompt_tokens_details.cached_tokens` 是对的**（实测命中 896）。
+- **`GET /models` 只有两个**：`deepseek-flash`、`deepseek-v4-pro`。
 - **思考模式默认开启，且 reasoning token 计入 `max_tokens` 配额**：
   ```
   默认 + max_tokens=16  →  正文 = ""    （推理 token = 16，答案被吃光）
   reasoning_effort='none' → 正文 = "正常回答"
   ```
-  所以**任何设了小 `max_tokens` 的调用点都可能静默返回空响应**。
-- **推理模式 + 强制 tool_choice 不可共存**：返回 `400 Thinking mode does not support this tool_choice`。
-  适配器因此在"强制工具"时自动加 `reasoning_effort: 'none'`。
-- **官方能力**：上下文 **1M**、最大输出 **384K**；`deepseek-flash` **支持 Vision**（v4-pro 不支持）。
+  **任何设了小 `max_tokens` 的调用点都可能静默返回空响应。**
+- **推理模式 + 强制 `tool_choice` 不可共存**：返回 `400 Thinking mode does not support this tool_choice`。
+  **两个端点都一样报错** —— 这是 DeepSeek **模型**的限制，不是 OpenAI 端点独有的，
+  换 上游 端点解决不了。适配器因此在"强制工具"时自动加 `reasoning_effort: 'none'`。
+- **官方能力**：上下文 **1M**、最大输出 **384K**；`deepseek-flash` **支持 Vision**（v4-pro 不支持，
+  且 v4-pro 对图片**不报错、会瞎猜**）。
 - **价格会变，所以代码里不写死定价** —— `utils/modelCost.ts` 已整体删除，`/cost` 只报 token 数。
+- **两个端点实测几乎等价**：思考都默认开、缓存命中数都能拿到（字段名不同：
+  `prompt_cache_hit_tokens` vs `cache_read_input_tokens`）。
+  **唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮可原样传回；
+  我们这条路径拿不到签名，组装下一轮时丢弃 thinking（OpenAI 协议本来也不该回传）。
 
-## 当前进度与下一步（接力关键）
-### 去痕迹工程（用户下达，**进行中**）
-目标：删去 CC / 上游 及其模型（Sonnet/Opus/Haiku）的痕迹；Limkenion 无网站无云服务。
+## 当前状态与待办
+**能用。** 开新终端 → `limkenion` → `/login` 粘贴 key → 就能干活。
+构建 0 错误、冒烟通过、工作区干净。
 
-**已完成**：
-- 品牌词：源码 0 命中（除 build 脚本清洗名单）
-- 云服务命令：停用 7 个（`/mobile` `/stickers` `/passes` `/install-github-app` `/release-notes`
-  `/think-back` `/thinkback-play`），`/feedback` 改为写本地文件
-- 模型表：11 个上游模型 × 4 provider → 2 个 DeepSeek 模型
-- 定价表：整体删除
-- 6 个模型版本迁移函数：整文件删除
-- 2 个硬关掉的死模块：`services/mockRateLimits.ts`（719 行）、
-  `utils/model/modelCapabilities.ts`（118 行）—— 整文件删除
-- **自有服务 URL：170 处 / 99 文件全部删除**
-- 模型相关函数改名（66 处）：`getDefaultHaikuModel`→`getDefaultSmallFastModel`、
-  `getDefaultSonnetModel`→`getDefaultMainModel`、`getDefaultOpusModel`→`getDefaultStrongModel`、
-  `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
+**去痕迹工程：已完成。** 总账见 `MEMORY-details.md`。要点：
+`CC`/`上游兼容`/`内部代号` **0 命中**；自有服务 URL/域名 170+151+87+53 → **8 处**
+（1 处假阳性 + 7 处契约值/邮件）；`sonnet`/`opus`/`haiku` 1442 → **10 处**（全是同名巧合）。
 
-**已完成（2026-09-18 用户拍板"都加"）**：
-- **`/effort` 不再是空操作**：`getRuntimeReasoningEffort()` 补上第三层回落
-  `运行时 set > REASONING_EFFORT env > 设置文件里的 effortLevel > 空`。
-  惰性读取 + try/catch 兜底。
-- **新增 `/schedule` 命令**（`commands/schedule/`）：列出/删除本地定时任务。
-  本地 cron 能力一直都在，缺的只是命令入口。`isEnabled` 挂 `isKairosCronEnabled()`。
-- **结构化输出打通**：`modelSupportsStructuredOutputs` → true，
-  **且** `toOpenAITools()` 转发 `strict: true`（只改前者没用 —— 适配器原本不转发）。
-  实测 DeepSeek 两个模型都接受 `strict: true`。
+**已修的三处功能**：上下文窗口 200K→**1M**、最大输出 64K→**384K**、**图片输入打通**
+（实测 flash 能看见图）。
 
-**待办**：
-1. **三处"契约值"改名**（用户未表态，我建议不动）：
-   - `@limkenion-ai/*`（41 处）—— **npm 包作用域**，改名等于给软件改名
-   - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**写在 SDK 输出 schema 里**
-   - `'limkenionai'`（10 处）—— MCP 配置作用域，**写在设置文件的 enum schema 里**
+**已补的三处功能**：`/effort` 不再是空操作、新增 `/schedule` 命令、结构化输出打通。
 
-### **更正：本地定时任务其实是有的**（2026-09-18 核实）
-我早先报"没有本地定时任务"是**错的**。实际上：
-- `tools/ScheduleCronTool/` —— `CronCreate` / `CronDelete` / `CronList` 三个工具
-- `utils/cronScheduler.ts` + `utils/cronTasks.ts`（存 `.limkenion/scheduled_tasks.json`）
-- `hooks/useScheduledTasks.ts` —— REPL 里负责触发
-- **是开着的**：`feature('AGENT_TRIGGERS')` 不在 `bun-bundle-stub.ts` 的
-  `UNSUPPORTED_UPSTREAM_FEATURES` 里 → 返回 true；`isKairosCronEnabled()` 也为 true
-- 真正没了的只是 **`/schedule` 这个斜杠命令入口**（它走云端远程 agent），
-  以及 `RemoteTriggerTool`（`feature('AGENT_TRIGGERS_REMOTE')`）。
-- **所以模型已经能创建本地定时任务**，缺的只是命令层的 UX。
-
-**教训：报"某功能没有"之前，先搜一遍相关关键词（cron / schedule / scheduler）。
-我这次是凭印象说的，实际仓库里早就有。**
-
-**已完成（2026-09-18 用户拍板"修"）**：
-- `MODEL_CONTEXT_WINDOW_DEFAULT` 200K → **1M**（`utils/context.ts`）—— 长对话不再被过早压缩
-- `MAX_OUTPUT_TOKENS_UPPER_LIMIT` 64K → **384K**（`MAX_OUTPUT_TOKENS_DEFAULT` 保持 32K，那是策略值）
-- **图片输入打通**（`services/api/openai-compat.ts`）：新增 `imageBlockToOpenAIPart()` 与
-  `contentToOpenAIContent()`，把 image block 翻成 OpenAI 的 `image_url` part。
-  **实测**：`deepseek-flash` 能看见图（纯红图答"红色"），`deepseek-v4-pro` 看不见（答"白色"，且不报错）。
-  没图片时仍返回字符串，有图片时返回 content part 数组。
-4. **与参照实现的差距：API 接入层几乎无差别**（2026-09-18 实测）
-`D:\下载\agent\upstream-ref-impl` 接 DeepSeek 用的是 **上游 端点**
-（`src/server/config/providerPresets.json` 里 `baseUrl: https://api.deepseek.com/上游兼容`、
-`apiFormat: 上游兼容`、`main: deepseek-v4-pro[1m]`）；我们走 OpenAI 端点。
-
-| 能力 | OpenAI 端点（我们） | 上游 端点（upstream-ref-impl） |
-|---|---|---|
-| 思考模式 | 默认开启，`reasoning_content` | 默认开启，`thinking` 块 |
-| 思考签名 | ❌ 无 | ✅ 有 `signature` |
-| 提示缓存 | `prompt_cache_hit_tokens` | `cache_read_input_tokens` |
-| 显式缓存断点 | ❌ 不发 `cache_control` | ✅ 支持 |
-| 强制工具 + 推理 | ❌ 400 | ❌ **400（同样报错）** |
-| 视觉 | ✅ flash 支持 | ✅ |
-
-**两个关键纠正（都实测过）**：
-1. **"强制工具 + 推理"的 400 冲突是两个端点共有的** —— 那是 DeepSeek **模型**的限制，
-   不是 OpenAI 端点独有的。**换端点并不能解决它。**
-2. **提示缓存在两个端点上都能拿到命中数**，只是字段名不同。我们并没有"缺缓存"。
-
-**唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮时可原样传回；
-我们这条路径拿不到签名，所以 `toOpenAIMessages` 直接丢弃 thinking
-（OpenAI 协议本来也不该回传 `reasoning_content`）。
-
-**结论：真正的差距不在 API 层，而在功能层** —— upstream-ref-impl 是完整桌面工作台
-（多供应商切换 / IM 接入 / H5 远程 / Computer Use / 技能市场 / 请求追踪）。
-按用户"只支持 DeepSeek"的决定，多供应商那条不算缺口。
-
-### 痕迹清理总账（2026-09-18 收官）
-| 类别 | 结果 |
-|---|---|
-| `CC` / `上游兼容` / `内部代号` | **0 命中**（唯一例外是 build 脚本的清洗名单，故意保留） |
-| 自有服务 URL / 域名 | 170 + 151（裸域名）+ 87（注释）+ 53 → **8 处**（1 处假阳性 + 7 处契约值/邮件） |
-| `sonnet` / `opus` / `haiku` | 1442 → **10 处**（全是同名巧合：章鱼精灵 / git 参数 / 词表 / 文件扩展名） |
-| 整文件删除 | 4 个（`mockRateLimits` 719 行、`modelCapabilities` 118 行、`product.ts` 139 行、`modelOptions` 净删 447 行） |
-| 云服务命令 | 停用 7 个；`/feedback` 改本地文件 |
-
-### 模型名痕迹：**已清完**（1442 → 11 处，其中 10 处是合法保留）
-剩下 10 处**刻意不动**，全是同名巧合：
-| 位置 | 为什么保留 |
-|---|---|
-| `utils/shell/readOnlyCommandValidation.ts` 的 `'--octopus'` | **git 的真实参数**（`git merge-base --octopus`） |
-| `utils/words.ts` 的 `'octopus'` / `'sonnet'`（2 处） | **随机词表**里的英文单词 |
-| `constants/files.ts` 的 `'.opus'` | **音频文件扩展名** |
-
-（桌宠那 5 处 `octopus` 已随功能删除而消失。）
-
-**教训：批量改名前必须区分"同名巧合"。** 这轮里 `octopus`（桌宠/git 参数/词表）、
-`.opus`（文件扩展名）、`sonnet`（词表单词）都差点被误伤。
-
-**URL 空壳清理已全部完成**：`constants/product.ts`（整个远程会话模块）整文件删除；
-`/feedback` 的"去 GitHub 提 issue" 断路径（54 行）删除；26 处 `<Link url="" />` 与
-悬空的 `Learn more:` / `For help:` 文案全部清掉；一批空括号与悬空文案修好。
-
-**react-compiler 里删 JSX 元素是安全的**（重要经验）：`tN = <JSX>` 这种记忆化
-**表达式内部**删元素**不会**改变 `$[N]` 槽位数量 —— 只有删掉整个
-`if ($[N] !== x) {...}` 赋值块才会移动后续下标。所以改 JSX 内容可以放心做。
-
-### 其它
-- **`/login` 已能真正录入并持久化 key**（`components/ConsoleOAuthFlow.tsx` → `saveApiKey()`）。
-  注意**环境变量优先级高于 `/login` 存的 key**（已实测）。
-- **密钥一律不要写进仓库或记忆文件。** `D:\下载\agent\新建 文本文档.txt` 里那个 key
-  用户选择自己处理，**不要动、不要复制**。
-- 注释中文化工程**已暂停**（用户决定）。计划与术语表在 `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md`
-  （**第 69–120 行是术语表**，别删这个文件，它是流水线的一部分）。
-- 双端对齐由 `web/test/drift.test.mjs` 守；web 端沙箱固定为工作区根；
-  危险工具执行前必须弹窗确认；服务默认只绑 `127.0.0.1`。
+**待办（都要用户拍板）**：
+1. **三处"契约值"改名**（我建议不动，改了会碰坏别的东西且用户看不到）：
+   `@limkenion-ai/*`（npm 包作用域，41 处）、`'limkenionai-proxy'`（MCP 传输类型，
+   写在 SDK 输出 schema 里，40+ 处）、`'limkenionai'`（MCP 配置作用域，写在设置文件里，10 处）
+2. **`/effort` 没有"关闭思考"的入口**（只有 low/medium/high，没有 none）
+3. 可选的桌面端 / IM 接入等产品级功能（**不算"DS 接入"的缺口**）
 
 ## 关键陷阱（这些坑都踩过，别再踩）
 ### 1. `availability` 字段的语义（决定命令是否可见）
 `commands.ts:meetsAvailabilityRequirement()` 在 `isEnabled()` **之前**运行：
-- `availability: ['limkenion-ai']` → 要求订阅 → **本地恒隐藏**
-- `availability: ['console']` → `!订阅 && !三方云 && isFirstPartyLimkenionBaseUrl()`
-  → 未设 `LIMKENION_BASE_URL` 时最后一项恒 true → **本地反而可见**
+- `availability: ['cloud-subscriber']`（原 `'limkenion-ai'`）→ 要求订阅 → **本地恒隐藏**
+- `availability: ['console']` → 未设 `LIMKENION_BASE_URL` 时恒 true → **本地反而可见**
 
 **判断"某命令本地是否可见"必须同时看 `availability` 和 `isEnabled` 两个条件。**
 
 ### 2. 删模块 / 改数据表后必须跑冒烟（esbuild 不查类型）
 esbuild **只报"缺失导出/模块解析失败"，不报类型错误**。删掉模块后它的**函数调用点**会静默变
-`undefined`，构建 0 错误、CLI 照常启动，只在执行到那行才炸。**这个坑踩了三次。**
+`undefined`，构建 0 错误、CLI 照常启动，只在执行到那行才炸。**这个坑踩了四次。**
 
 **规则：删模块前把它 `export` 的每个符号都 grep 一遍，不能只 grep 模块名。**
 
-### 3. 判断死模块：看入口函数开头有没有 `if (true) return false`
-`grep -rn "if (true)" --include='*.ts' .` 就能捞出这类硬开关。别只看调用点就以为功能还活着。
+### 3. 判断死模块的三种方法
+- 入口函数开头有没有 `if (true) return false`
+- **它读的数据有没有写入方**（只读不写 = 死路径）
+- 有没有 `feature('X')` 且 X 在 `bun-bundle-stub.ts` 的 `UNSUPPORTED_UPSTREAM_FEATURES` 里
 
-### 4. react-compiler 产物里删代码要小心 `$[N]` 槽位
-删掉被记忆化的代码会**移动后续槽位下标**，破坏编译器输出，而构建不报错。
-**安全做法**：先确认目标段落不在 `$[N]` 区块内；若在，**保留槽位、只改值**。
+### 4. react-compiler 产物里删代码
+删**表达式内部**的元素 → **不改变 `$[N]` 槽位数量**，安全；
+删整个 `if ($[N] !== x) {...}` 赋值块 → 会移动后续下标，危险。
 
-### 5. 批量改代码前先 dry-run
-脚本必须支持 dry-run，打印 before/after 人眼过一遍再 `--apply`。
-真实教训：一版清理脚本把 `url: 'https://...'` 吃成 `url''`（**语法错误**），dry-run 拦住了。
+### 5. 批量改代码前先 dry-run；批量删声明要用语法校验兜底
+dry-run 已救过三次（`url: 'https://...'` 被吃成 `url''`、`1M` 的 `1` 被当版本号、
+`api.远端服务` 半截词）。
+**批量删声明靠正则算边界必然有漏网**（踩过三次：参数括号被当声明体、漏了 `|` 行延续、
+跨行返回类型）—— 最后用 **esbuild 的 `transform()` 逐文件语法校验**，
+失败就 `git checkout` 回退那一个。
 
-### 6. JSDoc 里不能写 `**/`
+### 6. 导入扫描的正则不能跨行
+`[^'"]+` 会让注释里的 `from` 一路吞到很后面的引号，把中间的 import 行整个吃掉。
+必须用 `[^'"\n]+`。
+
+### 7. JSDoc 里不能写 `**/`
 `/** ... **/login ... */` 中的 `*/` 会提前闭合注释块，esbuild 报错、整个构建挂掉。
+
+### 8. 写"已经移除了 X"的注释时别把 X 原样写出来
+自指涉的痕迹，踩过两次（HANDOFF.md、`aliases.ts`）。
 
 ## 承重的"半坏残留"（看着像死的，其实是活的，**别删**）
 - `constants/oauth.ts`（203 行）：被 12+ 处导入，删除直接断构建。
@@ -275,6 +147,10 @@ esbuild **只报"缺失导出/模块解析失败"，不报类型错误**。删�
 - `services/mcp/oauthPort.ts`（78 行）：远程 MCP OAuth 用，正当保留。
 - `stubs/bedrock-sdk.ts`：由 `tsconfig.json` 的 `paths` 映射，无显式 import。
 - `commands/oauth-refresh/index.js`：1 行中性 stub（`isEnabled: () => false`），无害。
+- `bun-bundle-stub.ts`：**esbuild 的 `--alias:bun:bundle` 指向它**，`feature()` 由它实现。
+- `entrypoints/sdk/`（23 个未使用导出）：**SDK 输出格式的公开定义**，有意保留。
+- `stubs/{chrome-mcp,computer-use-mcp-*}.ts`：由 `tsconfig.json` 的 `paths` 映射。
+- `.workbuddy-ai/i18n/`（34MB）：暂停中的注释中文化工程的**工作产物**，删了流水线没法恢复。
 
 ## 服务端模块地图（web/server/）
 单向依赖：paths → config/bus → sessions/security/workspace → interactions/toolindex →
