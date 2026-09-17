@@ -42,42 +42,41 @@ export function LspRecommendationMenu({
   }
   const options = [{
     label: <Text>
-          Yes, install <Text bold>{pluginName}</Text>
+          是，安装 <Text bold>{pluginName}</Text>
         </Text>,
     value: 'yes'
   }, {
-    label: 'No, not now',
+    label: '暂不',
     value: 'no'
   }, {
     label: <Text>
-          Never for <Text bold>{pluginName}</Text>
+          永不为 <Text bold>{pluginName}</Text> 推荐
         </Text>,
     value: 'never'
   }, {
-    label: 'Disable all LSP recommendations',
+    label: '禁用所有 LSP 推荐',
     value: 'disable'
   }];
-  return <PermissionDialog title="LSP Plugin Recommendation">
+  return <PermissionDialog title="LSP 插件推荐">
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
           <Text dimColor>
-            LSP provides code intelligence like go-to-definition and error
-            checking
+            LSP 提供代码智能，例如跳转到定义和错误检查
           </Text>
         </Box>
         <Box>
-          <Text dimColor>Plugin:</Text>
+          <Text dimColor>插件：</Text>
           <Text> {pluginName}</Text>
         </Box>
         {pluginDescription && <Box>
             <Text dimColor>{pluginDescription}</Text>
           </Box>}
         <Box>
-          <Text dimColor>Triggered by:</Text>
-          <Text> {fileExtension} files</Text>
+          <Text dimColor>触发来源：</Text>
+          <Text> {fileExtension} 文件</Text>
         </Box>
         <Box marginTop={1}>
-          <Text>Would you like to install this LSP plugin?</Text>
+          <Text>是否安装此 LSP 插件？</Text>
         </Box>
         <Box>
           <Select options={options} onChange={onSelect} onCancel={() => onResponse('no')} />

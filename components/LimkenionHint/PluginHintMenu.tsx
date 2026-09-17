@@ -37,37 +37,36 @@ export function PluginHintMenu({
   }
   const options = [{
     label: <Text>
-          Yes, install <Text bold>{pluginName}</Text>
+          是，安装 <Text bold>{pluginName}</Text>
         </Text>,
     value: 'yes'
   }, {
-    label: 'No',
+    label: '否',
     value: 'no'
   }, {
-    label: "No, and don't show plugin installation hints again",
+    label: '否，且不再显示插件安装提示',
     value: 'disable'
   }];
-  return <PermissionDialog title="Plugin Recommendation">
+  return <PermissionDialog title="插件推荐">
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
           <Text dimColor>
-            The <Text bold>{sourceCommand}</Text> command suggests installing a
-            plugin.
+            命令 <Text bold>{sourceCommand}</Text> 建议安装一个插件。
           </Text>
         </Box>
         <Box>
-          <Text dimColor>Plugin:</Text>
+          <Text dimColor>插件：</Text>
           <Text> {pluginName}</Text>
         </Box>
         <Box>
-          <Text dimColor>Marketplace:</Text>
+          <Text dimColor>市场：</Text>
           <Text> {marketplaceName}</Text>
         </Box>
         {pluginDescription && <Box>
             <Text dimColor>{pluginDescription}</Text>
           </Box>}
         <Box marginTop={1}>
-          <Text>Would you like to install it?</Text>
+          <Text>是否立即安装？</Text>
         </Box>
         <Box>
           <Select options={options} onChange={onSelect} onCancel={() => onResponse('no')} />
