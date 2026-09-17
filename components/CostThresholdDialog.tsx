@@ -13,7 +13,7 @@ export function CostThresholdDialog(t0) {
   } = t0;
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = <Box flexDirection="column"><Text>了解更多如何监控你的花费：</Text><Link url="" /></Box>;
+    t1 = null;
     $[0] = t1;
   } else {
     t1 = $[0];

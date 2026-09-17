@@ -57,7 +57,7 @@ export function TranscriptSharePrompt(t0) {
   }
   let t4;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-    t4 = <Box marginLeft={2}><Text dimColor={true}>Learn more: </Text></Box>;
+    t4 = null;
     $[7] = t4;
   } else {
     t4 = $[7];

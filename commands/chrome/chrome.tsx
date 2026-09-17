@@ -234,7 +234,7 @@ function LimkenionInChromeMenu(t0) {
   }
   let t10;
   if ($[33] === Symbol.for("react.memo_cache_sentinel")) {
-    t10 = <Text dimColor={true}>Learn more: </Text>;
+    t10 = null;
     $[33] = t10;
   } else {
     t10 = $[33];

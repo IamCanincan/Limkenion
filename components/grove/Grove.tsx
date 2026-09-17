@@ -1,7 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
 import React, { useEffect, useState } from 'react';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
-import { Box, Link, Text, useInput } from '../../ink.js';
+import { Box, Text, useInput } from '../../ink.js';
 import { type AccountSettings, calculateShouldShowGrove, type GroveConfig, getGroveNoticeConfig, getGroveSettings, markGroveNoticeViewed, updateGroveSettings } from '../../services/api/grove.js';
 import { Select } from '../CustomSelect/index.js';
 import { Byline } from '../design-system/Byline.js';
@@ -53,7 +53,7 @@ function GracePeriodContentBody() {
   }
   let t4;
   if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-    t4 = <Box paddingLeft={1}><Text>{t2}{t3}<Text>— Allow the use of your chats and coding sessions to train and improve Limkenion AI models. Change anytime in your Privacy Settings (<Link url="" />).</Text></Text></Box>;
+    t4 = <Box paddingLeft={1}><Text>{t2}{t3}<Text>— Allow the use of your chats and coding sessions to train and improve Limkenion AI models. Change anytime in your Privacy Settings.</Text></Text></Box>;
     $[4] = t4;
   } else {
     t4 = $[4];
@@ -67,21 +67,21 @@ function GracePeriodContentBody() {
   }
   let t6;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
-    t6 = <Link url="" />;
+    t6 = null;
     $[6] = t6;
   } else {
     t6 = $[6];
   }
   let t7;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-    t7 = <Link url="" />;
+    t7 = null;
     $[7] = t7;
   } else {
     t7 = $[7];
   }
   let t8;
   if ($[8] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <>{t0}{t5}<Text>Learn more ({t6}) or read the updated Consumer Terms ({t7}) and Privacy Policy (<Link url="" />)</Text></>;
+    t8 = <>{t0}{t5}<Text>Learn more, or read the updated Consumer Terms and Privacy Policy.</Text></>;
     $[8] = t8;
   } else {
     t8 = $[8];
@@ -106,7 +106,7 @@ function PostGracePeriodContentBody() {
   }
   let t2;
   if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-    t2 = <Box flexDirection="column"><Text bold={true}>Help improve Limkenion</Text><Text>Allow the use of your chats and coding sessions to train and improve Limkenion AI models. You can change this anytime in Privacy Settings</Text><Link url="" /></Box>;
+    t2 = <Box flexDirection="column"><Text bold={true}>Help improve Limkenion</Text><Text>Allow the use of your chats and coding sessions to train and improve Limkenion AI models. You can change this anytime in Privacy Settings</Text></Box>;
     $[2] = t2;
   } else {
     t2 = $[2];
@@ -120,21 +120,21 @@ function PostGracePeriodContentBody() {
   }
   let t4;
   if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-    t4 = <Link url="" />;
+    t4 = null;
     $[4] = t4;
   } else {
     t4 = $[4];
   }
   let t5;
   if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Link url="" />;
+    t5 = null;
     $[5] = t5;
   } else {
     t5 = $[5];
   }
   let t6;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
-    t6 = <>{t0}{t3}<Text>Learn more ({t4}) or read the updated Consumer Terms ({t5}) and Privacy Policy (<Link url="" />)</Text></>;
+    t6 = <>{t0}{t3}<Text>Learn more, or read the updated Consumer Terms and Privacy Policy.</Text></>;
     $[6] = t6;
   } else {
     t6 = $[6];
@@ -425,7 +425,7 @@ export function PrivacySettingsDialog(t0) {
   }
   let t5;
   if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Text>Review and manage your privacy settings at{" "}<Link url="" /></Text>;
+    t5 = null;
     $[9] = t5;
   } else {
     t5 = $[9];

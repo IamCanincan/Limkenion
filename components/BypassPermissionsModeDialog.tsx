@@ -50,7 +50,7 @@ export function BypassPermissionsModeDialog(t0) {
   const handleEscape = _temp2;
   let t3;
   if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = <Box flexDirection="column" gap={1}><Text>在旁路权限模式下，Limkenion 在运行可能危险的命令前不会征求你的批准。<Newline />此模式只应在受限的沙箱容器/虚拟机中使用，这类环境应限制互联网访问，并且即使受损也能轻松恢复。</Text><Text>继续即表示你同意为在旁路权限模式下采取的一切操作承担全部责任。</Text><Link url="" /></Box>;
+    t3 = <Box flexDirection="column" gap={1}><Text>在旁路权限模式下，Limkenion 在运行可能危险的命令前不会征求你的批准。<Newline />此模式只应在受限的沙箱容器/虚拟机中使用，这类环境应限制互联网访问，并且即使受损也能轻松恢复。</Text><Text>继续即表示你同意为在旁路权限模式下采取的一切操作承担全部责任。</Text></Box>;
     $[3] = t3;
   } else {
     t3 = $[3];

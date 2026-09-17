@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
 import { setupTerminal, shouldOfferTerminalSetup } from '../commands/terminalSetup/terminalSetup.js';
 import { useExitOnCtrlCDWithKeybindings } from '../hooks/useExitOnCtrlCDWithKeybindings.js';
-import { Box, Link, Newline, Text, useTheme } from '../ink.js';
+import { Box, Newline, Text, useTheme } from '../ink.js';
 import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { isLimkenionAuthEnabled } from '../utils/auth.js';
 import { normalizeApiKeyForConfig } from '../utils/authPortable.js';
@@ -74,11 +74,6 @@ export function Onboarding({
           <OrderedList.Item>
             <Text>
               由于存在提示注入风险，仅应对你信任的代码使用
-            </Text>
-            <Text dimColor wrap="wrap">
-              更多详情请参阅：
-              <Newline />
-              <Link url="" />
             </Text>
           </OrderedList.Item>
         </OrderedList>

@@ -87,7 +87,7 @@ export function LimkenionInChromeOnboarding(t0) {
   }
   let t9;
   if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-    t9 = <Text dimColor={true}>For more info, use{" "}{t8}{" "}or visit <Link url="" /></Text>;
+    t9 = <Text dimColor={true}>For more info, use{" "}{t8}</Text>;
     $[13] = t9;
   } else {
     t9 = $[13];

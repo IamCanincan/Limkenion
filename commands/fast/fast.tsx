@@ -190,7 +190,7 @@ export function FastModePicker(t0) {
   }
   let t11;
   if ($[25] === Symbol.for("react.memo_cache_sentinel")) {
-    t11 = <Text dimColor={true}>Learn more:{" "}<Link url=""></Link></Text>;
+    t11 = null;
     $[25] = t11;
   } else {
     t11 = $[25];

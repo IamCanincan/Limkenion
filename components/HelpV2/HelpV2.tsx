@@ -146,7 +146,7 @@ export function HelpV2(t0) {
   }
   let t7;
   if ($[33] === Symbol.for("react.memo_cache_sentinel")) {
-    t7 = <Box marginTop={1}><Text>For more help:{" "}<Link url="" /></Text></Box>;
+    t7 = null;
     $[33] = t7;
   } else {
     t7 = $[33];

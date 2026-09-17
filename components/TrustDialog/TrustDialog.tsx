@@ -217,7 +217,7 @@ export function TrustDialog(t0) {
   }
   let t19;
   if ($[23] === Symbol.for("react.memo_cache_sentinel")) {
-    t19 = <Text dimColor={true}><Link url="">安全指南</Link></Text>;
+    t19 = null;
     $[23] = t19;
   } else {
     t19 = $[23];
