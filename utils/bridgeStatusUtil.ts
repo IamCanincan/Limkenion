@@ -1,7 +1,3 @@
-import {
-  getLimkenionAiBaseUrl,
-  getRemoteSessionUrl,
-} from '../constants/product.js'
 import { stringWidth } from '../ink/stringWidth.js'
 import { formatDuration, truncateToWidth } from './format.js'
 import { getGraphemeSegmenter } from './intl.js'
@@ -33,28 +29,6 @@ export { formatDuration, truncateToWidth as truncatePrompt }
 /** Abbreviate a tool activity summary for the trail display. */
 export function abbreviateActivity(summary: string): string {
   return truncateToWidth(summary, 30)
-}
-
-/** Build the connect URL shown when the bridge is idle. */
-export function buildBridgeConnectUrl(
-  environmentId: string,
-  ingressUrl?: string,
-): string {
-  const baseUrl = getLimkenionAiBaseUrl(undefined, ingressUrl)
-  return `${baseUrl}/code?bridge=${environmentId}`
-}
-
-/**
- * Build the session URL shown when a session is attached. Delegates to
- * getRemoteSessionUrl for the cse_→session_ prefix translation, then appends
- * the v1-specific ?bridge={environmentId} query.
- */
-export function buildBridgeSessionUrl(
-  sessionId: string,
-  environmentId: string,
-  ingressUrl?: string,
-): string {
-  return `${getRemoteSessionUrl(sessionId, ingressUrl)}?bridge=${environmentId}`
 }
 
 /** Compute the glimmer index for a reverse-sweep shimmer animation. */

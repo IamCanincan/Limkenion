@@ -1,11 +1,6 @@
 import { feature } from 'bun:bundle'
 import { stat } from 'fs/promises'
 import { getClientType } from '../bootstrap/state.js'
-import {
-  getRemoteSessionUrl,
-  isRemoteSessionLocal,
-  PRODUCT_URL,
-} from '../constants/product.js'
 import { TERMINAL_OUTPUT_TAGS } from '../constants/xml.js'
 import type { AppState } from '../state/AppState.js'
 import { FILE_EDIT_TOOL_NAME } from '../tools/FileEditTool/constants.js'
@@ -38,11 +33,10 @@ import { isUndercover } from './undercover.js'
 
 /**
  * 署名里对 Limkenion 的称呼。
- * Limkenion 没有网站，所以 PRODUCT_URL 为空时不带链接 ——
- * 否则会生成坏掉的 markdown 链接 `[Limkenion]()`。
- * 以后真有了官网，把 URL 填进 constants/product.ts 就会自动恢复成链接。
+ * Limkenion 没有网站，所以署名里**不带链接** —— 否则会生成坏掉的
+ * markdown 链接 `[Limkenion]()`，而那个字符串会写进用户的每一次提交与 PR。
  */
-const LIMKENION_NAME = PRODUCT_URL ? `[Limkenion](${PRODUCT_URL})` : 'Limkenion'
+const LIMKENION_NAME = 'Limkenion'
 
 
 export type AttributionTexts = {
@@ -61,16 +55,8 @@ export type AttributionTexts = {
 export function getAttributionTexts(): AttributionTexts {
   
 
+  // 远程会话（bridge / teleport）已随云服务一起移除，这里不再生成会话链接。
   if (getClientType() === 'remote') {
-    const remoteSessionId = process.env.LIMKENION_REMOTE_SESSION_ID
-    if (remoteSessionId) {
-      const ingressUrl = process.env.SESSION_INGRESS_URL
-      // Skip for local dev - URLs won't persist
-      if (!isRemoteSessionLocal(remoteSessionId, ingressUrl)) {
-        const sessionUrl = getRemoteSessionUrl(remoteSessionId, ingressUrl)
-        return { commit: sessionUrl, pr: sessionUrl }
-      }
-    }
     return { commit: '', pr: '' }
   }
 
@@ -307,14 +293,7 @@ export async function getEnhancedPRAttribution(
   
 
   if (getClientType() === 'remote') {
-    const remoteSessionId = process.env.LIMKENION_REMOTE_SESSION_ID
-    if (remoteSessionId) {
-      const ingressUrl = process.env.SESSION_INGRESS_URL
-      // Skip for local dev - URLs won't persist
-      if (!isRemoteSessionLocal(remoteSessionId, ingressUrl)) {
-        return getRemoteSessionUrl(remoteSessionId, ingressUrl)
-      }
-    }
+    // 远程会话已移除，不再生成会话链接。
     return ''
   }
 

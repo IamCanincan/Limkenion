@@ -43,7 +43,6 @@ import pMap from 'p-map'
 import { getOriginalCwd, getSessionId } from '../../bootstrap/state.js'
 import type { Command } from '../../commands.js'
 import { getOauthConfig } from '../../constants/oauth.js'
-import { PRODUCT_URL } from '../../constants/product.js'
 import type { AppState } from '../../state/AppState.js'
 import {
   type Tool,
@@ -988,7 +987,6 @@ export const connectToServer = memoize(
           title: 'Limkenion',
           version: MACRO.VERSION ?? 'unknown',
           description: "Limkenion's agentic coding tool",
-          websiteUrl: PRODUCT_URL,
         },
         {
           capabilities: {
@@ -3283,7 +3281,6 @@ export async function setupSdkMcpClients(
           title: 'Limkenion',
           version: MACRO.VERSION ?? 'unknown',
           description: "Limkenion's agentic coding tool",
-          websiteUrl: PRODUCT_URL,
         },
         {
           capabilities: {},

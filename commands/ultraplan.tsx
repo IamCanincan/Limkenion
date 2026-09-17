@@ -1,7 +1,6 @@
 import { readFileSync } from 'fs';
 import type { Command } from '../commands.js';
 import { DIAMOND_OPEN } from '../constants/figures.js';
-import { getRemoteSessionUrl } from '../constants/product.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from '../services/analytics/index.js';
 import type { AppState } from '../state/AppStateStore.js';
@@ -206,7 +205,7 @@ export async function stopUltraplan(taskId: string, sessionId: string, setAppSta
     ultraplanPendingChoice: undefined,
     ultraplanLaunching: undefined
   } : prev);
-  const url = getRemoteSessionUrl(sessionId, process.env.SESSION_INGRESS_URL);
+  const url = '';
   enqueuePendingNotification({
     value: `Ultraplan 已停止。\n\n会话：${url}`,
     mode: 'task-notification'
@@ -345,7 +344,7 @@ async function launchDetached(opts: {
       return;
     }
     sessionId = session.id;
-    const url = getRemoteSessionUrl(session.id, process.env.SESSION_INGRESS_URL);
+    const url = '';
     setAppState(prev => ({
       ...prev,
       ultraplanSessionUrl: url,
