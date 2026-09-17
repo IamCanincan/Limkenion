@@ -101,6 +101,12 @@ export function isLimkenionAuthEnabled(): boolean {
   // --bare: API-key-only, never OAuth.
   if (isBareMode()) return false
 
+  // OpenAI-compatible provider (DeepSeek etc.): authenticated purely by API
+  // key, so skip anything tied to Limkenion OAuth — the login-method picker
+  // and the connectivity preflight against api.limkenion.com are both
+  // meaningless here.
+  if (process.env.LIMKENION_API_PROVIDER === 'openai') return false
+
   // `limkenion ssh` remote: LIMKENION_UNIX_SOCKET tunnels API calls through a
   // local auth-injecting proxy. The launcher sets LIMKENION_OAUTH_TOKEN as a
   // placeholder iff the local side is a subscriber (so the remote includes the

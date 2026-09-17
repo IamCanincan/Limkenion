@@ -120,10 +120,9 @@ export function Onboarding({
       component: preflightStep
     });
   }
-  steps.push({
-    id: 'theme',
-    component: themeStep
-  });
+  // Theme picker removed: it is a 上游 CLI 原型 onboarding leftover. The theme is
+  // set from config (with a default) and can still be changed via /theme later.
+  // Nothing in an API-key-driven setup needs to ask about it during onboarding.
   if (apiKeyNeedingApproval) {
     steps.push({
       id: 'api-key',
