@@ -110,39 +110,28 @@ export function getBestModel(): ModelName {
   return getDefaultStrongModel()
 }
 
-// @[MODEL LAUNCH]: Update the default deepseek-v4-pro model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: 新增模型时更新强模型的默认值。
 export function getDefaultStrongModel(): ModelName {
-  if (process.env.LIMKENION_DEFAULT_OPUS_MODEL) {
-    return process.env.LIMKENION_DEFAULT_OPUS_MODEL
+  if (process.env.LIMKENION_DEFAULT_STRONG_MODEL) {
+    return process.env.LIMKENION_DEFAULT_STRONG_MODEL
   }
-  // 3P providers (Bedrock, Vertex, Foundry) — kept as a separate branch
-  // even when values match, since 3P availability lags firstParty and
-  // these will diverge again at the next model launch.
-  if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().deepseekV4Pro
-  }
+  // 本构建只有 firstParty（DeepSeek），原本按 provider 分叉的分支已移除。
   return getModelStrings().deepseekV4Pro
 }
 
-// @[MODEL LAUNCH]: Update the default deepseek-flash model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: 新增模型时更新主模型的默认值。
 export function getDefaultMainModel(): ModelName {
-  if (process.env.LIMKENION_DEFAULT_SONNET_MODEL) {
-    return process.env.LIMKENION_DEFAULT_SONNET_MODEL
-  }
-  // Default to deepseek-flash for 3P since they may not have 4.6 yet
-  if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().deepseekFlash
+  if (process.env.LIMKENION_DEFAULT_MAIN_MODEL) {
+    return process.env.LIMKENION_DEFAULT_MAIN_MODEL
   }
   return getModelStrings().deepseekFlash
 }
 
-// @[MODEL LAUNCH]: Update the default deepseek-flash model (3P providers may lag so keep defaults unchanged).
+// @[MODEL LAUNCH]: 新增模型时更新小快模型的默认值。
 export function getDefaultSmallFastModel(): ModelName {
-  if (process.env.LIMKENION_DEFAULT_HAIKU_MODEL) {
-    return process.env.LIMKENION_DEFAULT_HAIKU_MODEL
+  if (process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL) {
+    return process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL
   }
-
-  // deepseek-flash is available on all platforms (first-party, Foundry, Bedrock, Vertex)
   return getModelStrings().deepseekFlash
 }
 
@@ -218,73 +207,15 @@ export function getDefaultMainLoopModel(): ModelName {
 }
 
 // @[MODEL LAUNCH]: Add a canonical name mapping for the new model below.
-/**
- * Pure string-match that strips date/provider suffixes from a first-party model
- * name. Input must already be a 1P-format ID (e.g. 'limkenion-3-7-deepseek-flash-20250219',
- * 'us.limkenion.limkenion-deepseek-v4-pro-4-6-v1:0'). Does not touch settings, so safe at
- * module top-level (see MODEL_COSTS in modelCost.ts).
- */
 export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
-  name = name.toLowerCase()
-  // Special cases for Limkenion 4+ models to differentiate versions
-  // Order matters: check more specific versions first (4-5 before 4)
-  if (name.includes('limkenion-opus-4-6')) {
-    return 'limkenion-opus-4-6'
-  }
-  if (name.includes('limkenion-opus-4-5')) {
-    return 'limkenion-opus-4-5'
-  }
-  if (name.includes('limkenion-opus-4-1')) {
-    return 'limkenion-opus-4-1'
-  }
-  if (name.includes('limkenion-opus-4')) {
-    return 'limkenion-opus-4'
-  }
-  if (name.includes('limkenion-sonnet-4-6')) {
-    return 'limkenion-sonnet-4-6'
-  }
-  if (name.includes('limkenion-sonnet-4-5')) {
-    return 'limkenion-sonnet-4-5'
-  }
-  if (name.includes('limkenion-sonnet-4')) {
-    return 'limkenion-sonnet-4'
-  }
-  if (name.includes('limkenion-haiku-4-5')) {
-    return 'limkenion-haiku-4-5'
-  }
-  // Limkenion 3.x models use a different naming scheme (limkenion-3-{family})
-  if (name.includes('limkenion-3-7-sonnet')) {
-    return 'limkenion-3-7-sonnet'
-  }
-  if (name.includes('limkenion-3-5-sonnet')) {
-    return 'limkenion-3-5-sonnet'
-  }
-  if (name.includes('limkenion-3-5-haiku')) {
-    return 'limkenion-3-5-haiku'
-  }
-  if (name.includes('limkenion-3-opus')) {
-    return 'limkenion-3-opus'
-  }
-  if (name.includes('limkenion-3-sonnet')) {
-    return 'limkenion-3-sonnet'
-  }
-  if (name.includes('limkenion-3-haiku')) {
-    return 'limkenion-3-haiku'
-  }
-  const match = name.match(/(limkenion-(\d+-\d+-)?\w+)/)
-  if (match && match[1]) {
-    return match[1]
-  }
-  // Fall back to the original name if no pattern matches
-  return name
+  // 本构建的模型 ID 本身就是规范名（deepseek-flash / deepseek-v4-pro），
+  // 不需要上游那套「limkenion-{家族}-{版本}」的规范化映射 —— 那张表已随模型表移除。
+  return name.toLowerCase()
 }
 
 /**
- * Maps a full model string to a shorter canonical version that's unified across 1P and 3P providers.
- * For example, 'limkenion-3-5-deepseek-flash-20241022' and 'us.limkenion.limkenion-3-5-deepseek-flash-20241022-v1:0'
- * would both be mapped to 'limkenion-3-5-deepseek-flash'.
- * @param fullModelName The full model name (e.g., 'limkenion-3-5-deepseek-flash-20241022')
- * @returns The short name (e.g., 'limkenion-3-5-deepseek-flash') if found, or the original name if no mapping exists
+ * 把完整模型串映射成跨 provider 统一的规范短名。
+ * 本构建只有 DeepSeek，模型 ID 本身就是规范名，所以这里等于做一次小写归一。
  */
 export function getCanonicalName(fullModelName: ModelName): ModelShortName {
   // Resolve overridden model IDs (e.g. Bedrock ARNs) back to canonical names.

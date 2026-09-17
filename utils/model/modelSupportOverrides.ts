@@ -10,15 +10,15 @@ export type ModelCapabilityOverride =
 
 const TIERS = [
   {
-    modelEnvVar: 'LIMKENION_DEFAULT_OPUS_MODEL',
+    modelEnvVar: 'LIMKENION_DEFAULT_STRONG_MODEL',
     capabilitiesEnvVar: 'LIMKENION_DEFAULT_OPUS_MODEL_SUPPORTED_CAPABILITIES',
   },
   {
-    modelEnvVar: 'LIMKENION_DEFAULT_SONNET_MODEL',
+    modelEnvVar: 'LIMKENION_DEFAULT_MAIN_MODEL',
     capabilitiesEnvVar: 'LIMKENION_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES',
   },
   {
-    modelEnvVar: 'LIMKENION_DEFAULT_HAIKU_MODEL',
+    modelEnvVar: 'LIMKENION_DEFAULT_SMALL_FAST_MODEL',
     capabilitiesEnvVar: 'LIMKENION_DEFAULT_HAIKU_MODEL_SUPPORTED_CAPABILITIES',
   },
 ] as const

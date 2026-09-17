@@ -62,18 +62,18 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
 
 function getCustomSonnetOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customMainModel = process.env.LIMKENION_DEFAULT_SONNET_MODEL
+  const customMainModel = process.env.LIMKENION_DEFAULT_MAIN_MODEL
   // When a 3P user has a custom deepseek-flash model string, show it directly
   if (is3P && customMainModel) {
     const is1m = has1mContext(customMainModel)
     return {
       value: 'sonnet',
       label:
-        process.env.LIMKENION_DEFAULT_SONNET_MODEL_NAME ?? customMainModel,
+        process.env.LIMKENION_DEFAULT_MAIN_MODEL_NAME ?? customMainModel,
       description:
-        process.env.LIMKENION_DEFAULT_SONNET_MODEL_DESCRIPTION ??
+        process.env.LIMKENION_DEFAULT_MAIN_MODEL_DESCRIPTION ??
         `Custom Sonnet model${is1m ? ' (1M context)' : ''}`,
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_SONNET_MODEL_DESCRIPTION ?? `Custom Sonnet model${is1m ? ' with 1M context' : ''}`} (${customMainModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_MAIN_MODEL_DESCRIPTION ?? `Custom Sonnet model${is1m ? ' with 1M context' : ''}`} (${customMainModel})`,
     }
   }
 }
@@ -93,17 +93,17 @@ function getSonnet46Option(): ModelOption {
 
 function getCustomOpusOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customStrongModel = process.env.LIMKENION_DEFAULT_OPUS_MODEL
+  const customStrongModel = process.env.LIMKENION_DEFAULT_STRONG_MODEL
   // When a 3P user has a custom deepseek-v4-pro model string, show it directly
   if (is3P && customStrongModel) {
     const is1m = has1mContext(customStrongModel)
     return {
       value: 'opus',
-      label: process.env.LIMKENION_DEFAULT_OPUS_MODEL_NAME ?? customStrongModel,
+      label: process.env.LIMKENION_DEFAULT_STRONG_MODEL_NAME ?? customStrongModel,
       description:
-        process.env.LIMKENION_DEFAULT_OPUS_MODEL_DESCRIPTION ??
+        process.env.LIMKENION_DEFAULT_STRONG_MODEL_DESCRIPTION ??
         `Custom Opus model${is1m ? ' (1M context)' : ''}`,
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_OPUS_MODEL_DESCRIPTION ?? `Custom Opus model${is1m ? ' with 1M context' : ''}`} (${customStrongModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_STRONG_MODEL_DESCRIPTION ?? `Custom Opus model${is1m ? ' with 1M context' : ''}`} (${customStrongModel})`,
     }
   }
 }
@@ -151,16 +151,16 @@ export function getStrong1mOption(fastMode = false): ModelOption {
 
 function getCustomHaikuOption(): ModelOption | undefined {
   const is3P = getAPIProvider() !== 'firstParty'
-  const customSmallFastModel = process.env.LIMKENION_DEFAULT_HAIKU_MODEL
+  const customSmallFastModel = process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL
   // When a 3P user has a custom deepseek-flash model string, show it directly
   if (is3P && customSmallFastModel) {
     return {
       value: 'haiku',
-      label: process.env.LIMKENION_DEFAULT_HAIKU_MODEL_NAME ?? customSmallFastModel,
+      label: process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL_NAME ?? customSmallFastModel,
       description:
-        process.env.LIMKENION_DEFAULT_HAIKU_MODEL_DESCRIPTION ??
+        process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL_DESCRIPTION ??
         'Custom Haiku model',
-      descriptionForModel: `${process.env.LIMKENION_DEFAULT_HAIKU_MODEL_DESCRIPTION ?? 'Custom Haiku model'} (${customSmallFastModel})`,
+      descriptionForModel: `${process.env.LIMKENION_DEFAULT_SMALL_FAST_MODEL_DESCRIPTION ?? 'Custom Haiku model'} (${customSmallFastModel})`,
     }
   }
 }
