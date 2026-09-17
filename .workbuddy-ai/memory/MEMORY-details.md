@@ -327,3 +327,49 @@ engine.test 用桩按脚本回放，都不看请求内容）。
 **Windows 收尾坑**：`rm` 与图形化的删除都会被安全策略拦
 （`SAFE_DELETE_BULK_CONFIRM_REQUIRED`），删临时脚本改用 `mv` 移出仓库；
 `taskkill //F //PID` 在这个 Git Bash 报"无效参数"，改用 PowerShell 的 `Stop-Process -Id`。
+
+### 十二、工具集层面的差距（2026-09-18）
+命令搬完后接着查**工具集**。CLI 有 55 个工具目录，web 原有 41 个。逐条核实：
+
+- **14 个是占位桩**（Proxy stub）→ 本构建里没有，不该镜像。
+  Monitor / ReviewArtifact / Snip / WebBrowser / TerminalCapture / VerifyPlanExecution /
+  CtxInspect / DiscoverSkills / ListPeers / OverflowTest / PushNotification /
+  SendUserFile / Sleep / SubscribePR。
+  **注意 `SleepTool` 在 CLI 是 stub，而 web 的 `Sleep` 是真的**（web 反而更全）。
+- `TungstenTool` → `isEnabled() { return false }`，死。
+- `SuggestBackgroundPRTool` → 目录是空的。
+- **`BriefTool` 的 `BRIEF_TOOL_NAME = 'SendUserMessage'`** —— web 早就有这个工具，
+  光看目录名会误判成缺失。**别按目录名对照，要读 `*_TOOL_NAME` 常量。**
+- **真正缺的只有一个**：`ScheduleCronTool/` 里有 CronCreate/CronList/CronDelete 三个，
+  web 只搬了 CronCreate → 模型能建任务却**列不出、删不掉**。已补齐后两个。
+
+补的工具经 `ctx.cronList` / `ctx.cronRemove` 注入（同 `ctx.scheduleCron` 的模式），
+**避免 `tools.mjs` 反向 import `engine.mjs` 形成循环依赖**。
+e2e 实测工具序列：`ToolSearch → CronCreate → CronList → CronDelete → CronList`，全对。
+
+### drift 测试自身的两个缺陷（都已修）
+`web/test/drift.test.mjs` 检查"web 手抄的 schema 有没有抄错"。补工具时它先报假警：
+1. **`readCliToolNames` 每个目录只取第一个 `*_TOOL_NAME`**（`match()` 不是 `matchAll()`）
+   → `ScheduleCronTool/` 三个工具的常量都在 `prompt.ts`，只登记了 CronCreate。
+2. 改成 `matchAll` 后又多出 `Task` / `Brief` 假阳性 —— 来自
+   **`LEGACY_AGENT_TOOL_NAME`** / **`LEGACY_BRIEF_TOOL_NAME`**（旧连线名，不是独立工具）。
+   要加 `LEGACY_` 前缀过滤。
+
+### 不实错误信息
+`EnterWorktree`/`ExitWorktree` 的降级原因写死成"当前工作区不是 git 仓库"，
+但工作区经常就是 git 仓库 → 明显假话。真实原因是**设计选择**：沙箱根
+`WORKSPACE_ROOT` 是 `paths.mjs` 的模块级常量，被 `safePath`/`isInsideWorkspace`
+共用，让会话动态切换沙箱根是一次**安全边界改动**，没做（已按实际改成两种准确说法）。
+
+### web 端 8 个"降级工具"（schema 可见但调用即抛）
+LSP、mcp、ListMcpResourcesTool、ReadMcpResource、McpAuth、RemoteTrigger、
+EnterWorktree、ExitWorktree —— 设计上"给明确说明而非静默失败"。
+代价是模型可能浪费一轮去调它们。
+
+### 仍未搬（诚实记录）
+- `WorkflowTool`：web 没挂载动态工作流编排（所以 `/workflows` 只能如实说明）。
+- worktree：见上，属安全边界改动。
+- `/insights`：读 CLI 会话日志 + 生成 HTML 报告，web 会话存储是另一套。
+
+测试：全套 **180 项全过**（tools 62）。
+
