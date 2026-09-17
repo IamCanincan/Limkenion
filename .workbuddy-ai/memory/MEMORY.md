@@ -28,31 +28,34 @@ Base：`https://api.deepseek.com`
 | `POST /上游兼容/v1/messages/count_tokens` | **可用**，返回 `{"input_tokens":N}` |
 | 上游 端点流式 | **完整 SSE**：`message_start` / `content_block_start` / `ping` / `content_block_delta`（`thinking_delta` 等），与 上游 原生事件格式一致 |
 | 注意 | 上游 端点**未显式请求 thinking 也会返回 thinking 块**，说明 deepseek-flash 的推理是默认开的 |
+| `reasoning_effort: "none"` | **能关闭思考链**（实测：返回内容只剩 text 块）。是关推理的唯一手段 |
+| 推理模式 + 强制 tool_choice | **不可共存**！会返回 `400 Thinking mode does not support this tool_choice`。要强制工具必须先关推理 |
 
 **结论**：整个代码库本来就是按 上游 协议写的，DeepSeek 又原生支持该协议 ——
-所以"实现一个 上游 协议的 client"能一次性修好所有旁路调用，而不是逐处打补丁。
+所以"实现一个 上游 协议的 client"能一次性修好所有旁路调用。
+**但用户 2026-09-17 明确只要 OpenAI 一条路**（见下），该方案已搁置，留作备选。
 
-## 架构决定：一个 client、两个后端（2026-09-17 用户拍板"两种都支持"）
-不要给每个调用点加协议分支（那正是 26d53b0 修的那个坑的成因）。
-应该让 `types/llm-protocol.ts` 里那个**会抛错的 `Limkenion` 占位类变成真实现**，
-内部按协议分发：
+## 协议路线：只走 OpenAI（2026-09-17 用户拍板）
+用户先答"两种都支持"，随后改口**"我现在只要 openai"**。所以：
+- 保持 `services/api/openai-compat.ts` 作为唯一的协议适配层，不引入 上游 客户端。
+- 判断兼容模式**只许用 `isOpenAICompat()`**（`utils/model/providers.ts`），
+  绝不要硬比 `process.env.LIMKENION_API_PROVIDER === 'openai'`（那是 26d53b0 修过的坑）。
+- **不要给每个调用点各加一套协议分支** —— 兼容分支要加在"统一入口"上
+  （如 `utils/sideQuery.ts` 一处就覆盖了 7+ 个功能）。
 
-- `protocol === '上游兼容'` → 直接 HTTP/SSE 打 `{baseURL}/上游兼容/v1/messages`（原生，能力最全）
-- `protocol === 'openai'` → 复用现有 `services/api/openai-compat.ts` 的翻译逻辑
+### 已完成的兼容改造（commit 754c0d8）
+| 文件 | 做了什么 |
+|---|---|
+| `utils/sideQuery.ts` | 加兼容分支走 `queryOpenAICompatOnce`，返回 BetaMessage 形状。客户端获取延后到 systemBlocks 之后，兼容模式不再走账号前置检查 |
+| `services/api/openai-compat.ts` | `toolChoice` 翻译（auto/any/none/强制工具）、`stopSequences`、补齐 `id`/`type` 成 BetaMessage；**强制工具时强制 `reasoning_effort:'none'`**；key 解析在环境变量后回落到 `primaryApiKey` |
+| `utils/model/providers.ts` | 新增 `OPENAI_COMPAT_MODELS`（deepseek-flash / deepseek-v4-pro）、`getOpenAICompatSmallFastModel()` |
+| `utils/model/model.ts` | `getSmallFastModel()` 兼容模式返回 deepseek-flash（原来返回改名后的上游 ID，发出去必 404） |
+| `utils/model/modelOptions.ts` | `/model` 列出两个真实模型而非只有"默认" |
+| `services/tokenEstimation.ts` | 兼容模式用 `max_tokens=1` 最小请求读 `usage.prompt_tokens` 精确计数 |
+| `components/ConsoleOAuthFlow.tsx` | `/login` 从"只显示提示"改成真输入框：录入 → 校验格式 → `saveApiKey()` 写 `primaryApiKey` → 发最小请求验证；环境变量已设时提示其优先级更高 |
 
-于是 `sideQuery` / `tokenEstimation` / `limkenionAiLimits` / `modelCapabilities` 等
-**一行都不用改**，两条协议同时可用。
-
-### 这个 client 必须实现的接口面（已实测枚举）
-- `.beta.messages.create(params)` 非流式 —— `sideQuery.ts:182`、`tokenEstimation.ts:302`、
-  `limkenion.ts:574`、`limkenion.ts:883`
-- `.beta.messages.create({...stream:true})` **返回原始事件流**（不是 BetaMessageStream）——
-  `limkenion.ts:1855`。注释说明是为了避免 O(n²) 的 partial JSON 解析，所以必须吐原始 SSE 事件
-- `.beta.messages.countTokens(params)` —— `tokenEstimation.ts:172`
-- `.models.list({betas})` —— `utils/model/modelCapabilities.ts:93`
-- getter：`.beta`、`.messages`
-- `getLimkenionClient()` 调用点：`services/api/client.ts`（工厂本身）、`limkenion.ts` ×3、
-  `limkenionAiLimits.ts`、`tokenEstimation.ts` ×2、`modelCapabilities.ts`、`sideQuery.ts`
+**key 存储**：`saveApiKey()`（`utils/auth.ts:1114`）已存在，写全局配置的 `primaryApiKey`，
+Windows 上就是写配置文件。不需要另造轮子。
 
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
@@ -179,4 +182,22 @@ Base：`https://api.deepseek.com`
    若要让 /login 真能录入并持久化 key，需另开一轮（要动 .tsx 结构，注意 react-compiler 记忆化）。
 7. 用户机器上的 `DEEPSEEK_API_KEY`（尾号 06ae）2026-09-17 被 DeepSeek 判为 invalid
    （`curl https://api.deepseek.com/models` 直接 401）—— 属凭据问题，非代码问题。
-   **key 值不要写进任何记忆文件**。
+   **key 值不要写进任何记忆文件。** 用户另给过一个有效 key（放在 `D:\下载\agent\新建 文本文档.txt`，
+   也不要复制到仓库/记忆）。**注意：环境变量优先级高于 `/login` 保存的 key**，
+   所以要换 key 得改环境变量，或在 shell 里先 unset 再用 /login。
+
+## 上一轮差距盘点的两处更正（2026-09-17）
+早先我按"裸调 `client.beta`"列出 12 处受影响能力，实测后有两处**本来就是死路径**，不必修：
+- `utils/model/modelCapabilities.ts:93` 的 `models.list` —— `isModelCapabilitiesEligible()`
+  开头就是 `if (true) return false`，整个函数早已硬关掉。
+- `services/limkenionAiLimits.ts:209` 的配额检查 —— `checkQuotaStatus()` 被
+  `shouldProcessRateLimits(isLimkenionAISubscriber())` 拦住，本地模式恒 false（除非设了 mock 开关）。
+
+**教训**：报"某功能坏了"之前，先确认那条路真的可达（找守卫/短路条件），别只看调用点存在。
+
+## 测试相关
+- `NODE_ENV=test` 会让 `services/vcr.ts` 的 `shouldUseVCR()` 返回 true，
+  于是把 API 结果写成 `fixtures/*.json` 到 cwd。**正常 CLI 运行不写**。
+  跑完单测记得 `rm -rf fixtures`，别误提交。它也不在 `.gitignore` 里（待用户定是否加）。
+- 单测 React 组件模块能否加载（防循环依赖）比"渲染测试"性价比高：
+  `import` 一下打印 `typeof`，撞循环依赖会立刻暴露。
