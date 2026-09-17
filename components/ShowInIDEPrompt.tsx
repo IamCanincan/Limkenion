@@ -41,7 +41,7 @@ export function ShowInIDEPrompt(t0) {
   } = t0;
   let t1;
   if ($[0] !== ideName) {
-    t1 = <Text bold={true} color="permission">Opened changes in {ideName} ⧉</Text>;
+    t1 = <Text bold={true} color="permission">已在 {ideName} 中打开更改 ⧉</Text>;
     $[0] = ideName;
     $[1] = t1;
   } else {
@@ -49,7 +49,7 @@ export function ShowInIDEPrompt(t0) {
   }
   let t2;
   if ($[2] !== symlinkTarget) {
-    t2 = symlinkTarget && <Text color="warning">{relative(getCwd(), symlinkTarget).startsWith("..") ? `This will modify ${symlinkTarget} (outside working directory) via a symlink` : `Symlink target: ${symlinkTarget}`}</Text>;
+    t2 = symlinkTarget && <Text color="warning">{relative(getCwd(), symlinkTarget).startsWith("..") ? `这将通过符号链接修改 ${symlinkTarget}（位于工作目录之外）` : `符号链接目标：${symlinkTarget}`}</Text>;
     $[2] = symlinkTarget;
     $[3] = t2;
   } else {
@@ -57,7 +57,7 @@ export function ShowInIDEPrompt(t0) {
   }
   let t3;
   if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = isSupportedVSCodeTerminal() && <Text dimColor={true}>Save file to continue…</Text>;
+    t3 = isSupportedVSCodeTerminal() && <Text dimColor={true}>保存文件以继续…</Text>;
     $[4] = t3;
   } else {
     t3 = $[4];
@@ -72,7 +72,7 @@ export function ShowInIDEPrompt(t0) {
   }
   let t5;
   if ($[7] !== t4) {
-    t5 = <Text>Do you want to make this edit to{" "}<Text bold={true}>{t4}</Text>?</Text>;
+    t5 = <Text>你确定要对{" "}<Text bold={true}>{t4}</Text>应用此编辑吗？</Text>;
     $[7] = t4;
     $[8] = t5;
   } else {
@@ -145,10 +145,10 @@ export function ShowInIDEPrompt(t0) {
   } else {
     t10 = $[28];
   }
-  const t11 = (focusedOption === "yes" && !yesInputMode || focusedOption === "no" && !noInputMode) && " \xB7 Tab to amend";
+  const t11 = (focusedOption === "yes" && !yesInputMode || focusedOption === "no" && !noInputMode) && " \xB7 按 Tab 修改";
   let t12;
   if ($[29] !== t11) {
-    t12 = <Box marginTop={1}><Text dimColor={true}>Esc to cancel{t11}</Text></Box>;
+    t12 = <Box marginTop={1}><Text dimColor={true}>按 Esc 取消{t11}</Text></Box>;
     $[29] = t11;
     $[30] = t12;
   } else {

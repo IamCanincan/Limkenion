@@ -11,12 +11,12 @@ export type Logger = {
   error?: (...args: unknown[]) => void;
 };
 
-export type CCForChromeContext = Record<string, unknown>;
+export type ChromeMcpContext = Record<string, unknown>;
 
 export const BROWSER_TOOLS: Array<{ name: string }> = [];
 
-export function createCCForChromeMcpServer(
-  _context: CCForChromeContext,
+export function createChromeMcpServer(
+  _context: ChromeMcpContext,
 ) {
   return {
     async connect(_transport: unknown): Promise<void> {},

@@ -19,7 +19,7 @@ export const EFFORT_LEVELS = [
 
 export type EffortValue = EffortLevel | number
 
-// @[MODEL LAUNCH]: Add the new model to the allowlist if it supports the effort parameter.
+// @[MODEL LAUNCH]: 若新模型支持 effort 参数，请将其加入白名单。
 export function modelSupportsEffort(model: string): boolean {
   const m = model.toLowerCase()
   if (isEnvTruthy(process.env.LIMKENION_ALWAYS_ENABLE_EFFORT)) {
@@ -29,27 +29,25 @@ export function modelSupportsEffort(model: string): boolean {
   if (supported3P !== undefined) {
     return supported3P
   }
-  // Supported by a subset of Limkenion 4 models
+  // 由 Limkenion 4 的模型子集支持
   if (m.includes('opus-4-6') || m.includes('sonnet-4-6')) {
     return true
   }
-  // Exclude any other known legacy models (haiku, older opus/sonnet variants)
+  // 排除任何其他已知的旧版模型（haiku、较老的 opus/sonnet 变体）
   if (m.includes('haiku') || m.includes('sonnet') || m.includes('opus')) {
     return false
   }
 
-  // IMPORTANT: Do not change the default effort support without notifying
-  // the model launch DRI and research. This is a sensitive setting that can
-  // greatly affect model quality and bashing.
+  // 重要：更改默认 effort 支持前，务必通知模型发布 DRI 和研究团队。
+  // 这是一项敏感设置，会极大地影响模型质量和 bashing。
 
-  // Default to true for unknown model strings on 1P.
-  // Do not default to true for 3P as they have different formats for their
-  // model strings (ex. limkenions/limkenion#30795)
+  // 对 1P 的未知模型串默认返回 true。
+  // 对 3P 不默认 true，因为它们的模型串格式不同（例如 limkenions/limkenion#30795）
   return getAPIProvider() === 'firstParty'
 }
 
-// @[MODEL LAUNCH]: Add the new model to the allowlist if it supports 'max' effort.
-// Per API docs, 'max' is Opus 4.6 only for public models — other models return an error.
+// @[MODEL LAUNCH]: 若新模型支持 'max' effort，请将其加入白名单。
+// 根据 API 文档，对公开模型而言 'max' 仅限 Opus 4.6——其他模型会返回错误。
 export function modelSupportsMaxEffort(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(model, 'max_effort')
   if (supported3P !== undefined) {
@@ -58,9 +56,7 @@ export function modelSupportsMaxEffort(model: string): boolean {
   if (model.toLowerCase().includes('opus-4-6')) {
     return true
   }
-  if (process.env.USER_TYPE === 'ant' && resolveAntModel(model)) {
-    return true
-  }
+  
   return false
 }
 
@@ -87,10 +83,10 @@ export function parseEffortValue(value: unknown): EffortValue | undefined {
 }
 
 /**
- * Numeric values are model-default only and not persisted.
- * 'max' is session-scoped for external users (ants can persist it).
- * Write sites call this before saving to settings so the Zod schema
- * (which only accepts string levels) never rejects a write.
+ * 数值 effort 仅供模型默认使用，不做持久化。
+ * 对外部用户而言 'max' 是会话作用域的（ant 可以持久化它）。
+ * 写入方在保存到设置前调用本函数，使只接受字符串级别的 Zod schema
+ * 永不拒绝写入。
  */
 export function toPersistableEffort(
   value: EffortValue | undefined,
@@ -98,30 +94,28 @@ export function toPersistableEffort(
   if (value === 'low' || value === 'medium' || value === 'high') {
     return value
   }
-  if (value === 'max' && process.env.USER_TYPE === 'ant') {
+  if (value === 'max' && false) {
     return value
   }
   return undefined
 }
 
 export function getInitialEffortSetting(): EffortLevel | undefined {
-  // toPersistableEffort filters 'max' for non-ants on read, so a manually
-  // edited settings.json doesn't leak session-scoped max into a fresh session.
+  // 读取时 toPersistableEffort 会为非 ant 过滤掉 'max'，因此手工编辑的
+  // settings.json 不会把会话作用域的 max 泄漏到一次全新的会话里。
   return toPersistableEffort(getInitialSettings().effortLevel)
 }
 
 /**
- * Decide what effort level (if any) to persist when the user selects a model
- * in ModelPicker. Keeps an explicit prior /effort choice sticky even when it
- * matches the picked model's default, while letting purely-default and
- * session-ephemeral effort (CLI --effort, EffortCallout default) fall through
- * to undefined so it follows future model-default changes.
+ * 决定用户在 ModelPicker 中选择模型时应持久化哪个 effort 级别（如果有）。
+ * 即使显式指定的早期 /effort 选择恰好匹配所选模型的默认值，也会让它保持
+ * 粘性；而纯默认和会话瞬态 effort（CLI --effort、EffortCallout 默认）则放行
+ * 到 undefined，以便其跟随未来的模型默认变化。
  *
- * priorPersisted must come from userSettings on disk
- * (getSettingsForSource('userSettings')?.effortLevel), NOT merged settings
- * (project/policy layers would leak into the user's global settings.json)
- * and NOT AppState.effortValue (includes session-scoped sources that
- * deliberately do not write to settings.json).
+ * priorPersisted 必须来自磁盘上的 userSettings
+ * （getSettingsForSource('userSettings')?.effortLevel），而非合并后的设置
+ * （project/policy 层会泄漏进用户的全局 settings.json），也非
+ * AppState.effortValue（它包含刻意不写入 settings.json 的会话作用域来源）。
  */
 export function resolvePickerEffortPersistence(
   picked: EffortLevel | undefined,
@@ -142,12 +136,10 @@ export function getEffortEnvOverride(): EffortValue | null | undefined {
 }
 
 /**
- * Resolve the effort value that will actually be sent to the API for a given
- * model, following the full precedence chain:
- *   env LIMKENION_EFFORT_LEVEL → appState.effortValue → model default
+ * 解析最终会发送给 API 的 effort 值，遵循完整优先级链：
+ *   env LIMKENION_EFFORT_LEVEL → appState.effortValue → 模型默认
  *
- * Returns undefined when no effort parameter should be sent (env set to
- * 'unset', or no default exists for the model).
+ * 当不应发送 effort 参数时返回 undefined（env 设为 'unset'，或模型无默认值）。
  */
 export function resolveAppliedEffort(
   model: string,
@@ -159,7 +151,7 @@ export function resolveAppliedEffort(
   }
   const resolved =
     envOverride ?? appStateEffortValue ?? getDefaultEffortForModel(model)
-  // API rejects 'max' on non-Opus-4.6 models — downgrade to 'high'.
+  // 对非 Opus-4.6 模型，API 拒绝 'max'——降级为 'high'。
   if (resolved === 'max' && !modelSupportsMaxEffort(model)) {
     return 'high'
   }
@@ -167,9 +159,9 @@ export function resolveAppliedEffort(
 }
 
 /**
- * Resolve the effort level to show the user. Wraps resolveAppliedEffort
- * with the 'high' fallback (what the API uses when no effort param is sent).
- * Single source of truth for the status bar and /effort output (CC-1088).
+ * 解析要向用户展示的 effort 级别。用 'high' 兜底包装 resolveAppliedEffort
+ * （不发送 effort 参数时 API 实际使用的值）。状态栏和 /effort 输出的
+ * 单一事实来源（CC-1088）。
  */
 export function getDisplayedEffortLevel(
   model: string,
@@ -180,10 +172,10 @@ export function getDisplayedEffortLevel(
 }
 
 /**
- * Build the ` with {level} effort` suffix shown in Logo/Spinner.
- * Returns empty string if the user hasn't explicitly set an effort value.
- * Delegates to resolveAppliedEffort() so the displayed level matches what
- * the API actually receives (including max→high clamp for non-Opus models).
+ * 构建 Logo/Spinner 中显示的 ` with {level} effort` 后缀。
+ * 若用户未显式设置 effort 值则返回空串。
+ * 委托给 resolveAppliedEffort()，使显示的级别与 API 实际收到的值一致
+ * （包括非 Opus 模型的 max→high 钳制）。
  */
 export function getEffortSuffix(
   model: string,
@@ -201,54 +193,46 @@ export function isValidNumericEffort(value: number): boolean {
 
 export function convertEffortValueToLevel(value: EffortValue): EffortLevel {
   if (typeof value === 'string') {
-    // Runtime guard: value may come from remote config (GrowthBook) where
-    // TypeScript types can't help us. Coerce unknown strings to 'high'
-    // rather than passing them through unchecked.
+    // 运行时守卫：值可能来自远程配置（GrowthBook），TypeScript 类型在这里
+    // 帮不上忙。把未知串强制为 'high'，而不是不检查就让它们通过。
     return isEffortLevel(value) ? value : 'high'
   }
-  if (process.env.USER_TYPE === 'ant' && typeof value === 'number') {
-    if (value <= 50) return 'low'
-    if (value <= 85) return 'medium'
-    if (value <= 100) return 'high'
-    return 'max'
-  }
+  
   return 'high'
 }
 
 /**
- * Get user-facing description for effort levels
+ * 获取面向用户的 effort 级别描述
  *
- * @param level The effort level to describe
- * @returns Human-readable description
+ * @param level 要描述的 effort 级别
+ * @returns 人类可读的描述
  */
 export function getEffortLevelDescription(level: EffortLevel): string {
   switch (level) {
     case 'low':
-      return 'Quick, straightforward implementation with minimal overhead'
+      return '快速直接的实现，开销极小'
     case 'medium':
-      return 'Balanced approach with standard implementation and testing'
+      return '均衡方案，包含标准的实现与测试'
     case 'high':
-      return 'Comprehensive implementation with extensive testing and documentation'
+      return '全面实现，包含充分的测试与文档'
     case 'max':
-      return 'Maximum capability with deepest reasoning (Opus 4.6 only)'
+      return '最大能力，推理最深（仅限 Opus 4.6）'
   }
 }
 
 /**
- * Get user-facing description for effort values (both string and numeric)
+ * 获取面向用户的 effort 值描述（字符串与数值形式均可）
  *
- * @param value The effort value to describe
- * @returns Human-readable description
+ * @param value 要描述的 effort 值
+ * @returns 人类可读的描述
  */
 export function getEffortValueDescription(value: EffortValue): string {
-  if (process.env.USER_TYPE === 'ant' && typeof value === 'number') {
-    return `[ANT-ONLY] Numeric effort value of ${value}`
-  }
+  
 
   if (typeof value === 'string') {
     return getEffortLevelDescription(value)
   }
-  return 'Balanced approach with standard implementation and testing'
+  return '均衡方案，包含标准的实现与测试'
 }
 
 export type OpusDefaultEffortConfig = {
@@ -259,14 +243,14 @@ export type OpusDefaultEffortConfig = {
 
 const OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT: OpusDefaultEffortConfig = {
   enabled: true,
-  dialogTitle: 'We recommend medium effort for Opus',
+  dialogTitle: '我们建议 Opus 使用中等 effort',
   dialogDescription:
-    'Effort determines how long Limkenion thinks for when completing your task. We recommend medium effort for most tasks to balance speed and intelligence and maximize rate limits. Use ultrathink to trigger high effort when needed.',
+    'Effort 决定 Limkenion 完成你的任务时思考的时长。我们建议大多数任务使用中等 effort，以在速度与智能之间取得平衡并最大化速率限制。需要时可使用 ultrathink 触发高 effort。',
 }
 
 export function getOpusDefaultEffortConfig(): OpusDefaultEffortConfig {
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_grey_step2',
+    'limkenion_grey_step2',
     OPUS_DEFAULT_EFFORT_CONFIG_DEFAULT,
   )
   return {
@@ -275,37 +259,17 @@ export function getOpusDefaultEffortConfig(): OpusDefaultEffortConfig {
   }
 }
 
-// @[MODEL LAUNCH]: Update the default effort levels for new models
+// @[MODEL LAUNCH]: 更新新模型的默认 effort 级别
 export function getDefaultEffortForModel(
   model: string,
 ): EffortValue | undefined {
-  if (process.env.USER_TYPE === 'ant') {
-    const config = getAntModelOverrideConfig()
-    const isDefaultModel =
-      config?.defaultModel !== undefined &&
-      model.toLowerCase() === config.defaultModel.toLowerCase()
-    if (isDefaultModel && config?.defaultModelEffortLevel) {
-      return config.defaultModelEffortLevel
-    }
-    const antModel = resolveAntModel(model)
-    if (antModel) {
-      if (antModel.defaultEffortLevel) {
-        return antModel.defaultEffortLevel
-      }
-      if (antModel.defaultEffortValue !== undefined) {
-        return antModel.defaultEffortValue
-      }
-    }
-    // Always default ants to undefined/high
-    return undefined
-  }
+  
 
-  // IMPORTANT: Do not change the default effort level without notifying
-  // the model launch DRI and research. Default effort is a sensitive setting
-  // that can greatly affect model quality and bashing.
+  // 重要：更改默认 effort 级别前，务必通知模型发布 DRI 和研究团队。
+  // 默认 effort 是一项敏感设置，会极大地影响模型质量和 bashing。
 
-  // Default effort on Opus 4.6 to medium for Pro.
-  // Max/Team also get medium when the 内部代号_grey_step2 config is enabled.
+  // Pro 用户在 Opus 4.6 上默认用中等 effort。
+  // 当 limkenion_grey_step2 配置启用时，Max/Team 同样使用中等 effort。
   if (model.toLowerCase().includes('opus-4-6')) {
     if (isProSubscriber()) {
       return 'medium'
@@ -318,12 +282,11 @@ export function getDefaultEffortForModel(
     }
   }
 
-  // When ultrathink feature is on, default effort to medium (ultrathink bumps to high)
+  // 当 ultrathink 功能开启时，默认 effort 为中等（ultrathink 会提升到高）
   if (isUltrathinkEnabled() && modelSupportsEffort(model)) {
     return 'medium'
   }
 
-  // Fallback to undefined, which means we don't set an effort level. This
-  // should resolve to high effort level in the API.
+  // 回退到 undefined，即我们不设置 effort 级别。这应在 API 中解析为高 effort。
   return undefined
 }

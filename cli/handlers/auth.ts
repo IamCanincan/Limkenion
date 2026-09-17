@@ -80,7 +80,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
   clearOAuthTokenCache()
 
   if (storageResult.warning) {
-    logEvent('内部代号_oauth_storage_warning', {
+    logEvent('limkenion_oauth_storage_warning', {
       warning:
         storageResult.warning as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -101,7 +101,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
     const apiKey = await createAndStoreApiKey(tokens.accessToken)
     if (!apiKey) {
       throw new Error(
-        'Unable to create API key. The server accepted the request but did not return a key.',
+        '无法创建 API key。服务器接受了请求但没有返回 key。',
       )
     }
   }
@@ -122,7 +122,7 @@ export async function authLogin({
 }): Promise<void> {
   if (useConsole && limkenionai) {
     process.stderr.write(
-      'Error: --console and --limkenionai cannot be used together.\n',
+      '错误：--console 与 --limkenionai 不能同时使用。\n',
     )
     process.exit(1)
   }
@@ -142,9 +142,9 @@ export async function authLogin({
     const envScopes = process.env.LIMKENION_OAUTH_SCOPES
     if (!envScopes) {
       process.stderr.write(
-        'LIMKENION_OAUTH_SCOPES is required when using LIMKENION_OAUTH_REFRESH_TOKEN.\n' +
-          'Set it to the space-separated scopes the refresh token was issued with\n' +
-          '(e.g. "user:inference" or "user:profile user:inference user:sessions:limkenion user:mcp_servers").\n',
+        '使用 LIMKENION_OAUTH_REFRESH_TOKEN 时必须设置 LIMKENION_OAUTH_SCOPES。\n' +
+          '请设置为该 refresh token 签发时对应的作用域（空格分隔）\n' +
+          '（例如 "user:inference" 或 "user:profile user:inference user:sessions:limkenion user:mcp_servers"）。\n',
       )
       process.exit(1)
     }
@@ -152,7 +152,7 @@ export async function authLogin({
     const scopes = envScopes.split(/\s+/).filter(Boolean)
 
     try {
-      logEvent('内部代号_login_from_refresh_token', {})
+      logEvent('limkenion_login_from_refresh_token', {})
 
       const tokens = await refreshOAuthToken(envRefreshToken, { scopes })
       await installOAuthTokens(tokens)
@@ -170,16 +170,16 @@ export async function authLogin({
         return { ...current, hasCompletedOnboarding: true }
       })
 
-      logEvent('内部代号_oauth_success', {
+      logEvent('limkenion_oauth_success', {
         loginWithLimkenionAi: shouldUseLimkenionAIAuth(tokens.scopes),
       })
-      process.stdout.write('Login successful.\n')
+      process.stdout.write('登录成功。\n')
       process.exit(0)
     } catch (err) {
       logError(err)
       const sslHint = getSSLErrorHint(err)
       process.stderr.write(
-        `Login failed: ${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
+        `登录失败：${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
       )
       process.exit(1)
     }
@@ -190,12 +190,12 @@ export async function authLogin({
   const oauthService = new OAuthService()
 
   try {
-    logEvent('内部代号_oauth_flow_start', { loginWithLimkenionAi })
+    logEvent('limkenion_oauth_flow_start', { loginWithLimkenionAi })
 
     const result = await oauthService.startOAuthFlow(
       async url => {
-        process.stdout.write('Opening browser to sign in…\n')
-        process.stdout.write(`If the browser didn't open, visit: ${url}\n`)
+        process.stdout.write('正在打开浏览器登录…\n')
+        process.stdout.write(`若浏览器未打开，请访问：${url}\n`)
       },
       {
         loginWithLimkenionAi,
@@ -213,15 +213,15 @@ export async function authLogin({
       process.exit(1)
     }
 
-    logEvent('内部代号_oauth_success', { loginWithLimkenionAi })
+    logEvent('limkenion_oauth_success', { loginWithLimkenionAi })
 
-    process.stdout.write('Login successful.\n')
+    process.stdout.write('登录成功。\n')
     process.exit(0)
   } catch (err) {
     logError(err)
     const sslHint = getSSLErrorHint(err)
     process.stderr.write(
-      `Login failed: ${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
+      `登录失败：${errorMessage(err)}\n${sslHint ? sslHint + '\n' : ''}`,
     )
     process.exit(1)
   } finally {
@@ -287,7 +287,7 @@ export async function authStatus(opts: {
     }
     if (!loggedIn) {
       process.stdout.write(
-        'Not logged in. Run limkenion auth login to authenticate.\n',
+        '未登录。请运行 limkenion auth login 进行身份认证。\n',
       )
     }
   } else {
@@ -322,9 +322,9 @@ export async function authLogout(): Promise<void> {
   try {
     await performLogout({ clearOnboarding: false })
   } catch {
-    process.stderr.write('Failed to log out.\n')
+    process.stderr.write('退出登录失败。\n')
     process.exit(1)
   }
-  process.stdout.write('Successfully logged out from your Limkenion account.\n')
+  process.stdout.write('已成功退出你的 Limkenion 账户。\n')
   process.exit(0)
 }

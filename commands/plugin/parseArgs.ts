@@ -1,4 +1,4 @@
-// Parse plugin subcommand arguments into structured commands
+// 将插件子命令参数解析为结构化命令
 export type ParsedCommand =
   | { type: 'menu' }
   | { type: 'help' }
@@ -35,13 +35,13 @@ export function parsePluginArgs(args?: string): ParsedCommand {
         return { type: 'install' }
       }
 
-      // Check if it's in format plugin@marketplace
+      // 检查是否为 plugin@marketplace 格式
       if (target.includes('@')) {
         const [plugin, marketplace] = target.split('@')
         return { type: 'install', plugin, marketplace }
       }
 
-      // Check if the target looks like a marketplace (URL or path)
+      // 检查目标是否看起来像一个市场（URL 或路径）
       const isMarketplace =
         target.startsWith('http://') ||
         target.startsWith('https://') ||
@@ -50,11 +50,11 @@ export function parsePluginArgs(args?: string): ParsedCommand {
         target.includes('\\')
 
       if (isMarketplace) {
-        // This is a marketplace URL/path, no plugin specified
+        // 这是一个市场 URL/路径，没有指定插件
         return { type: 'install', marketplace: target }
       }
 
-      // Otherwise treat it as a plugin name
+      // 否则作为插件名处理
       return { type: 'install', plugin: target }
     }
 
@@ -91,13 +91,13 @@ export function parsePluginArgs(args?: string): ParsedCommand {
         case 'list':
           return { type: 'marketplace', action: 'list' }
         default:
-          // No action specified, show marketplace menu
+          // 未指定动作，显示市场菜单
           return { type: 'marketplace' }
       }
     }
 
     default:
-      // Unknown command, show menu
+      // 未知命令，显示菜单
       return { type: 'menu' }
   }
 }

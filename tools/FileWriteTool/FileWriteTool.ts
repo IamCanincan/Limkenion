@@ -58,9 +58,9 @@ const inputSchema = lazySchema(() =>
     file_path: z
       .string()
       .describe(
-        'The absolute path to the file to write (must be absolute, not relative)',
+        '要写入文件的绝对路径（必须是绝对路径，而非相对路径）',
       ),
-    content: z.string().describe('The content to write to the file'),
+    content: z.string().describe('要写入文件的内容'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -70,18 +70,18 @@ const outputSchema = lazySchema(() =>
     type: z
       .enum(['create', 'update'])
       .describe(
-        'Whether a new file was created or an existing file was updated',
+        '是创建了新文件，还是更新了已存在的文件',
       ),
-    filePath: z.string().describe('The path to the file that was written'),
-    content: z.string().describe('The content that was written to the file'),
+    filePath: z.string().describe('已写入文件的路径'),
+    content: z.string().describe('写入文件的内容'),
     structuredPatch: z
       .array(hunkSchema())
-      .describe('Diff patch showing the changes'),
+      .describe('显示更改的差异补丁'),
     originalFile: z
       .string()
       .nullable()
       .describe(
-        'The original file content before the write (null for new files)',
+        '写入前文件的原始内容（新文件为 null）',
       ),
     gitDiff: gitDiffSchema().optional(),
   }),
@@ -249,7 +249,7 @@ export const FileWriteTool = buildTool({
     // Ensure parent directory exists before the atomic read-modify-write section.
     // Must stay OUTSIDE the critical section below (a yield between the staleness
     // check and writeTextContent lets concurrent edits interleave), and BEFORE the
-    // write (lazy-mkdir-on-ENOENT would fire a spurious 内部代号_atomic_write_error
+    // write (lazy-mkdir-on-ENOENT would fire a spurious limkenion_atomic_write_error
     // inside writeFileSyncAndFlush_DEPRECATED before ENOENT propagates back).
     await getFsImplementation().mkdir(dir)
     if (fileHistoryEnabled()) {
@@ -338,18 +338,18 @@ export const FileWriteTool = buildTool({
 
     // Log when writing to LIMKENION.md
     if (fullFilePath.endsWith(`${sep}LIMKENION.md`)) {
-      logEvent('内部代号_write_limkenionmd', {})
+      logEvent('limkenion_write_limkenionmd', {})
     }
 
     let gitDiff: ToolUseDiff | undefined
     if (
       isEnvTruthy(process.env.LIMKENION_REMOTE) &&
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_quartz_lantern', false)
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_quartz_lantern', false)
     ) {
       const startTime = Date.now()
       const diff = await fetchSingleFileGitDiff(fullFilePath)
       if (diff) gitDiff = diff
-      logEvent('内部代号_tool_use_diff_computed', {
+      logEvent('limkenion_tool_use_diff_computed', {
         isWriteTool: true,
         durationMs: Date.now() - startTime,
         hasDiff: !!diff,

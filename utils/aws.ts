@@ -1,6 +1,6 @@
 import { logForDebugging } from './debug.js'
 
-/** AWS short-term credentials format. */
+/** AWS 短期凭据格式。 */
 export type AwsCredentials = {
   AccessKeyId: string
   SecretAccessKey: string
@@ -8,7 +8,7 @@ export type AwsCredentials = {
   Expiration?: string
 }
 
-/** Output from `aws sts get-session-token` or `aws sts assume-role`. */
+/** 来自 `aws sts get-session-token` 或 `aws sts assume-role` 的输出。 */
 export type AwsStsOutput = {
   Credentials: AwsCredentials
 }
@@ -21,7 +21,7 @@ export function isAwsCredentialsProviderError(err: unknown) {
   return (err as AwsError | undefined)?.name === 'CredentialsProviderError'
 }
 
-/** Typeguard to validate AWS STS assume-role output */
+/** 校验 AWS STS assume-role 输出的类型守卫 */
 export function isValidAwsStsOutput(obj: unknown): obj is AwsStsOutput {
   if (!obj || typeof obj !== 'object') {
     return false
@@ -29,7 +29,7 @@ export function isValidAwsStsOutput(obj: unknown): obj is AwsStsOutput {
 
   const output = obj as Record<string, unknown>
 
-  // Check if Credentials exists and has required fields
+  // 检查 Credentials 是否存在并具有必需字段
   if (!output.Credentials || typeof output.Credentials !== 'object') {
     return false
   }
@@ -46,7 +46,7 @@ export function isValidAwsStsOutput(obj: unknown): obj is AwsStsOutput {
   )
 }
 
-/** Throws if STS caller identity cannot be retrieved. */
+/** 若无法获取 STS 调用者身份则抛出异常。 */
 export async function checkStsCallerIdentity(): Promise<void> {
   const { STSClient, GetCallerIdentityCommand } = await import(
     '@aws-sdk/client-sts'
@@ -55,20 +55,20 @@ export async function checkStsCallerIdentity(): Promise<void> {
 }
 
 /**
- * Clear AWS credential provider cache by forcing a refresh
- * This ensures that any changes to ~/.aws/credentials are picked up immediately
+ * 通过强制刷新清除 AWS 凭据提供方缓存
+ * 确保对 ~/.aws/credentials 的任何更改立即生效
  */
 export async function clearAwsIniCache(): Promise<void> {
   try {
-    logForDebugging('Clearing AWS credential provider cache')
+    logForDebugging('清除 AWS 凭据提供方缓存')
     const { fromIni } = await import('@aws-sdk/credential-providers')
     const iniProvider = fromIni({ ignoreCache: true })
-    await iniProvider() // This updates the global file cache
-    logForDebugging('AWS credential provider cache refreshed')
+    await iniProvider() // 这会更新全局文件缓存
+    logForDebugging('AWS 凭据提供方缓存已刷新')
   } catch (_error) {
-    // Ignore errors - we're just clearing the cache
+    // 忽略错误——我们只是在清除缓存
     logForDebugging(
-      'Failed to clear AWS credential cache (this is expected if no credentials are configured)',
+      '清除 AWS 凭据缓存失败（若未配置任何凭据则这是预期行为）',
     )
   }
 }

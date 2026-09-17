@@ -285,7 +285,7 @@ export async function microcompactMessages(
     }
   }
 
-  // Legacy microcompact path removed — 内部代号_cache_plum_violet is always true.
+  // Legacy microcompact path removed — limkenion_cache_plum_violet is always true.
   // For contexts where cached microcompact is not available (external builds,
   // non-ant users, unsupported models, sub-agents), no compaction happens here;
   // autocompact handles context pressure instead.
@@ -343,7 +343,7 @@ async function cachedMicrocompactPath(
     )
 
     // Log the event
-    logEvent('内部代号_cached_microcompact', {
+    logEvent('limkenion_cached_microcompact', {
       toolsDeleted: toolsToDelete.length,
       deletedToolIds: toolsToDelete.join(
         ',',
@@ -495,7 +495,7 @@ function maybeTimeBasedMicrocompact(
     return null
   }
 
-  logEvent('内部代号_time_based_microcompact', {
+  logEvent('limkenion_time_based_microcompact', {
     gapMinutes: Math.round(gapMinutes),
     gapThresholdMinutes: config.gapThresholdMinutes,
     toolsCleared: clearSet.size,

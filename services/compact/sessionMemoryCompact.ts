@@ -108,7 +108,7 @@ async function initSessionMemoryCompactConfig(): Promise<void> {
   // Load config from GrowthBook, merging with defaults
   const remoteConfig = await getDynamicConfig_BLOCKS_ON_INIT<
     Partial<SessionMemoryCompactConfig>
-  >('内部代号_sm_compact_config', {})
+  >('limkenion_sm_compact_config', {})
 
   // Only use remote values if they are explicitly set (positive numbers)
   // This ensures sensible defaults aren't overridden by zero values
@@ -410,23 +410,17 @@ export function shouldUseSessionMemoryCompaction(): boolean {
   }
 
   const sessionMemoryFlag = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_session_memory',
+    'limkenion_session_memory',
     false,
   )
   const smCompactFlag = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_sm_compact',
+    'limkenion_sm_compact',
     false,
   )
   const shouldUse = sessionMemoryFlag && smCompactFlag
 
   // Log flag states for debugging (ant-only to avoid noise in external logs)
-  if (process.env.USER_TYPE === 'ant') {
-    logEvent('内部代号_sm_compact_flag_check', {
-      内部代号_session_memory: sessionMemoryFlag,
-      内部代号_sm_compact: smCompactFlag,
-      should_use: shouldUse,
-    })
-  }
+  
 
   return shouldUse
 }
@@ -531,14 +525,14 @@ export async function trySessionMemoryCompaction(
 
   // No session memory file exists at all
   if (!sessionMemory) {
-    logEvent('内部代号_sm_compact_no_session_memory', {})
+    logEvent('limkenion_sm_compact_no_session_memory', {})
     return null
   }
 
   // Session memory exists but matches the template (no actual content extracted)
   // Fall back to legacy compact behavior
   if (await isSessionMemoryEmpty(sessionMemory)) {
-    logEvent('内部代号_sm_compact_empty_template', {})
+    logEvent('limkenion_sm_compact_empty_template', {})
     return null
   }
 
@@ -555,14 +549,14 @@ export async function trySessionMemoryCompaction(
         // The summarized message ID doesn't exist in current messages
         // This can happen if messages were modified - fall back to legacy compact
         // since we can't determine the boundary between summarized and unsummarized messages
-        logEvent('内部代号_sm_compact_summarized_id_not_found', {})
+        logEvent('limkenion_sm_compact_summarized_id_not_found', {})
         return null
       }
     } else {
       // Resumed session case: session memory has content but we don't know the boundary
       // Set lastSummarizedIndex to last message so startIndex becomes messages.length (no messages kept initially)
       lastSummarizedIndex = messages.length - 1
-      logEvent('内部代号_sm_compact_resumed_session', {})
+      logEvent('limkenion_sm_compact_resumed_session', {})
     }
 
     // Calculate the starting index for messages to keep
@@ -606,7 +600,7 @@ export async function trySessionMemoryCompaction(
       autoCompactThreshold !== undefined &&
       postCompactTokenCount >= autoCompactThreshold
     ) {
-      logEvent('内部代号_sm_compact_threshold_exceeded', {
+      logEvent('limkenion_sm_compact_threshold_exceeded', {
         postCompactTokenCount,
         autoCompactThreshold,
       })
@@ -621,10 +615,8 @@ export async function trySessionMemoryCompaction(
   } catch (error) {
     // Use logEvent instead of logError since errors here are expected
     // (e.g., file not found, path issues) and shouldn't go to error logs
-    logEvent('内部代号_sm_compact_error', {})
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging(`Session memory compaction error: ${errorMessage(error)}`)
-    }
+    logEvent('limkenion_sm_compact_error', {})
+    
     return null
   }
 }

@@ -58,7 +58,7 @@ export function processTextPrompt(
 
   const isNegative = matchesNegativeKeyword(userPromptText)
   const isKeepGoing = matchesKeepGoingKeyword(userPromptText)
-  logEvent('内部代号_input_prompt', {
+  logEvent('limkenion_input_prompt', {
     is_negative: isNegative,
     is_keep_going: isKeepGoing,
   })

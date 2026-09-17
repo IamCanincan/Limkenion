@@ -37,7 +37,7 @@ function InvalidApiKeyMessage() {
   const isKeychainLocked = t0;
   let t1;
   if ($[1] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = <MessageResponse><Box flexDirection="column"><Text color="error">{INVALID_API_KEY_ERROR_MESSAGE}</Text>{isKeychainLocked && <Text dimColor={true}>· Run in another terminal: security unlock-keychain</Text>}</Box></MessageResponse>;
+    t1 = <MessageResponse><Box flexDirection="column"><Text color="error">{INVALID_API_KEY_ERROR_MESSAGE}</Text>{isKeychainLocked && <Text dimColor={true}>· 在另一个终端中运行：security unlock-keychain</Text>}</Box></MessageResponse>;
     $[1] = t1;
   } else {
     t1 = $[1];
@@ -89,7 +89,7 @@ export function AssistantTextMessage(t0) {
         const upgradeHint = t2;
         let t3;
         if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-          t3 = <MessageResponse height={1}><Text color="error">Context limit reached · /compact or /clear to continue{upgradeHint ? ` · ${upgradeHint}` : ""}</Text></MessageResponse>;
+          t3 = <MessageResponse height={1}><Text color="error">上下文限制已达上限 · 使用 /compact 或 /clear 继续{upgradeHint ? ` · ${upgradeHint}` : ""}</Text></MessageResponse>;
           $[4] = t3;
         } else {
           t3 = $[4];
@@ -100,7 +100,7 @@ export function AssistantTextMessage(t0) {
       {
         let t2;
         if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <MessageResponse height={1}><Text color="error">Credit balance too low · Add funds: https://platform.limkenion.com/settings/billing</Text></MessageResponse>;
+          t2 = <MessageResponse height={1}><Text color="error">信用余额不足 · 添加资金：https://platform.limkenion.com/settings/billing</Text></MessageResponse>;
           $[5] = t2;
         } else {
           t2 = $[5];
@@ -157,7 +157,7 @@ export function AssistantTextMessage(t0) {
       {
         let t2;
         if ($[11] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <MessageResponse height={1}><Text color="error">{API_TIMEOUT_ERROR_MESSAGE}{process.env.API_TIMEOUT_MS && <>{" "}(API_TIMEOUT_MS={process.env.API_TIMEOUT_MS}ms, try increasing it)</>}</Text></MessageResponse>;
+          t2 = <MessageResponse height={1}><Text color="error">{API_TIMEOUT_ERROR_MESSAGE}{process.env.API_TIMEOUT_MS && <>{" "}(API_TIMEOUT_MS={process.env.API_TIMEOUT_MS}ms, 如超时可尝试增大该值)</>}</Text></MessageResponse>;
           $[11] = t2;
         } else {
           t2 = $[11];
@@ -168,14 +168,14 @@ export function AssistantTextMessage(t0) {
       {
         let t2;
         if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <Text color="error">We are experiencing high demand for Opus 4.</Text>;
+          t2 = <Text color="error">我们目前正面临 Opus 4 的高需求。</Text>;
           $[12] = t2;
         } else {
           t2 = $[12];
         }
         let t3;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-          t3 = <MessageResponse><Box flexDirection="column" gap={1}>{t2}<Text>To continue immediately, use /model to switch to{" "}{renderModelName(getDefaultSonnetModel())} and continue coding.</Text></Box></MessageResponse>;
+          t3 = <MessageResponse><Box flexDirection="column" gap={1}>{t2}<Text>若要立即继续，请使用 /model 切换到{" "}{renderModelName(getDefaultSonnetModel())} 并继续编码。</Text></Box></MessageResponse>;
           $[13] = t3;
         } else {
           t3 = $[13];
@@ -197,7 +197,7 @@ export function AssistantTextMessage(t0) {
       {
         if (startsWithApiErrorPrefix(text)) {
           const truncated = !verbose && text.length > MAX_API_ERROR_CHARS;
-          const t2 = text === API_ERROR_MESSAGE_PREFIX ? `${API_ERROR_MESSAGE_PREFIX}: Please wait a moment and try again.` : truncated ? text.slice(0, MAX_API_ERROR_CHARS) + "\u2026" : text;
+          const t2 = text === API_ERROR_MESSAGE_PREFIX ? `${API_ERROR_MESSAGE_PREFIX}: 请稍等片刻后重试。` : truncated ? text.slice(0, MAX_API_ERROR_CHARS) + "\u2026" : text;
           let t3;
           if ($[15] !== t2) {
             t3 = <Text color="error">{t2}</Text>;

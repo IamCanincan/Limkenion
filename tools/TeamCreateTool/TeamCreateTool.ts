@@ -36,14 +36,14 @@ import { renderToolUseMessage } from './UI.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    team_name: z.string().describe('Name for the new team to create.'),
-    description: z.string().optional().describe('Team description/purpose.'),
+    team_name: z.string().describe('要创建的新团队的名称。'),
+    description: z.string().optional().describe('团队描述/用途。'),
     agent_type: z
       .string()
       .optional()
       .describe(
-        'Type/role of the team lead (e.g., "researcher", "test-runner"). ' +
-          'Used for team file and inter-agent coordination.',
+        '团队负责人的类型/角色（例如"研究员"、"测试运行者"）。' +
+          '用于团队文件和代理间协同。',
       ),
   }),
 )
@@ -211,7 +211,7 @@ export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
       },
     }))
 
-    logEvent('内部代号_team_created', {
+    logEvent('limkenion_team_created', {
       team_name:
         finalTeamName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       teammate_count: 1,

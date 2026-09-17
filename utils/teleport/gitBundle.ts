@@ -22,7 +22,7 @@ import { execFileNoThrowWithCwd } from '../execFileNoThrow.js'
 import { findGitRoot, gitExe } from '../git.js'
 import { generateTempFilePath } from '../tempfile.js'
 
-// Tunable via 内部代号_ccr_bundle_max_bytes.
+// Tunable via limkenion_ccr_bundle_max_bytes.
 const DEFAULT_BUNDLE_MAX_BYTES = 100 * 1024 * 1024
 
 type BundleScope = 'all' | 'head' | 'squashed'
@@ -177,7 +177,7 @@ export async function createAndUploadGitBundle(
     { cwd: gitRoot },
   )
   if (refCheck.code === 0 && refCheck.stdout.trim() === '') {
-    logEvent('内部代号_ccr_bundle_upload', {
+    logEvent('limkenion_ccr_bundle_upload', {
       outcome:
         'empty_repo' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -218,7 +218,7 @@ export async function createAndUploadGitBundle(
   try {
     const maxBytes =
       getFeatureValue_CACHED_MAY_BE_STALE<number | null>(
-        '内部代号_ccr_bundle_max_bytes',
+        'limkenion_ccr_bundle_max_bytes',
         null,
       ) ?? DEFAULT_BUNDLE_MAX_BYTES
 
@@ -232,7 +232,7 @@ export async function createAndUploadGitBundle(
 
     if (!bundle.ok) {
       logForDebugging(`[gitBundle] ${bundle.error}`)
-      logEvent('内部代号_ccr_bundle_upload', {
+      logEvent('limkenion_ccr_bundle_upload', {
         outcome:
           bundle.failReason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         max_bytes: maxBytes,
@@ -250,7 +250,7 @@ export async function createAndUploadGitBundle(
     })
 
     if (!upload.success) {
-      logEvent('内部代号_ccr_bundle_upload', {
+      logEvent('limkenion_ccr_bundle_upload', {
         outcome:
           'failed' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
@@ -260,7 +260,7 @@ export async function createAndUploadGitBundle(
     logForDebugging(
       `[gitBundle] Uploaded ${upload.size} bytes as file_id ${upload.fileId}`,
     )
-    logEvent('内部代号_ccr_bundle_upload', {
+    logEvent('limkenion_ccr_bundle_upload', {
       outcome:
         'success' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       size_bytes: upload.size,

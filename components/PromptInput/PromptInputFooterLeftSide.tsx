@@ -115,7 +115,7 @@ function ProactiveCountdown() {
   }
   let t4;
   if ($[5] !== t3) {
-    t4 = <Text dimColor={true}>waiting{" "}{t3}</Text>;
+    t4 = <Text dimColor={true}>等待{" "}{t3}</Text>;
     $[5] = t3;
     $[6] = t4;
   } else {
@@ -146,7 +146,7 @@ export function PromptInputFooterLeftSide(t0) {
   if (exitMessage.show) {
     let t1;
     if ($[0] !== exitMessage.key) {
-      t1 = <Text dimColor={true} key="exit-message">Press {exitMessage.key} again to exit</Text>;
+      t1 = <Text dimColor={true} key="exit-message">再次按 {exitMessage.key} 即可退出</Text>;
       $[0] = exitMessage.key;
       $[1] = t1;
     } else {
@@ -157,7 +157,7 @@ export function PromptInputFooterLeftSide(t0) {
   if (isPasting) {
     let t1;
     if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-      t1 = <Text dimColor={true} key="pasting-message">Pasting text…</Text>;
+      t1 = <Text dimColor={true} key="pasting-message">正在粘贴文本…</Text>;
       $[2] = t1;
     } else {
       t1 = $[2];
@@ -250,8 +250,8 @@ function ModeIndicator({
   const modeCycleShortcut = useShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab');
   const tasks = useAppState(s => s.tasks);
   const teamContext = useAppState(s_0 => s_0.teamContext);
-  // Set once in initialState (main.tsx --remote mode) and never mutated — lazy
-  // init captures the immutable value without a subscription.
+  // 仅在 initialState（main.tsx --remote 模式）中设置，之后永不变化——懒加载
+  // 初始化无需订阅即可捕获这个不可变的值。
   const store = useAppStateStore();
   const [remoteSessionUrl] = useState(() => store.getState().remoteSessionUrl);
   const viewSelectionMode = useAppState(s_1 => s_1.viewSelectionMode);
@@ -259,10 +259,10 @@ function ModeIndicator({
   const expandedView = useAppState(s_3 => s_3.expandedView);
   const showSpinnerTree = expandedView === 'teammates';
   const prStatus = usePrStatus(isLoading, isPrStatusEnabled());
-  const hasTmuxSession = useAppState(s_4 => "external" === 'ant' && s_4.tungstenActiveSession !== undefined);
+  const hasTmuxSession = useAppState(s_4 => false);
   const nextTickAt = useSyncExternalStore(proactiveModule?.subscribeToProactiveChanges ?? NO_OP_SUBSCRIBE, proactiveModule?.getNextTickAt ?? NULL, NULL);
   // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
-  // Voice mode removed — always disabled.
+  // 语音模式已移除——始终禁用。
   const voiceEnabled = false;
   const voiceState = feature('VOICE_MODE') ?
   // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
@@ -274,7 +274,7 @@ function ModeIndicator({
   const selGetState = useSelection().getState;
   const hasNextTick = nextTickAt !== null;
   const isCoordinator = feature('COORDINATOR_MODE') ? coordinatorModule?.isCoordinatorMode() === true : false;
-  const runningTaskCount = useMemo(() => count(Object.values(tasks), t => isBackgroundTask(t) && !("external" === 'ant' && isPanelAgentTask(t))), [tasks]);
+  const runningTaskCount = useMemo(() => count(Object.values(tasks), t => isBackgroundTask(t) && !(false)), [tasks]);
   const tasksV2 = useTasksV2();
   const hasTaskItems = tasksV2 !== undefined && tasksV2.length > 0;
   const escShortcut = useShortcutDisplay('chat:cancel', 'Chat', 'esc').toLowerCase();
@@ -283,11 +283,10 @@ function ModeIndicator({
   const voiceKeyShortcut = feature('VOICE_MODE') ?
   // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
   useShortcutDisplay('voice:pushToTalk', 'Chat', 'Space') : '';
-  // Captured at mount so the hint doesn't flicker mid-session if another
-  // CC instance increments the counter. Incremented once via useEffect the
-  // first time voice is enabled in this session — approximates "hint was
-  // shown" without tracking the exact render-time condition (which depends
-  // on parts/hintParts computed after the early-return hooks boundary).
+  // 挂载时捕获，这样即使另一个 CC 实例修改了计数器，提示也不会在会话中途闪烁。
+  // 本次会话中首次启用语音时通过 useEffect 递增一次——近似于"提示已
+  // 显示"，而无需跟踪确切的渲染时条件（该条件依赖在提前返回的 hooks 边界
+  // 之后计算出的 parts/hintParts）。
   const [voiceHintUnderCap] = feature('VOICE_MODE') ?
   // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
   useState(() => (getGlobalConfig().voiceFooterHintSeenCount ?? 0) < MAX_VOICE_HINT_SHOWS) : [false];
@@ -310,12 +309,12 @@ function ModeIndicator({
   }, [voiceEnabled, voiceHintUnderCap]);
   const isKillAgentsConfirmShowing = useAppState(s_7 => s_7.notifications.current?.key === 'kill-agents-confirm');
 
-  // Derive team info from teamContext (no filesystem I/O needed)
-  // Match the same logic as TeamStatus to avoid trailing separator
-  // In-process mode uses Shift+Down/Up navigation, not footer teams menu
+  // 从 teamContext 派生团队信息（无需文件系统 I/O）
+  // 与 TeamStatus 保持一致，避免尾随分隔符
+  // 进程内模式使用 Shift+下/上 导航，而非底部团队菜单
   const hasTeams = isAgentSwarmsEnabled() && !isInProcessEnabled() && teamContext !== undefined && count(Object.values(teamContext.teammates), t_0 => t_0.name !== 'team-lead') > 0;
   if (mode === 'bash') {
-    return <Text color="bashBorder">! for bash mode</Text>;
+    return <Text color="bashBorder">! 进入 bash 模式</Text>;
   }
   const currentMode = toolPermissionContext?.mode;
   const hasActiveMode = !isDefaultMode(currentMode);
@@ -324,58 +323,57 @@ function ModeIndicator({
   const isViewingCompletedTeammate = isViewingTeammate && viewedTask != null && viewedTask.status !== 'running';
   const hasBackgroundTasks = runningTaskCount > 0 || isViewingTeammate;
 
-  // Count primary items (permission mode or coordinator mode, background tasks, and teams)
+  // 统计主要项数量（权限模式或协调者模式、后台任务和团队）
   const primaryItemCount = (isCoordinator || hasActiveMode ? 1 : 0) + (hasBackgroundTasks ? 1 : 0) + (hasTeams ? 1 : 0);
 
-  // PR indicator is short (~10 chars) — unlike the old diff indicator the
-  // >=100 threshold was tuned for. Now that auto mode is effectively the
-  // baseline, primaryItemCount is ≥1 for most sessions; keep the threshold
-  // low enough to show PR status on standard 80-col terminals.
+  // PR 指示器很短（约 10 个字符）——不同于为旧的 diff 指示器调整的
+  // 100 阈值。现在自动模式实质上已成为基线，大部分会话中 primaryItemCount ≥ 1；
+  // 将阈值保持在足够低，以便在标准的 80 列终端上显示 PR 状态。
   const shouldShowPrStatus = isPrStatusEnabled() && prStatus.number !== null && prStatus.reviewState !== null && prStatus.url !== null && primaryItemCount < 2 && (primaryItemCount === 0 || columns >= 80);
 
-  // Hide the shift+tab hint when there are 2 primary items
+  // 当存在 2 个主要项时隐藏 shift+tab 提示
   const shouldShowModeHint = primaryItemCount < 2;
 
-  // Check if we have in-process teammates (showing pills)
-  // In spinner-tree mode, pills are disabled - teammates appear in the spinner tree instead
+  // 检查是否存在进程内队友（显示弹丸）
+  // 在 spinning tree 模式下禁用弹丸——队友显示在 spinning tree 中
   const hasInProcessTeammates = !showSpinnerTree && hasBackgroundTasks && Object.values(tasks).some(t_1 => t_1.type === 'in_process_teammate');
   const hasTeammatePills = hasInProcessTeammates || !showSpinnerTree && isViewingTeammate;
 
-  // In remote mode (`limkenion assistant`, --teleport) the agent runs elsewhere;
-  // the local permission mode shown here doesn't reflect the agent's state.
-  // Rendered before the tasks pill so a long pill label (e.g. ultraplan URL)
-  // doesn't push the mode indicator off-screen.
+  // 在远程模式下（`limkenion assistant`、--teleport）代理在别处运行；
+  // 此处显示的本地权限模式并不反映代理的状态。
+  // 在任务弹丸之前渲染，这样较长的弹丸标签（例如 ultraplan URL）
+  // 不会把模式指示器挤出屏幕。
   const modePart = currentMode && hasActiveMode && !getIsRemoteMode() ? <Text color={getModeColor(currentMode)} key="mode">
         {permissionModeSymbol(currentMode)}{' '}
         {permissionModeTitle(currentMode).toLowerCase()} on
         {shouldShowModeHint && <Text dimColor>
             {' '}
-            <KeyboardShortcutHint shortcut={modeCycleShortcut} action="cycle" parens />
+            <KeyboardShortcutHint shortcut={modeCycleShortcut} action="循环" parens />
           </Text>}
       </Text> : null;
 
-  // Build parts array - exclude BackgroundTaskStatus when we have teammate pills
-  // (teammate pills get their own row)
+  // 构建 parts 数组——当我们有队友弹丸时排除 BackgroundTaskStatus
+  //（队友弹丸有自己的一行）
   const parts = [
-  // Remote session indicator
+  // 远程会话指示器
   ...(remoteSessionUrl ? [<Link url={remoteSessionUrl} key="remote">
-            <Text color="ide">{figures.circleDouble} remote</Text>
+            <Text color="ide">{figures.circleDouble} 远程</Text>
           </Link>] : []),
-  // BackgroundTaskStatus is NOT in parts — it renders as a Box sibling so
-  // its click-target Box isn't nested inside the <Text wrap="truncate">
-  // wrapper (reconciler throws on Box-in-Text).
-  // Tmux pill (ant-only) — appears right after tasks in nav order
-  ...("external" === 'ant' && hasTmuxSession ? [<TungstenPill key="tmux" selected={tmuxSelected} />] : []), ...(isAgentSwarmsEnabled() && hasTeams ? [<TeamStatus key="teams" teamsSelected={teamsSelected} showHint={showHint && !hasBackgroundTasks} />] : []), ...(shouldShowPrStatus ? [<PrBadge key="pr-status" number={prStatus.number!} url={prStatus.url!} reviewState={prStatus.reviewState!} />] : [])];
+  // BackgroundTaskStatus 不在 parts 中——它作为 Box 兄弟节点渲染，以便其
+  // 可点击的 Box 不嵌套在 <Text wrap="truncate"> 包装器内（reconciler 对
+  // Box-in-Text 会抛错）。
+  // Tmux 弹丸（仅特定版本）——在导航顺序中紧跟在 tasks 之后
+  ...([]), ...(isAgentSwarmsEnabled() && hasTeams ? [<TeamStatus key="teams" teamsSelected={teamsSelected} showHint={showHint && !hasBackgroundTasks} />] : []), ...(shouldShowPrStatus ? [<PrBadge key="pr-status" number={prStatus.number!} url={prStatus.url!} reviewState={prStatus.reviewState!} />] : [])];
 
-  // Check if any in-process teammates exist (for hint text cycling)
+  // 检查是否存在任何进程内队友（用于提示文本切换）
   const hasAnyInProcessTeammates = Object.values(tasks).some(t_2 => t_2.type === 'in_process_teammate' && t_2.status === 'running');
   const hasRunningAgentTasks = Object.values(tasks).some(t_3 => t_3.type === 'local_agent' && t_3.status === 'running');
 
-  // Get hint parts separately for potential second-line rendering
+  // 为潜在的第二行渲染单独获取提示部分
   const hintParts = showHint ? getSpinnerHintParts(isLoading, escShortcut, todosShortcut, killAgentsShortcut, hasTaskItems, expandedView, hasAnyInProcessTeammates, hasRunningAgentTasks, isKillAgentsConfirmShowing) : [];
   if (isViewingCompletedTeammate) {
     parts.push(<Text dimColor key="esc-return">
-        <KeyboardShortcutHint shortcut={escShortcut} action="return to team lead" />
+        <KeyboardShortcutHint shortcut={escShortcut} action="返回主控" />
       </Text>);
   } else if ((feature('PROACTIVE') || feature('KAIROS')) && hasNextTick) {
     parts.push(<ProactiveCountdown key="proactive" />);
@@ -383,10 +381,10 @@ function ModeIndicator({
     parts.push(...hintParts);
   }
 
-  // When we have teammate pills, always render them on their own line above other parts
+  // 当我们有队友弹丸时，始终将它们渲染在其他部分上方独立的行
   if (hasTeammatePills) {
-    // Don't append spinner hints when viewing a completed teammate —
-    // the "esc to return to team lead" hint already replaces "esc to interrupt"
+    // 查看已完成队友时不追加 spinner 提示——
+    // "esc 返回主控"提示已取代"esc 中断"
     const otherParts = [...(modePart ? [modePart] : []), ...parts, ...(isViewingCompletedTeammate ? [] : hintParts)];
     return <Box flexDirection="column">
         <Box>
@@ -398,75 +396,75 @@ function ModeIndicator({
       </Box>;
   }
 
-  // Add "↓ to manage tasks" hint when panel has visible rows
-  const hasCoordinatorTasks = "external" === 'ant' && getVisibleAgentTasks(tasks).length > 0;
+  // 当面板有可见行时添加 "↓ 管理任务" 提示
+  const hasCoordinatorTasks = false;
 
-  // Tasks pill renders as a Box sibling (not a parts entry) so its
-  // click-target Box isn't nested inside <Text wrap="truncate"> — the
-  // reconciler throws on Box-in-Text. Computed here so the empty-checks
-  // below still treat "pill present" as non-empty.
+  // 任务弹丸作为 Box 兄弟节点（而非 parts 条目）渲染，以便其
+  // 可点击的 Box 不嵌套在 <Text wrap="truncate"> 内——reconciler 对
+  // Box-in-Text 会抛错。在此处计算，使下面的空行检查
+  // 仍将"弹丸存在"视为非空。
   const tasksPart = hasBackgroundTasks && !hasTeammatePills && !shouldHideTasksFooter(tasks, showSpinnerTree) ? <BackgroundTaskStatus tasksSelected={tasksSelected} isViewingTeammate={isViewingTeammate} teammateFooterIndex={teammateFooterIndex} isLeaderIdle={!isLoading} onOpenDialog={onOpenTasksDialog} /> : null;
   if (parts.length === 0 && !tasksPart && !modePart && showHint) {
     parts.push(<Text dimColor key="shortcuts-hint">
-        ? for shortcuts
+        ? 查看快捷键
       </Text>);
   }
 
-  // Only replace the idle voice hint when there's something to say — otherwise
-  // fall through instead of showing an empty Byline. "esc to clear" was removed
-  // (looked like "esc to interrupt" when idle; esc-clears-selection is standard
-  // UX) leaving only ctrl+c (copyOnSelect off) and the xterm.js native-select hint.
+  // 仅在有待说的话时才替换空闲语音提示——否则回退，
+  // 而不是显示空白的 Byline。"esc 清除"已移除（空闲时看起来
+  // 像"esc 中断"；esc 清除选区是标准 UX），只保留 ctrl+c
+  //（copyOnSelect 关闭）和 xterm.js 原生选择提示。
   const copyOnSelect = getGlobalConfig().copyOnSelect ?? true;
   const selectionHintHasContent = hasSelection && (!copyOnSelect || isXtermJs());
 
-  // Warmup hint takes priority — when the user is actively holding
-  // the activation key, show feedback regardless of other hints.
+  // 预热提示优先——当用户正按住
+  // 激活键时，无论其他提示如何都显示反馈。
   if (feature('VOICE_MODE') && voiceEnabled && voiceWarmingUp) {
     parts.push(<VoiceWarmupHint key="voice-warmup" />);
   } else if (isFullscreenEnvEnabled() && selectionHintHasContent) {
-    // xterm.js (VS Code/Cursor/Windsurf) force-selection modifier is
-    // platform-specific and gated on macOS (SelectionService.shouldForceSelection):
-    //   macOS:     altKey && macOptionClickForcesSelection (VS Code default: false)
-    //   non-macOS: shiftKey
-    // On macOS, if we RECEIVED an alt+click (lastPressHadAlt), the VS Code
-    // setting is off — xterm.js would have consumed the event otherwise.
-    // Tell the user the exact setting to flip instead of repeating the
-    // option+click hint they just tried.
-    // Non-reactive getState() read is safe: lastPressHadAlt is immutable
-    // while hasSelection is true (set pre-drag, cleared with selection).
+    // xterm.js（VS Code/Cursor/Windsurf）的强制选择修饰键是平台相关的，
+    // 且仅在 macOS 上启用（SelectionService.shouldForceSelection）：
+    //   macOS:      altKey && macOptionClickForcesSelection（VS Code 默认：false）
+    //   非 macOS：  shiftKey
+    // 在 macOS 上，如果我们收到 alt+click（lastPressHadAlt），
+    // 说明 VS Code 该设置已关闭——否则 xterm.js 会吞掉该事件。
+    // 告诉用户需要翻转的确切设置，而不是重复他们刚试过的
+    // option+click 提示。
+    // 非响应式 getState() 读取是安全的：当 hasSelection 为 true 时
+    // lastPressHadAlt 是不可变的（拖拽前设置，选择时清除）。
     const isMac = getPlatform() === 'macos';
     const altClickFailed = isMac && (selGetState()?.lastPressHadAlt ?? false);
     parts.push(<Text dimColor key="selection-copy">
         <Byline>
-          {!copyOnSelect && <KeyboardShortcutHint shortcut="ctrl+c" action="copy" />}
-          {isXtermJs() && (altClickFailed ? <Text>set macOptionClickForcesSelection in VS Code settings</Text> : <KeyboardShortcutHint shortcut={isMac ? 'option+click' : 'shift+click'} action="native select" />)}
+          {!copyOnSelect && <KeyboardShortcutHint shortcut="ctrl+c" action="复制" />}
+          {isXtermJs() && (altClickFailed ? <Text>请在 VS Code 设置中配置 macOptionClickForcesSelection</Text> : <KeyboardShortcutHint shortcut={isMac ? 'option+click' : 'shift+click'} action="原生选择" />)}
         </Byline>
       </Text>);
   } else if (feature('VOICE_MODE') && parts.length > 0 && showHint && voiceEnabled && voiceState === 'idle' && hintParts.length === 0 && voiceHintUnderCap) {
     parts.push(<Text dimColor key="voice-hint">
-        hold {voiceKeyShortcut} to speak
+        按住 {voiceKeyShortcut} 说话
       </Text>);
   }
   if ((tasksPart || hasCoordinatorTasks) && showHint && !hasTeams) {
     parts.push(<Text dimColor key="manage-tasks">
-        {tasksSelected ? <KeyboardShortcutHint shortcut="Enter" action="view tasks" /> : <KeyboardShortcutHint shortcut="↓" action="manage" />}
+        {tasksSelected ? <KeyboardShortcutHint shortcut="Enter" action="查看任务" /> : <KeyboardShortcutHint shortcut="↓" action="管理" />}
       </Text>);
   }
 
-  // In fullscreen the bottom section is flexShrink:0 — every row here
-  // is a row stolen from the ScrollBox. This component must have a STABLE
-  // height so the footer never grows/shrinks and shifts scroll content.
-  // Returning null when parts is empty (e.g. StatusLine on → suppressHint
-  // → showHint=false → no "? for shortcuts") would let a later-added
-  // part (e.g. the selection copy/native-select hints) grow the column
-  // from 0→1 row. Always render 1 row in fullscreen; return a space when
-  // empty so Yoga reserves the row without painting anything visible.
+  // 全屏模式下底部区块是 flexShrink:0——这里的每一行都是
+  // 从 ScrollBox 中偷走的一行。此组件必须有稳定的高度，
+  // 这样底部栏永远不会增长/收缩而移位滚动内容。
+  // 当 parts 为空时返回 null（例如 StatusLine 开启 → suppressHint
+  // → showHint=false → 无 "? 查看快捷键"）会让稍后添加的
+  // 部分（例如选择复制/原生选择提示）把列从 0 行撑到 1 行。
+  // 全屏模式下始终渲染 1 行；为空时返回一个空格，
+  // 以便 Yoga 保留该行且不绘制任何可见内容。
   if (parts.length === 0 && !tasksPart && !modePart) {
     return isFullscreenEnvEnabled() ? <Text> </Text> : null;
   }
 
-  // flexShrink=0 keeps mode + pill at natural width; the remaining parts
-  // truncate at the tail as one string inside the Text wrapper.
+  // flexShrink=0 让 mode 和弹丸保持自然宽度；其余部分
+  // 在 Text 包装器内作为一个字符串在末尾截断。
   return <Box height={1} overflow="hidden">
       {modePart && <Box flexShrink={0}>
           {modePart}
@@ -484,29 +482,28 @@ function ModeIndicator({
 function getSpinnerHintParts(isLoading: boolean, escShortcut: string, todosShortcut: string, killAgentsShortcut: string, hasTaskItems: boolean, expandedView: 'none' | 'tasks' | 'teammates', hasTeammates: boolean, hasRunningAgentTasks: boolean, isKillAgentsConfirmShowing: boolean): React.ReactElement[] {
   let toggleAction: string;
   if (hasTeammates) {
-    // Cycling: none → tasks → teammates → none
+    // 循环：无 → 任务 → 队友 → 无
     switch (expandedView) {
       case 'none':
-        toggleAction = 'show tasks';
+        toggleAction = '显示任务';
         break;
       case 'tasks':
-        toggleAction = 'show teammates';
+        toggleAction = '显示队友';
         break;
       case 'teammates':
-        toggleAction = 'hide';
+        toggleAction = '隐藏';
         break;
     }
   } else {
-    toggleAction = expandedView === 'tasks' ? 'hide tasks' : 'show tasks';
+    toggleAction = expandedView === 'tasks' ? '隐藏任务' : '显示任务';
   }
 
-  // Show the toggle hint only when there are task items to display or
-  // teammates to cycle to
+  // 仅在有可显示的任务项或有可循环到的队友时才显示切换提示
   const showToggleHint = hasTaskItems || hasTeammates;
   return [...(isLoading ? [<Text dimColor key="esc">
-            <KeyboardShortcutHint shortcut={escShortcut} action="interrupt" />
+            <KeyboardShortcutHint shortcut={escShortcut} action="中断" />
           </Text>] : []), ...(!isLoading && hasRunningAgentTasks && !isKillAgentsConfirmShowing ? [<Text dimColor key="kill-agents">
-            <KeyboardShortcutHint shortcut={killAgentsShortcut} action="stop agents" />
+            <KeyboardShortcutHint shortcut={killAgentsShortcut} action="停止所有代理" />
           </Text>] : []), ...(showToggleHint ? [<Text dimColor key="toggle-tasks">
             <KeyboardShortcutHint shortcut={todosShortcut} action={toggleAction} />
           </Text>] : [])];

@@ -8,16 +8,16 @@ import { type CliHighlight, getCliHighlightPromise } from '../../../utils/cliHig
 import { applyMarkdown } from '../../../utils/markdown.js';
 import sliceAnsi from '../../../utils/sliceAnsi.js';
 type PreviewBoxProps = {
-  /** The preview content to display. Markdown is rendered with syntax highlighting
-   * for code blocks (```ts, ```py, etc.). Also supports plain multi-line text. */
+  /** 要显示的预览内容。Markdown 会进行语法高亮渲染，
+   * 支持代码块（```ts、```py 等），也支持纯多行文本。 */
   content: string;
-  /** Maximum number of lines to display before truncating. @default 20 */
+  /** 截断前显示的最大行数。@default 20 */
   maxLines?: number;
-  /** Minimum height (in lines) for the preview box. Content will be padded if shorter. */
+  /** 预览框的最小高度（以行计）。内容较短时会进行填充。 */
   minHeight?: number;
-  /** Minimum width for the preview box. @default 40 */
+  /** 预览框的最小宽度。@default 40 */
   minWidth?: number;
-  /** Maximum width available for this box (e.g., the container width). */
+  /** 此框可用的最大宽度（例如容器宽度）。 */
   maxWidth?: number;
 };
 const BOX_CHARS = {
@@ -32,9 +32,9 @@ const BOX_CHARS = {
 };
 
 /**
- * A bordered monospace box for displaying preview content.
- * Truncates content that exceeds maxLines with an indicator.
- * The parent component should pass maxLines based on its available height budget.
+ * 用于显示预览内容的带边框等宽字体容器。
+ * 超过 maxLines 的内容会以指示器截断。
+ * 父组件应根据其可用的高度预算传入 maxLines。
  */
 export function PreviewBox(props) {
   const $ = _c(4);
@@ -145,7 +145,7 @@ function PreviewBoxBody(t0) {
     bottomBorder = `${BOX_CHARS.bottomLeft}${t7}${BOX_CHARS.bottomRight}`;
     truncationBar = isTruncated ? (() => {
       const hiddenCount = contentLines.length - effectiveMaxLines;
-      const label = `${BOX_CHARS.horizontal.repeat(3)} \u2702 ${BOX_CHARS.horizontal.repeat(3)} ${hiddenCount} lines hidden `;
+      const label = `${BOX_CHARS.horizontal.repeat(3)} \u2702 ${BOX_CHARS.horizontal.repeat(3)} ${hiddenCount} 行已隐藏 `;
       const labelWidth = stringWidth(label);
       const fillWidth = Math.max(0, boxWidth - 2 - labelWidth);
       return `${BOX_CHARS.teeLeft}${label}${BOX_CHARS.horizontal.repeat(fillWidth)}${BOX_CHARS.teeRight}`;

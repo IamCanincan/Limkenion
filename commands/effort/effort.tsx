@@ -25,7 +25,7 @@ function setEffortValue(effortValue: EffortValue): EffortCommandResult {
       };
     }
   }
-  logEvent('内部代号_effort_command', {
+  logEvent('limkenion_effort_command', {
     effort: effortValue as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
   });
 
@@ -82,7 +82,7 @@ function unsetEffortLevel(): EffortCommandResult {
       message: `Failed to set effort level: ${result.error.message}`
     };
   }
-  logEvent('内部代号_effort_command', {
+  logEvent('limkenion_effort_command', {
     effort: 'auto' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
   });
   // env=auto/unset (null) matches what /effort auto asks for, so only warn

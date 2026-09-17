@@ -17,26 +17,26 @@ import { getContentSizeEstimate, type MCPToolResult } from '../../utils/mcpValid
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js';
 import type { inputSchema } from './MCPTool.js';
 
-// Threshold for displaying warning about large MCP responses
+// 显示大体积 MCP 响应警告的阈值
 const MCP_OUTPUT_WARNING_THRESHOLD_TOKENS = 10_000;
 
-// In non-verbose mode, truncate individual input values to keep the header
-// compact. Matches BashTool's philosophy of showing enough to identify the
-// call without dumping the entire payload inline.
+// 在非 verbose 模式下，截断单个输入值以保持头部简洁。
+// 与 BashTool 的理念一致：展示足以识别该调用的内容，
+// 而不会把整个负载内联倾泻出来。
 const MAX_INPUT_VALUE_CHARS = 80;
 
-// Max number of top-level keys before we fall back to raw JSON display.
-// Beyond this a flat k:v list is more noise than help.
+// 在回退到原始 JSON 显示之前的顶级键最大数量。
+// 超过此数量后，扁平的 k:v 列表只会是噪音而非帮助。
 const MAX_FLAT_JSON_KEYS = 12;
 
-// Don't attempt flat-object parsing for large blobs.
+// 不对大型数据块尝试扁平对象解析。
 const MAX_FLAT_JSON_CHARS = 5_000;
 
-// Don't attempt to parse JSON blobs larger than this (perf safety).
+// 不尝试解析大于该大小的 JSON 数据块（性能安全）。
 const MAX_JSON_PARSE_CHARS = 200_000;
 
-// A string value is "dominant text payload" if it has newlines or is
-// long enough that inline display would be worse than unwrapping.
+// 当字符串值包含换行或足够长以至于内联显示劣于展开时，
+// 将其视为“主导文本负载”。
 const UNWRAP_MIN_STRING_LEN = 200;
 export function renderToolUseMessage(input: z.infer<ReturnType<typeof inputSchema>>, {
   verbose
@@ -58,7 +58,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
   const lastProgress = progressMessagesForMessage.at(-1);
   if (!lastProgress?.data) {
     return <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>;
   }
   const {
@@ -68,7 +68,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
   } = lastProgress.data;
   if (progress === undefined) {
     return <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>;
   }
   if (total !== undefined && total > 0) {
@@ -85,7 +85,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
       </MessageResponse>;
   }
   return <MessageResponse height={1}>
-      <Text dimColor>{progressMessage ?? `Processing… ${progress}`}</Text>
+      <Text dimColor>{progressMessage ?? `处理中… ${progress}`}</Text>
     </MessageResponse>;
 }
 export function renderToolResultMessage(output: string | MCPToolResult, _progressMessagesForMessage: ProgressMessage<ToolProgressData>[], {
@@ -101,7 +101,7 @@ export function renderToolResultMessage(output: string | MCPToolResult, _progres
     if (slackSend !== null) {
       return <MessageResponse height={1}>
           <Text>
-            Sent a message to{' '}
+            已发送消息至{' '}
             <Ansi>{createHyperlink(slackSend.url, slackSend.channel)}</Ansi>
           </Text>
         </MessageResponse>;
@@ -109,30 +109,30 @@ export function renderToolResultMessage(output: string | MCPToolResult, _progres
   }
   const estimatedTokens = getContentSizeEstimate(mcpOutput);
   const showWarning = estimatedTokens > MCP_OUTPUT_WARNING_THRESHOLD_TOKENS;
-  const warningMessage = showWarning ? `${figures.warning} Large MCP response (~${formatNumber(estimatedTokens)} tokens), this can fill up context quickly` : null;
+  const warningMessage = showWarning ? `${figures.warning} MCP 响应过大（约 ${formatNumber(estimatedTokens)} tokens），可能会很快占满上下文` : null;
   let contentElement: React.ReactNode;
   if (Array.isArray(mcpOutput)) {
     const contentBlocks = mcpOutput.map((item, i) => {
       if (item.type === 'image') {
         return <Box key={i} justifyContent="space-between" overflowX="hidden" width="100%">
             <MessageResponse height={1}>
-              <Text>[Image]</Text>
+              <Text>[图片]</Text>
             </MessageResponse>
           </Box>;
       }
-      // For text blocks and any other block types, extract text if available
+      // 对于文本块及其它块类型，若可用则提取文本
       const textContent = item.type === 'text' && 'text' in item && item.text !== null && item.text !== undefined ? String(item.text) : '';
       return feature('MCP_RICH_OUTPUT') ? <MCPTextOutput key={i} content={textContent} verbose={verbose} /> : <OutputLine key={i} content={textContent} verbose={verbose} />;
     });
 
-    // Wrap array content in a column layout
+    // 在列布局中包裹数组内容
     contentElement = <Box flexDirection="column" width="100%">
         {contentBlocks}
       </Box>;
   } else if (!mcpOutput) {
     contentElement = <Box justifyContent="space-between" overflowX="hidden" width="100%">
         <MessageResponse height={1}>
-          <Text dimColor>(No content)</Text>
+          <Text dimColor>(无内容)</Text>
         </MessageResponse>
       </Box>;
   } else {
@@ -150,11 +150,11 @@ export function renderToolResultMessage(output: string | MCPToolResult, _progres
 }
 
 /**
- * Render MCP text output. Tries three strategies in order:
- * 1. If JSON wraps a single dominant text payload (e.g. slack's
- *    {"messages":"line1\nline2..."}), unwrap and let OutputLine truncate.
- * 2. If JSON is a small flat-ish object, render as aligned key: value.
- * 3. Otherwise fall through to OutputLine (pretty-print + truncate).
+ * 渲染 MCP 文本输出。依次尝试三种策略:
+ * 1. 若 JSON 包裹了单个主导文本负载（例如 Slack 的
+ *    {"messages":"line1\nline2..."}），展开并让 OutputLine 截断。
+ * 2. 若 JSON 是较小的近似扁平对象，渲染为对齐的 key: value。
+ * 3. 否则回退到 OutputLine（美化打印 + 截断）。
  */
 function MCPTextOutput(t0) {
   const $ = _c(18);
@@ -252,8 +252,8 @@ function MCPTextOutput(t0) {
 }
 
 /**
- * Parse content as a JSON object and return its entries. Null if content
- * doesn't parse, isn't an object, is too large, or has 0/too-many keys.
+ * 将内容解析为 JSON 对象并返回其条目。若内容无法解析、
+ * 不是对象、过大，或键数量为 0/过多，则返回 null。
  */
 function _temp2(t0) {
   const [k_0] = t0;
@@ -291,9 +291,9 @@ function parseJsonEntries(content: string, {
 }
 
 /**
- * If content parses as a JSON object where every value is a scalar or a
- * small nested object, flatten it to [key, displayValue] pairs. Nested
- * objects get one-line JSON. Returns null if content doesn't qualify.
+ * 若内容可作为 JSON 对象解析，且每个值都是标量或小型嵌套对象，
+ * 则将其扁平化为 [key, displayValue] 对。嵌套对象转换为单行 JSON。
+ * 若内容不符合条件则返回 null。
  */
 export function tryFlattenJson(content: string): [string, string][] | null {
   const entries = parseJsonEntries(content, {
@@ -319,10 +319,10 @@ export function tryFlattenJson(content: string): [string, string][] | null {
 }
 
 /**
- * If content is a JSON object where one key holds a dominant string payload
- * (multiline or long) and all siblings are small scalars, unwrap it. This
- * handles the common MCP pattern of {"messages":"line1\nline2..."} where
- * pretty-printing keeps \n escaped but we want real line breaks + truncation.
+ * 若内容是 JSON 对象，其中某个键持有主导字符串负载（多行或很长）
+ * 且所有同层值都是小型标量，则将其展开。这处理常见的 MCP 模式
+ * {"messages":"line1\nline2..."}——美化打印会保留 \n 转义，
+ * 但我们想要真实的换行 + 截断。
  */
 export function tryUnwrapTextPayload(content: string): {
   body: string;
@@ -333,8 +333,8 @@ export function tryUnwrapTextPayload(content: string): {
     maxKeys: 4
   });
   if (entries === null) return null;
-  // Find the one dominant string payload. Trim first: a trailing \n on a
-  // short sibling (e.g. pagination hints) shouldn't make it "dominant".
+  // 找到唯一的主导字符串负载。先修剪: 短同层值（例如分页提示）尾部的 \n
+  // 不应使其变为“主导”。
   let body: string | null = null;
   const extras: [string, string][] = [];
   for (const [key, value] of entries) {
@@ -342,7 +342,7 @@ export function tryUnwrapTextPayload(content: string): {
       const t = value.trimEnd();
       const isDominant = t.length > UNWRAP_MIN_STRING_LEN || t.includes('\n') && t.length > 50;
       if (isDominant) {
-        if (body !== null) return null; // two big strings — ambiguous
+        if (body !== null) return null; // 两个大字符串 —— 有歧义
         body = t;
         continue;
       }
@@ -351,7 +351,7 @@ export function tryUnwrapTextPayload(content: string): {
     } else if (value === null || typeof value === 'number' || typeof value === 'boolean') {
       extras.push([key, String(value)]);
     } else {
-      return null; // nested object/array — use flat or pretty-print path
+      return null; // 嵌套对象/数组 —— 走扁平或美化打印路径
     }
   }
   if (body === null) return null;
@@ -363,11 +363,11 @@ export function tryUnwrapTextPayload(content: string): {
 const SLACK_ARCHIVES_RE = /^https:\/\/[a-z0-9-]+\.slack\.com\/archives\/([A-Z0-9]+)\/p\d+$/;
 
 /**
- * Detect a Slack send-message result and return a compact {channel, url} pair.
- * Matches both hosted (limkenion.ai Slack) and community MCP server shapes —
- * both return `message_link` in the result. The channel label prefers the
- * tool input (may be a name like "#foo" or an ID like "C09EVDAN1NK") and
- * falls back to the ID parsed from the archives URL.
+ * 检测 Slack 发送消息的结果，返回紧凑的 {channel, url} 对。
+ * 同时匹配托管版（limkenion.ai Slack）和社区 MCP 服务器的结构——
+ * 两者都会在结果中返回 `message_link`。频道标签优先使用工具输入
+ * （可能是 "#foo" 这样的名称或 "C09EVDAN1NK" 这样的 ID），
+ * 否则回退到从 archives URL 解析出的 ID。
  */
 export function trySlackSendCompact(output: string | MCPToolResult, input: unknown): {
   channel: string;

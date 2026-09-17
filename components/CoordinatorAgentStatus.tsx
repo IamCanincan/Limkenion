@@ -113,7 +113,7 @@ function MainLine(t0) {
   const t3 = !isSelected && !isViewed && !hover;
   let t4;
   if ($[2] !== bullet || $[3] !== isViewed || $[4] !== prefix || $[5] !== t3) {
-    t4 = <Text dimColor={t3} bold={isViewed}>{prefix}{bullet} main</Text>;
+    t4 = <Text dimColor={t3} bold={isViewed}>{prefix}{bullet} 主</Text>;
     $[2] = bullet;
     $[3] = isViewed;
     $[4] = prefix;
@@ -170,7 +170,7 @@ function AgentLine(t0) {
   const arrow = lastActivity ? figures.arrowDown : figures.arrowUp;
   let t2;
   if ($[2] !== arrow || $[3] !== tokenCount) {
-    t2 = tokenCount !== undefined && tokenCount > 0 ? ` · ${arrow} ${formatNumber(tokenCount)} tokens` : "";
+    t2 = tokenCount !== undefined && tokenCount > 0 ? ` · ${arrow} ${formatNumber(tokenCount)} token` : "";
     $[2] = arrow;
     $[3] = tokenCount;
     $[4] = t2;
@@ -179,7 +179,7 @@ function AgentLine(t0) {
   }
   const tokenText = t2;
   const queuedCount = task.pendingMessages.length;
-  const queuedText = queuedCount > 0 ? ` · ${queuedCount} queued` : "";
+  const queuedText = queuedCount > 0 ? ` · ${queuedCount} 排队中` : "";
   const displayDescription = task.progress?.summary || task.description;
   const highlighted = isSelected || hover;
   const prefix = highlighted ? figures.pointer + " " : "  ";
@@ -187,7 +187,7 @@ function AgentLine(t0) {
   const dim = !highlighted && !isViewed;
   const sep = isRunning ? PLAY_ICON : PAUSE_ICON;
   const namePart = name ? `${name}: ` : "";
-  const hintPart = isSelected && !isViewed ? ` · x to ${isRunning ? "stop" : "clear"}` : "";
+  const hintPart = isSelected && !isViewed ? ` · x 按${isRunning ? "停止" : "清除"}` : "";
   const suffixPart = ` ${sep} ${elapsed}${tokenText}${queuedText}${hintPart}`;
   const availableForDesc = columns - stringWidth(prefix) - stringWidth(`${bullet} `) - stringWidth(namePart) - stringWidth(suffixPart);
   const t3 = Math.max(0, availableForDesc);

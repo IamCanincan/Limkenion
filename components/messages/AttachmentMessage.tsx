@@ -79,10 +79,10 @@ export function AttachmentMessage({
         if (parsedMsg?.type === 'task_assignment') {
           return <Box key={idx} paddingLeft={2}>
                 <Text>{BLACK_CIRCLE} </Text>
-                <Text>Task assigned: </Text>
+                <Text>任务分配： </Text>
                 <Text bold>#{parsedMsg.taskId}</Text>
                 <Text> - {parsedMsg.subject}</Text>
-                <Text dimColor> (from {parsedMsg.assignedBy || msg_0.from})</Text>
+                <Text dimColor> （来自 {parsedMsg.assignedBy || msg_0.from}）</Text>
               </Box>;
         }
 
@@ -113,9 +113,9 @@ export function AttachmentMessage({
       // names — shortId is undefined outside ant builds anyway.
       const names = attachment.skills.map(s => s.shortId ? `${s.name} [${s.shortId}]` : s.name).join(', ');
       const firstId = attachment.skills[0]?.shortId;
-      const hint = "external" === 'ant' && !isDemoEnv && firstId ? ` · /skill-feedback ${firstId} 1=wrong 2=noisy 3=good [comment]` : '';
+      const hint = '';
       return <Line>
-          <Text bold>{attachment.skills.length}</Text> relevant{' '}
+          <Text bold>{attachment.skills.length}</Text> 相关{' '}
           {plural(attachment.skills.length, 'skill')}: {names}
           {hint && <Text dimColor>{hint}</Text>}
         </Line>;
@@ -126,45 +126,45 @@ export function AttachmentMessage({
   switch (attachment.type) {
     case 'directory':
       return <Line>
-          Listed directory <Text bold>{attachment.displayPath + sep}</Text>
+          已列出目录 <Text bold>{attachment.displayPath + sep}</Text>
         </Line>;
     case 'file':
     case 'already_read_file':
       if (attachment.content.type === 'notebook') {
         return <Line>
-            Read <Text bold>{attachment.displayPath}</Text> (
-            {attachment.content.file.cells.length} cells)
+            已读取 <Text bold>{attachment.displayPath}</Text>（
+            {attachment.content.file.cells.length} 个单元格）
           </Line>;
       }
       if (attachment.content.type === 'file_unchanged') {
         return <Line>
-            Read <Text bold>{attachment.displayPath}</Text> (unchanged)
+            已读取 <Text bold>{attachment.displayPath}</Text>（未更改）
           </Line>;
       }
       return <Line>
-          Read <Text bold>{attachment.displayPath}</Text> (
-          {attachment.content.type === 'text' ? `${attachment.content.file.numLines}${attachment.truncated ? '+' : ''} lines` : formatFileSize(attachment.content.file.originalSize)}
-          )
+          已读取 <Text bold>{attachment.displayPath}</Text>（
+          {attachment.content.type === 'text' ? `${attachment.content.file.numLines}${attachment.truncated ? '+' : ''} 行` : formatFileSize(attachment.content.file.originalSize)}
+          ）
         </Line>;
     case 'compact_file_reference':
       return <Line>
-          Referenced file <Text bold>{attachment.displayPath}</Text>
+          引用的文件 <Text bold>{attachment.displayPath}</Text>
         </Line>;
     case 'pdf_reference':
       return <Line>
-          Referenced PDF <Text bold>{attachment.displayPath}</Text> (
-          {attachment.pageCount} pages)
+          引用的 PDF <Text bold>{attachment.displayPath}</Text>（
+          {attachment.pageCount} 页）
         </Line>;
     case 'selected_lines_in_ide':
       return <Line>
-          ⧉ Selected{' '}
+          ⧉ 已选择{' '}
           <Text bold>{attachment.lineEnd - attachment.lineStart + 1}</Text>{' '}
-          lines from <Text bold>{attachment.displayPath}</Text> in{' '}
-          {attachment.ideName}
+          行，来自 <Text bold>{attachment.displayPath}</Text>（{' '}
+          {attachment.ideName}）
         </Line>;
     case 'nested_memory':
       return <Line>
-          Loaded <Text bold>{attachment.displayPath}</Text>
+          已加载 <Text bold>{attachment.displayPath}</Text>
         </Line>;
     case 'relevant_memories':
       // Usually absorbed into a CollapsedReadSearchGroup (collapseReadSearch.ts)
@@ -175,8 +175,8 @@ export function AttachmentMessage({
           <Box flexDirection="row">
             <Box minWidth={2} />
             <Text dimColor>
-              Recalled <Text bold>{attachment.memories.length}</Text>{' '}
-              {attachment.memories.length === 1 ? 'memory' : 'memories'}
+              已回忆 <Text bold>{attachment.memories.length}</Text>{' '}
+              {attachment.memories.length === 1 ? '条记忆' : '条记忆'}
               {!isTranscriptMode && <>
                   {' '}
                   <CtrlOToExpand />
@@ -202,11 +202,11 @@ export function AttachmentMessage({
       {
         const skillCount = attachment.skillNames.length;
         return <Line>
-          Loaded{' '}
+          已加载{' '}
           <Text bold>
             {skillCount} {plural(skillCount, 'skill')}
           </Text>{' '}
-          from <Text bold>{attachment.displayPath}</Text>
+          来自 <Text bold>{attachment.displayPath}</Text>
         </Line>;
       }
     case 'skill_listing':
@@ -216,7 +216,7 @@ export function AttachmentMessage({
         }
         return <Line>
           <Text bold>{attachment.skillCount}</Text>{' '}
-          {plural(attachment.skillCount, 'skill')} available
+          {plural(attachment.skillCount, 'skill')} 个可用
         </Line>;
       }
     case 'agent_listing_delta':
@@ -226,7 +226,7 @@ export function AttachmentMessage({
         }
         const count = attachment.addedTypes.length;
         return <Line>
-          <Text bold>{count}</Text> agent {plural(count, 'type')} available
+          <Text bold>{count}</Text> 个 agent {plural(count, 'type')} 类型可用
         </Line>;
       }
     case 'queued_command':
@@ -243,7 +243,7 @@ export function AttachmentMessage({
       }
     case 'plan_file_reference':
       return <Line>
-          Plan file referenced ({getDisplayPath(attachment.planFilePath)})
+          Plan 文件已引用（{getDisplayPath(attachment.planFilePath)}）
         </Line>;
     case 'invoked_skills':
       {
@@ -251,13 +251,13 @@ export function AttachmentMessage({
           return null;
         }
         const skillNames = attachment.skills.map(s_0 => s_0.name).join(', ');
-        return <Line>Skills restored ({skillNames})</Line>;
+        return <Line>技能已恢复（{skillNames}）</Line>;
       }
     case 'diagnostics':
       return <DiagnosticsDisplay attachment={attachment} verbose={verbose} />;
     case 'mcp_resource':
       return <Line>
-          Read MCP resource <Text bold>{attachment.name}</Text> from{' '}
+          已读取 MCP 资源 <Text bold>{attachment.name}</Text>，来自{' '}
           {attachment.server}
         </Line>;
     case 'command_permissions':
@@ -275,7 +275,7 @@ export function AttachmentMessage({
           return null;
         }
         return <Line>
-          Async hook <Text bold>{attachment.hookEvent}</Text> completed
+          异步 hook <Text bold>{attachment.hookEvent}</Text> 已完成
         </Line>;
       }
     case 'hook_blocking_error':
@@ -288,7 +288,7 @@ export function AttachmentMessage({
         const stderr = attachment.blockingError.blockingError.trim();
         return <>
           <Line color="error">
-            {attachment.hookName} hook returned blocking error
+            {attachment.hookName} hook 返回了阻塞性错误
           </Line>
           {stderr ? <Line color="error">{stderr}</Line> : null}
         </>;
@@ -300,7 +300,7 @@ export function AttachmentMessage({
           return null;
         }
         // Full hook output is logged to debug log via hookEvents.ts
-        return <Line color="error">{attachment.hookName} hook error</Line>;
+        return <Line color="error">{attachment.hookName} hook 错误</Line>;
       }
     case 'hook_error_during_execution':
       // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
@@ -308,7 +308,7 @@ export function AttachmentMessage({
         return null;
       }
       // Full hook output is logged to debug log via hookEvents.ts
-      return <Line>{attachment.hookName} hook warning</Line>;
+      return <Line>{attachment.hookName} hook 警告</Line>;
     case 'hook_success':
       // Full hook output is logged to debug log via hookEvents.ts
       return null;
@@ -318,17 +318,17 @@ export function AttachmentMessage({
         return null;
       }
       return <Line color="warning">
-          {attachment.hookName} hook stopped continuation: {attachment.message}
+          {attachment.hookName} hook 已停止继续执行：{attachment.message}
         </Line>;
     case 'hook_system_message':
       return <Line>
-          {attachment.hookName} says: {attachment.content}
+          {attachment.hookName} 说：{attachment.content}
         </Line>;
     case 'hook_permission_decision':
       {
-        const action = attachment.decision === 'allow' ? 'Allowed' : 'Denied';
+        const action = attachment.decision === 'allow' ? '已允许' : '已拒绝';
         return <Line>
-          {action} by <Text bold>{attachment.hookEvent}</Text> hook
+          由 <Text bold>{attachment.hookEvent}</Text> hook {action}
         </Line>;
       }
     case 'task_status':
@@ -337,8 +337,7 @@ export function AttachmentMessage({
       return <Box flexDirection="row" width="100%" marginTop={1} backgroundColor={bg}>
           <Text dimColor>{BLACK_CIRCLE} </Text>
           <Text dimColor>
-            {attachment.count} {plural(attachment.count, 'teammate')} shut down
-            gracefully
+            {attachment.count} 个 teammate 已优雅关停
           </Text>
         </Box>;
     default:
@@ -363,9 +362,7 @@ function TaskStatusMessage(t0) {
   const {
     attachment
   } = t0;
-  if (false && attachment.status === "killed") {
-    return null;
-  }
+  
   if (isAgentSwarmsEnabled() && attachment.taskType === "in_process_teammate") {
     let t1;
     if ($[0] !== attachment) {
@@ -393,7 +390,7 @@ function GenericTaskStatus(t0) {
     attachment
   } = t0;
   const bg = useSelectedMessageBg();
-  const statusText = attachment.status === "completed" ? "completed in background" : attachment.status === "killed" ? "stopped" : attachment.status === "running" ? "still running in background" : attachment.status;
+  const statusText = attachment.status === "completed" ? "已在后台完成" : attachment.status === "killed" ? "已停止" : attachment.status === "running" ? "仍在后台运行" : attachment.status;
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = <Text dimColor={true}>{BLACK_CIRCLE} </Text>;
@@ -411,7 +408,7 @@ function GenericTaskStatus(t0) {
   }
   let t3;
   if ($[3] !== statusText || $[4] !== t2) {
-    t3 = <Text dimColor={true}>Task "{t2}" {statusText}</Text>;
+    t3 = <Text dimColor={true}>任务 "{t2}" {statusText}</Text>;
     $[3] = statusText;
     $[4] = t2;
     $[5] = t3;
@@ -464,7 +461,7 @@ function TeammateTaskStatus(t0) {
     t2 = $[5];
   }
   const agentColor = t2;
-  const statusText = attachment.status === "completed" ? "shut down gracefully" : attachment.status;
+  const statusText = attachment.status === "completed" ? "已优雅关停" : attachment.status;
   let t3;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
     t3 = <Text dimColor={true}>{BLACK_CIRCLE} </Text>;

@@ -61,20 +61,20 @@ export function useShellPermissionFeedback({
     if (option === 'yes') {
       if (yesInputMode) {
         setYesInputMode(false)
-        logEvent('内部代号_accept_feedback_mode_collapsed', analyticsProps)
+        logEvent('limkenion_accept_feedback_mode_collapsed', analyticsProps)
       } else {
         setYesInputMode(true)
         setYesFeedbackModeEntered(true)
-        logEvent('内部代号_accept_feedback_mode_entered', analyticsProps)
+        logEvent('limkenion_accept_feedback_mode_entered', analyticsProps)
       }
     } else if (option === 'no') {
       if (noInputMode) {
         setNoInputMode(false)
-        logEvent('内部代号_reject_feedback_mode_collapsed', analyticsProps)
+        logEvent('limkenion_reject_feedback_mode_collapsed', analyticsProps)
       } else {
         setNoInputMode(true)
         setNoFeedbackModeEntered(true)
-        logEvent('内部代号_reject_feedback_mode_entered', analyticsProps)
+        logEvent('limkenion_reject_feedback_mode_entered', analyticsProps)
       }
     }
   }
@@ -85,7 +85,7 @@ export function useShellPermissionFeedback({
 
     // Log escape if no feedback was provided (user pressed ESC)
     if (!hasFeedback) {
-      logEvent('内部代号_permission_request_escape', {
+      logEvent('limkenion_permission_request_escape', {
         explainer_visible: explainerVisible,
       })
       // Increment escape count for attribution tracking

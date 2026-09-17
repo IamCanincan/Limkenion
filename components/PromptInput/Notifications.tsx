@@ -149,10 +149,10 @@ export function Notifications(t0) {
   if ($[10] !== addNotification || $[11] !== removeNotification || $[12] !== shouldShowExternalEditorHint) {
     t9 = () => {
       if (shouldShowExternalEditorHint && editor) {
-        logEvent("内部代号_external_editor_hint_shown", {});
+        logEvent("limkenion_external_editor_hint_shown", {});
         addNotification({
           key: "external-editor-hint",
-          jsx: <Text dimColor={true}><ConfigurableShortcutHint action="chat:externalEditor" context="Chat" fallback="ctrl+g" description={`edit in ${toIDEDisplayName(editor)}`} /></Text>,
+          jsx: <Text dimColor={true}><ConfigurableShortcutHint action="chat:externalEditor" context="Chat" fallback="ctrl+g" description={`在 ${toIDEDisplayName(editor)} 中编辑`} /></Text>,
           priority: "immediate",
           timeoutMs: 5000
         });
@@ -292,12 +292,12 @@ function NotificationContent({
           </Text>)}
       {isInOverageMode && !isTeamOrEnterprise && <Box>
           <Text dimColor wrap="truncate">
-            Now using extra usage
+            正在使用超额用量
           </Text>
         </Box>}
       {apiKeyHelperSlow && <Box>
           <Text color="warning" wrap="truncate">
-            apiKeyHelper is taking a while{' '}
+            apiKeyHelper 响应较慢{' '}
           </Text>
           <Text dimColor wrap="truncate">
             ({apiKeyHelperSlow})
@@ -305,12 +305,12 @@ function NotificationContent({
         </Box>}
       {(apiKeyStatus === 'invalid' || apiKeyStatus === 'missing') && <Box>
           <Text color="error" wrap="truncate">
-            {isEnvTruthy(process.env.LIMKENION_REMOTE) ? 'Authentication error · Try again' : 'Not logged in · Run /login'}
+            {isEnvTruthy(process.env.LIMKENION_REMOTE) ? '身份验证错误 · 请重试' : '未登录 · 运行 /login'}
           </Text>
         </Box>}
       {debug && <Box>
           <Text color="warning" wrap="truncate">
-            Debug mode
+            调试模式
           </Text>
         </Box>}
       {apiKeyStatus !== 'invalid' && apiKeyStatus !== 'missing' && verbose && <Box>

@@ -211,14 +211,7 @@ export function useManagePlugins({
         // Kept separate from base metrics so it doesn't flow into
         // logForDiagnosticsNoPII.
         ant_enabled_names:
-          process.env.USER_TYPE === 'ant' && enabled.length > 0
-            ? (enabled
-                .map(p => p.name)
-                .sort()
-                .join(
-                  ',',
-                ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
-            : undefined,
+          undefined,
       }
     } catch (error) {
       // Only plugin loading errors should reach here - log for monitoring
@@ -274,13 +267,13 @@ export function useManagePlugins({
         ...baseMetrics,
         has_custom_plugin_cache_dir: !!process.env.LIMKENION_PLUGIN_CACHE_DIR,
       }
-      logEvent('内部代号_plugins_loaded', {
+      logEvent('limkenion_plugins_loaded', {
         ...allMetrics,
         ...(ant_enabled_names !== undefined && {
           enabled_names: ant_enabled_names,
         }),
       })
-      logForDiagnosticsNoPII('info', '内部代号_plugins_loaded', allMetrics)
+      logForDiagnosticsNoPII('info', 'limkenion_plugins_loaded', allMetrics)
     })
   }, [initialPluginLoad, enabled])
 

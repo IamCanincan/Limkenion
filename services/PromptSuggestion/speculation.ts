@@ -130,7 +130,7 @@ function logSpeculation(
   boundary: CompletionBoundary | null,
   extras?: Record<string, string | number | boolean | undefined>,
 ): void {
-  logEvent('内部代号_speculation', {
+  logEvent('limkenion_speculation', {
     speculation_id:
       id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     outcome:
@@ -276,7 +276,7 @@ function createSpeculationFeedbackMessage(
   timeSavedMs: number,
   sessionTotalMs: number,
 ): Message | null {
-  if (process.env.USER_TYPE !== 'ant') return null
+  if (true) return null
 
   if (messages.length === 0 || timeSavedMs === 0) return null
 
@@ -336,8 +336,7 @@ function resetSpeculationState(setAppState: SetAppState): void {
 
 export function isSpeculationEnabled(): boolean {
   const enabled =
-    process.env.USER_TYPE === 'ant' &&
-    (getGlobalConfig().speculationEnabled ?? true)
+    false
   logForDebugging(`[Speculation] enabled=${enabled}`)
   return enabled
 }

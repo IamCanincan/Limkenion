@@ -23,7 +23,7 @@ export function UserImageMessage(t0) {
     imageId,
     addMargin
   } = t0;
-  const label = imageId ? `[Image #${imageId}]` : "[Image]";
+  const label = imageId ? `[图片 #${imageId}]` : "[图片]";
   let t1;
   if ($[0] !== imageId || $[1] !== label) {
     const imagePath = imageId ? getStoredImagePath(imageId) : null;

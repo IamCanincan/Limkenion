@@ -1,12 +1,12 @@
 /**
- * Main entrypoint for Limkenion Agent SDK types.
+ * Limkenion Agent SDK 类型的主入口。
  *
- * This file re-exports the public SDK API from:
- * - sdk/coreTypes.ts - Common serializable types (messages, configs)
- * - sdk/runtimeTypes.ts - Non-serializable types (callbacks, interfaces)
+ * 本文件从以下位置重新导出公共 SDK API：
+ * - sdk/coreTypes.ts —— 通用可序列化类型（消息、配置）
+ * - sdk/runtimeTypes.ts —— 非可序列化类型（回调、接口）
  *
- * SDK builders who need control protocol types should import from
- * sdk/controlTypes.ts directly.
+ * 需要控制协议类型的 SDK 构建者应直接从
+ * sdk/controlTypes.ts 导入。
  */
 
 import type {
@@ -14,20 +14,20 @@ import type {
   ToolAnnotations,
 } from '@modelcontextprotocol/sdk/types.js'
 
-// Control protocol types for SDK builders (bridge subpath consumers)
+// 供 SDK 构建者使用的控制协议类型（bridge 子路径消费方）
 /** @alpha */
 export type {
   SDKControlRequest,
   SDKControlResponse,
 } from './sdk/controlTypes.js'
-// Re-export core types (common serializable types)
+// 重新导出核心类型（通用可序列化类型）
 export * from './sdk/coreTypes.js'
-// Re-export runtime types (callbacks, interfaces with methods)
+// 重新导出运行时类型（回调、含方法的接口）
 export * from './sdk/runtimeTypes.js'
 
-// Re-export settings types (generated from settings JSON schema)
+// 重新导出设置类型（由设置 JSON schema 生成）
 export type { Settings } from './sdk/settingsTypes.generated.js'
-// Re-export tool types (all marked @internal until SDK API stabilizes)
+// 重新导出工具类型（在 SDK API 稳定前全部标记为 @internal）
 export * from './sdk/toolTypes.js'
 
 // ============================================================================
@@ -40,7 +40,7 @@ import type {
   SDKSessionInfo,
   SDKUserMessage,
 } from './sdk/coreTypes.js'
-// Import types needed for function signatures
+// 函数签名所需的类型
 import type {
   AnyZodRawShape,
   ForkSessionOptions,
@@ -84,7 +84,7 @@ export function tool<Schema extends AnyZodRawShape>(
     alwaysLoad?: boolean
   },
 ): SdkMcpToolDefinition<Schema> {
-  throw new Error('not implemented')
+  throw new Error('未实现')
 }
 
 type CreateSdkMcpServerOptions = {
@@ -95,15 +95,15 @@ type CreateSdkMcpServerOptions = {
 }
 
 /**
- * Creates an MCP server instance that can be used with the SDK transport.
- * This allows SDK users to define custom tools that run in the same process.
+ * 创建可配合 SDK 传输使用的 MCP 服务器实例。
+ * 这允许 SDK 用户定义在同一进程中运行的自定义工具。
  *
- * If your SDK MCP calls will run longer than 60s, override LIMKENION_STREAM_CLOSE_TIMEOUT
+ * 如果你的 SDK MCP 调用运行时间会超过 60 秒，请覆盖 LIMKENION_STREAM_CLOSE_TIMEOUT
  */
 export function createSdkMcpServer(
   _options: CreateSdkMcpServerOptions,
 ): McpSdkServerConfigWithInstance {
-  throw new Error('not implemented')
+  throw new Error('未实现')
 }
 
 export class AbortError extends Error {}
@@ -118,36 +118,36 @@ export function query(_params: {
   options?: Options
 }): Query
 export function query(): Query {
-  throw new Error('query is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 query')
 }
 
 /**
- * V2 API - UNSTABLE
- * Create a persistent session for multi-turn conversations.
+ * V2 API —— 不稳定
+ * 为多轮对话创建持久会话。
  * @alpha
  */
 export function unstable_v2_createSession(
   _options: SDKSessionOptions,
 ): SDKSession {
-  throw new Error('unstable_v2_createSession is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 unstable_v2_createSession')
 }
 
 /**
- * V2 API - UNSTABLE
- * Resume an existing session by ID.
+ * V2 API —— 不稳定
+ * 按 ID 恢复已有会话。
  * @alpha
  */
 export function unstable_v2_resumeSession(
   _sessionId: string,
   _options: SDKSessionOptions,
 ): SDKSession {
-  throw new Error('unstable_v2_resumeSession is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 unstable_v2_resumeSession')
 }
 
-// @[MODEL LAUNCH]: Update the example model ID in this docstring.
+// @[MODEL LAUNCH]: 更新此文档字符串中的示例模型 ID。
 /**
- * V2 API - UNSTABLE
- * One-shot convenience function for single prompts.
+ * V2 API —— 不稳定
+ * 用于单次提示的一次性便捷函数。
  * @alpha
  *
  * @example
@@ -161,42 +161,41 @@ export async function unstable_v2_prompt(
   _message: string,
   _options: SDKSessionOptions,
 ): Promise<SDKResultMessage> {
-  throw new Error('unstable_v2_prompt is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 unstable_v2_prompt')
 }
 
 /**
- * Reads a session's conversation messages from its JSONL transcript file.
+ * 从会话的 JSONL 转录文件中读取其对话消息。
  *
- * Parses the transcript, builds the conversation chain via parentUuid links,
- * and returns user/assistant messages in chronological order. Set
- * `includeSystemMessages: true` in options to also include system messages.
+ * 解析转录文件，通过 parentUuid 链接构建对话链，
+ * 并按时间顺序返回用户/助手消息。在选项中设置
+ * `includeSystemMessages: true` 可同时包含系统消息。
  *
- * @param sessionId - UUID of the session to read
- * @param options - Optional dir, limit, offset, and includeSystemMessages
- * @returns Array of messages, or empty array if session not found
+ * @param sessionId - 要读取的会话的 UUID
+ * @param options - 可选的 dir、limit、offset 与 includeSystemMessages
+ * @returns 消息数组，若未找到会话则返回空数组
  */
 export async function getSessionMessages(
   _sessionId: string,
   _options?: GetSessionMessagesOptions,
 ): Promise<SessionMessage[]> {
-  throw new Error('getSessionMessages is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 getSessionMessages')
 }
 
 /**
- * List sessions with metadata.
+ * 列出带元数据的会话。
  *
- * When `dir` is provided, returns sessions for that project directory
- * and its git worktrees. When omitted, returns sessions across all
- * projects.
+ * 提供了 `dir` 时，返回该项目目录及其 git worktrees 的会话。
+ * 省略时，返回所有项目的会话。
  *
- * Use `limit` and `offset` for pagination.
+ * 使用 `limit` 与 `offset` 进行分页。
  *
  * @example
  * ```typescript
- * // List sessions for a specific project
+ * // 列出特定项目的会话
  * const sessions = await listSessions({ dir: '/path/to/project' })
  *
- * // Paginate
+ * // 分页
  * const page1 = await listSessions({ limit: 50 })
  * const page2 = await listSessions({ limit: 50, offset: 50 })
  * ```
@@ -204,80 +203,78 @@ export async function getSessionMessages(
 export async function listSessions(
   _options?: ListSessionsOptions,
 ): Promise<SDKSessionInfo[]> {
-  throw new Error('listSessions is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 listSessions')
 }
 
 /**
- * Reads metadata for a single session by ID. Unlike `listSessions`, this only
- * reads the single session file rather than every session in the project.
- * Returns undefined if the session file is not found, is a sidechain session,
- * or has no extractable summary.
+ * 按 ID 读取单个会话的元数据。与 `listSessions` 不同，它只读取单个会话文件，
+ * 而不是项目中的每个会话。
+ * 若会话文件不存在、是侧链会话，或没有可提取的摘要，则返回 undefined。
  *
- * @param sessionId - UUID of the session
- * @param options - `{ dir?: string }` project path; omit to search all project directories
+ * @param sessionId - 会话的 UUID
+ * @param options - `{ dir?: string }` 项目路径；省略则搜索所有项目目录
  */
 export async function getSessionInfo(
   _sessionId: string,
   _options?: GetSessionInfoOptions,
 ): Promise<SDKSessionInfo | undefined> {
-  throw new Error('getSessionInfo is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 getSessionInfo')
 }
 
 /**
- * Rename a session. Appends a custom-title entry to the session's JSONL file.
- * @param sessionId - UUID of the session
- * @param title - New title
- * @param options - `{ dir?: string }` project path; omit to search all projects
+ * 重命名会话。会向会话的 JSONL 文件追加一条自定义标题记录。
+ * @param sessionId - 会话的 UUID
+ * @param title - 新标题
+ * @param options - `{ dir?: string }` 项目路径；省略则搜索所有项目
  */
 export async function renameSession(
   _sessionId: string,
   _title: string,
   _options?: SessionMutationOptions,
 ): Promise<void> {
-  throw new Error('renameSession is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 renameSession')
 }
 
 /**
- * Tag a session. Pass null to clear the tag.
- * @param sessionId - UUID of the session
- * @param tag - Tag string, or null to clear
- * @param options - `{ dir?: string }` project path; omit to search all projects
+ * 为会话打标签。传入 null 以清除标签。
+ * @param sessionId - 会话的 UUID
+ * @param tag - 标签字符串，或传入 null 以清除
+ * @param options - `{ dir?: string }` 项目路径；省略则搜索所有项目
  */
 export async function tagSession(
   _sessionId: string,
   _tag: string | null,
   _options?: SessionMutationOptions,
 ): Promise<void> {
-  throw new Error('tagSession is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 tagSession')
 }
 
 /**
- * Fork a session into a new branch with fresh UUIDs.
+ * 将会话分叉到带有全新 UUID 的新分支。
  *
- * Copies transcript messages from the source session into a new session file,
- * remapping every message UUID and preserving the parentUuid chain. Supports
- * `upToMessageId` for branching from a specific point in the conversation.
+ * 把源会话的转录消息复制到新会话文件中，
+ * 重新映射每一条消息的 UUID 并保留 parentUuid 链。支持
+ * `upToMessageId`，以便从对话中的某个特定点分叉。
  *
- * Forked sessions start without undo history (file-history snapshots are not
- * copied).
+ * 分叉出的会话没有撤销历史（不复制文件历史快照）。
  *
- * @param sessionId - UUID of the source session
+ * @param sessionId - 源会话的 UUID
  * @param options - `{ dir?, upToMessageId?, title? }`
- * @returns `{ sessionId }` — UUID of the new forked session
+ * @returns `{ sessionId }` —— 新分叉会话的 UUID
  */
 export async function forkSession(
   _sessionId: string,
   _options?: ForkSessionOptions,
 ): Promise<ForkSessionResult> {
-  throw new Error('forkSession is not implemented in the SDK')
+  throw new Error('SDK 中尚未实现 forkSession')
 }
 
 // ============================================================================
-// Assistant daemon primitives (internal)
+// 助手守护进程原语（内部）
 // ============================================================================
 
 /**
- * A scheduled task from `<dir>/.limkenion/scheduled_tasks.json`.
+ * 来自 `<dir>/.limkenion/scheduled_tasks.json` 的定时任务。
  * @internal
  */
 export type CronTask = {
@@ -289,10 +286,10 @@ export type CronTask = {
 }
 
 /**
- * Cron scheduler tuning knobs (jitter + expiry). Sourced at runtime from the
- * `内部代号_kairos_cron_config` GrowthBook config in CLI sessions; daemon hosts
- * pass this through `watchScheduledTasks({ getJitterConfig })` to get the
- * same tuning.
+ * Cron 调度器调优旋钮（抖动 + 过期）。在 CLI 会话中运行时从
+ * `limkenion_kairos_cron_config` GrowthBook 配置获取；daemon 宿主
+ * 通过 `watchScheduledTasks({ getJitterConfig })` 传入以获得
+ * 相同的调优参数。
  * @internal
  */
 export type CronJitterConfig = {
@@ -305,7 +302,7 @@ export type CronJitterConfig = {
 }
 
 /**
- * Event yielded by `watchScheduledTasks()`.
+ * `watchScheduledTasks()` 产生的事件。
  * @internal
  */
 export type ScheduledTaskEvent =
@@ -313,37 +310,33 @@ export type ScheduledTaskEvent =
   | { type: 'missed'; tasks: CronTask[] }
 
 /**
- * Handle returned by `watchScheduledTasks()`.
+ * `watchScheduledTasks()` 返回的句柄。
  * @internal
  */
 export type ScheduledTasksHandle = {
-  /** Async stream of fire/missed events. Drain with `for await`. */
+  /** fire/missed 事件的异步流。使用 `for await` 消费。 */
   events(): AsyncGenerator<ScheduledTaskEvent>
   /**
-   * Epoch ms of the soonest scheduled fire across all loaded tasks, or null
-   * if nothing is scheduled. Useful for deciding whether to tear down an
-   * idle agent subprocess or keep it warm for an imminent fire.
+   * 所有已加载任务中下一次计划触发的时间（毫秒时间戳），
+   * 若没有任务被调度则为 null。用于决定是拆除空闲的 agent 子进程，
+   * 还是让它保持热用以应对即将到来的触发。
    */
   getNextFireTime(): number | null
 }
 
 /**
- * Watch `<dir>/.limkenion/scheduled_tasks.json` and yield events as tasks fire.
+ * 监听 `<dir>/.limkenion/scheduled_tasks.json`，在任务触发时产生事件。
  *
- * Acquires the per-directory scheduler lock (PID-based liveness) so a REPL
- * session in the same dir won't double-fire. Releases the lock and closes
- * the file watcher when the signal aborts.
+ * 获取按目录划分的调度器锁（基于 PID 的存活检测），因此同一目录下的
+ * REPL 会话不会重复触发。在信号中止时释放锁并关闭文件监听器。
  *
- * - `fire` — a task whose cron schedule was met. One-shot tasks are already
- *   deleted from the file when this yields; recurring tasks are rescheduled
- *   (or deleted if aged out).
- * - `missed` — one-shot tasks whose window passed while the daemon was down.
- *   Yielded once on initial load; a background delete removes them from the
- *   file shortly after.
+ * - `fire` —— cron 计划满足的任务。在产生该事件时一次性任务已从文件中删除；
+ *   循环任务会被重新调度（或在其老化后删除）。
+ * - `missed` —— 在 daemon 停机期间窗口已过去的一次性任务。
+ *   在初始加载时产生一次；随后一个后台删除会将其从文件中移除。
  *
- * Intended for daemon architectures that own the scheduler externally and
- * spawn the agent via `query()`; the agent subprocess (`-p` mode) does not
- * run its own scheduler.
+ * 面向在外部拥有调度器并通过 `query()` 生成 agent 的 daemon 架构；
+ * agent 子进程（`-p` 模式）不会运行自己的调度器。
  *
  * @internal
  */
@@ -352,20 +345,20 @@ export function watchScheduledTasks(_opts: {
   signal: AbortSignal
   getJitterConfig?: () => CronJitterConfig
 }): ScheduledTasksHandle {
-  throw new Error('not implemented')
+  throw new Error('未实现')
 }
 
 /**
- * Format missed one-shot tasks into a prompt that asks the model to confirm
- * with the user (via AskUserQuestion) before executing.
+ * 把错过的即时任务格式化为一个提示词，请求模型在执行前（通过 AskUserQuestion）
+ * 与用户确认。
  * @internal
  */
 export function buildMissedTaskNotification(_missed: CronTask[]): string {
-  throw new Error('not implemented')
+  throw new Error('未实现')
 }
 
 /**
- * A user message typed on limkenion.ai, extracted from the bridge WS.
+ * 用户在 limkenion.ai 上键入的用户消息，从 bridge WS 提取。
  * @internal
  */
 export type InboundPrompt = {
@@ -374,7 +367,7 @@ export type InboundPrompt = {
 }
 
 /**
- * Options for connectRemoteControl.
+ * connectRemoteControl 的选项。
  * @internal
  */
 export type ConnectRemoteControlOptions = {
@@ -390,9 +383,8 @@ export type ConnectRemoteControlOptions = {
 }
 
 /**
- * Handle returned by connectRemoteControl. Write query() yields in,
- * read inbound prompts out. See src/assistant/daemonBridge.ts for full
- * field documentation.
+ * connectRemoteControl 返回的句柄。把 query() 的产出写入其中，再从
+ * 其中读取入站提示词。字段的完整文档见 src/assistant/daemonBridge.ts。
  * @internal
  */
 export type RemoteControlHandle = {
@@ -417,27 +409,25 @@ export type RemoteControlHandle = {
 }
 
 /**
- * Hold a limkenion.ai remote-control bridge connection from a daemon process.
+ * 从 daemon 进程持有一条 limkenion.ai 远程控制桥接连接。
  *
- * The daemon owns the WebSocket in the PARENT process — if the agent
- * subprocess (spawned via `query()`) crashes, the daemon respawns it while
- * limkenion.ai keeps the same session. Contrast with `query.enableRemoteControl`
- * which puts the WS in the CHILD process (dies with the agent).
+ * daemon 在父进程中拥有 WebSocket —— 如果 agent 子进程（通过 `query()` 生成）
+ * 崩溃，daemon 会重新生成它，而 limkenion.ai 保持同一会话。与 `query.enableRemoteControl`
+ * 相对，后者把 WebSocket 放在子进程中（会随 agent 一起销毁）。
  *
- * Pipe `query()` yields through `write()` + `sendResult()`. Read
- * `inboundPrompts()` (user typed on limkenion.ai) into `query()`'s input
- * stream. Handle `controlRequests()` locally (interrupt → abort, set_model
- * → reconfigure).
+ * 通过 `write()` + `sendResult()` 接入 `query()` 的产出。把
+ * `inboundPrompts()`（用户在 limkenion.ai 上键入的内容）读入 `query()` 的输入流。
+ * 在本地处理 `controlRequests()`（interrupt → 中止，set_model → 重新配置）。
  *
- * Skips the `内部代号_ccr_bridge` gate and policy-limits check — @internal
- * caller is pre-entitled. OAuth is still required (env var or keychain).
+ * 跳过 `limkenion_ccr_bridge` 门控与策略限制检查 —— @internal
+ * 调用方已被预先授权。仍需要 OAuth（环境变量或钥匙串）。
  *
- * Returns null on no-OAuth or registration failure.
+ * 在无 OAuth 或注册失败时返回 null。
  *
  * @internal
  */
 export async function connectRemoteControl(
   _opts: ConnectRemoteControlOptions,
 ): Promise<RemoteControlHandle | null> {
-  throw new Error('not implemented')
+  throw new Error('未实现')
 }

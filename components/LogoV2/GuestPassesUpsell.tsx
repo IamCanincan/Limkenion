@@ -49,7 +49,7 @@ export function incrementGuestPassesSeenCount(): void {
       passesUpsellSeenCount: newCount
     };
   });
-  logEvent('内部代号_guest_passes_upsell_shown', {
+  logEvent('limkenion_guest_passes_upsell_shown', {
     seen_count: newCount
   });
 }

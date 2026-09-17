@@ -184,7 +184,7 @@ const TOOL_REFERENCE_TURN_BOUNDARY = 'Tool loaded.'
 export function withMemoryCorrectionHint(message: string): string {
   if (
     isAutoMemoryEnabled() &&
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_amber_prism', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_amber_prism', false)
   ) {
     return message + MEMORY_CORRECTION_HINT
   }
@@ -2149,7 +2149,7 @@ export function normalizeMessagesForAPI(
           // pass's sibling gets a \n[id:xxx] suffix from appendMessageTag below,
           // so startsWith matches both bare and tagged forms.
           //
-          // Gated OFF when 内部代号_toolref_defer_j8m is active — that gate
+          // Gated OFF when limkenion_toolref_defer_j8m is active — that gate
           // enables relocateToolReferenceSiblings in post-processing below,
           // which moves existing siblings to a later non-ref message instead
           // of adding one here. This injection is itself one of the patterns
@@ -2157,7 +2157,7 @@ export function normalizeMessagesForAPI(
           // off, this is the fallback (same as pre-#21049 main).
           if (
             !checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-              '内部代号_toolref_defer_j8m',
+              'limkenion_toolref_defer_j8m',
             )
           ) {
             const contentAfterStrip = normalizedMessage.message.content
@@ -2270,7 +2270,7 @@ export function normalizeMessagesForAPI(
             message.attachment,
           )
           const attachmentMessage = checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-            '内部代号_chair_sermon',
+            'limkenion_chair_sermon',
           )
             ? rawAttachmentMessage.map(ensureSystemReminderWrap)
             : rawAttachmentMessage
@@ -2298,7 +2298,7 @@ export function normalizeMessagesForAPI(
   // tags reflect final positions). When gate is OFF, this is a noop and
   // the TOOL_REFERENCE_TURN_BOUNDARY injection above serves as fallback.
   const relocated = checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-    '内部代号_toolref_defer_j8m',
+    'limkenion_toolref_defer_j8m',
   )
     ? relocateToolReferenceSiblings(result)
     : result
@@ -2331,7 +2331,7 @@ export function normalizeMessagesForAPI(
   // ungated changes VCR fixture hashes for @-mention scenarios (adjacent
   // [prompt, attachment] users) without any benefit when the smoosh is off.
   const smooshed = checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-    '内部代号_chair_sermon',
+    'limkenion_chair_sermon',
   )
     ? smooshSystemReminderSiblings(mergeAdjacentUserMessages(withNonEmpty))
     : withNonEmpty
@@ -2611,7 +2611,7 @@ export function mergeUserContentBlocks(
     return [...a, ...b]
   }
 
-  if (!checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_chair_sermon')) {
+  if (!checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_chair_sermon')) {
     // Legacy (ungated) smoosh: only string-content tool_result + all-text
     // siblings → joined string. Matches pre-universal-smoosh behavior on main.
     // The precondition guarantees smooshIntoToolResult hits its string path
@@ -2679,16 +2679,11 @@ export function normalizeContentFromAPI(
             // parse. We fall back to {} which means downstream validation
             // sees empty input. The raw prefix goes to debug log only — no
             // PII-tagged proto column exists for it yet.
-            logEvent('内部代号_tool_input_json_parse_fail', {
+            logEvent('limkenion_tool_input_json_parse_fail', {
               toolName: sanitizeToolNameForAnalytics(contentBlock.name),
               inputLen: contentBlock.input.length,
             })
-            if (process.env.USER_TYPE === 'ant') {
-              logForDebugging(
-                `tool input JSON parse fail: ${contentBlock.input.slice(0, 200)}`,
-                { level: 'warn' },
-              )
-            }
+            
           }
           normalizedInput = parsed ?? {}
         } else {
@@ -2719,7 +2714,7 @@ export function normalizeContentFromAPI(
       }
       case 'text':
         if (contentBlock.text.trim().length === 0) {
-          logEvent('内部代号_model_whitespace_response', {
+          logEvent('limkenion_model_whitespace_response', {
             length: contentBlock.text.length,
           })
         }
@@ -3296,9 +3291,8 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 }
 
 function getReadOnlyToolNames(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools from the registry, so point at find/grep via
-  // Bash instead.
+  // 官方内置构建会把 find/grep 别名为内嵌的 bfs/ugrep，并从注册表中移除专用的
+  // Glob/Grep 工具，因此请通过 Bash 使用 find/grep。
   const tools = hasEmbeddedSearchTools()
     ? [FILE_READ_TOOL_NAME, '`find`', '`grep`']
     : [FILE_READ_TOOL_NAME, GLOB_TOOL_NAME, GREP_TOOL_NAME]
@@ -4794,7 +4788,7 @@ function filterTrailingThinkingFromLastAssistant(
     lastValidIndex--
   }
 
-  logEvent('内部代号_filtered_trailing_thinking_block', {
+  logEvent('limkenion_filtered_trailing_thinking_block', {
     messageUUID:
       lastMessage.uuid as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     blocksRemoved: content.length - lastValidIndex - 1,
@@ -4881,7 +4875,7 @@ export function filterWhitespaceOnlyAssistantMessages(
 
     if (hasOnlyWhitespaceTextContent(content)) {
       hasChanges = true
-      logEvent('内部代号_filtered_whitespace_only_assistant', {
+      logEvent('limkenion_filtered_whitespace_only_assistant', {
         messageUUID:
           message.uuid as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
@@ -4944,7 +4938,7 @@ function ensureNonEmptyAssistantContent(
     const content = message.message.content
     if (Array.isArray(content) && content.length === 0) {
       hasChanges = true
-      logEvent('内部代号_fixed_empty_assistant_content', {
+      logEvent('limkenion_fixed_empty_assistant_content', {
         messageUUID:
           message.uuid as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         messageIndex: index,
@@ -5035,7 +5029,7 @@ export function filterOrphanedThinkingOnlyMessages(
     }
 
     // Truly orphaned - no other message with same id has content to merge with
-    logEvent('内部代号_filtered_orphaned_thinking_message', {
+    logEvent('limkenion_filtered_orphaned_thinking_message', {
       messageUUID:
         msg.uuid as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       messageId: msg.message
@@ -5359,7 +5353,7 @@ export function ensureToolResultPairing(
         // [tool_result, text] sibling the smoosh inside normalize never saw
         // (pairing runs after normalize). Re-smoosh just this one message.
         result.push(
-          checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_chair_sermon')
+          checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_chair_sermon')
             ? smooshSystemReminderSiblings([patchedNext])[0]!
             : patchedNext,
         )
@@ -5433,7 +5427,7 @@ export function ensureToolResultPairing(
       )
     }
 
-    logEvent('内部代号_tool_result_pairing_repaired', {
+    logEvent('limkenion_tool_result_pairing_repaired', {
       messageCount: messages.length,
       repairedMessageCount: result.length,
       messageTypes: messageTypes.join(

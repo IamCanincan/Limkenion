@@ -1,15 +1,14 @@
 /**
- * Deep Link Origin Banner
+ * 深度链接来源横幅
  *
- * Builds the warning text shown when a session was opened by an external
- * limkenion-cli:// deep link. Linux xdg-open and browsers with "always allow"
- * set dispatch the link with no OS-level confirmation, so the application
- * provides its own provenance signal — mirroring limkenion.ai's security
- * interstitial for external-source prefills.
+ * 构建当会话由外部的 limkenion-cli:// 深度链接打开时显示的警告文本。
+ * Linux xdg-open 和设置了"始终允许"的浏览器会不经 OS 层确认直接分发
+ * 链接，因此应用程序提供自己的来源信号——镜像 limkenion.ai 对外部来源
+ * 预填内容的安全插页。
  *
- * The user must press Enter to submit; this banner primes them to read the
- * prompt (which may use homoglyphs or padding to hide instructions) and
- * notice which directory — and therefore which LIMKENION.md — was loaded.
+ * 用户必须按 Enter 才能提交；此横幅提示他们阅读 prompt（可能用同形字或
+ * 填充隐藏指令），并注意加载的是哪个目录——从而知道哪份 LIMKENION.md
+ * 被加载。
  */
 
 import { stat } from 'fs/promises'
@@ -22,38 +21,37 @@ import { getGitDir } from '../git.js'
 const STALE_FETCH_WARN_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
- * Above this length, a pre-filled prompt no longer fits on one screen
- * (~12-15 lines on an 80-col terminal). The banner switches from "review
- * carefully" to an explicit "scroll to review the entire prompt" so a
- * malicious tail buried past line 60 isn't silently off-screen.
+ * 超过此长度时，预填的 prompt 不再适合单屏显示
+ * （80 列终端上约 12-15 行）。横幅从"仔细审阅"切换为明确的
+ * "滚动以审阅整个 prompt"，使埋在 60 行之后的恶意尾部不会悄悄
+ * 落到屏幕之外。
  */
 const LONG_PREFILL_THRESHOLD = 1000
 
 export type DeepLinkBannerInfo = {
-  /** Resolved working directory the session launched in. */
+  /** 会话启动时解析得到的工作目录。 */
   cwd: string
-  /** Length of the ?q= prompt pre-filled in the input box. Undefined = no prefill. */
+  /** 输入框中预填的 ?q= prompt 长度。Undefined = 无预填。 */
   prefillLength?: number
-  /** The ?repo= slug if the cwd was resolved from the githubRepoPaths MRU. */
+  /** 若 cwd 是从 githubRepoPaths MRU 解析的，则为 ?repo= 短名。 */
   repo?: string
-  /** Last-fetch timestamp for the repo (FETCH_HEAD mtime). Undefined = never fetched or not a git repo. */
+  /** 仓库的上次拉取时间戳（FETCH_HEAD mtime）。Undefined = 从未拉取或非 git 仓库。 */
   lastFetch?: Date
 }
 
 /**
- * Build the multi-line warning banner for a deep-link-originated session.
+ * 为深度链接来源的会话构建多行警告横幅。
  *
- * Always shows the working directory so the user can see which LIMKENION.md
- * will load. When the link pre-filled a prompt, adds a second line prompting
- * the user to review it — the prompt itself is visible in the input box.
+ * 始终显示工作目录，使用户能知道将加载哪份 LIMKENION.md。当链接预填了
+ * prompt 时，追加第二行提示用户审阅它——prompt 本身在输入框中可见。
  *
- * When the cwd was resolved from a ?repo= slug, also shows the slug and the
- * clone's last-fetch age so the user knows which local clone was selected
- * and whether its LIMKENION.md may be stale relative to upstream.
+ * 当 cwd 由 ?repo= 短名解析而来时，还显示短名和克隆的上次拉取年龄，
+ * 使用户知道选择了哪个本地克隆，以及其 LIMKENION.md 相对于上游是否
+ * 可能过期。
  */
 export function buildDeepLinkBanner(info: DeepLinkBannerInfo): string {
   const lines = [
-    `This session was opened by an external deep link in ${tildify(info.cwd)}`,
+    `此会话由 ${tildify(info.cwd)} 中的外部深度链接打开`,
   ]
   if (info.repo) {
     const age = info.lastFetch ? formatRelativeTimeAgo(info.lastFetch) : 'never'
@@ -61,29 +59,27 @@ export function buildDeepLinkBanner(info: DeepLinkBannerInfo): string {
       !info.lastFetch ||
       Date.now() - info.lastFetch.getTime() > STALE_FETCH_WARN_MS
     lines.push(
-      `Resolved ${info.repo} from local clones · last fetched ${age}${stale ? ' — LIMKENION.md may be stale' : ''}`,
+      `从本地克隆解析到 ${info.repo} · 上次拉取 ${age}${stale ? ' — LIMKENION.md 可能已过期' : ''}`,
     )
   }
   if (info.prefillLength) {
     lines.push(
       info.prefillLength > LONG_PREFILL_THRESHOLD
-        ? `The prompt below (${formatNumber(info.prefillLength)} chars) was supplied by the link — scroll to review the entire prompt before pressing Enter.`
-        : 'The prompt below was supplied by the link — review carefully before pressing Enter.',
+        ? `下面的 prompt（${formatNumber(info.prefillLength)} 字符）由链接提供 — 按 Enter 前请滚动审阅整个 prompt。`
+        : '下面的 prompt 由链接提供 — 按 Enter 前请仔细审阅。',
     )
   }
   return lines.join('\n')
 }
 
 /**
- * Read the mtime of .git/FETCH_HEAD, which git updates on every fetch or
- * pull. Returns undefined if the directory is not a git repo or has never
- * been fetched.
+ * 读取 .git/FETCH_HEAD 的 mtime，git 在每次 fetch 或 pull 时更新它。
+ * 若目录不是 git 仓库或从未拉取过则返回 undefined。
  *
- * FETCH_HEAD is per-worktree — fetching from the main worktree does not
- * touch a sibling worktree's FETCH_HEAD. When cwd is a worktree, we check
- * both and return whichever is newer so a recently-fetched main repo
- * doesn't read as "never fetched" just because the deep link landed in
- * a worktree.
+ * FETCH_HEAD 是每工作树（worktree）的——从主工作树拉取不会触及兄弟
+ * 工作树的 FETCH_HEAD。当 cwd 是工作树时，我们两者都检查并返回较新的，
+ * 这样最近拉取过的主仓库不会仅仅因为深度链接落在工作树里就被读作
+ * "从未拉取"。
  */
 export async function readLastFetchTime(
   cwd: string,
@@ -111,9 +107,9 @@ async function mtimeOrUndefined(p: string): Promise<Date | undefined> {
 }
 
 /**
- * Shorten home-dir-prefixed paths to ~ notation for the banner.
- * Not using getDisplayPath() because cwd is the current working directory,
- * so the relative-path branch would collapse it to the empty string.
+ * 把以 home 目录为前缀的路径缩短为用于横幅的 ~ 记法。
+ * 不使用 getDisplayPath()，因为 cwd 是当前工作目录，
+ * 相对路径分支会把其折叠为空字符串。
  */
 function tildify(p: string): string {
   const home = homedir()

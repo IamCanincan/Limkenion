@@ -27,27 +27,27 @@ export function renderToolResultMessage(output: Output, _progressMessagesForMess
   const displayPath = filePath ? getDisplayPath(filePath) : '';
   const awaitingLeaderApproval = output.awaitingLeaderApproval;
 
-  // Simplified message for empty plans
+  // 空方案的简化消息
   if (isEmpty) {
     return <Box flexDirection="column" marginTop={1}>
         <Box flexDirection="row">
           <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-          <Text> Exited plan mode</Text>
+          <Text> 已退出计划模式</Text>
         </Box>
       </Box>;
   }
 
-  // When awaiting leader approval, show a different message
+  // 等待团队负责人审批时，显示不同的消息
   if (awaitingLeaderApproval) {
     return <Box flexDirection="column" marginTop={1}>
         <Box flexDirection="row">
           <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-          <Text> Plan submitted for team lead approval</Text>
+          <Text> 方案已提交给团队负责人审批</Text>
         </Box>
         <MessageResponse>
           <Box flexDirection="column">
-            {filePath && <Text dimColor>Plan file: {displayPath}</Text>}
-            <Text dimColor>Waiting for team lead to review and approve...</Text>
+            {filePath && <Text dimColor>方案文件：{displayPath}</Text>}
+            <Text dimColor>等待团队负责人审阅并批准……</Text>
           </Box>
         </MessageResponse>
       </Box>;
@@ -55,11 +55,11 @@ export function renderToolResultMessage(output: Output, _progressMessagesForMess
   return <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
         <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-        <Text> User approved Limkenion&apos;s plan</Text>
+        <Text> 用户已批准 Limkenion&apos;s 的方案</Text>
       </Box>
       <MessageResponse>
         <Box flexDirection="column">
-          {filePath && <Text dimColor>Plan saved to: {displayPath} · /plan to edit</Text>}
+          {filePath && <Text dimColor>方案已保存到：{displayPath} · 使用 /plan 编辑</Text>}
           <Markdown>{plan}</Markdown>
         </Box>
       </MessageResponse>
@@ -74,7 +74,7 @@ export function renderToolUseRejectedMessage({
 }: {
   theme: ThemeName;
 }): React.ReactNode {
-  const planContent = plan ?? getPlan() ?? 'No plan found';
+  const planContent = plan ?? getPlan() ?? '未找到方案';
   return <Box flexDirection="column">
       <RejectedPlanMessage plan={planContent} />
     </Box>;

@@ -4,16 +4,15 @@ import { execFileNoThrowWithCwd } from './execFileNoThrow.js'
 import { gitExe } from './git.js'
 
 /**
- * Returns the paths of all worktrees for the current git repository.
- * If git is not available, not in a git repo, or only has one worktree,
- * returns an empty array.
+ * 返回当前 git 仓库所有 worktree 的路径。
+ * 若 git 不可用、不在 git 仓库中，或只有一个 worktree，
+ * 则返回空数组。
  *
- * This version includes analytics tracking and uses the CLI's gitExe()
- * resolver. For a portable version without CLI deps, use
- * getWorktreePathsPortable().
+ * 此版本包含分析跟踪，并使用 CLI 的 gitExe() 解析器。想要不依赖 CLI 的
+ * 可移植版本，请使用 getWorktreePathsPortable()。
  *
- * @param cwd Directory to run the command from
- * @returns Array of absolute worktree paths
+ * @param cwd 运行命令的目录
+ * @returns worktree 绝对路径数组
  */
 export async function getWorktreePaths(cwd: string): Promise<string[]> {
   const startTime = Date.now()
@@ -30,7 +29,7 @@ export async function getWorktreePaths(cwd: string): Promise<string[]> {
   const durationMs = Date.now() - startTime
 
   if (code !== 0) {
-    logEvent('内部代号_worktree_detection', {
+    logEvent('limkenion_worktree_detection', {
       duration_ms: durationMs,
       worktree_count: 0,
       success: false,
@@ -38,8 +37,8 @@ export async function getWorktreePaths(cwd: string): Promise<string[]> {
     return []
   }
 
-  // Parse porcelain output - lines starting with "worktree " contain paths
-  // Example:
+  // 解析 porcelain 输出——以 "worktree " 开头的行包含路径
+  // 例如：
   // worktree /Users/foo/repo
   // HEAD abc123
   // branch refs/heads/main
@@ -52,13 +51,13 @@ export async function getWorktreePaths(cwd: string): Promise<string[]> {
     .filter(line => line.startsWith('worktree '))
     .map(line => line.slice('worktree '.length).normalize('NFC'))
 
-  logEvent('内部代号_worktree_detection', {
+  logEvent('limkenion_worktree_detection', {
     duration_ms: durationMs,
     worktree_count: worktreePaths.length,
     success: true,
   })
 
-  // Sort worktrees: current worktree first, then alphabetically
+  // 对 worktree 排序：当前 worktree 在前，然后按字母序
   const currentWorktree = worktreePaths.find(
     path => cwd === path || cwd.startsWith(path + sep),
   )

@@ -10,34 +10,34 @@ import {
   renderToolUseProgressMessage,
 } from './UI.js'
 
-// Allow any input object since MCP tools define their own schemas
+// 由于 MCP 工具定义各自的 schema，允许任意输入对象
 export const inputSchema = lazySchema(() => z.object({}).passthrough())
 type InputSchema = ReturnType<typeof inputSchema>
 
 export const outputSchema = lazySchema(() =>
-  z.string().describe('MCP tool execution result'),
+  z.string().describe('MCP 工具执行结果'),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
 
 export type Output = z.infer<OutputSchema>
 
-// Re-export MCPProgress from centralized types to break import cycles
+// 从集中类型重新导出 MCPProgress，以打破导入循环
 export type { MCPProgress } from '../../types/tools.js'
 
 export const MCPTool = buildTool({
   isMcp: true,
-  // Overridden in mcpClient.ts with the real MCP tool name + args
+  // 在 mcpClient.ts 中用真正的 MCP 工具名 + args 覆盖
   isOpenWorld() {
     return false
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   name: 'mcp',
   maxResultSizeChars: 100_000,
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async description() {
     return DESCRIPTION
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async prompt() {
     return PROMPT
   },
@@ -47,7 +47,7 @@ export const MCPTool = buildTool({
   get outputSchema(): OutputSchema {
     return outputSchema()
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async call() {
     return {
       data: '',
@@ -56,11 +56,11 @@ export const MCPTool = buildTool({
   async checkPermissions(): Promise<PermissionResult> {
     return {
       behavior: 'passthrough',
-      message: 'MCPTool requires permission.',
+      message: 'MCPTool 需要权限。',
     }
   },
   renderToolUseMessage,
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   userFacingName: () => 'mcp',
   renderToolUseProgressMessage,
   renderToolResultMessage,

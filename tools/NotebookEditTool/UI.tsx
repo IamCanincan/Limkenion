@@ -37,7 +37,7 @@ export function renderToolUseMessage({
   if (verbose) {
     return <>
         <FilePathLink filePath={notebook_path}>{displayPath}</FilePathLink>
-        {`@${cell_id}, content: ${new_source.slice(0, 30)}…, cell_type: ${cell_type}, edit_mode: ${edit_mode ?? 'replace'}`}
+        {`@${cell_id}, 内容: ${new_source.slice(0, 30)}…, 单元格类型: ${cell_type}, 编辑模式: ${edit_mode ?? 'replace'}`}
       </>;
   }
   return <>
@@ -64,7 +64,7 @@ export function renderToolUseErrorMessage(result: ToolResultBlockParam['content'
 }): React.ReactNode {
   if (!verbose && typeof result === 'string' && extractTag(result, 'tool_use_error')) {
     return <MessageResponse>
-        <Text color="error">Error editing notebook</Text>
+        <Text color="error">编辑笔记本时出错</Text>
       </MessageResponse>;
   }
   return <FallbackToolUseErrorMessage result={result} verbose={verbose} />;
@@ -82,7 +82,7 @@ export function renderToolResultMessage({
   return <MessageResponse>
       <Box flexDirection="column">
         <Text>
-          Updated cell <Text bold>{cell_id}</Text>:
+          已更新单元格 <Text bold>{cell_id}</Text>：
         </Text>
         <Box marginLeft={2}>
           <HighlightedCode code={new_source} filePath="notebook.py" />

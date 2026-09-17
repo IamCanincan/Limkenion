@@ -6,12 +6,12 @@ import type { Transport } from './Transport.js'
 import { WebSocketTransport } from './WebSocketTransport.js'
 
 /**
- * Helper function to get the appropriate transport for a URL.
+ * 获取 URL 对应的合适传输方式的辅助函数。
  *
- * Transport selection priority:
- * 1. SSETransport (SSE reads + POST writes) when LIMKENION_USE_CCR_V2 is set
- * 2. HybridTransport (WS reads + POST writes) when LIMKENION_POST_FOR_SESSION_INGRESS_V2 is set
- * 3. WebSocketTransport (WS reads + WS writes) — default
+ * 传输方式选择优先级：
+ * 1. 设置了 LIMKENION_USE_CCR_V2 时用 SSETransport（SSE 读 + POST 写）
+ * 2. 设置了 LIMKENION_POST_FOR_SESSION_INGRESS_V2 时用 HybridTransport（WS 读 + POST 写）
+ * 3. WebSocketTransport（WS 读 + WS 写）——默认
  */
 export function getTransportForUrl(
   url: URL,
@@ -20,9 +20,9 @@ export function getTransportForUrl(
   refreshHeaders?: () => Record<string, string>,
 ): Transport {
   if (isEnvTruthy(process.env.LIMKENION_USE_CCR_V2)) {
-    // v2: SSE for reads, HTTP POST for writes
-    // --sdk-url is the session URL (.../sessions/{id});
-    // derive the SSE stream URL by appending /worker/events/stream
+    // v2：SSE 用于读，HTTP POST 用于写
+    // --sdk-url 是会话 URL（.../sessions/{id}）；
+    // 通过在末尾追加 /worker/events/stream 派生 SSE 流 URL
     const sseUrl = new URL(url.href)
     if (sseUrl.protocol === 'wss:') {
       sseUrl.protocol = 'https:'
@@ -40,6 +40,6 @@ export function getTransportForUrl(
     }
     return new WebSocketTransport(url, headers, sessionId, refreshHeaders)
   } else {
-    throw new Error(`Unsupported protocol: ${url.protocol}`)
+    throw new Error(`不支持该协议：${url.protocol}`)
   }
 }

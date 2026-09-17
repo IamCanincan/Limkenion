@@ -1,5 +1,5 @@
 /**
- * Checks if input matches negative keyword patterns
+ * 检查输入是否匹配负面关键词模式
  */
 export function matchesNegativeKeyword(input: string): boolean {
   const lowerInput = input.toLowerCase()
@@ -11,17 +11,17 @@ export function matchesNegativeKeyword(input: string): boolean {
 }
 
 /**
- * Checks if input matches keep going/continuation patterns
+ * 检查输入是否匹配继续/延续模式
  */
 export function matchesKeepGoingKeyword(input: string): boolean {
   const lowerInput = input.toLowerCase().trim()
 
-  // Match "continue" only if it's the entire prompt
+  // 仅当「continue」是完整提示时才匹配
   if (lowerInput === 'continue') {
     return true
   }
 
-  // Match "keep going" or "go on" anywhere in the input
+  // 在输入任意位置匹配 "keep going" 或 "go on"
   const keepGoingPattern = /\b(keep going|go on)\b/
   return keepGoingPattern.test(lowerInput)
 }

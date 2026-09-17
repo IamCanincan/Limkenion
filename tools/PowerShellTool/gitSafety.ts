@@ -1,10 +1,9 @@
 /**
- * Git can be weaponized for sandbox escape via two vectors:
- * 1. Bare-repo attack: if cwd contains HEAD + objects/ + refs/ but no valid
- *    .git/HEAD, Git treats cwd as a bare repository and runs hooks from cwd.
- * 2. Git-internal write + git: a compound command creates HEAD/objects/refs/
- *    hooks/ then runs git — the git subcommand executes the freshly-created
- *    malicious hooks.
+ * Git 可通过两种途径被用于绕过沙箱：
+ * 1. 裸仓库攻击：若 cwd 包含 HEAD + objects/ + refs/ 但没有有效的 .git/HEAD，
+ *    Git 会把 cwd 当作裸仓库，并从 cwd 运行钩子。
+ * 2. Git 内部写入 + git：复合命令先创建 HEAD/objects/refs/hooks/，
+ *    再运行 git——git 子命令会执行刚创建好的恶意钩子。
  */
 
 import { basename, posix, resolve, sep } from 'path'
@@ -12,61 +11,57 @@ import { getCwd } from '../../utils/cwd.js'
 import { PS_TOKENIZER_DASH_CHARS } from '../../utils/powershell/parser.js'
 
 /**
- * If a normalized path starts with `../<cwd-basename>/`, it re-enters cwd
- * via the parent — resolve it to the cwd-relative form. posix.normalize
- * preserves leading `..` (no cwd context), so `../project/hooks` with
- * cwd=/x/project stays `../project/hooks` and misses the `hooks/` prefix
- * match even though it resolves to the same directory at runtime.
- * Check/use divergence: validator sees `../project/hooks`, PowerShell
- * resolves against cwd to `hooks`.
+ * 若归一化路径以 `../<cwd-基名>/` 开头，说明它经由父目录重新进入 cwd——
+ * 则将其解析为相对于 cwd 的形式。posix.normalize 会保留前导 `..`
+ * （无 cwd 上下文），因此 cwd=/x/project 时 `../project/hooks` 仍是
+ * `../project/hooks`，会错失对 `hooks/` 前缀的匹配，尽管它在运行时解析到
+ * 的是同一个目录。检查/使用偏差：校验器看到 `../project/hooks`，
+ * 而 PowerShell 相对于 cwd 解析得到 `hooks`。
  */
 function resolveCwdReentry(normalized: string): string {
   if (!normalized.startsWith('../')) return normalized
   const cwdBase = basename(getCwd()).toLowerCase()
   if (!cwdBase) return normalized
-  // Iteratively strip `../<cwd-basename>/` pairs (handles `../../p/p/hooks`
-  // when cwd has repeated basename segments is unlikely, but one-level is
-  // the common attack).
+  // 迭代式地剥离 `../<cwd-基名>/`（处理 `../../p/p/hooks`，尽管 cwd 含重复
+  // 基名段的场景不太可能，但一层是最常见的攻击方式）。
   const prefix = '../' + cwdBase + '/'
   let s = normalized
   while (s.startsWith(prefix)) {
     s = s.slice(prefix.length)
   }
-  // Also handle exact `../<cwd-basename>` (no trailing slash)
+  // 也处理精确的 `../<cwd-基名>`（无尾随斜杠）
   if (s === '../' + cwdBase) return '.'
   return s
 }
 
 /**
- * Normalize PS arg text → canonical path for git-internal matching.
- * Order matters: structural strips first (colon-bound param, quotes,
- * backtick escapes, provider prefix, drive-relative prefix), then NTFS
- * per-component trailing-strip (spaces always; dots only if not `./..`
- * after space-strip), then posix.normalize (resolves `..`, `.`, `//`),
- * then case-fold.
+ * 将 PS 参数文本归一化为用于 git 内部匹配的规范路径。
+ * 顺序很关键：先做结构性剥离（冒号绑定参数、引号、反引号转义、提供程序
+ * 前缀、驱动器相对前缀），再做 NTFS 逐组件尾随剥离（空格总是剥离；点号仅
+ * 在空格剥离后不是 `./..` 时才剥离），然后 posix.normalize（解析 `..`、`.`、
+ * `//`），最后转为小写。
  */
 function normalizeGitPathArg(arg: string): string {
   let s = arg
-  // Normalize parameter prefixes: dash chars (–, —, ―) and forward-slash
-  // (PS 5.1). /Path:hooks/pre-commit → extract colon-bound value. (bug #28)
+  // 归一化参数前缀：破折号字符（–、—、―）和正斜杠（PS 5.1）。
+  // /Path:hooks/pre-commit → 提取冒号绑定的值。（bug #28）
   if (s.length > 0 && (PS_TOKENIZER_DASH_CHARS.has(s[0]!) || s[0] === '/')) {
     const c = s.indexOf(':', 1)
     if (c > 0) s = s.slice(c + 1)
   }
   s = s.replace(/^['"]|['"]$/g, '')
   s = s.replace(/`/g, '')
-  // PS provider-qualified path: FileSystem::hooks/pre-commit → hooks/pre-commit
-  // Also handles fully-qualified form: Microsoft.PowerShell.Core\FileSystem::path
+  // PS 提供程序限定路径：FileSystem::hooks/pre-commit → hooks/pre-commit
+  // 也处理全限定形式：Microsoft.PowerShell.Core\FileSystem::path
   s = s.replace(/^(?:[A-Za-z0-9_.]+\\){0,3}FileSystem::/i, '')
-  // Drive-relative C:foo (no separator after colon) is cwd-relative on that
-  // drive. C:\foo (WITH separator) is absolute and must NOT match — the
-  // negative lookahead preserves it.
+  // 驱动器相对形式 C:foo（冒号后无分隔符）在哪个驱动器上都是相对 cwd 的。
+  // C:\foo（**带**分隔符）是绝对路径，**不能**匹配——负向先行断言保留它。
   s = s.replace(/^[A-Za-z]:(?![/\\])/, '')
   s = s.replace(/\\/g, '/')
-  // Win32 CreateFileW per-component: iteratively strip trailing spaces,
-  // then trailing dots, stopping if the result is `.` or `..` (special).
-  // `.. ` → `..`, `.. .` → `..`, `...` → '' → `.`, `hooks .` → `hooks`.
-  // Originally-'' (leading slash split) stays '' (absolute-path marker).
+  // Win32 CreateFileW 逐组件处理：迭代式剥离尾随空格，再剥离尾随点号，
+  // 若结果变成 `.` 或 `..`（特殊值）则停止。
+  // `.. ` → `..`，`.. .` → `..`，`...` → '' → `.`，`hooks .` → `hooks`。
+  // 原本为 ''（前导斜杠切分）时保持不变（绝对路径标记）。
   s = s
     .split('/')
     .map(c => {
@@ -89,30 +84,28 @@ function normalizeGitPathArg(arg: string): string {
 const GIT_INTERNAL_PREFIXES = ['head', 'objects', 'refs', 'hooks'] as const
 
 /**
- * SECURITY: Resolve a normalized path that escapes cwd (leading `../` or
- * absolute) against the actual cwd, then check if it lands back INSIDE cwd.
- * If so, strip cwd and return the cwd-relative remainder for prefix matching.
- * If it lands outside cwd, return null (genuinely external — path-validation's
- * concern). Covers `..\<cwd-basename>\HEAD` and `C:\<full-cwd>\HEAD` which
- * posix.normalize alone cannot resolve (it leaves leading `..` as-is).
+ * SECURITY: 将逃逸出 cwd（前导 `../` 或绝对路径）的归一化路径相对于实际
+ * cwd 解析，然后检查它是否落回 cwd **内部**。若落入内部，则剥离 cwd 并返回
+ * 相对于 cwd 的余下部分用于前缀匹配。若落在 cwd 之外则返回 null（真正的外部
+ * 路径——那是 path-validation 的职责范围）。覆盖 posix.normalize 单独无法
+ * 解析的 `..\<cwd-基名>\HEAD` 和 `C:\<完整-cwd>\HEAD`（它会把前导 `..`
+ * 原样保留）。
  *
- * This is the SOLE guard for the bare-repo HEAD attack. path-validation's
- * DANGEROUS_FILES deliberately excludes bare `HEAD` (false-positive risk
- * on legitimate non-git files named HEAD) and DANGEROUS_DIRECTORIES
- * matches per-segment `.git` only — so `<cwd>/HEAD` passes that layer.
- * The cwd-resolution here is load-bearing; do not remove without adding
- * an alternative guard.
+ * 这是裸仓库 HEAD 攻击的**唯一**防护。path-validation 的 DANGEROUS_FILES
+ * 有意排除了裸 `HEAD`（对同名合法非 git 文件有误报风险），DANGEROUS_DIRECTORIES
+ * 也只按段匹配 `.git`——因此 `<cwd>/HEAD` 能通过那一层。此处的 cwd 解析是关键
+ * 承载逻辑；若不补加替代防护就不要移除它。
  */
 function resolveEscapingPathToCwdRelative(n: string): string | null {
   const cwd = getCwd()
-  // Reconstruct a platform-resolvable path from the posix-normalized form.
-  // `n` has forward slashes (normalizeGitPathArg converted \\ → /); resolve()
-  // handles forward slashes on Windows.
+  // 从 posix 归一化形式重建一个平台可解析的路径。
+  // `n` 使用正斜杠（normalizeGitPathArg 将 \\ 转为 /）；resolve()
+  // 在 Windows 上可处理正斜杠。
   const abs = resolve(cwd, n)
   const cwdWithSep = cwd.endsWith(sep) ? cwd : cwd + sep
-  // Case-insensitive comparison: normalizeGitPathArg lowercased `n`, so
-  // resolve() output has lowercase components from `n` but cwd may be
-  // mixed-case (e.g. C:\Users\...). Windows paths are case-insensitive.
+  // 大小写不敏感比较：normalizeGitPathArg 已将 `n` 转为小写，因此 resolve()
+  // 输出中来自 `n` 的组件是小写的，而 cwd 可能是混合大小写（如 C:\Users\...）。
+  // Windows 路径大小写不敏感。
   const absLower = abs.toLowerCase()
   const cwdLower = cwd.toLowerCase()
   const cwdWithSepLower = cwdWithSep.toLowerCase()
@@ -132,17 +125,15 @@ function matchesGitInternalPrefix(n: string): boolean {
 }
 
 /**
- * True if arg (raw PS arg text) resolves to a git-internal path in cwd.
- * Covers both bare-repo paths (hooks/, refs/) and standard-repo paths
- * (.git/hooks/, .git/config).
+ * 若参数（原始 PS 参数文本）解析为 cwd 中的 git 内部路径则为真。
+ * 同时覆盖裸仓库路径（hooks/、refs/）和标准仓库路径
+ * （.git/hooks/、.git/config）。
  */
 export function isGitInternalPathPS(arg: string): boolean {
   const n = resolveCwdReentry(normalizeGitPathArg(arg))
   if (matchesGitInternalPrefix(n)) return true
-  // SECURITY: leading `../` or absolute paths that resolveCwdReentry and
-  // posix.normalize couldn't fully resolve. Resolve against actual cwd — if
-  // the result lands back in cwd at a git-internal location, the guard must
-  // still fire.
+  // SECURITY: resolveCwdReentry 和 posix.normalize 无法完全解析的前导 `../`
+  // 或绝对路径。相对实际 cwd 解析——若结果落回 cwd 的 git 内部位置，防护仍须触发。
   if (n.startsWith('../') || n.startsWith('/') || /^[a-z]:/.test(n)) {
     const rel = resolveEscapingPathToCwdRelative(n)
     if (rel !== null && matchesGitInternalPrefix(rel)) return true
@@ -151,15 +142,15 @@ export function isGitInternalPathPS(arg: string): boolean {
 }
 
 /**
- * True if arg resolves to a path inside .git/ (standard-repo metadata dir).
- * Unlike isGitInternalPathPS, does NOT match bare-repo-style root-level
- * `hooks/`, `refs/` etc. — those are common project directory names.
+ * 若参数解析为 .git/（标准仓库元数据目录）内的路径则为真。
+ * 与 isGitInternalPathPS 不同，它不匹配裸仓库风格的根级 `hooks/`、`refs/`
+ * 等——那些是常见的项目目录名。
  */
 export function isDotGitPathPS(arg: string): boolean {
   const n = resolveCwdReentry(normalizeGitPathArg(arg))
   if (matchesDotGitPrefix(n)) return true
-  // SECURITY: same cwd-resolution as isGitInternalPathPS — catch
-  // `..\<cwd-basename>\.git\hooks\pre-commit` that lands back in cwd.
+  // SECURITY: 与 isGitInternalPathPS 相同的 cwd 解析——捕获会落回 cwd 的
+  // `..\<cwd-基名>\.git\hooks\pre-commit`。
   if (n.startsWith('../') || n.startsWith('/') || /^[a-z]:/.test(n)) {
     const rel = resolveEscapingPathToCwdRelative(n)
     if (rel !== null && matchesDotGitPrefix(rel)) return true
@@ -169,8 +160,7 @@ export function isDotGitPathPS(arg: string): boolean {
 
 function matchesDotGitPrefix(n: string): boolean {
   if (n === '.git' || n.startsWith('.git/')) return true
-  // NTFS 8.3 short names: .git becomes GIT~1 (or GIT~2, etc. if multiple
-  // dotfiles start with "git"). normalizeGitPathArg lowercases, so check
-  // for git~N as the first component.
+  // NTFS 8.3 短名：.git 变成 GIT~1（若存在多个以 "git" 开头的点文件则可能是
+  // GIT~2 等）。normalizeGitPathArg 已转小写，因此检查首组件是否为 git~N。
   return /^git~\d+($|\/)/.test(n)
 }

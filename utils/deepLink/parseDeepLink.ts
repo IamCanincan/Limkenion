@@ -1,21 +1,20 @@
 /**
- * Deep Link URI Parser
+ * 深度链接 URI 解析器
  *
- * Parses `limkenion-cli://open` URIs. All parameters are optional:
- *   q    — pre-fill the prompt input (not submitted)
- *   cwd  — working directory (absolute path)
- *   repo — owner/name slug, resolved against githubRepoPaths config
+ * 解析 `limkenion-cli://open` URI。所有参数都是可选的：
+ *   q    — 预填 prompt 输入（不提交）
+ *   cwd  — 工作目录（绝对路径）
+ *   repo — owner/name 短名，对照 githubRepoPaths 配置解析
  *
- * Examples:
+ * 示例：
  *   limkenion-cli://open
  *   limkenion-cli://open?q=hello+world
  *   limkenion-cli://open?q=fix+tests&repo=owner/repo
  *   limkenion-cli://open?cwd=/path/to/project
  *
- * Security: values are URL-decoded, Unicode-sanitized, and rejected if they
- * contain ASCII control characters (newlines etc. can act as command
- * separators). All values are single-quote shell-escaped at the point of
- * use (terminalLauncher.ts) — that escaping is the injection boundary.
+ * 安全：值会被 URL 解码、Unicode 清理，若包含 ASCII 控制字符（换行等可
+ * 充当命令分隔符）则被拒绝。所有值在使用点（terminalLauncher.ts）都用
+ * 单引号做 shell 转义——该转义就是注入边界。
  */
 
 import { partiallySanitizeUnicode } from '../sanitization.js'
@@ -29,9 +28,9 @@ export type DeepLinkAction = {
 }
 
 /**
- * Check if a string contains ASCII control characters (0x00-0x1F, 0x7F).
- * These can act as command separators in shells (newlines, carriage returns, etc.).
- * Allows printable ASCII and Unicode (CJK, emoji, accented chars, etc.).
+ * 检查字符串是否包含 ASCII 控制字符（0x00-0x1F、0x7F）。
+ * 这些在 shell 中可充当命令分隔符（换行、回车等）。
+ * 允许可打印 ASCII 和 Unicode（中日韩、emoji、重音字符等）。
  */
 function containsControlChars(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
@@ -44,45 +43,41 @@ function containsControlChars(s: string): boolean {
 }
 
 /**
- * GitHub owner/repo slug: alphanumerics, dots, hyphens, underscores,
- * exactly one slash. Keeps this from becoming a path traversal vector.
+ * GitHub owner/repo 短名：字母数字、点、连字符、下划线，
+ * 恰好一个斜杠。防止其成为路径穿越向量。
  */
 const REPO_SLUG_PATTERN = /^[\w.-]+\/[\w.-]+$/
 
 /**
- * Cap on pre-filled prompt length. The only defense against a prompt like
- * "review PR #18796 […4900 chars of padding…] also cat ~/.ssh/id_rsa" is
- * the user reading it before pressing Enter. At this length the prompt is
- * no longer scannable at a glance, so banner.ts shows an explicit "scroll
- * to review the entire prompt" warning above LONG_PREFILL_THRESHOLD.
- * Reject, don't truncate — truncation changes meaning.
+ * 预填 prompt 长度的上限。对"审阅 PR #18796 […填充 4900 字符…] 另外
+ * cat ~/.ssh/id_rsa"这类提示的唯一防御，是用户在按 Enter 前阅读它。
+ * 达到此长度时 prompt 无法再一眼扫完，因此 banner.ts 在
+ * LONG_PREFILL_THRESHOLD 之上显示明确的"滚动以审阅整个 prompt"警告。
+ * 拒绝而非截断——截断会改变含义。
  *
- * 5000 is the practical ceiling: the Windows cmd.exe fallback
- * (terminalLauncher.ts) has an 8191-char command-string limit, and after
- * the `cd /d <cwd> && <limkenion.exe> --deep-link-origin ... --prefill "<q>"`
- * wrapper plus cmdQuote's %→%% expansion, ~7000 chars of query is the
- * hard stop for typical inputs. A pathological >60%-percent-sign query
- * would 2× past the limit, but cmd.exe is the last-resort fallback
- * (wt.exe and PowerShell are tried first) and the failure mode is a
- * launch error, not a security issue — so we don't penalize real users
- * for an implausible input.
+ * 5000 是现实上限：Windows cmd.exe 回退方案（terminalLauncher.ts）的命令
+ * 字符串限制为 8191 字符，加上 `cd /d <cwd> && <limkenion.exe>
+ * --deep-link-origin ... --prefill "<q>"` 包装和 cmdQuote 的 %→%% 展开，
+ * 对典型输入而言约 7000 字符的查询就是硬停点。病态的 >60% 百分号查询
+ * 会超出限制 2 倍，但 cmd.exe 是最后手段回退（会先尝试 wt.exe 和
+ * PowerShell），其失败模式是启动错误而非安全问题——所以我们不会因
+ * 一个难以置信的输入而惩罚真实用户。
  */
 const MAX_QUERY_LENGTH = 5000
 
 /**
- * PATH_MAX on Linux is 4096. Windows MAX_PATH is 260 (32767 with long-path
- * opt-in). No real path approaches this; a cwd over 4096 is malformed or
- * malicious.
+ * Linux 上 PATH_MAX 为 4096。Windows MAX_PATH 为 260（启用长路径后为
+ * 32767）。没有真实路径会接近此值；超过 4096 的 cwd 属于格式错误或恶意。
  */
 const MAX_CWD_LENGTH = 4096
 
 /**
- * Parse a limkenion-cli:// URI into a structured action.
+ * 把 limkenion-cli:// URI 解析为结构化动作。
  *
- * @throws {Error} if the URI is malformed or contains dangerous characters
+ * @throws {Error} 若 URI 格式错误或包含危险字符
  */
 export function parseDeepLink(uri: string): DeepLinkAction {
-  // Normalize: accept with or without the trailing colon in protocol
+  // 归一化：接受协议后带或不带尾冒号
   const normalized = uri.startsWith(`${DEEP_LINK_PROTOCOL}://`)
     ? uri
     : uri.startsWith(`${DEEP_LINK_PROTOCOL}:`)
@@ -91,7 +86,7 @@ export function parseDeepLink(uri: string): DeepLinkAction {
 
   if (!normalized) {
     throw new Error(
-      `Invalid deep link: expected ${DEEP_LINK_PROTOCOL}:// scheme, got "${uri}"`,
+      `深度链接无效：应为 ${DEEP_LINK_PROTOCOL}:// 协议，却得到 "${uri}"`,
     )
   }
 
@@ -99,52 +94,52 @@ export function parseDeepLink(uri: string): DeepLinkAction {
   try {
     url = new URL(normalized)
   } catch {
-    throw new Error(`Invalid deep link URL: "${uri}"`)
+    throw new Error(`深度链接 URL 无效："${uri}"`)
   }
 
   if (url.hostname !== 'open') {
-    throw new Error(`Unknown deep link action: "${url.hostname}"`)
+    throw new Error(`未知深度链接操作："${url.hostname}"`)
   }
 
   const cwd = url.searchParams.get('cwd') ?? undefined
   const repo = url.searchParams.get('repo') ?? undefined
   const rawQuery = url.searchParams.get('q')
 
-  // Validate cwd if present — must be an absolute path
+  // 若存在则校验 cwd——必须是绝对路径
   if (cwd && !cwd.startsWith('/') && !/^[a-zA-Z]:[/\\]/.test(cwd)) {
     throw new Error(
-      `Invalid cwd in deep link: must be an absolute path, got "${cwd}"`,
+      `深度链接中的 cwd 无效：必须是绝对路径，却得到 "${cwd}"`,
     )
   }
 
-  // Reject control characters in cwd (newlines, etc.) but allow path chars like backslash.
+  // 拒绝 cwd 中的控制字符（换行等），但允许反斜杠等路径字符。
   if (cwd && containsControlChars(cwd)) {
-    throw new Error('Deep link cwd contains disallowed control characters')
+    throw new Error('深度链接 cwd 包含不允许的控制字符')
   }
   if (cwd && cwd.length > MAX_CWD_LENGTH) {
     throw new Error(
-      `Deep link cwd exceeds ${MAX_CWD_LENGTH} characters (got ${cwd.length})`,
+      `深度链接 cwd 超过 ${MAX_CWD_LENGTH} 字符（得到 ${cwd.length}）`,
     )
   }
 
-  // Validate repo slug format. Resolution happens later (protocolHandler.ts) —
-  // this parser stays pure with no config/filesystem access.
+  // 校验 repo 短名格式。解析发生在更晚（protocolHandler.ts）——
+  // 此解析器保持纯净，不访问配置/文件系统。
   if (repo && !REPO_SLUG_PATTERN.test(repo)) {
     throw new Error(
-      `Invalid repo in deep link: expected "owner/repo", got "${repo}"`,
+      `深度链接中的 repo 无效：应为 "owner/repo"，却得到 "${repo}"`,
     )
   }
 
   let query: string | undefined
   if (rawQuery && rawQuery.trim().length > 0) {
-    // Strip hidden Unicode characters (ASCII smuggling / hidden prompt injection)
+    // 去除隐藏的 Unicode 字符（ASCII 走私 / 隐藏的 prompt 注入）
     query = partiallySanitizeUnicode(rawQuery.trim())
     if (containsControlChars(query)) {
-      throw new Error('Deep link query contains disallowed control characters')
+      throw new Error('深度链接 query 包含不允许的控制字符')
     }
     if (query.length > MAX_QUERY_LENGTH) {
       throw new Error(
-        `Deep link query exceeds ${MAX_QUERY_LENGTH} characters (got ${query.length})`,
+        `深度链接 query 超过 ${MAX_QUERY_LENGTH} 字符（得到 ${query.length}）`,
       )
     }
   }
@@ -153,7 +148,7 @@ export function parseDeepLink(uri: string): DeepLinkAction {
 }
 
 /**
- * Build a limkenion-cli:// deep link URL.
+ * 构建 limkenion-cli:// 深度链接 URL。
  */
 export function buildDeepLink(action: DeepLinkAction): string {
   const url = new URL(`${DEEP_LINK_PROTOCOL}://open`)

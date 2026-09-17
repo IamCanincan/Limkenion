@@ -1,14 +1,13 @@
 /**
- * Shared infrastructure for profiler modules (startupProfiler, queryProfiler,
- * headlessProfiler). All three use the same perf_hooks timeline and the same
- * line format for detailed reports.
+ * profiler 模块（startupProfiler、queryProfiler、headlessProfiler）的
+ * 共享基础设施。三者使用相同的 perf_hooks 时间线，以及相同的详细报告行格式。
  */
 
 import type { performance as PerformanceType } from 'perf_hooks'
 import { formatFileSize } from './format.js'
 
-// Lazy-load performance API only when profiling is enabled.
-// Shared across all profilers — perf_hooks.performance is a process-wide singleton.
+// 仅在启用性能分析时才惰性加载 performance API。
+// 在所有 profiler 间共享——perf_hooks.performance 是进程级单例。
 let performance: typeof PerformanceType | null = null
 
 export function getPerformance(): typeof PerformanceType {
@@ -24,11 +23,11 @@ export function formatMs(ms: number): string {
 }
 
 /**
- * Render a single timeline line in the shared profiler report format:
+ * 以共享的 profiler 报告格式渲染单行时间线：
  *   [+  total.ms] (+  delta.ms) name [extra] [| RSS: .., Heap: ..]
  *
- * totalPad/deltaPad control the padStart width so callers can align columns
- * based on their expected magnitude (startup uses 8/7, query uses 10/9).
+ * totalPad/deltaPad 控制 padStart 宽度，让调用方可以根据预期量级对齐各列
+ * （startup 用 8/7，query 用 10/9）。
  */
 export function formatTimelineLine(
   totalMs: number,

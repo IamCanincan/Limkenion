@@ -16,8 +16,8 @@ import type { TranscriptShareResponse } from './TranscriptSharePrompt.js';
 import { useSurveyState } from './useSurveyState.js';
 import type { FeedbackSurveyResponse } from './utils.js';
 const HIDE_THANKS_AFTER_MS = 3000;
-const MEMORY_SURVEY_GATE = '内部代号_dunwich_bell';
-const MEMORY_SURVEY_EVENT = '内部代号_memory_survey_event';
+const MEMORY_SURVEY_GATE = 'limkenion_dunwich_bell';
+const MEMORY_SURVEY_EVENT = 'limkenion_memory_survey_event';
 const SURVEY_PROBABILITY = 0.2;
 const TRANSCRIPT_SHARE_TRIGGER = 'memory_survey';
 const MEMORY_WORD_RE = /\bmemor(?:y|ies)\b/i;
@@ -87,7 +87,7 @@ export function useMemorySurvey(messages: Message[], isLoading: boolean, hasActi
     });
   }, []);
   const shouldShowTranscriptPrompt = useCallback((selected_0: FeedbackSurveyResponse) => {
-    if ("external" !== 'ant') {
+    if (true) {
       return false;
     }
     if (selected_0 !== 'bad' && selected_0 !== 'good') {

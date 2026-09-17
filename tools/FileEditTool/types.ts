@@ -2,31 +2,31 @@ import { z } from 'zod/v4'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { semanticBoolean } from '../../utils/semanticBoolean.js'
 
-// The input schema with optional replace_all
+// 带可选 replace_all 的输入 schema
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    file_path: z.string().describe('The absolute path to the file to modify'),
-    old_string: z.string().describe('The text to replace'),
+    file_path: z.string().describe('要修改文件的绝对路径'),
+    old_string: z.string().describe('要替换的文本'),
     new_string: z
       .string()
       .describe(
-        'The text to replace it with (must be different from old_string)',
+        '用于替换它的文本（必须与 old_string 不同）',
       ),
     replace_all: semanticBoolean(
       z.boolean().default(false).optional(),
-    ).describe('Replace all occurrences of old_string (default false)'),
+    ).describe('替换所有出现的 old_string（默认为 false）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
-// Parsed output — what call() receives. z.output not z.input: with
-// semanticBoolean the input side is unknown (preprocess accepts anything).
+// 解析后的输出——call() 收到的内容。用 z.output 而非 z.input：使用
+// semanticBoolean 时输入侧是未知的（preprocess 接受任何内容）。
 export type FileEditInput = z.output<InputSchema>
 
-// Individual edit without file_path
+// 不含 file_path 的单个编辑
 export type EditInput = Omit<FileEditInput, 'file_path'>
 
-// Runtime version where replace_all is always defined
+// replace_all 始终已定义时的运行时版本
 export type FileEdit = {
   old_string: string
   new_string: string
@@ -55,26 +55,26 @@ export const gitDiffSchema = lazySchema(() =>
       .string()
       .nullable()
       .optional()
-      .describe('GitHub owner/repo when available'),
+      .describe('可用的 GitHub 所有者/仓库'),
   }),
 )
 
-// Output schema for FileEditTool
+// FileEditTool 的输出 schema
 const outputSchema = lazySchema(() =>
   z.object({
-    filePath: z.string().describe('The file path that was edited'),
-    oldString: z.string().describe('The original string that was replaced'),
-    newString: z.string().describe('The new string that replaced it'),
+    filePath: z.string().describe('已编辑文件的路径'),
+    oldString: z.string().describe('被替换的原始字符串'),
+    newString: z.string().describe('替换用的新字符串'),
     originalFile: z
       .string()
-      .describe('The original file contents before editing'),
+      .describe('编辑前的原始文件内容'),
     structuredPatch: z
       .array(hunkSchema())
-      .describe('Diff patch showing the changes'),
+      .describe('显示更改的差异补丁'),
     userModified: z
       .boolean()
-      .describe('Whether the user modified the proposed changes'),
-    replaceAll: z.boolean().describe('Whether all occurrences were replaced'),
+      .describe('用户是否修改了提议的更改'),
+    replaceAll: z.boolean().describe('所有出现位置是否都被替换'),
     gitDiff: gitDiffSchema().optional(),
   }),
 )

@@ -7,10 +7,10 @@ import {
 import { slowLogging } from './slowOperations.js'
 
 /**
- * @deprecated Use async alternatives when possible. Sync exec calls block the event loop.
+ * @deprecated 尽可能使用异步替代方案。同步 exec 调用会阻塞事件循环。
  *
- * Wrapped execSync with slow operation logging.
- * Use this instead of child_process execSync directly to detect performance issues.
+ * 带慢操作日志的 execSync 包装。
+ * 用它替代直接使用 child_process execSync，以便检测性能问题。
  *
  * @example
  * import { execSync_DEPRECATED } from './execSyncWrapper.js'

@@ -103,8 +103,8 @@ export function ResumeConversation({
   } | null>(null);
   const [crossProjectCommand, setCrossProjectCommand] = React.useState<string | null>(null);
   const sessionLogResultRef = React.useRef<SessionLogResult | null>(null);
-  // Mirror of logs.length so loadMoreLogs can compute value indices outside
-  // the setLogs updater (keeping it pure per React's contract).
+  // logs.length 的镜像，使 loadMoreLogs 可以在 setLogs 更新器
+  // 之外计算数值索引（保持其符合 React 的纯函数契约）。
   const logCountRef = React.useRef(0);
   const filteredLogs = React.useMemo(() => {
     let result = logs.filter(l => !l.isSidechain);
@@ -140,8 +140,8 @@ export function ResumeConversation({
     void enrichLogs(ref.allStatLogs, ref.nextIndex, count).then(result_1 => {
       ref.nextIndex = result_1.nextIndex;
       if (result_1.logs.length > 0) {
-        // enrichLogs returns fresh unshared objects — safe to mutate in place.
-        // Offset comes from logCountRef so the setLogs updater stays pure.
+        // enrichLogs 返回全新的未共享对象——原位修改是安全的。
+        // 偏移量来自 logCountRef，使 setLogs 更新器保持纯函数。
         const offset = logCountRef.current;
         result_1.logs.forEach((log, i) => {
           log.value = offset + i;
@@ -190,7 +190,7 @@ export function ResumeConversation({
     try {
       const result_3 = await loadConversationForResume(log_0, undefined);
       if (!result_3) {
-        throw new Error('Failed to load conversation');
+        throw new Error('加载对话失败');
       }
       if (feature('COORDINATOR_MODE')) {
         /* eslint-disable @typescript-eslint/no-require-imports */
@@ -267,7 +267,7 @@ export function ResumeConversation({
         (require('../services/contextCollapse/persist.js') as typeof import('../services/contextCollapse/persist.js')).restoreFromEntries(result_3.contextCollapseCommits ?? [], result_3.contextCollapseSnapshot);
         /* eslint-enable @typescript-eslint/no-require-imports */
       }
-      logEvent('内部代号_session_resumed', {
+      logEvent('limkenion_session_resumed', {
         entrypoint: 'picker' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         success: true,
         resume_duration_ms: Math.round(performance.now() - resumeStart)
@@ -282,7 +282,7 @@ export function ResumeConversation({
         mainThreadAgentDefinition: resolvedAgentDef
       });
     } catch (e) {
-      logEvent('内部代号_session_resumed', {
+      logEvent('limkenion_session_resumed', {
         entrypoint: 'picker' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         success: false
       });
@@ -299,13 +299,13 @@ export function ResumeConversation({
   if (loading) {
     return <Box>
         <Spinner />
-        <Text> Loading conversations…</Text>
+        <Text> 正在加载对话…</Text>
       </Box>;
   }
   if (resuming) {
     return <Box>
         <Spinner />
-        <Text> Resuming conversation…</Text>
+        <Text> 正在恢复对话…</Text>
       </Box>;
   }
   if (filteredLogs.length === 0) {
@@ -327,7 +327,7 @@ function NoConversationsMessage() {
   useKeybinding("app:interrupt", _temp, t0);
   let t1;
   if ($[1] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = <Box flexDirection="column"><Text>No conversations found to resume.</Text><Text dimColor={true}>Press Ctrl+C to exit and start a new conversation.</Text></Box>;
+    t1 = <Box flexDirection="column"><Text>没有找到可恢复的对话。</Text><Text dimColor={true}>按 Ctrl+C 退出并开始一段新对话。</Text></Box>;
     $[1] = t1;
   } else {
     t1 = $[1];
@@ -352,14 +352,14 @@ function CrossProjectMessage(t0) {
   React.useEffect(_temp3, t1);
   let t2;
   if ($[1] === Symbol.for("react.memo_cache_sentinel")) {
-    t2 = <Text>This conversation is from a different directory.</Text>;
+    t2 = <Text>此对话来自不同的目录。</Text>;
     $[1] = t2;
   } else {
     t2 = $[1];
   }
   let t3;
   if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = <Text>To resume, run:</Text>;
+    t3 = <Text>若要恢复，请运行：</Text>;
     $[2] = t3;
   } else {
     t3 = $[2];
@@ -374,7 +374,7 @@ function CrossProjectMessage(t0) {
   }
   let t5;
   if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Text dimColor={true}>(Command copied to clipboard)</Text>;
+    t5 = <Text dimColor={true}>（命令已复制到剪贴板）</Text>;
     $[5] = t5;
   } else {
     t5 = $[5];

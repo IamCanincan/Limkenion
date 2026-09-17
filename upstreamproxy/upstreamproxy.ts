@@ -42,15 +42,6 @@ const NO_PROXY_LIST = [
   '10.0.0.0/8',
   '172.16.0.0/12',
   '192.168.0.0/16',
-  // 上游 API: no upstream route will ever match, and the MITM breaks
-  // non-Bun runtimes (Python httpx/certifi doesn't trust the forged CA).
-  // Three forms because NO_PROXY parsing differs across runtimes:
-  //   *.上游兼容.com  — Bun, curl, Go (glob match)
-  //   .上游兼容.com   — Python urllib/httpx (suffix match, strips leading dot)
-  //   上游兼容.com    — apex domain fallback
-  '上游兼容.com',
-  '.上游兼容.com',
-  '*.上游兼容.com',
   'github.com',
   'api.github.com',
   '*.github.com',
@@ -116,9 +107,7 @@ export async function initUpstreamProxy(opts?: {
   // USER_TYPE + USE_{LOCAL,STAGING}_OAUTH, none of which the container sets,
   // so it always returned the prod URL and the CA fetch 404'd.
   const baseUrl =
-    opts?.ccrBaseUrl ??
-    process.env.LIMKENION_BASE_URL ??
-    'https://api.上游兼容.com'
+    opts?.ccrBaseUrl ?? process.env.LIMKENION_BASE_URL
   const caBundlePath =
     opts?.caBundlePath ?? join(homedir(), '.ccr', 'ca-bundle.crt')
 

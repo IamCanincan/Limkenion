@@ -143,7 +143,7 @@ export async function createDefaultEnvironment(): Promise<boolean> {
       {
         name: 'Default',
         kind: 'limkenion_cloud',
-        description: 'Default - trusted network access',
+        description: '默认 - 受信任的网络访问',
         config: {
           environment_type: 'limkenion',
           cwd: '/home/user',

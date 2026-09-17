@@ -85,7 +85,7 @@ export function NativeAutoUpdater({
     const startTime = Date.now();
 
     // Log the start of an auto-update check for funnel analysis
-    logEvent('内部代号_native_auto_updater_start', {});
+    logEvent('limkenion_native_auto_updater_start', {});
     try {
       // Check if current version is above the max allowed version
       const maxVersion = await getMaxVersion();
@@ -99,7 +99,7 @@ export function NativeAutoUpdater({
 
       // Handle lock contention gracefully - just return without treating as error
       if (result.lockFailed) {
-        logEvent('内部代号_native_auto_updater_lock_contention', {
+        logEvent('limkenion_native_auto_updater_lock_contention', {
           latency_ms: latencyMs
         });
         return; // Silently skip this update check, will try again later
@@ -111,7 +111,7 @@ export function NativeAutoUpdater({
         latest: result.latestVersion
       });
       if (result.wasUpdated) {
-        logEvent('内部代号_native_auto_updater_success', {
+        logEvent('limkenion_native_auto_updater_success', {
           latency_ms: latencyMs
         });
         onAutoUpdaterResult({
@@ -120,7 +120,7 @@ export function NativeAutoUpdater({
         });
       } else {
         // Already up to date
-        logEvent('内部代号_native_auto_updater_up_to_date', {
+        logEvent('limkenion_native_auto_updater_up_to_date', {
           latency_ms: latencyMs
         });
       }
@@ -129,7 +129,7 @@ export function NativeAutoUpdater({
       const errorMessage = error instanceof Error ? error.message : String(error);
       logError(error);
       const errorType = getErrorType(errorMessage);
-      logEvent('内部代号_native_auto_updater_fail', {
+      logEvent('limkenion_native_auto_updater_fail', {
         latency_ms: latencyMs,
         error_timeout: errorType === 'timeout',
         error_checksum: errorType === 'checksum_mismatch',
@@ -176,17 +176,17 @@ export function NativeAutoUpdater({
         </Text>}
       {isUpdating ? <Box>
           <Text dimColor wrap="truncate">
-            Checking for updates
+            正在检查更新
           </Text>
         </Box> : autoUpdaterResult?.status === 'success' && showSuccessMessage && updateSemver && <Text color="success" wrap="truncate">
-            ✓ Update installed · Restart to update
+            ✓ 更新已安装 · 重启以更新
           </Text>}
       {autoUpdaterResult?.status === 'install_failed' && <Text color="error" wrap="truncate">
-          ✗ Auto-update failed &middot; Try <Text bold>/status</Text>
+          ✗ 自动更新失败 &middot; 尝试 <Text bold>/status</Text>
         </Text>}
-      {maxVersionIssue && "external" === 'ant' && <Text color="warning">
-          ⚠ Known issue: {maxVersionIssue} &middot; Run{' '}
-          <Text bold>limkenion rollback --safe</Text> to downgrade
+      {maxVersionIssue && false && <Text color="warning">
+          ⚠ 已知问题: {maxVersionIssue} &middot; 运行{' '}
+          <Text bold>limkenion rollback --safe</Text> 以降级
         </Text>}
     </Box>;
 }

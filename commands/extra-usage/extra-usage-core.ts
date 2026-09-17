@@ -19,9 +19,8 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   if (!getGlobalConfig().hasVisitedExtraUsage) {
     saveGlobalConfig(prev => ({ ...prev, hasVisitedExtraUsage: true }))
   }
-  // Invalidate only the current org's entry so a follow-up read refetches
-  // the granted state. Separate from the visited flag since users may run
-  // /extra-usage more than once while iterating on the claim flow.
+  // 仅使当前组织的条目失效，让后续读取时重新拉取授予状态。与 visited 标志分开，
+  // 因为用户可能在调试申请流程时多次运行 /extra-usage。
   invalidateOverageCreditGrantCache()
 
   const subscriptionType = getSubscriptionType()
@@ -30,9 +29,9 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   const hasBillingAccess = hasLimkenionAiBillingAccess()
 
   if (!hasBillingAccess && isTeamOrEnterprise) {
-    // Mirror apps/limkenion-ai useHasUnlimitedOverage(): if overage is enabled
-    // with no monthly cap, there is nothing to request. On fetch error, fall
-    // through and let the user ask (matching web's "err toward show" behavior).
+    // 与 apps/limkenion-ai 的 useHasUnlimitedOverage() 保持一致：若超量使用已启用
+    // 且没有月度上限，则无需申请。拉取出错时继续向下走，让用户提出申请
+    // （与 Web 端"偏向展示"的行为一致）。
     let extraUsage: ExtraUsage | null | undefined
     try {
       const utilization = await fetchUtilization()
@@ -45,7 +44,7 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       return {
         type: 'message',
         value:
-          'Your organization already has unlimited extra usage. No request needed.',
+          '你的组织已拥有无限超量使用额度，无需申请。',
       }
     }
 
@@ -54,12 +53,12 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       if (eligibility?.is_allowed === false) {
         return {
           type: 'message',
-          value: 'Please contact your admin to manage extra usage settings.',
+          value: '请联系你的管理员来管理超量使用设置。',
         }
       }
     } catch (error) {
       logError(error as Error)
-      // If eligibility check fails, continue — the create endpoint will enforce if necessary
+      // 若资格检查失败，则继续——create 接口会在必要时强制校验
     }
 
     try {
@@ -71,12 +70,12 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
         return {
           type: 'message',
           value:
-            'You have already submitted a request for extra usage to your admin.',
+            '你已向管理员提交过超量使用申请。',
         }
       }
     } catch (error) {
       logError(error as Error)
-      // Fall through to creating a new request below
+      // 继续向下，创建新申请
     }
 
     try {
@@ -87,17 +86,17 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       return {
         type: 'message',
         value: extraUsage?.is_enabled
-          ? 'Request sent to your admin to increase extra usage.'
-          : 'Request sent to your admin to enable extra usage.',
+          ? '请求已发送给你的管理员，以增加超量使用额度。'
+          : '请求已发送给你的管理员，以启用超量使用额度。',
       }
     } catch (error) {
       logError(error as Error)
-      // Fall through to generic message below
+      // 继续向下到通用消息
     }
 
     return {
       type: 'message',
-      value: 'Please contact your admin to manage extra usage settings.',
+      value: '请联系你的管理员来管理超量使用设置。',
     }
   }
 
@@ -112,7 +111,7 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
     logError(error as Error)
     return {
       type: 'message',
-      value: `Failed to open browser. Please visit ${url} to manage extra usage.`,
+      value: `无法打开浏览器。请访问 ${url} 来管理超量使用额度。`,
     }
   }
 }

@@ -36,7 +36,7 @@ export async function checkManagedSettingsSecurity(cachedSettings: SettingsJson 
   }
 
   // Log that dialog is being shown
-  logEvent('内部代号_managed_settings_security_dialog_shown', {});
+  logEvent('limkenion_managed_settings_security_dialog_shown', {});
 
   // Show blocking dialog
   return new Promise<SecurityCheckResult>(resolve => {
@@ -46,11 +46,11 @@ export async function checkManagedSettingsSecurity(cachedSettings: SettingsJson 
       } = await render(<AppStateProvider>
           <KeybindingSetup>
             <ManagedSettingsSecurityDialog settings={newSettings} onAccept={() => {
-            logEvent('内部代号_managed_settings_security_dialog_accepted', {});
+            logEvent('limkenion_managed_settings_security_dialog_accepted', {});
             unmount();
             void resolve('approved');
           }} onReject={() => {
-            logEvent('内部代号_managed_settings_security_dialog_rejected', {});
+            logEvent('limkenion_managed_settings_security_dialog_rejected', {});
             unmount();
             void resolve('rejected');
           }} />

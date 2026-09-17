@@ -72,7 +72,7 @@ export function countLinesChanged(
   getLocCounter()?.add(numAdditions, { type: 'added' })
   getLocCounter()?.add(numRemovals, { type: 'removed' })
 
-  logEvent('内部代号_file_changed', {
+  logEvent('limkenion_file_changed', {
     lines_added: numAdditions,
     lines_removed: numRemovals,
   })

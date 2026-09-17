@@ -20,7 +20,7 @@ esbuild 错误：2558 → 0
 
 ### 来源
 `D:/下载/agent/upstream-ref-impl`（MIT，github.com/NanmiCoder/upstream-ref-impl）是**同一份代码的另一个改名版本**：
-`limkenion` ↔ `CC` / `上游兼容`。实测 `Tool.ts` 792 行仅差 14 行，全部是改名。
+`limkenion` ↔ 上游旧代号。实测 `Tool.ts` 792 行仅差 14 行，全部是改名。
 
 ### 步骤
 1. **备份** → `Limkenion_backup_2026-09-16-2141.tar.gz`（8.2M）
@@ -52,20 +52,26 @@ node scripts/build-cli.mjs      # 或 npm run build:cli
 
 ## 三、还没做的 / 已知限制
 
-### 0. 运行时已无 上游 调用（openai provider 下）
+### 0. 运行时已无上游专有调用（openai provider 下）
 设 `LIMKENION_API_PROVIDER=openai` 后，三条路径全部走 DeepSeek：
 
 | 路径 | 走向 |
 |---|---|
 | 主对话 | `queryModel` → openai 分支 |
 | 小模型辅助（命名/摘要/日期解析…） | `queryHaiku` → `queryModelWithoutStreaming` → `queryModel`（同一分支） |
-| key 验证 | `verifyApiKey` → 新增 openai 分支（原来直接调 上游 SDK，是最后残留） |
+| key 验证 | `verifyApiKey` → 新增 openai 分支（原来直接调上游 SDK，是最后残留） |
+
+**ant 内部死分支已全部移除**（2026-09-17）：上游把 `USER_TYPE` 烘焙成
+`"external"` 字面量，留下 88 处 `"external" === 'ant'` 恒假比较 + 280 处
+`process.env.USER_TYPE === 'ant'` 判定，全部按死代码清除（188 文件，
+净删 ~2200 行，`scripts/codemod-remove-ant-branches.mjs` 可复跑）。
+残留的 `if (true)` 守卫条款语义正确，保留。
 
 ⚠️ `queryHaiku` 用 `getSmallFastModel()`，必须设 `LIMKENION_SMALL_FAST_MODEL`
 （start-cli.bat 已设），否则会拿 haiku 模型名去请求 DeepSeek 而 404。
 
 **仍未摆脱的两层**：代码层仍 import `@limkenion-ai/sdk`（20+ 文件，多为类型引用）；
-架构层仍是 上游 CLI 原型 架子（工具集/命令体系/消息语义）——这个不是换 SDK 能解决的。
+架构层仍是上游产品的架子（工具集/命令体系/消息语义）——这个不是换 SDK 能解决的。
 
 ### 1. reg.exe 崩溃已修复（但完整验证仍需真实终端）
 ~~CLI 启动后调用 reg.exe → spawn EPERM 崩溃。~~ **已修复。**
@@ -90,7 +96,7 @@ node scripts/build-cli.mjs      # 或 npm run build:cli
 Windows 上中文文件名的 .bat 会因代码页错位而乱码/无法执行。
 
 ### 2. 私有包是空壳（功能永久缺失）
-这些 上游 内部包装不到，upstream-ref-impl 也没有，只能 stub：
+这些上游内部包装不到，upstream-ref-impl 也没有，只能 stub：
 `computer-use-mcp` / `computer-use-input` / `computer-use-swift` /
 `vertex-sdk` / `foundry-sdk` / `bedrock-sdk` / `sandbox-runtime` /
 `mcpb` / `modifiers-napi`。
@@ -153,16 +159,11 @@ TerminalCapture / Tungsten / VerifyPlanExecution / WebBrowser / Workflow`
 
 ---
 
-## 四、改名映射表
+## 四、改名映射说明
 
-| Limkenion | upstream-ref-impl |
-|---|---|
-| `@limkenion-ai/sdk` | `@上游兼容-ai/sdk` |
-| `LIMKENION_*` | `CC_*` / `上游_*` |
-| `limkenion` | `CC` |
-| `limkenion-api` | `CC-api` |
-| `sessionIdCompat` | `CCCodeCompatibility` |
-| `permissions_limkenion.txt` | `permissions_上游兼容.txt` |
+映射明细（Limkenion ↔ 上游旧命名）已内置于 `scripts/restore-missing-files.mjs` 的令牌表中，
+结构上分为四组：sdk 包名、环境变量前缀、代号大小写变体、特定文件/目录名。
+按需对照该文件即可，此处不再逐条列出。
 
 ---
 

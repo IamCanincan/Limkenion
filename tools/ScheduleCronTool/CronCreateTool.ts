@@ -29,14 +29,14 @@ const inputSchema = lazySchema(() =>
     cron: z
       .string()
       .describe(
-        'Standard 5-field cron expression in local time: "M H DoM Mon DoW" (e.g. "*/5 * * * *" = every 5 minutes, "30 14 28 2 *" = Feb 28 at 2:30pm local once).',
+        '标准的 5 段 cron 表达式，使用本地时间："分 时 日 月 周"（例如 "*/5 * * * *" = 每 5 分钟，"30 14 28 2 *" = 本地时间 2 月 28 日下午 2 点半，仅一次）。',
       ),
-    prompt: z.string().describe('The prompt to enqueue at each fire time.'),
+    prompt: z.string().describe('每次触发时入队要执行的提示词。'),
     recurring: semanticBoolean(z.boolean().optional()).describe(
-      `true (default) = fire on every cron match until deleted or auto-expired after ${DEFAULT_MAX_AGE_DAYS} days. false = fire once at the next match, then auto-delete. Use false for "remind me at X" one-shot requests with pinned minute/hour/dom/month.`,
+      `true（默认）= 每次命中 cron 都触发，直至删除或 ${DEFAULT_MAX_AGE_DAYS} 天后自动过期。false = 在下一次命中时触发一次，然后自动删除。对固定"分/时/日/月"的一次性"在 X 时提醒我"请求，请使用 false。`,
     ),
     durable: semanticBoolean(z.boolean().optional()).describe(
-      'true = persist to .limkenion/scheduled_tasks.json and survive restarts. false (default) = in-memory only, dies when this Limkenion session ends. Use true only when the user asks the task to survive across sessions.',
+      'true = 持久化到 .limkenion/scheduled_tasks.json 并在重启后保留。false（默认）= 仅存内存，当此 Limkenion 会话结束时消失。仅当用户要求任务跨会话保留时才使用 true。',
     ),
   }),
 )

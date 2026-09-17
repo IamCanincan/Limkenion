@@ -66,14 +66,14 @@ const DEFAULTS: AutoDreamConfig = {
 }
 
 /**
- * Thresholds from 内部代号_onyx_plover. The enabled gate lives in config.ts
+ * Thresholds from limkenion_onyx_plover. The enabled gate lives in config.ts
  * (isAutoDreamEnabled); this returns only the scheduling knobs. Defensive
  * per-field validation since GB cache can return stale wrong-type values.
  */
 function getConfig(): AutoDreamConfig {
   const raw =
     getFeatureValue_CACHED_MAY_BE_STALE<Partial<AutoDreamConfig> | null>(
-      '内部代号_onyx_plover',
+      'limkenion_onyx_plover',
       null,
     )
   return {
@@ -192,7 +192,7 @@ export function initAutoDream(): void {
     logForDebugging(
       `[autoDream] firing — ${hoursSince.toFixed(1)}h since last, ${sessionIds.length} sessions to review`,
     )
-    logEvent('内部代号_auto_dream_fired', {
+    logEvent('limkenion_auto_dream_fired', {
       hours_since: Math.round(hoursSince),
       sessions_since: sessionIds.length,
     })
@@ -249,7 +249,7 @@ ${sessionIds.map(id => `- ${id}`).join('\n')}`
       logForDebugging(
         `[autoDream] completed — cache: read=${result.totalUsage.cache_read_input_tokens} created=${result.totalUsage.cache_creation_input_tokens}`,
       )
-      logEvent('内部代号_auto_dream_completed', {
+      logEvent('limkenion_auto_dream_completed', {
         cache_read: result.totalUsage.cache_read_input_tokens,
         cache_created: result.totalUsage.cache_creation_input_tokens,
         output: result.totalUsage.output_tokens,
@@ -264,7 +264,7 @@ ${sessionIds.map(id => `- ${id}`).join('\n')}`
         return
       }
       logForDebugging(`[autoDream] fork failed: ${(e as Error).message}`)
-      logEvent('内部代号_auto_dream_failed', {})
+      logEvent('limkenion_auto_dream_failed', {})
       failDreamTask(taskId, setAppState)
       // Rewind mtime so time-gate passes again. Scan throttle is the backoff.
       await rollbackConsolidationLock(priorMtime)

@@ -21,7 +21,7 @@ export function LimkenionInChromeOnboarding(t0) {
   let t2;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = () => {
-      logEvent("内部代号_limkenion_in_chrome_onboarding_shown", {});
+      logEvent("limkenion_limkenion_in_chrome_onboarding_shown", {});
       isChromeExtensionInstalled().then(setIsExtensionInstalled);
       saveGlobalConfig(_temp);
     };

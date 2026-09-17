@@ -20,7 +20,7 @@ type Props = {
   isEmbedded?: boolean;
 };
 type LoadErrorType = 'network' | 'auth' | 'api' | 'other';
-const UPDATED_STRING = 'Updated';
+const UPDATED_STRING = '更新时间';
 const SPACE_BETWEEN_TABLE_COLUMNS = '  ';
 export function ResumeTask({
   onSelect,
@@ -48,7 +48,7 @@ export function ResumeTask({
       // Detect current repository
       const detectedRepo = await detectCurrentRepository();
       setCurrentRepo(detectedRepo);
-      logForDebugging(`Current repository: ${detectedRepo || 'not detected'}`);
+      logForDebugging(`当前仓库：${detectedRepo || '未检测到'}`);
       const codeSessions = await fetchCodeSessionsFromSessionsAPI();
 
       // Filter sessions by current repository if detected
@@ -119,36 +119,36 @@ export function ResumeTask({
     return <Box flexDirection="column" padding={1}>
         <Box flexDirection="row">
           <Spinner />
-          <Text bold>Loading Limkenion sessions…</Text>
+          <Text bold>正在加载 Limkenion 会话…</Text>
         </Box>
         <Text dimColor>
-          {retrying ? 'Retrying…' : 'Fetching your Limkenion sessions…'}
+          {retrying ? '重试中…' : '正在获取你的 Limkenion 会话…'}
         </Text>
       </Box>;
   }
   if (loadErrorType) {
     return <Box flexDirection="column" padding={1}>
         <Text bold color="error">
-          Error loading Limkenion sessions
+          加载 Limkenion 会话出错
         </Text>
 
         {renderErrorSpecificGuidance(loadErrorType)}
 
         <Text dimColor>
-          Press <Text bold>Ctrl+R</Text> to retry · Press{' '}
-          <Text bold>{escKey}</Text> to cancel
+          按 <Text bold>Ctrl+R</Text> 重试 · 按{' '}
+          <Text bold>{escKey}</Text> 取消
         </Text>
       </Box>;
   }
   if (sessions.length === 0) {
     return <Box flexDirection="column" padding={1}>
         <Text bold>
-          No Limkenion sessions found
-          {currentRepo && <Text> for {currentRepo}</Text>}
+          未找到 Limkenion 会话
+          {currentRepo && <Text> 针对 {currentRepo}</Text>}
         </Text>
         <Box marginTop={1}>
           <Text dimColor>
-            Press <Text bold>{escKey}</Text> to cancel
+            按 <Text bold>{escKey}</Text> 取消
           </Text>
         </Box>
       </Box>;
@@ -165,7 +165,7 @@ export function ResumeTask({
   }) => {
     const paddedTime = timeString.padEnd(maxTimeStringLength, ' ');
 
-    // TODO: include branch name when API returns it
+    // TODO: API 返回分支名时在此包含分支名
     return {
       label: `${paddedTime}  ${title}`,
       value: id
@@ -182,10 +182,10 @@ export function ResumeTask({
   const showScrollPosition = sessions.length > maxVisibleOptions;
   return <Box flexDirection="column" padding={1} height={maxHeight}>
       <Text bold>
-        Select a session to resume
+        选择要恢复的会话
         {showScrollPosition && <Text dimColor>
             {' '}
-            ({focusedIndex} of {sessions.length})
+            ({focusedIndex} / {sessions.length})
           </Text>}
         {currentRepo && <Text dimColor> ({currentRepo})</Text>}:
       </Text>
@@ -194,7 +194,7 @@ export function ResumeTask({
           <Text bold>
             {UPDATED_STRING.padEnd(maxTimeStringLength, ' ')}
             {SPACE_BETWEEN_TABLE_COLUMNS}
-            {'Session Title'}
+            {'会话标题'}
           </Text>
         </Box>
         <Select visibleOptionCount={maxVisibleOptions} options={options} onChange={value => {
@@ -212,9 +212,9 @@ export function ResumeTask({
       <Box flexDirection="row">
         <Text dimColor>
           <Byline>
-            <KeyboardShortcutHint shortcut="↑/↓" action="select" />
-            <KeyboardShortcutHint shortcut="Enter" action="confirm" />
-            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />
+            <KeyboardShortcutHint shortcut="↑/↓" action="选择" />
+            <KeyboardShortcutHint shortcut="Enter" action="确认" />
+            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />
           </Byline>
         </Text>
       </Box>
@@ -222,7 +222,7 @@ export function ResumeTask({
 }
 
 /**
- * Determines the type of error based on the error message
+ * 根据错误信息确定错误的类型
  */
 function determineErrorType(errorMessage: string): LoadErrorType {
   const message = errorMessage.toLowerCase();
@@ -239,29 +239,29 @@ function determineErrorType(errorMessage: string): LoadErrorType {
 }
 
 /**
- * Renders error-specific troubleshooting guidance
+ * 渲染针对具体错误类型的排查指引
  */
 function renderErrorSpecificGuidance(errorType: LoadErrorType): React.ReactNode {
   switch (errorType) {
     case 'network':
       return <Box marginY={1} flexDirection="column">
-          <Text dimColor>Check your internet connection</Text>
+          <Text dimColor>请检查你的网络连接</Text>
         </Box>;
     case 'auth':
       return <Box marginY={1} flexDirection="column">
-          <Text dimColor>Teleport requires a Limkenion account</Text>
+          <Text dimColor>Teleport 需要 Limkenion 账户</Text>
           <Text dimColor>
-            Run <Text bold>/login</Text> and select &quot;Limkenion account with
-            subscription&quot;
+            运行 <Text bold>/login</Text> 并选择 &quot;带订阅的
+            Limkenion 账户&quot;
           </Text>
         </Box>;
     case 'api':
       return <Box marginY={1} flexDirection="column">
-          <Text dimColor>Sorry, Limkenion encountered an error</Text>
+          <Text dimColor>抱歉，Limkenion 遇到错误</Text>
         </Box>;
     case 'other':
       return <Box marginY={1} flexDirection="row">
-          <Text dimColor>Sorry, Limkenion encountered an error</Text>
+          <Text dimColor>抱歉，Limkenion 遇到错误</Text>
         </Box>;
   }
 }

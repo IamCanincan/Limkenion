@@ -23,7 +23,7 @@ export function useTeleportResume(source) {
       setIsResuming(true);
       setError(null);
       setSelectedSession(session);
-      logEvent("内部代号_teleport_resume_session", {
+      logEvent("limkenion_teleport_resume_session", {
         source: source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         session_id: session.id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });

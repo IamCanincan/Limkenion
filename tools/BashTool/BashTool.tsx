@@ -225,32 +225,32 @@ const isBackgroundTasksDisabled =
 // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
 isEnvTruthy(process.env.LIMKENION_DISABLE_BACKGROUND_TASKS);
 const fullInputSchema = lazySchema(() => z.strictObject({
-  command: z.string().describe('The command to execute'),
-  timeout: semanticNumber(z.number().optional()).describe(`Optional timeout in milliseconds (max ${getMaxTimeoutMs()})`),
-  description: z.string().optional().describe(`Clear, concise description of what this command does in active voice. Never use words like "complex" or "risk" in the description - just describe what it does.
+  command: z.string().describe('要执行的命令'),
+  timeout: semanticNumber(z.number().optional()).describe(`可选的超时时间（毫秒，最大 ${getMaxTimeoutMs()}）`),
+  description: z.string().optional().describe(`用主动语态清晰、简洁地描述此命令的作用。不要在描述中使用"complex"或"risk"之类的词——只需描述它做了什么。
 
-For simple commands (git, npm, standard CLI tools), keep it brief (5-10 words):
-- ls → "List files in current directory"
-- git status → "Show working tree status"
-- npm install → "Install package dependencies"
+对于简单命令（git、npm、标准 CLI 工具），保持简短（5-10 个词）：
+- ls → "列出当前目录中的文件"
+- git status → "显示工作树状态"
+- npm install → "安装包依赖"
 
-For commands that are harder to parse at a glance (piped commands, obscure flags, etc.), add enough context to clarify what it does:
-- find . -name "*.tmp" -exec rm {} \\; → "Find and delete all .tmp files recursively"
-- git reset --hard origin/main → "Discard all local changes and match remote main"
-- curl -s url | jq '.data[]' → "Fetch JSON from URL and extract data array elements"`),
-  run_in_background: semanticBoolean(z.boolean().optional()).describe(`Set to true to run this command in the background. Use Read to read the output later.`),
-  dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe('Set this to true to dangerously override sandbox mode and run commands without sandboxing.'),
+对于难以一眼看懂的复杂命令（管道命令、晦涩的标志等），补充足够上下文说明其作用：
+- find . -name "*.tmp" -exec rm {} \\; → "递归查找并删除所有 .tmp 文件"
+- git reset --hard origin/main → "丢弃所有本地更改并与远程 main 保持一致"
+- curl -s url | jq '.data[]' → "从 URL 获取 JSON 并提取 data 数组元素"`),
+  run_in_background: semanticBoolean(z.boolean().optional()).describe(`设为 true 以在后台运行此命令。稍后可用 Read 读取其输出。`),
+  dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe('设为 true 可危险地覆盖沙箱模式，在无沙箱的情况下运行命令。'),
   _simulatedSedEdit: z.object({
     filePath: z.string(),
     newContent: z.string()
-  }).optional().describe('Internal: pre-computed sed edit result from preview')
+  }).optional().describe('内部：来自预览的预计算 sed 编辑结果')
 }));
 
-// Always omit _simulatedSedEdit from the model-facing schema. It is an internal-only
-// field set by SedEditPermissionRequest after the user approves a sed edit preview.
-// Exposing it in the schema would let the model bypass permission checks and the
-// sandbox by pairing an innocuous command with an arbitrary file write.
-// Also conditionally remove run_in_background when background tasks are disabled.
+// 始终从模型可见的 schema 中剔除 _simulatedSedEdit。这是仅供内部使用的
+// 字段，由 SedEditPermissionRequest 在用户批准 sed 编辑预览后设置。
+// 将其暴露在 schema 中会允许模型通过把无害命令与任意文件写入配对，
+// 从而绕过权限检查与沙箱。
+// 当后台任务被禁用时，还会条件性地移除 run_in_background。
 const inputSchema = lazySchema(() => isBackgroundTasksDisabled ? fullInputSchema().omit({
   run_in_background: true,
   _simulatedSedEdit: true
@@ -259,15 +259,15 @@ const inputSchema = lazySchema(() => isBackgroundTasksDisabled ? fullInputSchema
 }));
 type InputSchema = ReturnType<typeof inputSchema>;
 
-// Use fullInputSchema for the type to always include run_in_background
-// (even when it's omitted from the schema, the code needs to handle it)
+// 使用 fullInputSchema 来做类型，以始终包含 run_in_background
+// （即使它已从 schema 中剥离，代码仍需处理它）
 export type BashToolInput = z.infer<ReturnType<typeof fullInputSchema>>;
 const COMMON_BACKGROUND_COMMANDS = ['npm', 'yarn', 'pnpm', 'node', 'python', 'python3', 'go', 'cargo', 'make', 'docker', 'terraform', 'webpack', 'vite', 'jest', 'pytest', 'curl', 'wget', 'build', 'test', 'serve', 'watch', 'dev'] as const;
 function getCommandTypeForLogging(command: string): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {
   const parts = splitCommand_DEPRECATED(command);
   if (parts.length === 0) return 'other' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS;
 
-  // Check each part of the command to see if any match common background commands
+  // 检查命令的每个部分，看是否有匹配常见后台命令
   for (const part of parts) {
     const baseCommand = part.split(' ')[0] || '';
     if (COMMON_BACKGROUND_COMMANDS.includes(baseCommand as (typeof COMMON_BACKGROUND_COMMANDS)[number])) {
@@ -277,20 +277,20 @@ function getCommandTypeForLogging(command: string): AnalyticsMetadata_I_VERIFIED
   return 'other' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS;
 }
 const outputSchema = lazySchema(() => z.object({
-  stdout: z.string().describe('The standard output of the command'),
-  stderr: z.string().describe('The standard error output of the command'),
-  rawOutputPath: z.string().optional().describe('Path to raw output file for large MCP tool outputs'),
-  interrupted: z.boolean().describe('Whether the command was interrupted'),
-  isImage: z.boolean().optional().describe('Flag to indicate if stdout contains image data'),
-  backgroundTaskId: z.string().optional().describe('ID of the background task if command is running in background'),
-  backgroundedByUser: z.boolean().optional().describe('True if the user manually backgrounded the command with Ctrl+B'),
-  assistantAutoBackgrounded: z.boolean().optional().describe('True if assistant-mode auto-backgrounded a long-running blocking command'),
-  dangerouslyDisableSandbox: z.boolean().optional().describe('Flag to indicate if sandbox mode was overridden'),
-  returnCodeInterpretation: z.string().optional().describe('Semantic interpretation for non-error exit codes with special meaning'),
-  noOutputExpected: z.boolean().optional().describe('Whether the command is expected to produce no output on success'),
-  structuredContent: z.array(z.any()).optional().describe('Structured content blocks'),
-  persistedOutputPath: z.string().optional().describe('Path to the persisted full output in tool-results dir (set when output is too large for inline)'),
-  persistedOutputSize: z.number().optional().describe('Total size of the output in bytes (set when output is too large for inline)')
+  stdout: z.string().describe('命令的标准输出'),
+  stderr: z.string().describe('命令的标准错误输出'),
+  rawOutputPath: z.string().optional().describe('大型 MCP 工具输出的原始输出文件路径'),
+  interrupted: z.boolean().describe('命令是否被中断'),
+  isImage: z.boolean().optional().describe('指示 stdout 是否包含图像数据的标志'),
+  backgroundTaskId: z.string().optional().describe('命令在后台运行时后台任务的 ID'),
+  backgroundedByUser: z.boolean().optional().describe('用户是否用 Ctrl+B 手动将命令放入后台'),
+  assistantAutoBackgrounded: z.boolean().optional().describe('助理模式是否将长时间运行的阻塞命令自动放入后台'),
+  dangerouslyDisableSandbox: z.boolean().optional().describe('指示沙箱模式是否被覆盖的标志'),
+  returnCodeInterpretation: z.string().optional().describe('对具有特殊含义的非错误退出码的语义解释'),
+  noOutputExpected: z.boolean().optional().describe('命令是否预期在成功时不产生任何输出'),
+  structuredContent: z.array(z.any()).optional().describe('结构化内容块'),
+  persistedOutputPath: z.string().optional().describe('tool-results 目录中持久化的完整输出路径（当输出过大无法内联时设置）'),
+  persistedOutputSize: z.number().optional().describe('输出的总字节大小（当输出过大无法内联时设置）')
 }));
 type OutputSchema = ReturnType<typeof outputSchema>;
 export type Out = z.infer<OutputSchema>;
@@ -339,7 +339,7 @@ export function detectBlockedSleepPattern(command: string): string | null {
 /**
  * Checks if a command contains tools that shouldn't run in sandbox
  * This includes:
- * - Dynamic config-based disabled commands and substrings (内部代号_sandbox_disabled_commands)
+ * - Dynamic config-based disabled commands and substrings (limkenion_sandbox_disabled_commands)
  * - User-configured commands from settings.json (sandbox.excludedCommands)
  *
  * User-configured commands support the same pattern syntax as permission rules:
@@ -691,7 +691,7 @@ export const BashTool = buildTool({
 
       // Check for git index.lock error (stderr is in stdout now)
       if (result.stdout && result.stdout.includes(".git/index.lock': File exists")) {
-        logEvent('内部代号_git_index_lock_error', {});
+        logEvent('limkenion_git_index_lock_error', {});
       }
       if (interpretationResult.isError && !isInterrupt) {
         // Only add exit code if it's actually an error
@@ -752,7 +752,7 @@ export const BashTool = buildTool({
       }
     }
     const commandType = input.command.split(' ')[0];
-    logEvent('内部代号_bash_tool_command_executed', {
+    logEvent('limkenion_bash_tool_command_executed', {
       command_type: commandType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       stdout_length: stdout.length,
       stderr_length: 0,
@@ -763,7 +763,7 @@ export const BashTool = buildTool({
     // Log code indexing tool usage
     const codeIndexingTool = detectCodeIndexingFromCommand(input.command);
     if (codeIndexingTool) {
-      logEvent('内部代号_code_indexing_tool_used', {
+      logEvent('limkenion_code_indexing_tool_used', {
         tool: codeIndexingTool as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         source: 'cli' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         success: result.code === 0
@@ -966,7 +966,7 @@ async function* runShellCommand({
   // Only background commands that are allowed to be auto-backgrounded (not sleep, etc.)
   if (shellCommand.onTimeout && shouldAutoBackground) {
     shellCommand.onTimeout(backgroundFn => {
-      startBackgrounding('内部代号_bash_command_timeout_backgrounded', backgroundFn);
+      startBackgrounding('limkenion_bash_command_timeout_backgrounded', backgroundFn);
     });
   }
 
@@ -977,7 +977,7 @@ async function* runShellCommand({
     setTimeout(() => {
       if (shellCommand.status === 'running' && backgroundShellId === undefined) {
         assistantAutoBackgrounded = true;
-        startBackgrounding('内部代号_bash_command_assistant_auto_backgrounded');
+        startBackgrounding('limkenion_bash_command_assistant_auto_backgrounded');
       }
     }, ASSISTANT_BLOCKING_BUDGET_MS).unref();
   }
@@ -988,7 +988,7 @@ async function* runShellCommand({
   // Skip if background tasks are disabled - run in foreground instead
   if (run_in_background === true && !isBackgroundTasksDisabled) {
     const shellId = await spawnBackgroundTask();
-    logEvent('内部代号_bash_command_explicitly_backgrounded', {
+    logEvent('limkenion_bash_command_explicitly_backgrounded', {
       command_type: getCommandTypeForLogging(command)
     });
     return {

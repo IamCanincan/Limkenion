@@ -17,7 +17,7 @@ import { isSinkKilled } from './sinkKillswitch.js'
 // Local type matching the logEvent metadata signature
 type LogEventMetadata = { [key: string]: boolean | number | undefined }
 
-const DATADOG_GATE_NAME = '内部代号_log_datadog_events'
+const DATADOG_GATE_NAME = 'limkenion_log_datadog_events'
 
 // Module-level gate state - starts undefined, initialized during startup
 let isDatadogGateEnabled: boolean | undefined = undefined

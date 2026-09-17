@@ -58,16 +58,16 @@ const permissionSetupModule = feature('TRANSCRIPT_CLASSIFIER')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
- * Schema for prompt-based permission requests.
- * Used by Limkenion to request semantic permissions when exiting plan mode.
+ * 基于提示词的权限请求的 schema。
+ * 用于在退出计划模式时请求语义化权限。
  */
 const allowedPromptSchema = lazySchema(() =>
   z.object({
-    tool: z.enum(['Bash']).describe('The tool this prompt applies to'),
+    tool: z.enum(['Bash']).describe('此提示词所适用的工具'),
     prompt: z
       .string()
       .describe(
-        'Semantic description of the action, e.g. "run tests", "install dependencies"',
+        '动作的语义描述，例如 "运行测试"、"安装依赖"',
       ),
   }),
 )
@@ -77,12 +77,12 @@ export type AllowedPrompt = z.infer<ReturnType<typeof allowedPromptSchema>>
 const inputSchema = lazySchema(() =>
   z
     .strictObject({
-      // Prompt-based permissions requested by the plan
+      // 计划请求的基于提示词的权限
       allowedPrompts: z
         .array(allowedPromptSchema())
         .optional()
         .describe(
-          'Prompt-based permissions needed to implement the plan. These describe categories of actions rather than specific commands.',
+          '实施该计划所需的基于提示词的权限。这些描述的是行为类别，而非具体命令。',
         ),
     })
     .passthrough(),
@@ -90,20 +90,20 @@ const inputSchema = lazySchema(() =>
 type InputSchema = ReturnType<typeof inputSchema>
 
 /**
- * SDK-facing input schema - includes fields injected by normalizeToolInput.
- * The internal inputSchema doesn't have these fields because plan is read from disk,
- * but the SDK/hooks see the normalized version with plan and file path included.
+ * 面向 SDK 的输入 schema——包含 normalizeToolInput 注入的字段。
+ * 内部 inputSchema 没有这些字段，因为计划是从磁盘读取的，
+ * 但 SDK/hooks 会看到包含计划与文件路径的规范化版本。
  */
 export const _sdkInputSchema = lazySchema(() =>
   inputSchema().extend({
     plan: z
       .string()
       .optional()
-      .describe('The plan content (injected by normalizeToolInput from disk)'),
+      .describe('计划内容（由 normalizeToolInput 从磁盘注入）'),
     planFilePath: z
       .string()
       .optional()
-      .describe('The plan file path (injected by normalizeToolInput)'),
+      .describe('计划文件路径（由 normalizeToolInput 注入）'),
   }),
 )
 
@@ -112,32 +112,32 @@ export const outputSchema = lazySchema(() =>
     plan: z
       .string()
       .nullable()
-      .describe('The plan that was presented to the user'),
+      .describe('呈现给用户的计划'),
     isAgent: z.boolean(),
     filePath: z
       .string()
       .optional()
-      .describe('The file path where the plan was saved'),
+      .describe('计划保存到的文件路径'),
     hasTaskTool: z
       .boolean()
       .optional()
-      .describe('Whether the Agent tool is available in the current context'),
+      .describe('当前上下文中是否有可用的 Agent 工具'),
     planWasEdited: z
       .boolean()
       .optional()
       .describe(
-        'True when the user edited the plan (CCR web UI or Ctrl+G); determines whether the plan is echoed back in tool_result',
+        '当用户编辑了计划（CCR Web UI 或 Ctrl+G）时为 true；决定计划是否在 tool_result 中被回显',
       ),
     awaitingLeaderApproval: z
       .boolean()
       .optional()
       .describe(
-        'When true, the teammate has sent a plan approval request to the team leader',
+        '为 true 时，表示队友已将计划审批请求发送给团队负责人',
       ),
     requestId: z
       .string()
       .optional()
-      .describe('Unique identifier for the plan approval request'),
+      .describe('计划审批请求的唯一标识符'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -203,7 +203,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     // Reject before checkPermissions to avoid showing the approval dialog.
     const mode = getAppState().toolPermissionContext.mode
     if (mode !== 'plan') {
-      logEvent('内部代号_exit_plan_mode_called_outside_plan', {
+      logEvent('limkenion_exit_plan_mode_called_outside_plan', {
         model:
           options.mainLoopModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

@@ -22,12 +22,12 @@ import BashToolResultMessage from './BashToolResultMessage.js';
 import { extractBashCommentLabel } from './commentLabel.js';
 import { parseSedEditCommand } from './sedEditParser.js';
 
-// Constants for command display
+// 命令显示的常量
 const MAX_COMMAND_DISPLAY_LINES = 2;
 const MAX_COMMAND_DISPLAY_CHARS = 160;
 
-// Simple component to show background hint and handle ctrl+b
-// When ctrl+b is pressed, backgrounds ALL running foreground commands
+// 显示后台提示并处理 ctrl+b 的简单组件
+// 按下 ctrl+b 时，将所有正在运行的前台命令放入后台
 export function BackgroundHint(t0) {
   const $ = _c(9);
   let t1;
@@ -68,13 +68,13 @@ export function BackgroundHint(t0) {
   }
   useKeybinding("task:background", handleBackground, t3);
   const baseShortcut = useShortcutDisplay("task:background", "Task", "ctrl+b");
-  const shortcut = env.terminal === "tmux" && baseShortcut === "ctrl+b" ? "ctrl+b ctrl+b (twice)" : baseShortcut;
+  const shortcut = env.terminal === "tmux" && baseShortcut === "ctrl+b" ? "ctrl+b ctrl+b（两次）" : baseShortcut;
   if (isEnvTruthy(process.env.LIMKENION_DISABLE_BACKGROUND_TASKS)) {
     return null;
   }
   let t4;
   if ($[7] !== shortcut) {
-    t4 = <Box paddingLeft={5}><Text dimColor={true}><KeyboardShortcutHint shortcut={shortcut} action="run in background" parens={true} /></Text></Box>;
+    t4 = <Box paddingLeft={5}><Text dimColor={true}><KeyboardShortcutHint shortcut={shortcut} action="在后台运行" parens={true} /></Text></Box>;
     $[7] = shortcut;
     $[8] = t4;
   } else {
@@ -96,7 +96,7 @@ export function renderToolUseMessage(input: Partial<BashToolInput>, {
     return null;
   }
 
-  // Render sed in-place edits like file edits (show file path only)
+  // 将 sed 就地编辑渲染为文件编辑（仅显示文件路径）
   const sedInfo = parseSedEditCommand(command);
   if (sedInfo) {
     return verbose ? sedInfo.filePath : getDisplayPath(sedInfo.filePath);
@@ -114,12 +114,12 @@ export function renderToolUseMessage(input: Partial<BashToolInput>, {
     if (needsLineTruncation || needsCharTruncation) {
       let truncated = command;
 
-      // First truncate by lines if needed
+      // 如果需要，先按行截断
       if (needsLineTruncation) {
         truncated = lines.slice(0, MAX_COMMAND_DISPLAY_LINES).join('\n');
       }
 
-      // Then truncate by chars if still too long
+      // 如果仍太长，再按字符截断
       if (truncated.length > MAX_COMMAND_DISPLAY_CHARS) {
         truncated = truncated.slice(0, MAX_COMMAND_DISPLAY_CHARS);
       }
@@ -145,7 +145,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
   const lastProgress = progressMessagesForMessage.at(-1);
   if (!lastProgress || !lastProgress.data) {
     return <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>;
   }
   const data = lastProgress.data;
@@ -153,7 +153,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
 }
 export function renderToolUseQueuedMessage(): React.ReactNode {
   return <MessageResponse height={1}>
-      <Text dimColor>Waiting…</Text>
+      <Text dimColor>等待中…</Text>
     </MessageResponse>;
 }
 export function renderToolResultMessage(content: Out, progressMessagesForMessage: ProgressMessage<BashProgress>[], {

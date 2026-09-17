@@ -33,14 +33,14 @@ export function InstallAppStep(t0) {
   }
   let t3;
   if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = <Box marginBottom={1}><Text>Opening browser to install the Limkenion GitHub App…</Text></Box>;
+    t3 = <Box marginBottom={1}><Text>正在打开浏览器以安装 Limkenion GitHub App…</Text></Box>;
     $[2] = t3;
   } else {
     t3 = $[2];
   }
   let t4;
   if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
-    t4 = <Box marginBottom={1}><Text>If your browser doesn't open automatically, visit:</Text></Box>;
+    t4 = <Box marginBottom={1}><Text>如果浏览器未自动打开，请访问：</Text></Box>;
     $[3] = t4;
   } else {
     t4 = $[3];
@@ -54,7 +54,7 @@ export function InstallAppStep(t0) {
   }
   let t6;
   if ($[5] !== repoUrl) {
-    t6 = <Box marginBottom={1}><Text>Please install the app for repository: <Text bold={true}>{repoUrl}</Text></Text></Box>;
+    t6 = <Box marginBottom={1}><Text>请为该仓库安装应用：<Text bold={true}>{repoUrl}</Text></Text></Box>;
     $[5] = repoUrl;
     $[6] = t6;
   } else {
@@ -62,21 +62,21 @@ export function InstallAppStep(t0) {
   }
   let t7;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-    t7 = <Box marginBottom={1}><Text dimColor={true}>Important: Make sure to grant access to this specific repository</Text></Box>;
+    t7 = <Box marginBottom={1}><Text dimColor={true}>重要提示：请确保授予此特定仓库的访问权限</Text></Box>;
     $[7] = t7;
   } else {
     t7 = $[7];
   }
   let t8;
   if ($[8] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Box><Text bold={true} color="permission">Press Enter once you've installed the app{figures.ellipsis}</Text></Box>;
+    t8 = <Box><Text bold={true} color="permission">安装应用后按 Enter{figures.ellipsis}</Text></Box>;
     $[8] = t8;
   } else {
     t8 = $[8];
   }
   let t9;
   if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-    t9 = <Box marginTop={1}><Text dimColor={true}>Having trouble? See manual setup instructions at:{" "}<Text color="limkenion">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
+    t9 = <Box marginTop={1}><Text dimColor={true}>遇到问题？请查看手动设置说明：{" "}<Text color="limkenion">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
     $[9] = t9;
   } else {
     t9 = $[9];

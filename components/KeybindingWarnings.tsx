@@ -4,11 +4,10 @@ import { Box, Text } from '../ink.js';
 import { getCachedKeybindingWarnings, getKeybindingsPath, isKeybindingCustomizationEnabled } from '../keybindings/loadUserBindings.js';
 
 /**
- * Displays keybinding validation warnings in the UI.
- * Similar to McpParsingWarnings, this provides persistent visibility
- * of configuration issues.
+ * 在界面中显示按键绑定校验警告。
+ * 与 McpParsingWarnings 类似，它持续展示配置问题的可见性。
  *
- * Only shown when keybinding customization is enabled (ant users + feature gate).
+ * 仅在启用按键绑定自定义时显示（蚂蚁用户 + 功能开关）。
  */
 export function KeybindingWarnings() {
   const $ = _c(2);
@@ -27,7 +26,7 @@ export function KeybindingWarnings() {
       }
       const errors = warnings.filter(_temp);
       const warns = warnings.filter(_temp2);
-      t0 = <Box flexDirection="column" marginTop={1} marginBottom={1}><Text bold={true} color={errors.length > 0 ? "error" : "warning"}>Keybinding Configuration Issues</Text><Box><Text dimColor={true}>Location: </Text><Text dimColor={true}>{getKeybindingsPath()}</Text></Box><Box marginLeft={1} flexDirection="column" marginTop={1}>{errors.map(_temp3)}{warns.map(_temp4)}</Box></Box>;
+      t0 = <Box flexDirection="column" marginTop={1} marginBottom={1}><Text bold={true} color={errors.length > 0 ? "error" : "warning"}>按键绑定配置问题</Text><Box><Text dimColor={true}>位置：</Text><Text dimColor={true}>{getKeybindingsPath()}</Text></Box><Box marginLeft={1} flexDirection="column" marginTop={1}>{errors.map(_temp3)}{warns.map(_temp4)}</Box></Box>;
     }
     $[0] = t0;
     $[1] = t1;
@@ -41,10 +40,10 @@ export function KeybindingWarnings() {
   return t0;
 }
 function _temp4(warning, i_0) {
-  return <Box key={`warning-${i_0}`} flexDirection="column"><Box><Text dimColor={true}>└ </Text><Text color="warning">[Warning]</Text><Text dimColor={true}> {warning.message}</Text></Box>{warning.suggestion && <Box marginLeft={3}><Text dimColor={true}>→ {warning.suggestion}</Text></Box>}</Box>;
+  return <Box key={`warning-${i_0}`} flexDirection="column"><Box><Text dimColor={true}>└ </Text><Text color="warning">[警告]</Text><Text dimColor={true}> {warning.message}</Text></Box>{warning.suggestion && <Box marginLeft={3}><Text dimColor={true}>→ {warning.suggestion}</Text></Box>}</Box>;
 }
 function _temp3(error, i) {
-  return <Box key={`error-${i}`} flexDirection="column"><Box><Text dimColor={true}>└ </Text><Text color="error">[Error]</Text><Text dimColor={true}> {error.message}</Text></Box>{error.suggestion && <Box marginLeft={3}><Text dimColor={true}>→ {error.suggestion}</Text></Box>}</Box>;
+  return <Box key={`error-${i}`} flexDirection="column"><Box><Text dimColor={true}>└ </Text><Text color="error">[错误]</Text><Text dimColor={true}> {error.message}</Text></Box>{error.suggestion && <Box marginLeft={3}><Text dimColor={true}>→ {error.suggestion}</Text></Box>}</Box>;
 }
 function _temp2(w_0) {
   return w_0.severity === "warning";

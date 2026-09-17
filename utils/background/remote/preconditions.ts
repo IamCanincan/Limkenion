@@ -16,9 +16,9 @@ import { getOAuthHeaders } from '../../teleport/api.js'
 import { fetchEnvironments } from '../../teleport/environments.js'
 
 /**
- * Checks if user needs to log in with Limkenion.ai
- * Extracted from getTeleportErrors() in TeleportError.tsx
- * @returns true if login is required, false otherwise
+ * 检查用户是否需要用 Limkenion.ai 登录
+ * 从 TeleportError.tsx 的 getTeleportErrors() 中提取
+ * @returns 需要登录返回 true，否则返回 false
  */
 export async function checkNeedsLimkenionAiLogin(): Promise<boolean> {
   if (!isLimkenionAISubscriber()) {
@@ -28,10 +28,10 @@ export async function checkNeedsLimkenionAiLogin(): Promise<boolean> {
 }
 
 /**
- * Checks if git working directory is clean (no uncommitted changes)
- * Ignores untracked files since they won't be lost during branch switching
- * Extracted from getTeleportErrors() in TeleportError.tsx
- * @returns true if git is clean, false otherwise
+ * 检查 git 工作目录是否干净（无未提交更改）
+ * 忽略未跟踪文件，因为切换分支时它们不会丢失
+ * 从 TeleportError.tsx 的 getTeleportErrors() 中提取
+ * @returns git 干净返回 true，否则返回 false
  */
 export async function checkIsGitClean(): Promise<boolean> {
   const isClean = await getIsClean({ ignoreUntracked: true })
@@ -39,30 +39,30 @@ export async function checkIsGitClean(): Promise<boolean> {
 }
 
 /**
- * Checks if user has access to at least one remote environment
- * @returns true if user has remote environments, false otherwise
+ * 检查用户是否至少可访问一个远程环境
+ * @returns 有远程环境则返回 true，否则返回 false
  */
 export async function checkHasRemoteEnvironment(): Promise<boolean> {
   try {
     const environments = await fetchEnvironments()
     return environments.length > 0
   } catch (error) {
-    logForDebugging(`checkHasRemoteEnvironment failed: ${errorMessage(error)}`)
+    logForDebugging(`checkHasRemoteEnvironment 失败：${errorMessage(error)}`)
     return false
   }
 }
 
 /**
- * Checks if current directory is inside a git repository (has .git/).
- * Distinct from checkHasGitRemote — a local-only repo passes this but not that.
+ * 检查当前目录是否位于 git 仓库内（存在 .git/）。
+ * 与 checkHasGitRemote 不同——仅本地仓库可通过此检查但无法通过那个。
  */
 export function checkIsInGitRepo(): boolean {
   return findGitRoot(getCwd()) !== null
 }
 
 /**
- * Checks if current repository has a GitHub remote configured.
- * Returns false for local-only repos (git init with no `origin`).
+ * 检查当前仓库是否配置了 GitHub 远程。
+ * 仅本地仓库（git init 且无 `origin`）返回 false。
  */
 export async function checkHasGitRemote(): Promise<boolean> {
   const repository = await detectCurrentRepository()
@@ -70,10 +70,10 @@ export async function checkHasGitRemote(): Promise<boolean> {
 }
 
 /**
- * Checks if GitHub app is installed on a specific repository
- * @param owner The repository owner (e.g., "limkenions")
- * @param repo The repository name (e.g., "limkenion-cli-internal")
- * @returns true if GitHub app is installed, false otherwise
+ * 检查特定仓库上是否安装了 GitHub 应用
+ * @param owner 仓库所有者（如 "limkenions"）
+ * @param repo 仓库名（如 "limkenion-cli-internal"）
+ * @returns 已安装返回 true，否则返回 false
  */
 export async function checkGithubAppInstalled(
   owner: string,
@@ -84,7 +84,7 @@ export async function checkGithubAppInstalled(
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken
     if (!accessToken) {
       logForDebugging(
-        'checkGithubAppInstalled: No access token found, assuming app not installed',
+        'checkGithubAppInstalled: 未找到访问令牌，假定应用未安装',
       )
       return false
     }
@@ -92,7 +92,7 @@ export async function checkGithubAppInstalled(
     const orgUUID = await getOrganizationUUID()
     if (!orgUUID) {
       logForDebugging(
-        'checkGithubAppInstalled: No org UUID found, assuming app not installed',
+        'checkGithubAppInstalled: 未找到组织 UUID，假定应用未安装',
       )
       return false
     }
@@ -103,7 +103,7 @@ export async function checkGithubAppInstalled(
       'x-organization-uuid': orgUUID,
     }
 
-    logForDebugging(`Checking GitHub app installation for ${owner}/${repo}`)
+    logForDebugging(`正在检查 ${owner}/${repo} 上的 GitHub 应用安装情况`)
 
     const response = await axios.get<{
       repo: {
@@ -125,53 +125,53 @@ export async function checkGithubAppInstalled(
       if (response.data.status) {
         const installed = response.data.status.app_installed
         logForDebugging(
-          `GitHub app ${installed ? 'is' : 'is not'} installed on ${owner}/${repo}`,
+          `GitHub 应用${installed ? '已' : '未'}安装于 ${owner}/${repo}`,
         )
         return installed
       }
-      // status is null - app is not installed on this repo
+      // status 为 null——应用未安装在此仓库
       logForDebugging(
-        `GitHub app is not installed on ${owner}/${repo} (status is null)`,
+        `GitHub 应用未安装于 ${owner}/${repo}（status 为 null）`,
       )
       return false
     }
 
     logForDebugging(
-      `checkGithubAppInstalled: Unexpected response status ${response.status}`,
+      `checkGithubAppInstalled: 意外的响应状态 ${response.status}`,
     )
     return false
   } catch (error) {
-    // 4XX errors typically mean app is not installed or repo not accessible
+    // 4XX 错误通常表示应用未安装或仓库不可访问
     if (axios.isAxiosError(error)) {
       const status = error.response?.status
       if (status && status >= 400 && status < 500) {
         logForDebugging(
-          `checkGithubAppInstalled: Got ${status} error, app likely not installed on ${owner}/${repo}`,
+          `checkGithubAppInstalled: 收到 ${status} 错误，应用很可能未安装于 ${owner}/${repo}`,
         )
         return false
       }
     }
 
-    logForDebugging(`checkGithubAppInstalled error: ${errorMessage(error)}`)
+    logForDebugging(`checkGithubAppInstalled 错误：${errorMessage(error)}`)
     return false
   }
 }
 
 /**
- * Checks if the user has synced their GitHub credentials via /web-setup
- * @returns true if GitHub token is synced, false otherwise
+ * 检查用户是否已通过 /web-setup 同步其 GitHub 凭据
+ * @returns 已同步返回 true，否则返回 false
  */
 export async function checkGithubTokenSynced(): Promise<boolean> {
   try {
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken
     if (!accessToken) {
-      logForDebugging('checkGithubTokenSynced: No access token found')
+      logForDebugging('checkGithubTokenSynced: 未找到访问令牌')
       return false
     }
 
     const orgUUID = await getOrganizationUUID()
     if (!orgUUID) {
-      logForDebugging('checkGithubTokenSynced: No org UUID found')
+      logForDebugging('checkGithubTokenSynced: 未找到组织 UUID')
       return false
     }
 
@@ -181,7 +181,7 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
       'x-organization-uuid': orgUUID,
     }
 
-    logForDebugging('Checking if GitHub token is synced via web-setup')
+    logForDebugging('正在检查 GitHub 令牌是否已通过 web-setup 同步')
 
     const response = await axios.get(url, {
       headers,
@@ -191,7 +191,7 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
     const synced =
       response.status === 200 && response.data?.is_authenticated === true
     logForDebugging(
-      `GitHub token synced: ${synced} (status=${response.status}, data=${JSON.stringify(response.data)})`,
+      `GitHub 令牌同步：${synced}（status=${response.status}，data=${JSON.stringify(response.data)}）`,
     )
     return synced
   } catch (error) {
@@ -199,13 +199,13 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
       const status = error.response?.status
       if (status && status >= 400 && status < 500) {
         logForDebugging(
-          `checkGithubTokenSynced: Got ${status}, token not synced`,
+          `checkGithubTokenSynced: 收到 ${status}，令牌未同步`,
         )
         return false
       }
     }
 
-    logForDebugging(`checkGithubTokenSynced error: ${errorMessage(error)}`)
+    logForDebugging(`checkGithubTokenSynced 错误：${errorMessage(error)}`)
     return false
   }
 }
@@ -213,10 +213,10 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
 type RepoAccessMethod = 'github-app' | 'token-sync' | 'none'
 
 /**
- * Tiered check for whether a GitHub repo is accessible for remote operations.
- * 1. GitHub App installed on the repo
- * 2. GitHub token synced via /web-setup
- * 3. Neither — caller should prompt user to set up access
+ * 分层检查某 GitHub 仓库是否可用于远程操作。
+ * 1. 仓库上安装了 GitHub 应用
+ * 2. 通过 /web-setup 同步了 GitHub 令牌
+ * 3. 两者皆无——调用方应提示用户设置访问权限
  */
 export async function checkRepoForRemoteAccess(
   owner: string,
@@ -226,7 +226,7 @@ export async function checkRepoForRemoteAccess(
     return { hasAccess: true, method: 'github-app' }
   }
   if (
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_cobalt_lantern', false) &&
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_cobalt_lantern', false) &&
     (await checkGithubTokenSynced())
   ) {
     return { hasAccess: true, method: 'token-sync' }

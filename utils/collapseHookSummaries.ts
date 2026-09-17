@@ -14,9 +14,8 @@ function isLabeledHookSummary(
 }
 
 /**
- * Collapses consecutive hook summary messages with the same hookLabel
- * (e.g. PostToolUse) into a single summary. This happens when parallel
- * tool calls each emit their own hook summary.
+ * 把具有相同 hookLabel（例如 PostToolUse）的连续 hook 摘要消息折叠为单个
+ * 摘要。当并行工具调用各自发出自己的 hook 摘要时会发生这种情况。
  */
 export function collapseHookSummaries(
   messages: RenderableMessage[],
@@ -45,7 +44,7 @@ export function collapseHookSummaries(
           hookErrors: group.flatMap(m => m.hookErrors),
           preventedContinuation: group.some(m => m.preventedContinuation),
           hasOutput: group.some(m => m.hasOutput),
-          // Parallel tool calls' hooks overlap; max is closest to wall-clock.
+          // 并行工具调用的 hook 会重叠；最大值最接近墙钟时间。
           totalDurationMs: Math.max(...group.map(m => m.totalDurationMs ?? 0)),
         })
       }

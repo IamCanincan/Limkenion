@@ -53,7 +53,7 @@ function isAttributionHeaderEnabled(): boolean {
   if (isEnvDefinedFalsy(process.env.LIMKENION_ATTRIBUTION_HEADER)) {
     return false
   }
-  return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_attribution_header', true)
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_attribution_header', true)
 }
 
 /**

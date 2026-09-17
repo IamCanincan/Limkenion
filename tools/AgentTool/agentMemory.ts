@@ -9,22 +9,22 @@ import { getCwd } from '../../utils/cwd.js'
 import { findCanonicalGitRoot } from '../../utils/git.js'
 import { sanitizePath } from '../../utils/path.js'
 
-// Persistent agent memory scope: 'user' (~/.limkenion/agent-memory/), 'project' (.limkenion/agent-memory/), or 'local' (.limkenion/agent-memory-local/)
+// 持久化代理记忆的作用域：'user'（~/.limkenion/agent-memory/）、'project'（.limkenion/agent-memory/）或 'local'（.limkenion/agent-memory-local/）
 export type AgentMemoryScope = 'user' | 'project' | 'local'
 
 /**
- * Sanitize an agent type name for use as a directory name.
- * Replaces colons (invalid on Windows, used in plugin-namespaced agent
- * types like "my-plugin:my-agent") with dashes.
+ * 净化代理类型名以用作目录名。
+ * 将冒号（在 Windows 上无效，用于插件命名空间的代理类型，如
+ * "my-plugin:my-agent"）替换为破折号。
  */
 function sanitizeAgentTypeForPath(agentType: string): string {
   return agentType.replace(/:/g, '-')
 }
 
 /**
- * Returns the local agent memory directory, which is project-specific and not checked into VCS.
- * When LIMKENION_REMOTE_MEMORY_DIR is set, persists to the mount with project namespacing.
- * Otherwise, uses <cwd>/.limkenion/agent-memory-local/<agentType>/.
+ * 返回本地代理记忆目录，它随项目而异且不纳入版本控制。
+ * 当设置了 LIMKENION_REMOTE_MEMORY_DIR 时，持久化到带项目命名空间的挂载点。
+ * 否则，使用 <cwd>/.limkenion/agent-memory-local/<agentType>/。
  */
 function getLocalAgentMemoryDir(dirName: string): string {
   if (process.env.LIMKENION_REMOTE_MEMORY_DIR) {
@@ -44,10 +44,10 @@ function getLocalAgentMemoryDir(dirName: string): string {
 }
 
 /**
- * Returns the agent memory directory for a given agent type and scope.
- * - 'user' scope: <memoryBase>/agent-memory/<agentType>/
- * - 'project' scope: <cwd>/.limkenion/agent-memory/<agentType>/
- * - 'local' scope: see getLocalAgentMemoryDir()
+ * 返回给定代理类型与作用域的代理记忆目录。
+ * - 'user' 作用域：<memoryBase>/agent-memory/<agentType>/
+ * - 'project' 作用域：<cwd>/.limkenion/agent-memory/<agentType>/
+ * - 'local' 作用域：见 getLocalAgentMemoryDir()
  */
 export function getAgentMemoryDir(
   agentType: string,
@@ -64,25 +64,25 @@ export function getAgentMemoryDir(
   }
 }
 
-// Check if file is within an agent memory directory (any scope).
+// 检查文件是否位于代理记忆目录内（任意作用域）。
 export function isAgentMemoryPath(absolutePath: string): boolean {
-  // SECURITY: Normalize to prevent path traversal bypasses via .. segments
+  // SECURITY: 归一化以防通过 .. 段的路径穿越绕过
   const normalizedPath = normalize(absolutePath)
   const memoryBase = getMemoryBaseDir()
 
-  // User scope: check memory base (may be custom dir or config home)
+  // 用户作用域：检查记忆基础目录（可能是自定义目录或配置主目录）
   if (normalizedPath.startsWith(join(memoryBase, 'agent-memory') + sep)) {
     return true
   }
 
-  // Project scope: always cwd-based (not redirected)
+  // 项目作用域：始终基于 cwd（不被重定向）
   if (
     normalizedPath.startsWith(join(getCwd(), '.limkenion', 'agent-memory') + sep)
   ) {
     return true
   }
 
-  // Local scope: persisted to mount when LIMKENION_REMOTE_MEMORY_DIR is set, otherwise cwd-based
+  // 本地作用域：当设置了 LIMKENION_REMOTE_MEMORY_DIR 时持久化到挂载点，否则基于 cwd
   if (process.env.LIMKENION_REMOTE_MEMORY_DIR) {
     if (
       normalizedPath.includes(sep + 'agent-memory-local' + sep) &&
@@ -104,7 +104,7 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
 }
 
 /**
- * Returns the agent memory file path for a given agent type and scope.
+ * 返回给定代理类型与作用域的代理记忆文件路径。
  */
 export function getAgentMemoryEntrypoint(
   agentType: string,
@@ -118,22 +118,22 @@ export function getMemoryScopeDisplay(
 ): string {
   switch (memory) {
     case 'user':
-      return `User (${join(getMemoryBaseDir(), 'agent-memory')}/)`
+      return `用户（${join(getMemoryBaseDir(), 'agent-memory')}/）`
     case 'project':
-      return 'Project (.limkenion/agent-memory/)'
+      return '项目（.limkenion/agent-memory/）'
     case 'local':
-      return `Local (${getLocalAgentMemoryDir('...')})`
+      return `本地（${getLocalAgentMemoryDir('...')}）`
     default:
-      return 'None'
+      return '无'
   }
 }
 
 /**
- * Load persistent memory for an agent with memory enabled.
- * Creates the memory directory if needed and returns a prompt with memory contents.
+ * 为启用记忆的代理加载持久化记忆。
+ * 必要时创建记忆目录，并返回包含记忆内容的提示词。
  *
- * @param agentType The agent's type name (used as directory name)
- * @param scope 'user' for ~/.limkenion/agent-memory/ or 'project' for .limkenion/agent-memory/
+ * @param agentType 代理的类型名（用作目录名）
+ * @param scope 'user' 对应 ~/.limkenion/agent-memory/，或 'project' 对应 .limkenion/agent-memory/
  */
 export function loadAgentMemoryPrompt(
   agentType: string,
@@ -143,31 +143,30 @@ export function loadAgentMemoryPrompt(
   switch (scope) {
     case 'user':
       scopeNote =
-        '- Since this memory is user-scope, keep learnings general since they apply across all projects'
+        '- 由于此记忆是用户作用域，记忆应保持通用，因为它们适用于所有项目'
       break
     case 'project':
       scopeNote =
-        '- Since this memory is project-scope and shared with your team via version control, tailor your memories to this project'
+        '- 由于此记忆是项目作用域且经由版本控制与团队共享，请将记忆针对此项目定制'
       break
     case 'local':
       scopeNote =
-        '- Since this memory is local-scope (not checked into version control), tailor your memories to this project and machine'
+        '- 由于此记忆是本地作用域（不纳入版本控制），请将记忆针对此项目与机器定制'
       break
   }
 
   const memoryDir = getAgentMemoryDir(agentType, scope)
 
-  // Fire-and-forget: this runs at agent-spawn time inside a sync
-  // getSystemPrompt() callback (called from React render in AgentDetail.tsx,
-  // so it cannot be async). The spawned agent won't try to Write until after
-  // a full API round-trip, by which time mkdir will have completed. Even if
-  // it hasn't, FileWriteTool does its own mkdir of the parent directory.
+  // 即发即忘：这在代理派生时于同步的 getSystemPrompt() 回调内运行
+  //（由 AgentDetail.tsx 中的 React 渲染调用，因此不能是异步的）。
+  // 派生的代理直到一次完整 API 往返之后才会尝试 Write，届时 mkdir
+  // 应已完成。即便尚未完成，FileWriteTool 也会自行 mkdir 父目录。
   void ensureMemoryDirExists(memoryDir)
 
   const coworkExtraGuidelines =
     process.env.LIMKENION_COWORK_MEMORY_EXTRA_GUIDELINES
   return buildMemoryPrompt({
-    displayName: 'Persistent Agent Memory',
+    displayName: '持久化代理记忆',
     memoryDir,
     extraGuidelines:
       coworkExtraGuidelines && coworkExtraGuidelines.trim().length > 0

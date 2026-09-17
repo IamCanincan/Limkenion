@@ -24,15 +24,15 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    query: z.string().min(2).describe('The search query to use'),
+    query: z.string().min(2).describe('要使用的搜索查询'),
     allowed_domains: z
       .array(z.string())
       .optional()
-      .describe('Only include search results from these domains'),
+      .describe('仅包含来自这些域的搜索结果'),
     blocked_domains: z
       .array(z.string())
       .optional()
-      .describe('Never include search results from these domains'),
+      .describe('不要包含来自这些域的搜索结果'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -41,13 +41,13 @@ type Input = z.infer<InputSchema>
 
 const searchResultSchema = lazySchema(() => {
   const searchHitSchema = z.object({
-    title: z.string().describe('The title of the search result'),
-    url: z.string().describe('The URL of the search result'),
+    title: z.string().describe('搜索结果的标题'),
+    url: z.string().describe('搜索结果的 URL'),
   })
 
   return z.object({
-    tool_use_id: z.string().describe('ID of the tool use'),
-    content: z.array(searchHitSchema).describe('Array of search hits'),
+    tool_use_id: z.string().describe('该工具使用的 ID'),
+    content: z.array(searchHitSchema).describe('搜索命中数组'),
   })
 })
 
@@ -55,13 +55,13 @@ export type SearchResult = z.infer<ReturnType<typeof searchResultSchema>>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    query: z.string().describe('The search query that was executed'),
+    query: z.string().describe('已执行的搜索查询'),
     results: z
       .array(z.union([searchResultSchema(), z.string()]))
-      .describe('Search results and/or text commentary from the model'),
+      .describe('搜索结果和/或来自模型的文本评论'),
     durationSeconds: z
       .number()
-      .describe('Time taken to complete the search operation'),
+      .describe('完成搜索操作所用时间'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -260,7 +260,7 @@ export const WebSearchTool = buildTool({
     const toolSchema = makeToolSchema(input)
 
     const useHaiku = getFeatureValue_CACHED_MAY_BE_STALE(
-      '内部代号_plum_vx3',
+      'limkenion_plum_vx3',
       false,
     )
 

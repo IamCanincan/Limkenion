@@ -1,11 +1,10 @@
 /**
- * Shell-agnostic git operation tracking for usage metrics.
+ * 与 shell 无关的 git 操作跟踪，用于用量指标。
  *
- * Detects `git commit`, `git push`, `gh pr create`, `glab mr create`, and
- * curl-based PR creation in command strings, then increments OTLP counters
- * and fires analytics events. The regexes operate on raw command text so they
- * work identically for Bash and PowerShell (both invoke git/gh/glab/curl as
- * external binaries with the same argv syntax).
+ * 检测命令串中的 `git commit`、`git push`、`gh pr create`、`glab mr create`，以及
+ * 基于 curl 的 PR 创建，然后递增 OTLP 计数器并触发分析事件。正则作用于原始命令文本，
+ * 因此对 Bash 和 PowerShell 行为一致（两者都以外置二进制的方式，以相同的 argv 语法
+ * 调用 git/gh/glab/curl）。
  */
 
 import { getCommitCounter, getPrCounter } from '../../bootstrap/state.js'
@@ -15,10 +14,9 @@ import {
 } from '../../services/analytics/index.js'
 
 /**
- * Build a regex that matches `git <subcmd>` while tolerating git's global
- * options between `git` and the subcommand (e.g. `-c key=val`, `-C path`,
- * `--git-dir=path`). Common when the model retries with
- * `git -c commit.gpgsign=false commit` after a signing failure.
+ * 构建匹配 `git <subcmd>` 的正则，同时容忍 git 在 `git` 与子命令之间
+ * 的全局选项（例如 `-c key=val`、`-C path`、`--git-dir=path`）。
+ * 模型在签名失败后，常用 `git -c commit.gpgsign=false commit` 重试。
  */
 function gitCmdRe(subcmd: string, suffix = ''): RegExp {
   return new RegExp(
@@ -52,8 +50,8 @@ const GH_PR_ACTIONS: readonly { re: RegExp; action: PrAction; op: string }[] = [
 ]
 
 /**
- * Parse PR info from a GitHub PR URL.
- * Returns { prNumber, prUrl, prRepository } or null if not a valid PR URL.
+ * 从 GitHub PR URL 解析 PR 信息。
+ * 若非合法 PR URL，返回 { prNumber, prUrl, prRepository } 或 null。
  */
 function parsePrUrl(
   url: string,
@@ -69,26 +67,26 @@ function parsePrUrl(
   return null
 }
 
-/** Find a GitHub PR URL embedded anywhere in stdout and parse it. */
+/** 在 stdout 任意位置查找嵌入的 GitHub PR URL 并解析它。 */
 function findPrInStdout(stdout: string): ReturnType<typeof parsePrUrl> {
   const m = stdout.match(/https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/\d+/)
   return m ? parsePrUrl(m[0]) : null
 }
 
-// Exported for testing purposes
+// 为测试目的导出
 export function parseGitCommitId(stdout: string): string | undefined {
-  // git commit output: [branch abc1234] message
-  // or for root commit: [branch (root-commit) abc1234] message
+  // git commit 输出: [branch abc1234] message
+  // 或根提交: [branch (root-commit) abc1234] message
   const match = stdout.match(/\[[\w./-]+(?: \(root-commit\))? ([0-9a-f]+)\]/)
   return match?.[1]
 }
 
 /**
- * Parse branch name from git push output. Push writes progress to stderr but
- * the ref update line ("abc..def  branch -> branch", "* [new branch]
- * branch -> branch", or " + abc...def  branch -> branch (forced update)") is
- * the signal. Works on either stdout or stderr. Git prefixes each ref line
- * with a status flag (space, +, -, *, !, =); the char class tolerates any.
+ * 从 git push 输出解析分支名。Push 把进度写到 stderr，但 ref 更新行
+ * （"abc..def  branch -> branch"、"* [new branch] branch -> branch" 或
+ * " + abc...def  branch -> branch (forced update)"）是信号。对 stdout 或 stderr
+ * 都适用。git 为每行 ref 加前缀状态标志（空格、+、-、*、!、=）；该字符类
+ * 容忍任何标志。
  */
 function parseGitPushBranch(output: string): string | undefined {
   const match = output.match(
@@ -98,8 +96,8 @@ function parseGitPushBranch(output: string): string | undefined {
 }
 
 /**
- * gh pr merge/close/ready print "✓ <Verb> pull request owner/repo#1234" with
- * no URL. Extract the PR number from the text.
+ * gh pr merge/close/ready 打印的是 "✓ <Verb> pull request owner/repo#1234"，
+ * 且不含 URL。从文本中提取 PR 编号。
  */
 function parsePrNumberFromText(stdout: string): number | undefined {
   const match = stdout.match(/[Pp]ull request (?:\S+#)?#?(\d+)/)
@@ -107,8 +105,8 @@ function parsePrNumberFromText(stdout: string): number | undefined {
 }
 
 /**
- * Extract target ref from `git merge <ref>` / `git rebase <ref>` command.
- * Skips flags and keywords — first non-flag argument is the ref.
+ * 从 `git merge <ref>` / `git rebase <ref>` 命令提取目标 ref。
+ * 跳过 flags 与关键字——第一个非 flag 参数即为 ref。
  */
 function parseRefFromCommand(
   command: string,
@@ -125,12 +123,11 @@ function parseRefFromCommand(
 }
 
 /**
- * Scan bash command + output for git operations worth surfacing in the
- * collapsed tool-use summary ("committed a1b2c3, created PR #42, ran 3 bash
- * commands"). Checks the command to avoid matching SHAs/URLs that merely
- * appear in unrelated output (e.g. `git log`).
+ * 扫描 bash 命令与输出，找出值得在折叠的工具使用摘要中展示的 git 操作
+ * （"committed a1b2c3, created PR #42, ran 3 bash commands"）。检查命令，
+ * 以避免匹配只出现在无关输出中的 SHA/URL（例如 `git log`）。
  *
- * Pass stdout+stderr concatenated — git push writes the ref update to stderr.
+ * 传入 stdout+stderr 拼接结果——git push 会把 ref 更新写到 stderr。
  */
 export function detectGitOperation(
   command: string,
@@ -142,7 +139,7 @@ export function detectGitOperation(
   pr?: { number: number; url?: string; action: PrAction }
 } {
   const result: ReturnType<typeof detectGitOperation> = {}
-  // commit and cherry-pick both produce "[branch sha] msg" output
+  // commit 与 cherry-pick 都会产生 "[branch sha] msg" 输出
   const isCherryPick = GIT_CHERRY_PICK_RE.test(command)
   if (GIT_COMMIT_RE.test(command) || isCherryPick) {
     const sha = parseGitCommitId(output)
@@ -185,7 +182,7 @@ export function detectGitOperation(
   return result
 }
 
-// Exported for testing purposes
+// 为测试目的导出
 export function trackGitOperations(
   command: string,
   exitCode: number,
@@ -197,12 +194,12 @@ export function trackGitOperations(
   }
 
   if (GIT_COMMIT_RE.test(command)) {
-    logEvent('内部代号_git_operation', {
+    logEvent('limkenion_git_operation', {
       operation:
         'commit' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
     if (command.match(/--amend\b/)) {
-      logEvent('内部代号_git_operation', {
+      logEvent('limkenion_git_operation', {
         operation:
           'commit_amend' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
@@ -210,25 +207,25 @@ export function trackGitOperations(
     getCommitCounter()?.add(1)
   }
   if (GIT_PUSH_RE.test(command)) {
-    logEvent('内部代号_git_operation', {
+    logEvent('limkenion_git_operation', {
       operation:
         'push' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
   }
   const prHit = GH_PR_ACTIONS.find(a => a.re.test(command))
   if (prHit) {
-    logEvent('内部代号_git_operation', {
+    logEvent('limkenion_git_operation', {
       operation:
         prHit.op as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
   }
   if (prHit?.action === 'created') {
     getPrCounter()?.add(1)
-    // Auto-link session to PR if we can extract PR URL from stdout
+    // 若能从 stdout 提取 PR URL，则自动将会话链接到 PR
     if (stdout) {
       const prInfo = findPrInStdout(stdout)
       if (prInfo) {
-        // Import is done dynamically to avoid circular dependency
+        // 动态导入以避免循环依赖
         void import('../../utils/sessionStorage.js').then(
           ({ linkSessionToPR }) => {
             void import('../../bootstrap/state.js').then(({ getSessionId }) => {
@@ -248,27 +245,27 @@ export function trackGitOperations(
     }
   }
   if (command.match(/\bglab\s+mr\s+create\b/)) {
-    logEvent('内部代号_git_operation', {
+    logEvent('limkenion_git_operation', {
       operation:
         'pr_create' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
     getPrCounter()?.add(1)
   }
-  // Detect PR creation via curl to REST APIs (Bitbucket, GitHub API, GitLab API)
-  // Check for POST method and PR endpoint separately to handle any argument order
-  // Also detect implicit POST when -d is used (curl defaults to POST with data)
+  // 检测通过 curl 对 REST API 的 PR 创建（Bitbucket、GitHub API、GitLab API）
+  // 分别检查 POST 方法与 PR 端点，以处理任意参数顺序
+  // 同时在用到 -d 时检测隐式 POST（curl 带数据时默认使用 POST）
   const isCurlPost =
     command.match(/\bcurl\b/) &&
     (command.match(/-X\s*POST\b/i) ||
       command.match(/--request\s*=?\s*POST\b/i) ||
       command.match(/\s-d\s/))
-  // Match PR endpoints in URLs, but not sub-resources like /pulls/123/comments
-  // Require https?:// prefix to avoid matching text in POST body or other params
+  // 匹配 URL 中的 PR 端点，但不匹配子资源，如 /pulls/123/comments
+  // 要求 https?:// 前缀，避免匹配 POST body 或其他参数中的文本
   const isPrEndpoint = command.match(
     /https?:\/\/[^\s'"]*\/(pulls|pull-requests|merge[-_]requests)(?!\/\d)/i,
   )
   if (isCurlPost && isPrEndpoint) {
-    logEvent('内部代号_git_operation', {
+    logEvent('limkenion_git_operation', {
       operation:
         'pr_create' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })

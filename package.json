@@ -7,7 +7,7 @@
     "limkenion": "./bin/limkenion"
   },
   "scripts": {
-    "build": "node --experimental-vm-modules node_modules/esbuild/bin/esbuild main.tsx --bundle --platform=node --format=esm --outfile=dist/limkenion.js --external:sharp --external:@上游兼容-ai/sandbox-runtime",
+    "build": "node --experimental-vm-modules node_modules/esbuild/bin/esbuild main.tsx --bundle --platform=node --format=esm --outfile=dist/limkenion.js --external:sharp",
     "dev": "node --watch main.tsx",
     "test:drift": "node web/test/drift.test.mjs",
     "build:cli": "node scripts/build-cli.mjs",

@@ -6,7 +6,7 @@ import { envDynamic } from './envDynamic.js'
 import { isEnvTruthy } from './envUtils.js'
 import { toTaggedId } from './taggedId.js'
 
-// Default configuration for metrics cardinality
+// 指标基数的默认配置
 const METRICS_CARDINALITY_DEFAULTS = {
   OTEL_METRICS_INCLUDE_SESSION_ID: true,
   OTEL_METRICS_INCLUDE_VERSION: false,
@@ -41,7 +41,7 @@ export function getTelemetryAttributes(): Attributes {
     attributes['app.version'] = MACRO.VERSION
   }
 
-  // Only include OAuth account data when actively using OAuth authentication
+  // 仅在积极使用 OAuth 认证时包含 OAuth 账户数据
   const oauthAccount = getOauthAccountInfo()
   if (oauthAccount) {
     const orgId = oauthAccount.organizationUuid
@@ -62,7 +62,7 @@ export function getTelemetryAttributes(): Attributes {
     }
   }
 
-  // Add terminal type if available
+  // 若有可用则添加终端类型
   if (envDynamic.terminal) {
     attributes['terminal.type'] = envDynamic.terminal
   }

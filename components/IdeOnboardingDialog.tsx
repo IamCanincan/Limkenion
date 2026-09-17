@@ -70,23 +70,23 @@ export function IdeOnboardingDialog(t0) {
   }
   let t6;
   if ($[8] !== ideName) {
-    t6 = <>{t5}<Text>Welcome to Limkenion for {ideName}</Text></>;
+    t6 = <>{t5}<Text>欢迎使用适用于 {ideName} 的 Limkenion</Text></>;
     $[8] = ideName;
     $[9] = t6;
   } else {
     t6 = $[9];
   }
-  const t7 = installedVersion ? `installed ${pluginOrExtension} v${installedVersion}` : undefined;
+  const t7 = installedVersion ? `已安装 ${pluginOrExtension} v${installedVersion}` : undefined;
   let t8;
   if ($[10] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Text color="suggestion">⧉ open files</Text>;
+    t8 = <Text color="suggestion">⧉ 打开的文件</Text>;
     $[10] = t8;
   } else {
     t8 = $[10];
   }
   let t9;
   if ($[11] === Symbol.for("react.memo_cache_sentinel")) {
-    t9 = <Text>• Limkenion has context of {t8}{" "}and <Text color="suggestion">⧉ selected lines</Text></Text>;
+    t9 = <Text>• Limkenion 会读取 {t8} 以及 <Text color="suggestion">⧉ 选中的行</Text></Text>;
     $[11] = t9;
   } else {
     t9 = $[11];
@@ -100,21 +100,21 @@ export function IdeOnboardingDialog(t0) {
   }
   let t11;
   if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-    t11 = <Text>• Review Limkenion's changes{" "}{t10}{" "}<Text color="diffRemovedWord">-22</Text> in the comfort of your IDE</Text>;
+    t11 = <Text>• 在您的 IDE 中轻松查看 Limkenion 的改动{" "}{t10}{" "}<Text color="diffRemovedWord">-22</Text></Text>;
     $[13] = t11;
   } else {
     t11 = $[13];
   }
   let t12;
   if ($[14] === Symbol.for("react.memo_cache_sentinel")) {
-    t12 = <Text>• Cmd+Esc<Text dimColor={true}> for Quick Launch</Text></Text>;
+    t12 = <Text>• Cmd+Esc<Text dimColor={true}> 用于快速启动</Text></Text>;
     $[14] = t12;
   } else {
     t12 = $[14];
   }
   let t13;
   if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
-    t13 = <Box flexDirection="column" gap={1}>{t9}{t11}{t12}<Text>• {mentionShortcut}<Text dimColor={true}> to reference files or lines in your input</Text></Text></Box>;
+    t13 = <Box flexDirection="column" gap={1}>{t9}{t11}{t12}<Text>• {mentionShortcut}<Text dimColor={true}> 以在输入中引用文件或行</Text></Text></Box>;
     $[15] = t13;
   } else {
     t13 = $[15];
@@ -131,7 +131,7 @@ export function IdeOnboardingDialog(t0) {
   }
   let t15;
   if ($[20] === Symbol.for("react.memo_cache_sentinel")) {
-    t15 = <Box paddingX={1}><Text dimColor={true} italic={true}>Press Enter to continue</Text></Box>;
+    t15 = <Box paddingX={1}><Text dimColor={true} italic={true}>按 Enter 继续</Text></Box>;
     $[20] = t15;
   } else {
     t15 = $[20];

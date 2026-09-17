@@ -55,7 +55,7 @@ export function HookProgressMessage(t0) {
       const t4 = inProgressHookCount === 1 ? " hook" : " hooks";
       let t5;
       if ($[8] !== t4) {
-        t5 = <Text dimColor={true}>{t4} ran</Text>;
+        t5 = <Text dimColor={true}>{t4} 已运行</Text>;
         $[8] = t4;
         $[9] = t5;
       } else {
@@ -80,7 +80,7 @@ export function HookProgressMessage(t0) {
   }
   let t2;
   if ($[14] === Symbol.for("react.memo_cache_sentinel")) {
-    t2 = <Text dimColor={true}>Running </Text>;
+    t2 = <Text dimColor={true}>运行中 </Text>;
     $[14] = t2;
   } else {
     t2 = $[14];

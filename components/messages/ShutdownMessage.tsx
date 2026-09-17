@@ -7,7 +7,7 @@ type ShutdownRequestProps = {
 };
 
 /**
- * Renders a shutdown request with a warning-colored border.
+ * 渲染一个带有警告色边框的关闭请求。
  */
 export function ShutdownRequestDisplay(t0) {
   const $ = _c(7);
@@ -16,7 +16,7 @@ export function ShutdownRequestDisplay(t0) {
   } = t0;
   let t1;
   if ($[0] !== request.from) {
-    t1 = <Box marginBottom={1}><Text color="warning" bold={true}>Shutdown request from {request.from}</Text></Box>;
+    t1 = <Box marginBottom={1}><Text color="warning" bold={true}>来自 {request.from} 的关闭请求</Text></Box>;
     $[0] = request.from;
     $[1] = t1;
   } else {
@@ -24,7 +24,7 @@ export function ShutdownRequestDisplay(t0) {
   }
   let t2;
   if ($[2] !== request.reason) {
-    t2 = request.reason && <Box><Text>Reason: {request.reason}</Text></Box>;
+    t2 = request.reason && <Box><Text>原因：{request.reason}</Text></Box>;
     $[2] = request.reason;
     $[3] = t2;
   } else {
@@ -46,7 +46,7 @@ type ShutdownRejectedProps = {
 };
 
 /**
- * Renders a shutdown rejected message with a subtle (grey) border.
+ * 渲染一个带有浅灰色（subtle）边框的关闭被拒绝消息。
  */
 export function ShutdownRejectedDisplay(t0) {
   const $ = _c(8);
@@ -55,7 +55,7 @@ export function ShutdownRejectedDisplay(t0) {
   } = t0;
   let t1;
   if ($[0] !== response.from) {
-    t1 = <Text color="subtle" bold={true}>Shutdown rejected by {response.from}</Text>;
+    t1 = <Text color="subtle" bold={true}>关闭请求被 {response.from} 拒绝</Text>;
     $[0] = response.from;
     $[1] = t1;
   } else {
@@ -63,7 +63,7 @@ export function ShutdownRejectedDisplay(t0) {
   }
   let t2;
   if ($[2] !== response.reason) {
-    t2 = <Box marginTop={1} borderStyle="dashed" borderColor="subtle" borderLeft={false} borderRight={false} paddingX={1}><Text>Reason: {response.reason}</Text></Box>;
+    t2 = <Box marginTop={1} borderStyle="dashed" borderColor="subtle" borderLeft={false} borderRight={false} paddingX={1}><Text>原因：{response.reason}</Text></Box>;
     $[2] = response.reason;
     $[3] = t2;
   } else {
@@ -71,7 +71,7 @@ export function ShutdownRejectedDisplay(t0) {
   }
   let t3;
   if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = <Box marginTop={1}><Text dimColor={true}>Teammate is continuing to work. You may request shutdown again later.</Text></Box>;
+    t3 = <Box marginTop={1}><Text dimColor={true}>队友仍在继续工作。你可以稍后再请求关闭。</Text></Box>;
     $[4] = t3;
   } else {
     t3 = $[4];
@@ -89,8 +89,8 @@ export function ShutdownRejectedDisplay(t0) {
 }
 
 /**
- * Try to parse and render a shutdown message from raw content.
- * Returns the rendered component if it's a shutdown message, null otherwise.
+ * 尝试从原始内容解析并渲染关闭消息。
+ * 如果是关闭消息则返回渲染后的组件，否则返回 null。
  */
 export function tryRenderShutdownMessage(content: string): React.ReactNode | null {
   const request = isShutdownRequest(content);
@@ -98,7 +98,7 @@ export function tryRenderShutdownMessage(content: string): React.ReactNode | nul
     return <ShutdownRequestDisplay request={request} />;
   }
 
-  // Shutdown approved is handled inline by the caller — skip it here
+  // 关闭已获批准由调用方内联处理 —— 此处跳过
   if (isShutdownApproved(content)) {
     return null;
   }
@@ -110,22 +110,22 @@ export function tryRenderShutdownMessage(content: string): React.ReactNode | nul
 }
 
 /**
- * Get a brief summary text for a shutdown message.
- * Used in places like the inbox queue where we want a short description.
- * Returns null if the content is not a shutdown message.
+ * 获取关闭消息的简短摘要文本。
+ * 用于诸如收件箱队列等需要简短描述的场景。
+ * 如果内容不是关闭消息则返回 null。
  */
 export function getShutdownMessageSummary(content: string): string | null {
   const request = isShutdownRequest(content);
   if (request) {
-    return `[Shutdown Request from ${request.from}]${request.reason ? ` ${request.reason}` : ''}`;
+    return `[来自 ${request.from} 的关闭请求]${request.reason ? ` ：${request.reason}` : ''}`;
   }
   const approved = isShutdownApproved(content);
   if (approved) {
-    return `[Shutdown Approved] ${approved.from} is now exiting`;
+    return `[关闭已批准] ${approved.from} 正在退出`;
   }
   const rejected = isShutdownRejected(content);
   if (rejected) {
-    return `[Shutdown Rejected] ${rejected.from}: ${rejected.reason}`;
+    return `[关闭被拒绝] ${rejected.from}：${rejected.reason}`;
   }
   return null;
 }

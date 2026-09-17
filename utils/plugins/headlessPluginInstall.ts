@@ -169,6 +169,6 @@ export async function installPluginsForHeadless(): Promise<boolean> {
     logError(error)
     return false
   } finally {
-    logEvent('内部代号_headless_plugin_install', metrics)
+    logEvent('limkenion_headless_plugin_install', metrics)
   }
 }

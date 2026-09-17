@@ -38,7 +38,7 @@ export function shouldEnablePromptSuggestion(): boolean {
   // Env var overrides everything (for testing)
   const envOverride = process.env.LIMKENION_ENABLE_PROMPT_SUGGESTION
   if (isEnvDefinedFalsy(envOverride)) {
-    logEvent('内部代号_prompt_suggestion_init', {
+    logEvent('limkenion_prompt_suggestion_init', {
       enabled: false,
       source:
         'env' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -46,7 +46,7 @@ export function shouldEnablePromptSuggestion(): boolean {
     return false
   }
   if (isEnvTruthy(envOverride)) {
-    logEvent('内部代号_prompt_suggestion_init', {
+    logEvent('limkenion_prompt_suggestion_init', {
       enabled: true,
       source:
         'env' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -55,8 +55,8 @@ export function shouldEnablePromptSuggestion(): boolean {
   }
 
   // Keep default in sync with Config.tsx (settings toggle visibility)
-  if (!getFeatureValue_CACHED_MAY_BE_STALE('内部代号_chomp_inflection', false)) {
-    logEvent('内部代号_prompt_suggestion_init', {
+  if (!getFeatureValue_CACHED_MAY_BE_STALE('limkenion_chomp_inflection', false)) {
+    logEvent('limkenion_prompt_suggestion_init', {
       enabled: false,
       source:
         'growthbook' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -66,7 +66,7 @@ export function shouldEnablePromptSuggestion(): boolean {
 
   // Disable in non-interactive mode (print mode, piped input, SDK)
   if (getIsNonInteractiveSession()) {
-    logEvent('内部代号_prompt_suggestion_init', {
+    logEvent('limkenion_prompt_suggestion_init', {
       enabled: false,
       source:
         'non_interactive' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -76,7 +76,7 @@ export function shouldEnablePromptSuggestion(): boolean {
 
   // Disable for swarm teammates (only leader should show suggestions)
   if (isAgentSwarmsEnabled() && isTeammate()) {
-    logEvent('内部代号_prompt_suggestion_init', {
+    logEvent('limkenion_prompt_suggestion_init', {
       enabled: false,
       source:
         'swarm_teammate' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -85,7 +85,7 @@ export function shouldEnablePromptSuggestion(): boolean {
   }
 
   const enabled = getInitialSettings()?.promptSuggestionEnabled !== false
-  logEvent('内部代号_prompt_suggestion_init', {
+  logEvent('limkenion_prompt_suggestion_init', {
     enabled,
     source:
       'setting' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -110,11 +110,7 @@ export function getSuggestionSuppressReason(appState: AppState): string | null {
     return 'pending_permission'
   if (appState.elicitation.queue.length > 0) return 'elicitation_active'
   if (appState.toolPermissionContext.mode === 'plan') return 'plan_mode'
-  if (
-    process.env.USER_TYPE === 'external' &&
-    currentLimits.status !== 'allowed'
-  )
-    return 'rate_limit'
+  
   return null
 }
 
@@ -471,7 +467,7 @@ export function logSuggestionOutcome(
   const wasAccepted = userInput === suggestion
   const timeMs = Math.max(0, Date.now() - emittedAt)
 
-  logEvent('内部代号_prompt_suggestion', {
+  logEvent('limkenion_prompt_suggestion', {
     source: 'sdk' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     outcome: (wasAccepted
       ? 'accepted'
@@ -487,12 +483,7 @@ export function logSuggestionOutcome(
     }),
     ...(!wasAccepted && { timeToIgnoreMs: timeMs }),
     similarity,
-    ...(process.env.USER_TYPE === 'ant' && {
-      suggestion:
-        suggestion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      userInput:
-        userInput as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    }),
+    
   })
 }
 
@@ -503,7 +494,7 @@ export function logSuggestionSuppressed(
   source?: 'cli' | 'sdk',
 ): void {
   const resolvedPromptId = promptId ?? getPromptVariant()
-  logEvent('内部代号_prompt_suggestion', {
+  logEvent('limkenion_prompt_suggestion', {
     ...(source && {
       source:
         source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -514,10 +505,6 @@ export function logSuggestionSuppressed(
       reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     prompt_id:
       resolvedPromptId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    ...(process.env.USER_TYPE === 'ant' &&
-      suggestion && {
-        suggestion:
-          suggestion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      }),
+    
   })
 }

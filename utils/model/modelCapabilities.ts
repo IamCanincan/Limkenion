@@ -44,7 +44,7 @@ function getCachePath(): string {
 }
 
 function isModelCapabilitiesEligible(): boolean {
-  if (process.env.USER_TYPE !== 'ant') return false
+  if (true) return false
   if (getAPIProvider() !== 'firstParty') return false
   if (!isFirstPartyLimkenionBaseUrl()) return false
   return true

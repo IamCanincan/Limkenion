@@ -35,7 +35,7 @@ export function Onboarding({
   const [oauthEnabled] = useState(() => isLimkenionAuthEnabled());
   const [theme] = useTheme();
   useEffect(() => {
-    logEvent('内部代号_began_setup', {
+    logEvent('limkenion_began_setup', {
       oauthEnabled
     });
   }, [oauthEnabled]);
@@ -43,7 +43,7 @@ export function Onboarding({
     if (currentStepIndex < steps.length - 1) {
       const nextIndex = currentStepIndex + 1;
       setCurrentStepIndex(nextIndex);
-      logEvent('内部代号_onboarding_step', {
+      logEvent('limkenion_onboarding_step', {
         oauthEnabled,
         stepId: steps[nextIndex]?.id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -53,30 +53,30 @@ export function Onboarding({
   }
   const exitState = useExitOnCtrlCDWithKeybindings();
 
-  // Define all onboarding steps
+  // 定义所有引导步骤
   const securityStep = <Box flexDirection="column" gap={1} paddingLeft={1}>
-      <Text bold>Security notes:</Text>
+      <Text bold>安全须知：</Text>
       <Box flexDirection="column" width={70}>
         {/**
-         * OrderedList misnumbers items when rendering conditionally,
-         * so put all items in the if/else
+         * OrderedList 在条件渲染时会对条目错误编号，
+         * 因此将所有条目都放在 if/else 中
          */}
         <OrderedList>
           <OrderedList.Item>
-            <Text>Limkenion can make mistakes</Text>
+            <Text>Limkenion 可能会犯错</Text>
             <Text dimColor wrap="wrap">
-              You should always review Limkenion&apos;s responses, especially when
+              你应该始终复核 Limkenion 的回复，尤其是在
               <Newline />
-              running code.
+              运行代码时。
               <Newline />
             </Text>
           </OrderedList.Item>
           <OrderedList.Item>
             <Text>
-              Due to prompt injection risks, only use it with code you trust
+              由于存在提示注入风险，仅应对你信任的代码使用
             </Text>
             <Text dimColor wrap="wrap">
-              For more details see:
+              更多详情请参阅：
               <Newline />
               <Link url="https://code.limkenion.com/docs/en/security" />
             </Text>
@@ -86,11 +86,11 @@ export function Onboarding({
       <PressEnterToContinue />
     </Box>;
   const preflightStep = <PreflightStep onSuccess={goToNextStep} />;
-  // Create the steps array - determine which steps to include based on reAuth and oauthEnabled
+  // 创建步骤数组——根据 reAuth 和 oauthEnabled 决定包含哪些步骤
   const apiKeyNeedingApproval = useMemo(() => {
-    // Add API key step if needed
-    // On homespace, LIMKENION_API_KEY is preserved in process.env for child
-    // processes but ignored by Limkenion itself (see auth.ts).
+    // 如需则添加 API 密钥步骤
+    // 在 homespace 中，LIMKENION_API_KEY 会被保留在子进程的
+    // process.env 中，但 Limkenion 本身会忽略它（参见 auth.ts）。
     if (!process.env.LIMKENION_API_KEY || isRunningOnHomespace()) {
       return '';
     }
@@ -112,9 +112,9 @@ export function Onboarding({
       component: preflightStep
     });
   }
-  // Theme picker removed: it is a 上游 CLI 原型 onboarding leftover. The theme is
-  // set from config (with a default) and can still be changed via /theme later.
-  // Nothing in an API-key-driven setup needs to ask about it during onboarding.
+  // 主题选择器已移除：它是上游 Code 的引导遗留物。主题
+  // 从配置中设置（带默认值），之后仍可通过 /theme 更改。
+  // 在 API 密钥驱动的设置流程中无需在引导阶段询问主题。
   if (apiKeyNeedingApproval) {
     steps.push({
       id: 'api-key',
@@ -137,30 +137,30 @@ export function Onboarding({
     steps.push({
       id: 'terminal-setup',
       component: <Box flexDirection="column" gap={1} paddingLeft={1}>
-          <Text bold>Use Limkenion&apos;s terminal setup?</Text>
+          <Text bold>是否使用 Limkenion 的终端配置？</Text>
           <Box flexDirection="column" width={70} gap={1}>
             <Text>
-              For the optimal coding experience, enable the recommended settings
+              为获得最佳编码体验，请为你的终端启用推荐的设置
               <Newline />
-              for your terminal:{' '}
-              {env.terminal === 'Apple_Terminal' ? 'Option+Enter for newlines and visual bell' : 'Shift+Enter for newlines'}
+              ：{' '}
+              {env.terminal === 'Apple_Terminal' ? 'Option+Enter 用于换行并显示视觉铃声' : 'Shift+Enter 用于换行'}
             </Text>
             <Select options={[{
-            label: 'Yes, use recommended settings',
+            label: '是，使用推荐配置',
             value: 'install'
           }, {
-            label: 'No, maybe later with /terminal-setup',
+            label: '不用，稍后通过 /terminal-setup',
             value: 'no'
           }]} onChange={value => {
             if (value === 'install') {
-              // Errors already logged in setupTerminal, just swallow and proceed
+              // 错误已在 setupTerminal 中记录，此处直接吞掉并继续
               void setupTerminal(theme).catch(() => {}).finally(goToNextStep);
             } else {
               goToNextStep();
             }
           }} onCancel={() => goToNextStep()} />
             <Text dimColor>
-              {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Enter to confirm · Esc to skip</>}
+              {exitState.pending ? <>再次按 {exitState.keyName} 退出</> : <>按回车确认 · 按 Esc 跳过</>}
             </Text>
           </Box>
         </Box>
@@ -168,8 +168,8 @@ export function Onboarding({
   }
   const currentStep = steps[currentStepIndex];
 
-  // Handle Enter on security step and Escape on terminal-setup step
-  // Dependencies match what goToNextStep uses internally
+  // 处理在安全步骤按 Enter 和在终端配置步骤按 Escape
+  // 依赖与 goToNextStep 内部使用的保持一致
   const handleSecurityContinue = useCallback(() => {
     if (currentStepIndex === steps.length - 1) {
       onDone();
@@ -197,7 +197,7 @@ export function Onboarding({
       <Box flexDirection="column" marginTop={1}>
         {currentStep?.component}
         {exitState.pending && <Box padding={1}>
-            <Text dimColor>Press {exitState.keyName} again to exit</Text>
+            <Text dimColor>再次按 {exitState.keyName} 退出</Text>
           </Box>}
       </Box>
     </Box>;

@@ -8,63 +8,59 @@ let loggedTmuxCcDisable = false
 let checkedTmuxMouseHint = false
 
 /**
- * Cached result from `tmux display-message -p '#{client_control_mode}'`.
- * undefined = not yet queried (or probe failed) — env heuristic stays authoritative.
+ * 来自 `tmux display-message -p '#{client_control_mode}'` 的缓存结果。
+ * undefined = 尚未查询（或探测失败）——环境变量启发式仍然可靠。
  */
 let tmuxControlModeProbed: boolean | undefined
 
 /**
- * Env-var heuristic for iTerm2's tmux integration mode (`tmux -CC` / `tmux -2CC`).
+ * 用于 iTerm2 的 tmux 集成模式（`tmux -CC` / `tmux -2CC`）的环境变量启发式。
  *
- * In `-CC` mode, iTerm2 renders tmux panes as native splits — tmux runs
- * as a server (TMUX is set) but iTerm2 is the actual terminal emulator
- * for each pane, so TERM_PROGRAM stays `iTerm.app` and TERM is iTerm2's
- * default (xterm-*). Contrast with regular tmux-inside-iTerm2, where tmux
- * overwrites TERM_PROGRAM to `tmux` and sets TERM to screen-* or tmux-*.
+ * 在 `-CC` 模式下，iTerm2 把 tmux 窗格渲染为原生分屏——tmux 作为服务器
+ * 运行（设置了 TMUX），但每个窗格的实际终端模拟器是 iTerm2，因此
+ * TERM_PROGRAM 保持为 `iTerm.app` 且 TERM 是 iTerm2 的默认值（xterm-*）。
+ * 与此相对，常规的 iTerm2 内 tmux 会把 TERM_PROGRAM 覆盖为 `tmux` 并把
+ * TERM 设为 screen-* 或 tmux-*。
  *
- * This heuristic has known holes (SSH often doesn't propagate TERM_PROGRAM;
- * .tmux.conf can override TERM) — probeTmuxControlModeSync() is the
- * authoritative backstop. Kept as a zero-subprocess fast path.
+ * 此启发式有已知盲区（SSH 通常不传播 TERM_PROGRAM；.tmux.conf 可覆盖
+ * TERM）——probeTmuxControlModeSync() 是权威的后卫。此处作为零子进程的
+ * 快速路径保留。
  */
 function isTmuxControlModeEnvHeuristic(): boolean {
   if (!process.env.TMUX) return false
   if (process.env.TERM_PROGRAM !== 'iTerm.app') return false
-  // Belt-and-suspenders: in regular tmux TERM is screen-* or tmux-*;
-  // in -CC mode iTerm2 sets its own TERM (xterm-*).
+  // 双保险：在常规 tmux 中 TERM 是 screen-* 或 tmux-*；
+  // 在 -CC 模式下 iTerm2 设置自己的 TERM（xterm-*）。
   const term = process.env.TERM ?? ''
   return !term.startsWith('screen') && !term.startsWith('tmux')
 }
 
 /**
- * Sync one-shot probe: asks tmux directly whether this client is in control
- * mode via `#{client_control_mode}`. Runs on first isTmuxControlMode() call
- * when the env heuristic can't decide; result is cached.
+ * 同步一次性探测：通过 `#{client_control_mode}` 直接询问 tmux 该客户端
+ * 是否处于控制模式。在环境变量启发式无法判断时于首次 isTmuxControlMode()
+ * 调用运行；结果被缓存。
  *
- * Sync (spawnSync) because the answer gates whether we enter fullscreen — an
- * async probe raced against React render and lost: coder-tmux (ssh → tmux -CC
- * on a remote box) doesn't propagate TERM_PROGRAM, so the env heuristic missed,
- * and by the time the async probe resolved we'd already entered alt-screen with
- * mouse tracking enabled. Mouse wheel is dead in iTerm2's -CC integration, so
- * users couldn't scroll at all.
+ * 用同步（spawnSync）是因为答案决定是否进入全屏——异步探测与 React 渲染
+ * 竞争并失败：coder-tmux（ssh → 远程的 tmux -CC）不传播 TERM_PROGRAM，
+ * 环境变量启发式错过；等异步探测解析时，我们已进入启用了鼠标追踪的
+ * 备用屏幕。在 iTerm2 的 -CC 集成中鼠标滚轮是死的，用户完全无法滚动。
  *
- * Cost: one ~5ms subprocess, only when $TMUX is set AND $TERM_PROGRAM is unset
- * (the SSH-into-tmux case). Local iTerm2 -CC and non-tmux paths skip the spawn.
+ * 代价：约 5ms 子进程，仅当设置了 $TMUX 且未设置 $TERM_PROGRAM 时
+ * （SSH 进入 tmux 的情况）。本地的 iTerm2 -CC 和非 tmux 路径跳过派生。
  *
- * The TMUX env check MUST come first — without it, display-message would
- * query whatever tmux server happens to be running rather than our client.
+ * TMUX 环境变量检查必须在前——否则 display-message 会去查询碰巧运行
+ * 的任何 tmux 服务器，而不是我们的客户端。
  */
 function probeTmuxControlModeSync(): void {
-  // Seed cache with heuristic result so early returns below don't leave it
-  // undefined — isTmuxControlMode() is called 15+ times per render, and an
-  // undefined cache would re-enter this function (re-spawning tmux in the
-  // failure case) on every call.
+  // 用启发式结果预填缓存，使下面的提前返回不会让它保持 undefined——
+  // isTmuxControlMode() 每次渲染被调用 15+ 次，undefined 缓存会在每次
+  // 调用时重新进入此函数（在失败情况下重新派生 tmux）。
   tmuxControlModeProbed = isTmuxControlModeEnvHeuristic()
   if (tmuxControlModeProbed) return
   if (!process.env.TMUX) return
-  // Only probe when iTerm might be involved: TERM_PROGRAM is iTerm.app
-  // (covered above) or not set (SSH often doesn't propagate it). When
-  // TERM_PROGRAM is explicitly a non-iTerm terminal, skip — tmux -CC is
-  // an iTerm-only feature, so the subprocess would be wasted.
+  // 仅在可能涉及 iTerm 时探测：TERM_PROGRAM 是 iTerm.app（上面已覆盖）
+  // 或未设置（SSH 通常不传播它）。当 TERM_PROGRAM 明确是某个非 iTerm
+  // 终端时，跳过——tmux -CC 是 iTerm 独有功能，派生子进程会浪费。
   if (process.env.TERM_PROGRAM) return
   let result
   try {
@@ -74,25 +70,23 @@ function probeTmuxControlModeSync(): void {
       { encoding: 'utf8', timeout: 2000 },
     )
   } catch {
-    // spawnSync can throw on some platforms (e.g. ENOENT on Windows if tmux
-    // is absent and the runtime surfaces it as an exception rather than in
-    // result.error). Treat the same as a non-zero exit.
+    // spawnSync 在某些平台上可能抛出（例如 Windows 上 tmux 不存在且运行时
+    // 以异常而非 result.error 呈现）。按非零退出处理。
     return
   }
-  // Non-zero exit / spawn error: tmux too old (format var added in 2.4) or
-  // unavailable. Keep the heuristic result cached.
+  // 非零退出 / 派生错误：tmux 太旧（格式变量于 2.4 加入）或不可用。
+  // 保持启发式结果缓存。
   if (result.status !== 0) return
   tmuxControlModeProbed = result.stdout.trim() === '1'
 }
 
 /**
- * True when running under `tmux -CC` (iTerm2 integration mode).
+ * 在 `tmux -CC`（iTerm2 集成模式）下运行时为 true。
  *
- * The alt-screen / mouse-tracking path in fullscreen mode is unrecoverable
- * in -CC mode (double-click corrupts terminal state; mouse wheel is dead),
- * so callers auto-disable fullscreen.
+ * 在 -CC 模式中，全屏模式的备用屏幕 / 鼠标追踪路径不可恢复
+ * （双击破坏终端状态；鼠标滚轮是死的），因此调用方自动禁用全屏。
  *
- * Lazily probes tmux on first call when the env heuristic can't decide.
+ * 当环境变量启发式无法判断时，在首次调用上惰性探测 tmux。
  */
 export function isTmuxControlMode(): boolean {
   if (tmuxControlModeProbed === undefined) probeTmuxControlModeSync()
@@ -105,97 +99,93 @@ export function _resetTmuxControlModeProbeForTesting(): void {
 }
 
 /**
- * Runtime env-var check only. Ants default to on (LIMKENION_NO_FLICKER=0
- * to opt out); external users default to off (LIMKENION_NO_FLICKER=1 to
- * opt in).
+ * 仅运行时环境变量检查。Ant 默认开启（设 LIMKENION_NO_FLICKER=0 可退出）；
+ * 外部用户默认关闭（设 LIMKENION_NO_FLICKER=1 可加入）。
  */
 export function isFullscreenEnvEnabled(): boolean {
-  // Explicit user opt-out always wins.
+  // 显式的用户退出选项始终优先。
   if (isEnvDefinedFalsy(process.env.LIMKENION_NO_FLICKER)) return false
-  // Explicit opt-in overrides auto-detection (escape hatch).
+  // 显式加入覆盖自动检测（逃生通道）。
   if (isEnvTruthy(process.env.LIMKENION_NO_FLICKER)) return true
-  // Auto-disable under tmux -CC: alt-screen + mouse tracking corrupts
-  // terminal state on double-click and mouse wheel is dead.
+  // 在 tmux -CC 下自动禁用：备用屏幕 + 鼠标追踪会在双击时破坏终端
+  // 状态，且鼠标滚轮是死的。
   if (isTmuxControlMode()) {
     if (!loggedTmuxCcDisable) {
       loggedTmuxCcDisable = true
       logForDebugging(
-        'fullscreen disabled: tmux -CC (iTerm2 integration mode) detected · set LIMKENION_NO_FLICKER=1 to override',
+        '检测到 tmux -CC（iTerm2 集成模式）故禁用全屏 · 设 LIMKENION_NO_FLICKER=1 可覆盖',
       )
     }
     return false
   }
-  return process.env.USER_TYPE === 'ant'
+  return false
 }
 
 /**
- * Whether fullscreen mode should enable SGR mouse tracking (DEC 1000/1002/1006).
- * Set LIMKENION_DISABLE_MOUSE=1 to keep alt-screen + virtualized scroll
- * (keyboard PgUp/PgDn/Ctrl+Home/End still work) but skip mouse capture,
- * so tmux/kitty/terminal-native copy-on-select keeps working.
+ * 全屏模式是否应启用 SGR 鼠标追踪（DEC 1000/1002/1006）。
+ * 设 LIMKENION_DISABLE_MOUSE=1 可保留备用屏幕 + 虚拟化滚动
+ * （键盘 PgUp/PgDn/Ctrl+Home/End 仍可用）但跳过鼠标捕获，
+ * 使 tmux/kitty/终端原生的复制时选中继续可用。
  *
- * Compare with LIMKENION_NO_FLICKER=0 which is all-or-nothing — it also
- * disables alt-screen and virtualized scrollback.
+ * 与 LIMKENION_NO_FLICKER=0 的全有或全无不同——后者还会禁用备用屏幕
+ * 和虚拟化回滚。
  */
 export function isMouseTrackingEnabled(): boolean {
   return !isEnvTruthy(process.env.LIMKENION_DISABLE_MOUSE)
 }
 
 /**
- * Whether mouse click handling is disabled (clicks/drags ignored, wheel still
- * works). Set LIMKENION_DISABLE_MOUSE_CLICKS=1 to prevent accidental clicks
- * from triggering cursor positioning, text selection, or message expansion.
+ * 鼠标点击处理是否被禁用（点击/拖拽被忽略，滚轮仍可用）。
+ * 设 LIMKENION_DISABLE_MOUSE_CLICKS=1 可防止意外点击触发光标定位、
+ * 文本选择或消息展开。
  *
- * Fullscreen-specific — only reachable when LIMKENION_NO_FLICKER is active.
+ * 仅全屏专用——仅当 LIMKENION_NO_FLICKER 生效时才可达。
  */
 export function isMouseClicksDisabled(): boolean {
   return isEnvTruthy(process.env.LIMKENION_DISABLE_MOUSE_CLICKS)
 }
 
 /**
- * True when the fullscreen alt-screen layout is actually rendering —
- * requires an interactive REPL session AND the env var not explicitly
- * set falsy. Headless paths (--print, SDK, in-process teammates) never
- * enter fullscreen, so features that depend on alt-screen re-rendering
- * should gate on this.
+ * 全屏备用屏幕布局是否实际渲染时为 true——
+ * 需要交互式 REPL 会话，且环境变量未被显式设为 falsy。无头路径
+ * （--print、SDK、进程内队友）从不进入全屏，因此依赖备用屏幕重渲染的
+ * 功能应以此门控。
  */
 export function isFullscreenActive(): boolean {
   return getIsInteractive() && isFullscreenEnvEnabled()
 }
 
 /**
- * One-time hint for tmux users in fullscreen with `mouse off`.
+ * 面向 tmux 且 `mouse off` 的全屏用户的一次性提示。
  *
- * tmux's `mouse` option is session-scoped by design — there is no
- * pane-level equivalent. We used to `tmux set mouse on` when entering
- * alt-screen so wheel scrolling worked, but that changed mouse behavior
- * for every sibling pane (vim, less, shell) and leaked on kill-pane or
- * when multiple CC instances raced on restore. Now we leave tmux state
- * alone — same as vim/less/htop — and just tell the user their options.
+ * tmux 的 `mouse` 选项按设计是会话作用域的——没有窗格级的对应物。
+ * 过去我们进入备用屏幕时执行 `tmux set mouse on` 让滚轮滚动可用，但那会
+ * 改变每个兄弟窗格（vim、less、shell）的鼠标行为，并在 kill-pane 或
+ * 多个 CC 实例在恢复时竞争时泄漏。现在我们保持 tmux 状态原样——与
+ * vim/less/htop 相同——只告诉用户他们的选项。
  *
- * Fire-and-forget from REPL startup. Returns the hint text once per
- * session if TMUX is set, fullscreen is active, and tmux's current
- * `mouse` option is off; null otherwise.
+ * 从 REPL 启动处一次性触发。若设置了 TMUX、全屏激活且 tmux 当前的
+ * `mouse` 选项为 off，则每会话返回一次提示文本；否则返回 null。
  */
 export async function maybeGetTmuxMouseHint(): Promise<string | null> {
   if (!process.env.TMUX) return null
-  // tmux -CC auto-disables fullscreen above, but belt-and-suspenders.
+  // tmux -CC 上面会自动禁用全屏，但这里仍双保险。
   if (!isFullscreenActive() || isTmuxControlMode()) return null
   if (checkedTmuxMouseHint) return null
   checkedTmuxMouseHint = true
-  // -A includes inherited values: `show -v mouse` returns empty when the
-  // option is set globally (`set -g mouse on` in .tmux.conf) but not at
-  // session level — which is the common case. -A gives the effective value.
+  // -A 包含继承值：当选项全局设置（.tmux.conf 中的 `set -g mouse on`）
+  // 但未在会话级设置时，`show -v mouse` 返回空——而这是常见情况。
+  // -A 给出有效值。
   const { stdout, code } = await execFileNoThrow(
     'tmux',
     ['show', '-Av', 'mouse'],
     { useCwd: false, timeout: 2000 },
   )
   if (code !== 0 || stdout.trim() === 'on') return null
-  return "tmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scroll"
+  return "检测到 tmux · 用 PgUp/PgDn 滚动 · 或在 ~/.tmux.conf 中加入 'set -g mouse on' 以启用滚轮滚动"
 }
 
-/** Test-only: reset module-level once-per-session flags. */
+/** 仅测试：重置模块级每会话一次的标志。 */
 export function _resetForTesting(): void {
   loggedTmuxCcDisable = false
   checkedTmuxMouseHint = false

@@ -1,7 +1,7 @@
 import { getDynamicConfig_CACHED_MAY_BE_STALE } from './growthbook.js'
 
 // Mangled name: per-sink analytics killswitch
-const SINK_KILLSWITCH_CONFIG_NAME = '内部代号_frond_boric'
+const SINK_KILLSWITCH_CONFIG_NAME = 'limkenion_frond_boric'
 
 export type SinkName = 'datadog' | 'firstParty'
 

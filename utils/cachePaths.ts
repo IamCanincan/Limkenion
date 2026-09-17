@@ -5,10 +5,10 @@ import { djb2Hash } from './hash.js'
 
 const paths = envPaths('limkenion-cli')
 
-// Local sanitizePath using djb2Hash — NOT the shared version from
-// sessionStoragePortable.ts which uses Bun.hash (wyhash) when available.
-// Cache directory names must remain stable across upgrades so existing cache
-// data (error logs, MCP logs) is not orphaned.
+// 使用 djb2Hash 的本地 sanitizePath——不是 sessionStoragePortable.ts 中
+// 共享的版本（后者在可用时使用 Bun.hash / wyhash）。
+// 缓存目录名必须跨升级保持稳定，以免现有缓存数据（错误日志、MCP 日志）
+// 沦为孤岛。
 const MAX_SANITIZED_LENGTH = 200
 function sanitizePath(name: string): string {
   const sanitized = name.replace(/[^a-zA-Z0-9]/g, '-')
@@ -32,7 +32,7 @@ export const CACHE_PATHS = {
     join(
       paths.cache,
       getProjectDir(getFsImplementation().cwd()),
-      // Sanitize server name for Windows compatibility (colons are reserved for drive letters)
+      // 清理服务器名以兼容 Windows（colon 保留给盘符使用）
       `mcp-logs-${sanitizePath(serverName)}`,
     ),
 }

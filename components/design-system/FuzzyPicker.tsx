@@ -67,7 +67,7 @@ const CHROME_ROWS = 10;
 const MIN_VISIBLE = 2;
 export function FuzzyPicker<T>({
   title,
-  placeholder = 'Type to search…',
+  placeholder = '输入以搜索…',
   initialQuery,
   items,
   getKey,
@@ -82,7 +82,7 @@ export function FuzzyPicker<T>({
   onShiftTab,
   onFocus,
   onCancel,
-  emptyMessage = 'No results',
+  emptyMessage = '暂无结果',
   matchLabel,
   selectAction = 'select',
   extraHints

@@ -13,14 +13,14 @@ import { jsonStringify } from '../slowOperations.js'
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
-// Map risk levels to numeric values for analytics
+// 将风险等级映射为数值，供埋点使用
 const RISK_LEVEL_NUMERIC: Record<RiskLevel, number> = {
   LOW: 1,
   MEDIUM: 2,
   HIGH: 3,
 }
 
-// Error type codes for analytics
+// 用于埋点的错误类型编码
 const ERROR_TYPE_PARSE = 1
 const ERROR_TYPE_NETWORK = 2
 const ERROR_TYPE_UNKNOWN = 3
@@ -40,40 +40,40 @@ type GenerateExplanationParams = {
   signal: AbortSignal
 }
 
-const SYSTEM_PROMPT = `Analyze shell commands and explain what they do, why you're running them, and potential risks.`
+const SYSTEM_PROMPT = `分析 shell 命令，说明它们的用途、你运行它们的原因以及潜在风险。`
 
-// Tool definition for forced structured output (no beta required)
+// 用于强制结构化输出的工具定义（无需 beta）
 const EXPLAIN_COMMAND_TOOL = {
   name: 'explain_command',
-  description: 'Provide an explanation of a shell command',
+  description: '对某条 shell 命令给出解释',
   input_schema: {
     type: 'object' as const,
     properties: {
       explanation: {
         type: 'string',
-        description: 'What this command does (1-2 sentences)',
+        description: '这条命令的作用（1-2 句话）',
       },
       reasoning: {
         type: 'string',
         description:
-          'Why YOU are running this command. Start with "I" - e.g. "I need to check the file contents"',
+          '你运行这条命令的原因。以"我"开头——例如"我需要检查文件内容"',
       },
       risk: {
         type: 'string',
-        description: 'What could go wrong, under 15 words',
+        description: '可能出错的地方，15 字以内',
       },
       riskLevel: {
         type: 'string',
         enum: ['LOW', 'MEDIUM', 'HIGH'],
         description:
-          'LOW (safe dev workflows), MEDIUM (recoverable changes), HIGH (dangerous/irreversible)',
+          'LOW（安全的开发流程）、MEDIUM（可恢复的变更）、HIGH（危险/不可逆）',
       },
     },
     required: ['explanation', 'reasoning', 'risk', 'riskLevel'],
   },
 }
 
-// Zod schema for parsing and validating the response
+// 用于解析并验证响应的 Zod schema
 const RiskAssessmentSchema = lazySchema(() =>
   z.object({
     riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
@@ -95,24 +95,23 @@ function formatToolInput(input: unknown): string {
 }
 
 /**
- * Extract recent conversation context from messages for the explainer.
- * Returns a summary of recent assistant messages to provide context
- * for "why" this command is being run.
+ * 从消息中提取近期对话上下文供解释器使用。
+ * 返回最近的助手消息摘要以提供"为什么要运行这条命令"的上下文。
  */
 function extractConversationContext(
   messages: Message[],
   maxChars = 1000,
 ): string {
-  // Get recent assistant messages (they contain Limkenion's reasoning)
+  // 取最近的助手消息（其中包含 Limkenion 的推理过程）
   const assistantMessages = messages
     .filter((m): m is AssistantMessage => m.type === 'assistant')
-    .slice(-3) // Last 3 assistant messages
+    .slice(-3) // 最近的 3 条助手消息
 
   const contextParts: string[] = []
   let totalChars = 0
 
   for (const msg of assistantMessages.reverse()) {
-    // Extract text content from assistant message
+    // 从助手消息中提取文本内容
     const textBlocks = msg.message.content
       .filter(c => c.type === 'text')
       .map(c => ('text' in c ? c.text : ''))
@@ -133,16 +132,16 @@ function extractConversationContext(
 }
 
 /**
- * Check if the permission explainer feature is enabled.
- * Enabled by default; users can opt out via config.
+ * 检查权限解释器功能是否启用。
+ * 默认启用；用户可通过配置关闭。
  */
 export function isPermissionExplainerEnabled(): boolean {
   return getGlobalConfig().permissionExplainerEnabled !== false
 }
 
 /**
- * Generate a permission explanation using Haiku with structured output.
- * Returns null if the feature is disabled, request is aborted, or an error occurs.
+ * 使用 Haiku 结合结构化输出生成权限解释。
+ * 当功能被禁用、请求被中止或发生错误时返回 null。
  */
 export async function generatePermissionExplanation({
   toolName,
@@ -151,7 +150,7 @@ export async function generatePermissionExplanation({
   messages,
   signal,
 }: GenerateExplanationParams): Promise<PermissionExplanation | null> {
-  // Check if feature is enabled
+  // 检查功能是否启用
   if (!isPermissionExplainerEnabled()) {
     return null
   }
@@ -164,17 +163,17 @@ export async function generatePermissionExplanation({
       ? extractConversationContext(messages)
       : ''
 
-    const userPrompt = `Tool: ${toolName}
-${toolDescription ? `Description: ${toolDescription}\n` : ''}
-Input:
+    const userPrompt = `工具：${toolName}
+${toolDescription ? `描述：${toolDescription}\n` : ''}
+输入：
 ${formattedInput}
-${conversationContext ? `\nRecent conversation context:\n${conversationContext}` : ''}
+${conversationContext ? `\n近期对话上下文：\n${conversationContext}` : ''}
 
-Explain this command in context.`
+请结合上下文解释这条命令。`
 
     const model = getMainLoopModel()
 
-    // Use sideQuery with forced tool choice for guaranteed structured output
+    // 使用 sideQuery 配合强制工具选择以确保结构化输出
     const response = await sideQuery({
       model,
       system: SYSTEM_PROMPT,
@@ -187,14 +186,14 @@ Explain this command in context.`
 
     const latencyMs = Date.now() - startTime
     logForDebugging(
-      `Permission explainer: API returned in ${latencyMs}ms, stop_reason=${response.stop_reason}`,
+      `权限解释器：API 在 ${latencyMs}ms 内返回，stop_reason=${response.stop_reason}`,
     )
 
-    // Extract structured data from tool use block
+    // 从工具使用块中提取结构化数据
     const toolUseBlock = response.content.find(c => c.type === 'tool_use')
     if (toolUseBlock && toolUseBlock.type === 'tool_use') {
       logForDebugging(
-        `Permission explainer: tool input: ${jsonStringify(toolUseBlock.input).slice(0, 500)}`,
+        `权限解释器：失败输入 ${jsonStringify(toolUseBlock.input).slice(0, 500)}`,
       )
       const result = RiskAssessmentSchema().safeParse(toolUseBlock.input)
 
@@ -206,38 +205,38 @@ Explain this command in context.`
           risk: result.data.risk,
         }
 
-        logEvent('内部代号_permission_explainer_generated', {
+        logEvent('limkenion_permission_explainer_generated', {
           tool_name: sanitizeToolNameForAnalytics(toolName),
           risk_level: RISK_LEVEL_NUMERIC[explanation.riskLevel],
           latency_ms: latencyMs,
         })
         logForDebugging(
-          `Permission explainer: ${explanation.riskLevel} risk for ${toolName} (${latencyMs}ms)`,
+          `权限解释器：${toolName} 风险等级 ${explanation.riskLevel}（${latencyMs}ms）`,
         )
         return explanation
       }
     }
 
-    // No valid JSON in response
-    logEvent('内部代号_permission_explainer_error', {
+    // 响应中没有有效的 JSON
+    logEvent('limkenion_permission_explainer_error', {
       tool_name: sanitizeToolNameForAnalytics(toolName),
       error_type: ERROR_TYPE_PARSE,
       latency_ms: latencyMs,
     })
-    logForDebugging(`Permission explainer: no parsed output in response`)
+    logForDebugging(`权限解释器：响应中无法解析出输出`)
     return null
   } catch (error) {
     const latencyMs = Date.now() - startTime
 
-    // Don't log aborted requests as errors
+    // 中止的请求不作为错误记录
     if (signal.aborted) {
-      logForDebugging(`Permission explainer: request aborted for ${toolName}`)
+      logForDebugging(`权限解释器：针对 ${toolName} 的请求已中止`)
       return null
     }
 
-    logForDebugging(`Permission explainer error: ${errorMessage(error)}`)
+    logForDebugging(`权限解释器错误：${errorMessage(error)}`)
     logError(error)
-    logEvent('内部代号_permission_explainer_error', {
+    logEvent('limkenion_permission_explainer_error', {
       tool_name: sanitizeToolNameForAnalytics(toolName),
       error_type:
         error instanceof Error && error.name === 'AbortError'

@@ -44,12 +44,12 @@ export function DesktopHandoff(t0) {
       if (state === "prompt-download") {
         if (input === "y" || input === "Y") {
           openBrowser(getDownloadUrl()).catch(_temp);
-          onDone(`Starting download. Re-run /desktop once you\u2019ve installed the app.\nLearn more at ${DESKTOP_DOCS_URL}`, {
+          onDone(`正在开始下载。安装应用后请重新运行 /desktop。\n了解更多：${DESKTOP_DOCS_URL}`, {
             display: "system"
           });
         } else {
           if (input === "n" || input === "N") {
-            onDone(`The desktop app is required for /desktop. Learn more at ${DESKTOP_DOCS_URL}`, {
+            onDone(`使用 /desktop 需要桌面应用。了解更多：${DESKTOP_DOCS_URL}`, {
               display: "system"
             });
           }
@@ -72,12 +72,12 @@ export function DesktopHandoff(t0) {
         setState("checking");
         const installStatus = await getDesktopInstallStatus();
         if (installStatus.status === "not-installed") {
-          setDownloadMessage("Limkenion Desktop is not installed.");
+          setDownloadMessage("未安装 Limkenion Desktop。");
           setState("prompt-download");
           return;
         }
         if (installStatus.status === "version-too-old") {
-          setDownloadMessage(`Limkenion Desktop needs to be updated (found v${installStatus.version}, need v1.1.2396+).`);
+          setDownloadMessage(`Limkenion Desktop 需要更新（当前版本 v${installStatus.version}，需要 v1.1.2396+）。`);
           setState("prompt-download");
           return;
         }
@@ -86,7 +86,7 @@ export function DesktopHandoff(t0) {
         setState("opening");
         const result = await openCurrentSessionInDesktop();
         if (!result.success) {
-          setError(result.error ?? "Failed to open Limkenion Desktop");
+          setError(result.error ?? "无法打开 Limkenion Desktop");
           setState("error");
           return;
         }
@@ -110,7 +110,7 @@ export function DesktopHandoff(t0) {
   if (state === "error") {
     let t4;
     if ($[7] !== error) {
-      t4 = <Text color="error">Error: {error}</Text>;
+      t4 = <Text color="error">错误：{error}</Text>;
       $[7] = error;
       $[8] = t4;
     } else {
@@ -118,7 +118,7 @@ export function DesktopHandoff(t0) {
     }
     let t5;
     if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-      t5 = <Text dimColor={true}>Press any key to continue…</Text>;
+      t5 = <Text dimColor={true}>按任意键继续…</Text>;
       $[9] = t5;
     } else {
       t5 = $[9];
@@ -144,7 +144,7 @@ export function DesktopHandoff(t0) {
     }
     let t5;
     if ($[14] === Symbol.for("react.memo_cache_sentinel")) {
-      t5 = <Text>Download now? (y/n)</Text>;
+      t5 = <Text>立即下载？(y/n)</Text>;
       $[14] = t5;
     } else {
       t5 = $[14];
@@ -162,10 +162,10 @@ export function DesktopHandoff(t0) {
   let t4;
   if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
     t4 = {
-      checking: "Checking for Limkenion Desktop\u2026",
-      flushing: "Saving session\u2026",
-      opening: "Opening Limkenion Desktop\u2026",
-      success: "Opening in Limkenion Desktop\u2026"
+      checking: "正在检查 Limkenion Desktop\u2026",
+      flushing: "正在保存会话\u2026",
+      opening: "正在打开 Limkenion Desktop\u2026",
+      success: "正在于 Limkenion Desktop 中打开\u2026"
     };
     $[17] = t4;
   } else {
@@ -184,7 +184,7 @@ export function DesktopHandoff(t0) {
   return t6;
 }
 async function _temp2(onDone_0) {
-  onDone_0("Session transferred to Limkenion Desktop", {
+  onDone_0("会话已传输至 Limkenion Desktop", {
     display: "system"
   });
   await gracefulShutdown(0, "other");

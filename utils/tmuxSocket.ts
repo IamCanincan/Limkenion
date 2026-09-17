@@ -1,26 +1,26 @@
 /**
- * TMUX SOCKET ISOLATION
+ * TMUX 套接字隔离
  * =====================
- * This module manages an isolated tmux socket for Limkenion's operations.
+ * 本模块为 Limkenion 的操作管理一个隔离的 tmux 套接字。
  *
- * WHY THIS EXISTS:
- * Without isolation, Limkenion could accidentally affect the user's tmux sessions.
- * For example, running `tmux kill-session` via the Bash tool would kill the
- * user's current session if they started Limkenion from within tmux.
+ * 为什么存在：
+ * 没有隔离，Limkenion 可能会意外影响用户的 tmux 会话。
+ * 例如，通过 Bash 工具运行 `tmux kill-session` 会杀死用户的
+ * 当前会话（如果用户从 tmux 内启动 Limkenion）。
  *
- * HOW IT WORKS:
- * 1. Limkenion creates its own tmux socket: `limkenion-<PID>` (e.g., `limkenion-12345`)
- * 2. ALL Tmux tool commands use this socket via the `-L` flag
- * 3. ALL Bash tool commands inherit TMUX env var pointing to this socket
- *    (set in Shell.ts via getLimkenionTmuxEnv())
+ * 工作原理：
+ * 1. Limkenion 创建自己的 tmux 套接字：`limkenion-<PID>`（如 `limkenion-12345`）
+ * 2. 所有 Tmux 工具命令通过 `-L` 标志使用此套接字
+ * 3. 所有 Bash 工具命令继承指向此套接字的 TMUX env 变量
+ *    （在 Shell.ts 中通过 getLimkenionTmuxEnv() 设置）
  *
- * This means ANY tmux command run through Limkenion - whether via the Tmux tool
- * directly or via Bash - will operate on Limkenion's isolated socket, NOT the
- * user's tmux session.
+ * 这意味着通过 Limkenion 运行的任何 tmux 命令——无论是直接通过 Tmux 工具
+ * 还是通过 Bash——都将作用于 Limkenion 的隔离套接字，而不会作用到
+ * 用户的 tmux 会话。
  *
- * IMPORTANT: The user's original TMUX env var is NOT used. After socket
- * initialization, getLimkenionTmuxEnv() returns a value that overrides the
- * user's TMUX in all child processes spawned by Shell.ts.
+ * 重要说明：用户的原始 TMUX env 变量不会被使用。套接字初始化后，
+ * getLimkenionTmuxEnv() 返回一个值，该值会覆盖 Shell.ts 派生的
+ * 所有子进程中的用户 TMUX 设置。
  */
 
 import { posix } from 'path'
@@ -31,26 +31,25 @@ import { execFileNoThrow } from './execFileNoThrow.js'
 import { logError } from './log.js'
 import { getPlatform } from './platform.js'
 
-// Constants for tmux socket management
+// 用于 tmux 套接字管理的常量
 const TMUX_COMMAND = 'tmux'
 const LIMKENION_SOCKET_PREFIX = 'limkenion'
 
 /**
- * Executes a tmux command, routing through WSL on Windows.
- * On Windows, tmux only exists inside WSL — WSL interop lets the tmux session
- * launch .exe files as native Win32 processes while stdin/stdout flow through
- * the WSL pty.
+ * 执行 tmux 命令，在 Windows 上通过 WSL 路由。
+ * 在 Windows 上，tmux 只存在于 WSL 内部——WSL 互操作允许 tmux 会话把
+ * .exe 文件作为原生 Win32 进程启动，同时 stdin/stdout 通过 WSL pty 流动。
  */
 async function execTmux(
   args: string[],
   opts?: { useCwd?: boolean },
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   if (getPlatform() === 'windows') {
-    // -e execs tmux directly without the login shell. Without it, wsl hands the
-    // command line to bash which eats `#` as a comment: `display-message -p
-    // #{socket_path},#{pid}` below becomes `display-message -p ` → exit 1 →
-    // we silently fall back to the guessed path and never learn the real
-    // server PID. Same root cause as TungstenTool/utils.ts:execTmuxCommand.
+    // -e 无需登录 shell 即可直接执行 tmux。没有它，wsl 会把命令行交给
+    // bash，而 bash 会把 `#` 当作注释吃掉：下面的 `display-message -p
+    // #{socket_path},#{pid}` 会变成 `display-message -p ` → 退出码 1 →
+    // 我们会静默回退到猜测的路径，永远无法得知真实的服务器 PID。
+    // 与 TungstenTool/utils.ts:execTmuxCommand 的根因相同。
     const result = await execFileNoThrow('wsl', ['-e', TMUX_COMMAND, ...args], {
       env: { ...process.env, WSL_UTF8: '1' },
       ...opts,
@@ -69,24 +68,24 @@ async function execTmux(
   }
 }
 
-// Socket state - initialized lazily when Tmux tool is first used or a tmux command is run
+// 套接字状态 - 首次使用 Tmux 工具或运行 tmux 命令时惰性初始化
 let socketName: string | null = null
 let socketPath: string | null = null
 let serverPid: number | null = null
 let isInitializing = false
 let initPromise: Promise<void> | null = null
 
-// tmux availability - checked once upfront
+// tmux 可用性 - 一次性检查
 let tmuxAvailabilityChecked = false
 let tmuxAvailable = false
 
-// Track whether the Tmux tool has been used at least once
-// Used to defer socket initialization until actually needed
+// 跟踪 Tmux 工具是否至少使用过一次
+// 用于在真正需要时才初始化套接字
 let tmuxToolUsed = false
 
 /**
- * Gets the socket name for Limkenion's isolated tmux session.
- * Format: limkenion-<PID>
+ * 获取 Limkenion 隔离 tmux 会话的套接字名称。
+ * 格式：limkenion-<PID>
  */
 export function getLimkenionSocketName(): string {
   if (!socketName) {
@@ -96,16 +95,16 @@ export function getLimkenionSocketName(): string {
 }
 
 /**
- * Gets the socket path if the socket has been initialized.
- * Returns null if not yet initialized.
+ * 若套接字已初始化则返回套接字路径。
+ * 尚未初始化时返回 null。
  */
 export function getLimkenionSocketPath(): string | null {
   return socketPath
 }
 
 /**
- * Sets socket info after initialization.
- * Called after the tmux session is created.
+ * 初始化后设置套接字信息。
+ * 在 tmux 会话创建后调用。
  */
 export function setLimkenionSocketInfo(path: string, pid: number): void {
   socketPath = path
@@ -113,24 +112,24 @@ export function setLimkenionSocketInfo(path: string, pid: number): void {
 }
 
 /**
- * Returns whether the socket has been initialized.
+ * 返回套接字是否已初始化。
  */
 export function isSocketInitialized(): boolean {
   return socketPath !== null && serverPid !== null
 }
 
 /**
- * Gets the TMUX environment variable value for Limkenion's isolated socket.
+ * 获取 Limkenion 隔离套接字的 TMUX 环境变量值。
  *
- * CRITICAL: This value is used by Shell.ts to override the TMUX env var
- * in ALL child processes. This ensures that any `tmux` command run via
- * the Bash tool will operate on Limkenion's socket, NOT the user's session.
+ * 关键：Shell.ts 用此值覆盖所有子进程中的 TMUX env 变量。
+ * 这能确保任何通过 Bash 工具运行的 `tmux` 命令都作用于
+ * Limkenion 的套接字，而不会作用到用户的会话。
  *
- * Format: "socket_path,server_pid,pane_index" (matches tmux's TMUX env var)
- * Example: "/tmp/tmux-501/limkenion-12345,54321,0"
+ * 格式："socket_path,server_pid,pane_index"（与 tmux 的 TMUX env 变量一致）
+ * 示例："/tmp/tmux-501/limkenion-12345,54321,0"
  *
- * Returns null if socket is not yet initialized.
- * When null, Shell.ts does not override TMUX, preserving user's environment.
+ * 若套接字尚未初始化则返回 null。
+ * 返回 null 时，Shell.ts 不会覆盖 TMUX，从而保留用户的环境。
  */
 export function getLimkenionTmuxEnv(): string | null {
   if (!socketPath || serverPid === null) {
@@ -140,13 +139,13 @@ export function getLimkenionTmuxEnv(): string | null {
 }
 
 /**
- * Checks if tmux is available on this system.
- * This is checked once and cached for the lifetime of the process.
+ * 检查系统上是否安装了 tmux。
+ * 此检查只做一次并在进程生命周期内缓存。
  *
- * When tmux is not available:
- * - TungstenTool (Tmux) will not work
- * - TeammateTool will not work (it uses tmux for pane management)
- * - Bash commands will run without tmux isolation
+ * 当 tmux 不可用：
+ * - TungstenTool（Tmux）将无法工作
+ * - TeammateTool 将无法工作（它用 tmux 进行窗格管理）
+ * - Bash 命令将在没有 tmux 隔离的情况下运行
  */
 export async function checkTmuxAvailable(): Promise<boolean> {
   if (!tmuxAvailabilityChecked) {
@@ -162,7 +161,7 @@ export async function checkTmuxAvailable(): Promise<boolean> {
     tmuxAvailable = result.code === 0
     if (!tmuxAvailable) {
       logForDebugging(
-        `[Socket] tmux is not installed. The Tmux tool and Teammate tool will not be available.`,
+        `[Socket] 未安装 tmux。Tmux 工具和 Teammate 工具将不可用。`,
       )
     }
     tmuxAvailabilityChecked = true
@@ -171,59 +170,59 @@ export async function checkTmuxAvailable(): Promise<boolean> {
 }
 
 /**
- * Returns the cached tmux availability status.
- * Returns false if availability hasn't been checked yet.
- * Use checkTmuxAvailable() to perform the check.
+ * 返回缓存的 tmux 可用性状态。
+ * 若尚未检查则返回 false。
+ * 需执行检查时使用 checkTmuxAvailable()。
  */
 export function isTmuxAvailable(): boolean {
   return tmuxAvailabilityChecked && tmuxAvailable
 }
 
 /**
- * Marks that the Tmux tool has been used at least once.
- * Called by TungstenTool before initialization.
- * After this is called, Shell.ts will initialize the socket for subsequent Bash commands.
+ * 标记 Tmux 工具至少被使用过一次。
+ * 由 TungstenTool 在初始化前调用。
+ * 调用后，Shell.ts 将为后续 Bash 命令初始化套接字。
  */
 export function markTmuxToolUsed(): void {
   tmuxToolUsed = true
 }
 
 /**
- * Returns whether the Tmux tool has been used at least once.
- * Used by Shell.ts to decide whether to initialize the socket.
+ * 返回 Tmux 工具是否至少被使用过一次。
+ * Shell.ts 用它来决定是否初始化套接字。
  */
 export function hasTmuxToolBeenUsed(): boolean {
   return tmuxToolUsed
 }
 
 /**
- * Ensures the socket is initialized with a tmux session.
- * Called by Shell.ts when the Tmux tool has been used or the command includes "tmux".
- * Safe to call multiple times; will only initialize once.
+ * 确保套接字已用 tmux 会话初始化。
+ * 当 Tmux 工具被使用或命令包含 "tmux" 时由 Shell.ts 调用。
+ * 可安全重复调用；只会初始化一次。
  *
- * If tmux is not installed, this function returns gracefully without
- * initializing the socket. getLimkenionTmuxEnv() will return null, and
- * Bash commands will run without tmux isolation.
+ * 若未安装 tmux，此函数会优雅返回而不初始化套接字。
+ * getLimkenionTmuxEnv() 将返回 null，Bash 命令将在没有
+ * tmux 隔离的情况下运行。
  */
 export async function ensureSocketInitialized(): Promise<void> {
-  // Already initialized
+  // 已初始化
   if (isSocketInitialized()) {
     return
   }
 
-  // Check if tmux is available before trying to use it
+  // 在使用前检查 tmux 是否可用
   const available = await checkTmuxAvailable()
   if (!available) {
     return
   }
 
-  // Another call is already initializing - wait for it but don't propagate errors
-  // The original caller handles the error and sets up graceful degradation
+  // 已有另一个调用正在初始化 - 等待它但不传播错误
+  // 原始调用方会处理错误并设置优雅降级
   if (isInitializing && initPromise) {
     try {
       await initPromise
     } catch {
-      // Ignore - the original caller logs the error
+      // 忽略 - 原始调用方会记录错误
     }
     return
   }
@@ -234,11 +233,11 @@ export async function ensureSocketInitialized(): Promise<void> {
   try {
     await initPromise
   } catch (error) {
-    // Log error but don't throw - graceful degradation
+    // 记录错误但不抛出 - 优雅降级
     const err = toError(error)
     logError(err)
     logForDebugging(
-      `[Socket] Failed to initialize tmux socket: ${err.message}. Tmux isolation will be disabled.`,
+      `[Socket] 初始化 tmux 套接字失败：${err.message}。Tmux 隔离将被禁用。`,
     )
   } finally {
     isInitializing = false
@@ -246,21 +245,21 @@ export async function ensureSocketInitialized(): Promise<void> {
 }
 
 /**
- * Kills the tmux server for Limkenion's isolated socket.
- * Called during graceful shutdown to clean up resources.
+ * 终止 Limkenion 隔离套接字的 tmux 服务器。
+ * 在优雅关闭时调用以清理资源。
  */
 async function killTmuxServer(): Promise<void> {
   const socket = getLimkenionSocketName()
-  logForDebugging(`[Socket] Killing tmux server for socket: ${socket}`)
+  logForDebugging(`[Socket] 正在终止套接字 ${socket} 的 tmux 服务器`)
 
   const result = await execTmux(['-L', socket, 'kill-server'])
 
   if (result.code === 0) {
-    logForDebugging(`[Socket] Successfully killed tmux server`)
+    logForDebugging(`[Socket] 已成功终止 tmux 服务器`)
   } else {
-    // Server may already be dead, which is fine
+    // 服务器可能已经停止，这没问题
     logForDebugging(
-      `[Socket] Failed to kill tmux server (exit ${result.code}): ${result.stderr}`,
+      `[Socket] 终止 tmux 服务器失败（退出码 ${result.code}）：${result.stderr}`,
     )
   }
 }
@@ -268,17 +267,17 @@ async function killTmuxServer(): Promise<void> {
 async function doInitialize(): Promise<void> {
   const socket = getLimkenionSocketName()
 
-  // Create a new session with our custom socket
-  // Pass LIMKENION_SKIP_PROMPT_HISTORY via -e so it's set in the initial shell environment
+  // 用我们的自定义套接字创建一个新会话
+  // 通过 -e 传入 LIMKENION_SKIP_PROMPT_HISTORY，使其在初始 shell 环境中生效
   //
-  // On Windows, the tmux server inherits WSL_INTEROP from the short-lived
-  // wsl.exe that spawns it; once `new-session -d` detaches and wsl.exe exits,
-  // that socket stops servicing requests. Any cli.exe launched inside the pane
-  // then hits `UtilAcceptVsock: accept4 failed 110` (ETIMEDOUT). Observed on
-  // 2026-03-25: server PID 386 (started alongside /init at WSL boot) inherited
-  // /run/WSL/383_interop — init's own socket, which listens but doesn't handle
-  // interop. /run/WSL/1_interop is a stable symlink WSL maintains to the real
-  // handler; pin the server to it so interop survives the spawning wsl.exe.
+  // 在 Windows 上，tmux 服务器从生成它的短暂存活的 wsl.exe 继承 WSL_INTEROP；
+  // 一旦 `new-session -d` 分离且 wsl.exe 退出，该套接字就停止服务请求。
+  // 之后在窗格内启动的任何 cli.exe 都会遇到 `UtilAcceptVsock: accept4 failed
+  // 110`（ETIMEDOUT）。2026-03-25 观察到：服务器 PID 386（在 WSL 启动时随
+  // /init 一起启动）继承了 /run/WSL/383_interop——即 init 自己的套接字，
+  // 它监听但并不处理互操作。/run/WSL/1_interop 是 WSL 维护的指向真正
+  // 处理器的稳定符号链接；将服务器固定到它上面，使互操作穿过生成它的
+  // wsl.exe 依然存活。
   const result = await execTmux([
     '-L',
     socket,
@@ -294,8 +293,8 @@ async function doInitialize(): Promise<void> {
   ])
 
   if (result.code !== 0) {
-    // Session might already exist from a previous run with same PID (unlikely but possible)
-    // Check if the session exists
+    // 会话可能已存在（同一 PID 的先前运行——不太可能但有可能）
+    // 检查会话是否存在
     const checkResult = await execTmux([
       '-L',
       socket,
@@ -310,15 +309,14 @@ async function doInitialize(): Promise<void> {
     }
   }
 
-  // Register cleanup to kill the tmux server on exit
+  // 注册清理，在退出时终止 tmux 服务器
   registerCleanup(killTmuxServer)
 
-  // Set LIMKENION_SKIP_PROMPT_HISTORY in the tmux GLOBAL environment (-g).
-  // Without -g this would only apply to the 'base' session, and new sessions
-  // created by TungstenTool (e.g. 'test', 'verify') would not inherit it.
-  // Any Limkenion instance spawned on this socket will inherit this env var,
-  // preventing test/verification sessions from polluting the user's real
-  // command history and --resume session list.
+  // 在 tmux GLOBAL 环境（-g）中设置 LIMKENION_SKIP_PROMPT_HISTORY。
+  // 没有 -g 它只会作用于 'base' 会话，而 TungstenTool 创建的
+  // 新会话（如 'test'、'verify'）不会继承它。
+  // 在此套接字上生成的任何 Limkenion 实例都会继承该 env 变量，
+  // 防止测试/验证会话污染用户的真实命令历史和 --resume 会话列表。
   await execTmux([
     '-L',
     socket,
@@ -328,11 +326,10 @@ async function doInitialize(): Promise<void> {
     'true',
   ])
 
-  // Same WSL_INTEROP pin as the new-session -e above, but in the GLOBAL env
-  // so sessions created by TungstenTool inherit it too. The -e on new-session
-  // only covers the base session's initial shell; a later `new-session -s cc`
-  // inherits the SERVER's env, which still holds the stale socket from the
-  // wsl.exe that spawned it.
+  // 与上面 new-session 的 -e 相同的 WSL_INTEROP 固定，但放在 GLOBAL 环境，
+  // 使 TungstenTool 创建的会话也继承它。new-session 上的 -e 只覆盖
+  // base 会话的初始 shell；之后的 `new-session -s cc` 会继承 SERVER
+  // 的环境，而该环境仍持有生成它的 wsl.exe 中的过时套接字。
   if (getPlatform() === 'windows') {
     await execTmux([
       '-L',
@@ -344,7 +341,7 @@ async function doInitialize(): Promise<void> {
     ])
   }
 
-  // Get the socket path and server PID
+  // 获取套接字路径和服务器 PID
   const infoResult = await execTmux([
     '-L',
     socket,
@@ -362,26 +359,26 @@ async function doInitialize(): Promise<void> {
         return
       }
     }
-    // Parsing failed - log and fall through to fallback
+    // 解析失败 - 记录并回退到备用路径
     logForDebugging(
-      `[Socket] Failed to parse socket info from tmux output: "${infoResult.stdout.trim()}". Using fallback path.`,
+      `[Socket] 无法从 tmux 输出解析套接字信息："${infoResult.stdout.trim()}"。使用备用路径。`,
     )
   } else {
-    // Command failed - log and fall through to fallback
+    // 命令失败 - 记录并回退到备用路径
     logForDebugging(
-      `[Socket] Failed to get socket info via display-message (exit ${infoResult.code}): ${infoResult.stderr}. Using fallback path.`,
+      `[Socket] 通过 display-message 获取套接字信息失败（退出码 ${infoResult.code}）：${infoResult.stderr}。使用备用路径。`,
     )
   }
 
-  // Fallback: construct the socket path from standard tmux location
-  // tmux sockets are typically at $TMPDIR/tmux-<UID>/<socket_name> (or /tmp/tmux-<UID>/ if TMPDIR is not set)
-  // On Windows this path is inside WSL, so always use POSIX separators.
-  // process.getuid() is undefined on Windows; WSL default user is root (uid 0) in CI.
+  // 备用方案：从标准 tmux 位置构造套接字路径
+  // tmux 套接字通常在 $TMPDIR/tmux-<UID>/<socket_name>（若未设置 TMPDIR 则在 /tmp/tmux-<UID>/）
+  // 在 Windows 上该路径位于 WSL 内部，因此始终使用 POSIX 分隔符。
+  // process.getuid() 在 Windows 上未定义；CI 中 WSL 默认用户是 root（uid 0）。
   const uid = process.getuid?.() ?? 0
   const baseTmpDir = process.env.TMPDIR || '/tmp'
   const fallbackPath = posix.join(baseTmpDir, `tmux-${uid}`, socket)
 
-  // Get server PID separately
+  // 单独获取服务器 PID
   const pidResult = await execTmux([
     '-L',
     socket,
@@ -394,18 +391,18 @@ async function doInitialize(): Promise<void> {
     const pid = parseInt(pidResult.stdout.trim(), 10)
     if (!isNaN(pid)) {
       logForDebugging(
-        `[Socket] Using fallback socket path: ${fallbackPath} (server PID: ${pid})`,
+        `[Socket] 使用备用套接字路径：${fallbackPath}（服务器 PID：${pid}）`,
       )
       setLimkenionSocketInfo(fallbackPath, pid)
       return
     }
-    // PID parsing failed
+    // PID 解析失败
     logForDebugging(
-      `[Socket] Failed to parse server PID from tmux output: "${pidResult.stdout.trim()}"`,
+      `[Socket] 无法从 tmux 输出解析服务器 PID："${pidResult.stdout.trim()}"`,
     )
   } else {
     logForDebugging(
-      `[Socket] Failed to get server PID (exit ${pidResult.code}): ${pidResult.stderr}`,
+      `[Socket] 无法获取服务器 PID（退出码 ${pidResult.code}）：${pidResult.stderr}`,
     )
   }
 
@@ -414,7 +411,7 @@ async function doInitialize(): Promise<void> {
   )
 }
 
-// For testing purposes
+// 用于测试
 export function resetSocketState(): void {
   socketName = null
   socketPath = null

@@ -131,7 +131,7 @@ export function TrustDialog(t0) {
   if ($[13] !== hasAnyBashExecution) {
     t12 = () => {
       const isHomeDir = homedir() === getCwd();
-      logEvent("内部代号_trust_dialog_shown", {
+      logEvent("limkenion_trust_dialog_shown", {
         isHomeDir,
         hasMcpServers,
         hasHooks,
@@ -160,7 +160,7 @@ export function TrustDialog(t0) {
         return;
       }
       const isHomeDir_0 = homedir() === getCwd();
-      logEvent("内部代号_trust_dialog_accept", {
+      logEvent("limkenion_trust_dialog_accept", {
         isHomeDir: isHomeDir_0,
         hasMcpServers,
         hasHooks,

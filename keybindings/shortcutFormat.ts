@@ -46,7 +46,7 @@ export function getShortcutDisplay(
     const key = `${action}:${context}`
     if (!LOGGED_FALLBACKS.has(key)) {
       LOGGED_FALLBACKS.add(key)
-      logEvent('内部代号_keybinding_fallback_used', {
+      logEvent('limkenion_keybinding_fallback_used', {
         action:
           action as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         context:

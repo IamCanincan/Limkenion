@@ -30,7 +30,7 @@ import {
  * Controlled by GrowthBook gate with local override:
  * - Set ENABLE_PID_BASED_VERSION_LOCKING=true to force-enable
  * - Set ENABLE_PID_BASED_VERSION_LOCKING=false to force-disable
- * - If unset, GrowthBook gate (内部代号_pid_based_version_locking) controls rollout
+ * - If unset, GrowthBook gate (limkenion_pid_based_version_locking) controls rollout
  */
 export function isPidBasedLockingEnabled(): boolean {
   const envVar = process.env.ENABLE_PID_BASED_VERSION_LOCKING
@@ -43,7 +43,7 @@ export function isPidBasedLockingEnabled(): boolean {
   }
   // GrowthBook controls gradual rollout (returns false for external users)
   return getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_pid_based_version_locking',
+    'limkenion_pid_based_version_locking',
     false,
   )
 }

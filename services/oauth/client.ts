@@ -135,11 +135,11 @@ export async function exchangeCodeForTokens(
   if (response.status !== 200) {
     throw new Error(
       response.status === 401
-        ? 'Authentication failed: Invalid authorization code'
-        : `Token exchange failed (${response.status}): ${response.statusText}`,
+        ? '认证失败：授权码无效'
+        : `令牌交换失败（${response.status}）：${response.statusText}`,
     )
   }
-  logEvent('内部代号_oauth_token_exchange_success', {})
+  logEvent('limkenion_oauth_token_exchange_success', {})
   return response.data
 }
 
@@ -169,7 +169,7 @@ export async function refreshOAuthToken(
     })
 
     if (response.status !== 200) {
-      throw new Error(`Token refresh failed: ${response.statusText}`)
+      throw new Error(`令牌刷新失败：${response.statusText}`)
     }
 
     const data = response.data as OAuthTokenExchangeResponse
@@ -182,7 +182,7 @@ export async function refreshOAuthToken(
     const expiresAt = Date.now() + expiresIn * 1000
     const scopes = parseScopes(data.scope)
 
-    logEvent('内部代号_oauth_token_refresh_success', {})
+    logEvent('limkenion_oauth_token_refresh_success', {})
 
     // Skip the extra /api/oauth/profile round-trip when we already have both
     // the global-config profile fields AND the secure-storage subscription data.
@@ -261,7 +261,7 @@ export async function refreshOAuthToken(
       axios.isAxiosError(error) && error.response?.data
         ? JSON.stringify(error.response.data)
         : undefined
-    logEvent('内部代号_oauth_token_refresh_failure', {
+    logEvent('limkenion_oauth_token_refresh_failure', {
       error: (error as Error)
         .message as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       ...(responseBody && {
@@ -281,13 +281,13 @@ export async function fetchAndStoreUserRoles(
   })
 
   if (response.status !== 200) {
-    throw new Error(`Failed to fetch user roles: ${response.statusText}`)
+    throw new Error(`获取用户角色失败：${response.statusText}`)
   }
   const data = response.data as UserRolesResponse
   const config = getGlobalConfig()
 
   if (!config.oauthAccount) {
-    throw new Error('OAuth account information not found in config')
+    throw new Error('配置中未找到 OAuth 账户信息')
   }
 
   saveGlobalConfig(current => ({
@@ -302,7 +302,7 @@ export async function fetchAndStoreUserRoles(
       : current.oauthAccount,
   }))
 
-  logEvent('内部代号_oauth_roles_stored', {
+  logEvent('limkenion_oauth_roles_stored', {
     org_role:
       data.organization_role as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
@@ -319,7 +319,7 @@ export async function createAndStoreApiKey(
     const apiKey = response.data?.raw_key
     if (apiKey) {
       await saveApiKey(apiKey)
-      logEvent('内部代号_oauth_api_key', {
+      logEvent('limkenion_oauth_api_key', {
         status:
           'success' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         statusCode: response.status,
@@ -328,7 +328,7 @@ export async function createAndStoreApiKey(
     }
     return null
   } catch (error) {
-    logEvent('内部代号_oauth_api_key', {
+    logEvent('limkenion_oauth_api_key', {
       status:
         'failure' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       error: (error instanceof Error
@@ -414,7 +414,7 @@ export async function fetchProfileInfo(accessToken: string): Promise<{
     result.subscriptionCreatedAt = profile.organization.subscription_created_at
   }
 
-  logEvent('内部代号_oauth_profile_fetch_success', {})
+  logEvent('limkenion_oauth_profile_fetch_success', {})
 
   return { ...result, rawProfile: profile }
 }

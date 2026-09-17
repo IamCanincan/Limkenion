@@ -1,9 +1,9 @@
-import memoize from 'lodash-es/memoize.js'
+﻿import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
 import { join } from 'path'
 
-// Memoized: 150+ callers, many on hot paths. Keyed off LIMKENION_CONFIG_DIR so
-// tests that change the env var get a fresh value without explicit cache.clear.
+// 已记忆化：150+ 调用方，其中许多在热点路径上。以 LIMKENION_CONFIG_DIR
+// 为键，使改变该环境变量的测试无需显式 cache.clear 也能获得新值。
 export const getLimkenionConfigHomeDir = memoize(
   (): string => {
     return (
@@ -18,8 +18,8 @@ export function getTeamsDir(): string {
 }
 
 /**
- * Check if NODE_OPTIONS contains a specific flag.
- * Splits on whitespace and checks for exact match to avoid false positives.
+ * 检查 NODE_OPTIONS 中是否包含某个特定 flag。
+ * 按空白拆分并做精确匹配，以免出现误报。
  */
 export function hasNodeOption(flag: string): boolean {
   const nodeOptions = process.env.NODE_OPTIONS
@@ -47,15 +47,15 @@ export function isEnvDefinedFalsy(
 }
 
 /**
- * --bare / LIMKENION_SIMPLE — skip hooks, LSP, plugin sync, skill dir-walk,
- * attribution, background prefetches, and ALL keychain/credential reads.
- * Auth is strictly LIMKENION_API_KEY env or apiKeyHelper from --settings.
- * Explicit CLI flags (--plugin-dir, --add-dir, --mcp-config) still honored.
- * ~30 gates across the codebase.
+ * --bare / LIMKENION_SIMPLE —— 跳过钩子、LSP、插件同步、技能目录遍历、
+ * 归属、后台预取以及所有 keychain/凭据读取。
+ * 认证严格来自 LIMKENION_API_KEY 环境变量或 --settings 的 apiKeyHelper。
+ * 显式 CLI 标志（--plugin-dir、--add-dir、--mcp-config）仍被遵守。
+ * 整个代码库约 30 个门。
  *
- * Checks argv directly (in addition to the env var) because several gates
- * run before main.tsx's action handler sets LIMKENION_SIMPLE=1 from --bare
- * — notably startKeychainPrefetch() at main.tsx top-level.
+ * 直接检查 argv（除了环境变量），因为若干门在 main.tsx 的 action
+ * handler 从 --bare 设置 LIMKENION_SIMPLE=1 之前运行——特别是
+ * main.tsx 顶层调用的 startKeychainPrefetch()。
  */
 export function isBareMode(): boolean {
   return (
@@ -65,22 +65,22 @@ export function isBareMode(): boolean {
 }
 
 /**
- * Parses an array of environment variable strings into a key-value object
- * @param envVars Array of strings in KEY=VALUE format
- * @returns Object with key-value pairs
+ * 把环境变量字符串数组解析为键值对象
+ * @param envVars KEY=VALUE 格式的字符串数组
+ * @returns 含键值对的对象
  */
 export function parseEnvVars(
   rawEnvArgs: string[] | undefined,
 ): Record<string, string> {
   const parsedEnv: Record<string, string> = {}
 
-  // Parse individual env vars
+  // 解析各个环境变量
   if (rawEnvArgs) {
     for (const envStr of rawEnvArgs) {
       const [key, ...valueParts] = envStr.split('=')
       if (!key || valueParts.length === 0) {
         throw new Error(
-          `Invalid environment variable format: ${envStr}, environment variables should be added as: -e KEY1=value1 -e KEY2=value2`,
+          `环境变量格式无效：${envStr}，环境变量应按这种方式添加：-e KEY1=value1 -e KEY2=value2`,
         )
       }
       parsedEnv[key] = valueParts.join('=')
@@ -90,67 +90,59 @@ export function parseEnvVars(
 }
 
 /**
- * Get the AWS region with fallback to default
- * Matches the Limkenion Bedrock SDK's region behavior
+ * 获取 AWS 区域，带默认值回退
+ * 与 Limkenion Bedrock SDK 的区域行为一致
  */
 export function getAWSRegion(): string {
   return process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1'
 }
 
 /**
- * Get the default Vertex AI region
+ * 获取默认的 Vertex AI 区域
  */
 export function getDefaultVertexRegion(): string {
   return process.env.CLOUD_ML_REGION || 'us-east5'
 }
 
 /**
- * Check if bash commands should maintain project working directory (reset to original after each command)
- * @returns true if LIMKENION_BASH_MAINTAIN_PROJECT_WORKING_DIR is set to a truthy value
+ * 检查 bash 命令是否应保持项目工作目录（每条命令后重置为最初值）
+ * @returns 若 LIMKENION_BASH_MAINTAIN_PROJECT_WORKING_DIR 被设为真值时返回 true
  */
 export function shouldMaintainProjectWorkingDir(): boolean {
   return isEnvTruthy(process.env.LIMKENION_BASH_MAINTAIN_PROJECT_WORKING_DIR)
 }
 
 /**
- * Check if running on Homespace (ant-internal cloud environment)
+ * 检查是否运行在 Homespace（内部构建云环境）
  */
 export function isRunningOnHomespace(): boolean {
   return (
-    process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.COO_RUNNING_ON_HOMESPACE)
+    false
   )
 }
 
 /**
- * Conservative check for whether Limkenion is running inside a protected
- * (privileged or ASL3+) COO namespace or cluster.
+ * 保守地判断 Limkenion 是否运行在受保护（特权或 ASL3+）的
+ * COO 命名空间或集群内。
  *
- * Conservative means: when signals are ambiguous, assume protected. We would
- * rather over-report protected usage than miss it. Unprotected environments
- * are homespace, namespaces on the open allowlist, and no k8s/COO signals
- * at all (laptop/local dev).
+ * 保守的意思是：当信号不明确时，假定已受保护。我们宁愿多报
+ * 受保护使用，也不愿漏报。不受保护的环境是 homespace、开放白名单上的
+ * 命名空间，以及完全没有 k8s/COO 信号的环境（笔记本/本地开发）。
  *
- * Used for telemetry to measure auto-mode usage in sensitive environments.
+ * 用于遥测，测量敏感环境中的自动模式使用情况。
  */
 export function isInProtectedNamespace(): boolean {
-  // USER_TYPE is build-time --define'd; in external builds this block is
-  // DCE'd so the require() and namespace allowlist never appear in the bundle.
-  if (process.env.USER_TYPE === 'ant') {
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    return (
-      require('./protectedNamespace.js') as typeof import('./protectedNamespace.js')
-    ).checkProtectedNamespace()
-    /* eslint-enable @typescript-eslint/no-require-imports */
-  }
+  // USER_TYPE 是构建时的 --define'd；在外部构建中此代码块会被 DCE 掉，
+  // 因此 require() 和命名空间白名单永远不会出现在 bundle 中。
+  
   return false
 }
 
-// @[MODEL LAUNCH]: Add a Vertex region override env var for the new model.
+// @[MODEL LAUNCH]: 为新模型添加一个 Vertex 区域覆盖环境变量。
 /**
- * Model prefix → env var for Vertex region overrides.
- * Order matters: more specific prefixes must come before less specific ones
- * (e.g., 'limkenion-opus-4-1' before 'limkenion-opus-4').
+ * 模型前缀 → Vertex 区域覆盖的环境变量。
+ * 顺序很重要：更具体的前缀必须放在更不具体的前缀之前
+ * （例如 'limkenion-opus-4-1' 在 'limkenion-opus-4' 之前）。
  */
 const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = [
   ['limkenion-haiku-4-5', 'VERTEX_REGION_LIMKENION_HAIKU_4_5'],
@@ -165,8 +157,8 @@ const VERTEX_REGION_OVERRIDES: ReadonlyArray<[string, string]> = [
 ]
 
 /**
- * Get the Vertex AI region for a specific model.
- * Different models may be available in different regions.
+ * 为特定模型获取 Vertex AI 区域。
+ * 不同的模型可能在不同区域可用。
  */
 export function getVertexRegionForModel(
   model: string | undefined,

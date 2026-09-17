@@ -7,8 +7,8 @@ export default () =>
     type: 'local-jsx',
     name: 'login',
     description: hasLimkenionApiKeyAuth()
-      ? 'Switch Limkenion accounts'
-      : 'Sign in with your Limkenion account',
+      ? '切换 Limkenion 账号'
+      : '使用你的 Limkenion 账号登录',
     isEnabled: () => !isEnvTruthy(process.env.DISABLE_LOGIN_COMMAND),
     load: () => import('./login.js'),
   }) satisfies Command

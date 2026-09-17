@@ -32,26 +32,26 @@ export const inputSchema = lazySchema(() =>
     notebook_path: z
       .string()
       .describe(
-        'The absolute path to the Jupyter notebook file to edit (must be absolute, not relative)',
+        '要编辑的 Jupyter notebook 文件的绝对路径（必须是绝对路径，而非相对路径）',
       ),
     cell_id: z
       .string()
       .optional()
       .describe(
-        'The ID of the cell to edit. When inserting a new cell, the new cell will be inserted after the cell with this ID, or at the beginning if not specified.',
+        '要编辑的单元格 ID。插入新单元格时，新单元格将插到具有此 ID 的单元格之后，若未指定则插到开头。',
       ),
-    new_source: z.string().describe('The new source for the cell'),
+    new_source: z.string().describe('单元格的新源码'),
     cell_type: z
       .enum(['code', 'markdown'])
       .optional()
       .describe(
-        'The type of the cell (code or markdown). If not specified, it defaults to the current cell type. If using edit_mode=insert, this is required.',
+        '单元格的类型（code 或 markdown）。若未指定，则默认为当前单元格类型。若使用 edit_mode=insert，则此项为必填。',
       ),
     edit_mode: z
       .enum(['replace', 'insert', 'delete'])
       .optional()
       .describe(
-        'The type of edit to make (replace, insert, delete). Defaults to replace.',
+        '要执行的编辑类型（replace、insert、delete）。默认为 replace。',
       ),
   }),
 )
@@ -61,26 +61,26 @@ export const outputSchema = lazySchema(() =>
   z.object({
     new_source: z
       .string()
-      .describe('The new source code that was written to the cell'),
+      .describe('写入单元格的新源码'),
     cell_id: z
       .string()
       .optional()
-      .describe('The ID of the cell that was edited'),
-    cell_type: z.enum(['code', 'markdown']).describe('The type of the cell'),
-    language: z.string().describe('The programming language of the notebook'),
-    edit_mode: z.string().describe('The edit mode that was used'),
+      .describe('被编辑单元格的 ID'),
+    cell_type: z.enum(['code', 'markdown']).describe('单元格的类型'),
+    language: z.string().describe('notebook 的编程语言'),
+    edit_mode: z.string().describe('所使用的编辑模式'),
     error: z
       .string()
       .optional()
-      .describe('Error message if the operation failed'),
-    // Fields for attribution tracking
-    notebook_path: z.string().describe('The path to the notebook file'),
+      .describe('操作失败时的错误消息'),
+    // 用于溯源追踪的字段
+    notebook_path: z.string().describe('notebook 文件的路径'),
     original_file: z
       .string()
-      .describe('The original notebook content before modification'),
+      .describe('修改前的原始 notebook 内容'),
     updated_file: z
       .string()
-      .describe('The updated notebook content after modification'),
+      .describe('修改后的 notebook 内容'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>

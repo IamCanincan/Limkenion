@@ -94,9 +94,9 @@ export function ConsoleOAuthFlow({
   // Log forced login method on mount
   useEffect(() => {
     if (forceLoginMethod === 'limkenionai') {
-      logEvent('内部代号_oauth_limkenionai_forced', {});
+      logEvent('limkenion_oauth_limkenionai_forced', {});
     } else if (forceLoginMethod === 'console') {
-      logEvent('内部代号_oauth_console_forced', {});
+      logEvent('limkenion_oauth_console_forced', {});
     }
   }, [forceLoginMethod]);
 
@@ -110,7 +110,7 @@ export function ConsoleOAuthFlow({
 
   // Handle Enter to continue on success state
   useKeybinding('confirm:yes', () => {
-    logEvent('内部代号_oauth_success', {
+    logEvent('limkenion_oauth_success', {
       loginWithLimkenionAi
     });
     onDone();
@@ -169,7 +169,7 @@ export function ConsoleOAuthFlow({
       }
 
       // Track which path the user is taking (manual code entry)
-      logEvent('内部代号_oauth_manual_entry', {});
+      logEvent('limkenion_oauth_manual_entry', {});
       oauthService.handleManualAuthCodeInput({
         authorizationCode,
         state
@@ -188,7 +188,7 @@ export function ConsoleOAuthFlow({
   }
   const startOAuth = useCallback(async () => {
     try {
-      logEvent('内部代号_oauth_flow_start', {
+      logEvent('limkenion_oauth_flow_start', {
         loginWithLimkenionAi
       });
       const result = await oauthService.startOAuthFlow(async url_0 => {
@@ -218,7 +218,7 @@ export function ConsoleOAuthFlow({
             state: 'idle'
           }
         });
-        logEvent('内部代号_oauth_token_exchange_error', {
+        logEvent('limkenion_oauth_token_exchange_error', {
           error: err_1.message,
           ssl_error: sslHint_0 !== null
         });
@@ -255,7 +255,7 @@ export function ConsoleOAuthFlow({
           state: mode === 'setup-token' ? 'ready_to_start' : 'idle'
         }
       });
-      logEvent('内部代号_oauth_error', {
+      logEvent('limkenion_oauth_error', {
         error: errorMessage as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         ssl_error: sslHint !== null
       });
@@ -277,7 +277,7 @@ export function ConsoleOAuthFlow({
     if (mode === 'setup-token' && oauthStatus.state === 'success') {
       // Delay to ensure static content is fully rendered before exiting
       const timer_0 = setTimeout((loginWithLimkenionAi_0, onDone_0) => {
-        logEvent('内部代号_oauth_success', {
+        logEvent('limkenion_oauth_success', {
           loginWithLimkenionAi: loginWithLimkenionAi_0
         });
         // Don't clear terminal so the token remains visible
@@ -414,7 +414,7 @@ function OAuthStatusMessage(t0) {
         if ($[6] !== setLoginWithLimkenionAi || $[7] !== setOAuthStatus) {
           t7 = <Box><Select options={t6} onChange={value_0 => {
               if (value_0 === "platform") {
-                logEvent("内部代号_oauth_platform_selected", {});
+                logEvent("limkenion_oauth_platform_selected", {});
                 setOAuthStatus({
                   state: "platform_setup"
                 });
@@ -423,10 +423,10 @@ function OAuthStatusMessage(t0) {
                   state: "ready_to_start"
                 });
                 if (value_0 === "limkenionai") {
-                  logEvent("内部代号_oauth_limkenionai_selected", {});
+                  logEvent("limkenion_oauth_limkenionai_selected", {});
                   setLoginWithLimkenionAi(true);
                 } else {
-                  logEvent("内部代号_oauth_console_selected", {});
+                  logEvent("limkenion_oauth_console_selected", {});
                   setLoginWithLimkenionAi(false);
                 }
               }

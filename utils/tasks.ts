@@ -317,19 +317,7 @@ export async function getTask(
     const data = jsonParse(content) as { status?: string }
 
     // TEMPORARY: Migrate old status names for existing sessions (ant-only)
-    if (process.env.USER_TYPE === 'ant') {
-      if (data.status === 'open') data.status = 'pending'
-      else if (data.status === 'resolved') data.status = 'completed'
-      // Migrate development task statuses to in_progress
-      else if (
-        data.status &&
-        ['planning', 'implementing', 'reviewing', 'verifying'].includes(
-          data.status,
-        )
-      ) {
-        data.status = 'in_progress'
-      }
-    }
+    
     const parsed = TaskSchema().safeParse(data)
     if (!parsed.success) {
       logForDebugging(

@@ -18,7 +18,7 @@ import { AppStateProvider } from '../../state/AppState.js';
 import { onChangeAppState } from '../../state/onChangeAppState.js';
 import { isLimkenionAuthEnabled } from '../../utils/auth.js';
 export async function setupTokenHandler(root: Root): Promise<void> {
-  logEvent('内部代号_setup_token_command', {});
+  logEvent('limkenion_setup_token_command', {});
   const showAuthWarning = !isLimkenionAuthEnabled();
   const {
     ConsoleOAuthFlow
@@ -30,17 +30,15 @@ export async function setupTokenHandler(root: Root): Promise<void> {
             <WelcomeV2 />
             {showAuthWarning && <Box flexDirection="column">
                 <Text color="warning">
-                  Warning: You already have authentication configured via
-                  environment variable or API key helper.
+                  警告：你已经通过环境变量或 API key 辅助方式配置了认证。
                 </Text>
                 <Text color="warning">
-                  The setup-token command will create a new OAuth token which
-                  you can use instead.
+                  setup-token 命令将创建一个新的 OAuth token，你可以用其代替。
                 </Text>
               </Box>}
             <ConsoleOAuthFlow onDone={() => {
             void resolve();
-          }} mode="setup-token" startingMessage="This will guide you through long-lived (1-year) auth token setup for your Limkenion account. Limkenion subscription required." />
+          }} mode="setup-token" startingMessage="这将引导你为 Limkenion 账号创建长期（1 年）有效的认证 token。需要 Limkenion 订阅。" />
           </Box>
         </KeybindingSetup>
       </AppStateProvider>);
@@ -70,7 +68,7 @@ function DoctorWithPlugins(t0) {
   return t1;
 }
 export async function doctorHandler(root: Root): Promise<void> {
-  logEvent('内部代号_doctor_command', {});
+  logEvent('limkenion_doctor_command', {});
   await new Promise<void>(resolve => {
     root.render(<AppStateProvider>
         <KeybindingSetup>

@@ -1,26 +1,24 @@
 /**
- * Turn-scoped workload tag via AsyncLocalStorage.
+ * 通过 AsyncLocalStorage 的回合作用域工作负载标签。
  *
- * WHY a separate module from bootstrap/state.ts:
- * bootstrap is transitively imported by src/entrypoints/browser-sdk.ts, and
- * the browser bundle cannot import Node's async_hooks. This module is only
- * imported from CLI/SDK code paths that never end up in the browser build.
+ * 为什么单独建模块而不是放进 bootstrap/state.ts：
+ * bootstrap 被 src/entrypoints/browser-sdk.ts 传递性导入，而浏览器打包不能
+ * 导入 Node 的 async_hooks。本模块只从绝不出现在浏览器构建中的 CLI/SDK
+ * 代码路径导入。
  *
- * WHY AsyncLocalStorage (not a global mutable slot):
- * void-detached background agents (executeForkedSlashCommand, AgentTool)
- * yield at their first await. The parent turn's synchronous continuation —
- * including any `finally` block — runs to completion BEFORE the detached
- * closure resumes. A global setWorkload('cron') at the top of the closure
- * is deterministically clobbered. ALS captures context at invocation time
- * and survives every await in that chain, isolated from the parent. Same
- * pattern as agentContext.ts.
+ * 为什么用 AsyncLocalStorage（而非全局可变槽）：
+ * void 分离的后台智能体（executeForkedSlashCommand、AgentTool）会在首次
+ * await 处让出。父回合的同步续接——包括任何 `finally` 块——会在分离的闭包
+ * 恢复前运行完毕。在闭包顶部设置全局 setWorkload('cron') 会被确定性地抹掉。
+ * ALS 在调用时捕获上下文，并在该链的每次 await 中存活，与父回合隔离。
+ * 与 agentContext.ts 采用相同模式。
  */
 
 import { AsyncLocalStorage } from 'async_hooks'
 
 /**
- * Server-side sanitizer (_sanitize_entrypoint in limkenion.py) accepts
- * only lowercase [a-z0-9_-]{0,32}. Uppercase stops parsing at char 0.
+ * 服务端净化器（limkenion.py 中的 _sanitize_entrypoint）只接受小写
+ * [a-z0-9_-]{0,32}。大写会在第 0 个字符处停止解析。
  */
 export type Workload = 'cron'
 export const WORKLOAD_CRON: Workload = 'cron'
@@ -34,20 +32,18 @@ export function getWorkload(): string | undefined {
 }
 
 /**
- * Wrap `fn` in a workload ALS context. ALWAYS establishes a new context
- * boundary, even when `workload` is undefined.
+ * 把 `fn` 包装进工作负载 ALS 上下文。即便 `workload` 为 undefined，
+ * 也总是建立新的上下文边界。
  *
- * The previous implementation short-circuited on `undefined` with
- * `return fn()` — but that's a pass-through, not a boundary. If the caller
- * is already inside a leaked cron context (REPL: queryGuard.end() →
- * _notify() → React subscriber → scheduled re-render captures ALS at
- * scheduling time → useQueueProcessor effect → executeQueuedInput → here),
- * a pass-through lets `getWorkload()` inside `fn` return the leaked tag.
- * Once leaked, it's sticky forever: every turn's end-notify re-propagates
- * the ambient context to the next turn's scheduling chain.
+ * 之前的实现在 `undefined` 时用 `return fn()` 短路——但那是透传，不是边界。
+ * 如果调用方已位于泄漏的 cron 上下文中（REPL：queryGuard.end() →
+ * _notify() → React 订阅者 → 调度时的重渲染捕获 ALS →
+ * useQueueProcessor effect → executeQueuedInput → 此处），一次透传会让 `fn`
+ * 内部的 getWorkload() 返回泄漏的标签。一旦泄漏就永久粘滞：每个回合的结束
+ * 通知都会把环境上下文重新传播给下一回合的调度链。
  *
- * Always calling `.run()` guarantees `getWorkload()` inside `fn` returns
- * exactly what the caller passed — including `undefined`.
+ * 总是调用 `.run()` 可保证 `fn` 内部的 getWorkload() 返回调用方传入的
+ * 确切值——包括 `undefined`。
  */
 export function runWithWorkload<T>(
   workload: string | undefined,

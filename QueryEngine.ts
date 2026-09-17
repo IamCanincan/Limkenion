@@ -190,7 +190,7 @@ export class QueryEngine {
   private hasHandledOrphanedPermission = false
   private readFileState: FileStateCache
   // Turn-scoped skill discovery tracking (feeds was_discovered on
-  // 内部代号_skill_tool_invocation). Must persist across the two
+  // limkenion_skill_tool_invocation). Must persist across the two
   // processUserInputContext rebuilds inside submitMessage, but is cleared
   // at the start of each submitMessage to avoid unbounded growth across
   // many turns in SDK mode.

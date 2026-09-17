@@ -20,40 +20,34 @@ const DEFAULTS: ChicagoConfig = {
   coordinateMode: 'pixels',
 }
 
-// Spread over defaults so a partial JSON ({"enabled": true} alone) inherits the
-// rest. The generic on getDynamicConfig is a type assertion, not a validator —
-// GB returning a partial object would otherwise surface undefined fields.
+// 展开在默认值之上，使部分 JSON（单独 {"enabled": true}）继承其余部分。
+// getDynamicConfig 上的泛型是类型断言，而非验证器——
+// GB 返回部分对象，否则会呈现未定义字段。
 function readConfig(): ChicagoConfig {
   return {
     ...DEFAULTS,
     ...getDynamicConfig_CACHED_MAY_BE_STALE<Partial<ChicagoConfig>>(
-      '内部代号_malort_pedway',
+      'limkenion_malort_pedway',
       DEFAULTS,
     ),
   }
 }
 
-// Max/Pro only for external rollout. Ant bypass so dogfooding continues
-// regardless of subscription tier — not all ants are max/pro, and per
-// LIMKENION.md:281, USER_TYPE !== 'ant' branches get zero antfooding.
+// 外部发布仅限 Max/Pro。Ant 绕过以便继续自食其犬粮——
+// 并非所有 ant 都是 max/pro，且根据 LIMKENION.md:281，
+// USER_TYPE !== 'ant' 的分支不会获得任何 antfooding。
 function hasRequiredSubscription(): boolean {
-  if (process.env.USER_TYPE === 'ant') return true
+  
   const tier = getSubscriptionType()
   return tier === 'max' || tier === 'pro'
 }
 
 export function getChicagoEnabled(): boolean {
-  // Disable for ants whose shell inherited monorepo dev config.
-  // MONOREPO_ROOT_DIR is exported by config/local/zsh/zshrc, which
-  // laptop-setup.sh wires into ~/.zshrc — its presence is the cheap
-  // proxy for "has monorepo access". Override: ALLOW_ANT_COMPUTER_USE_MCP=1.
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    process.env.MONOREPO_ROOT_DIR &&
-    !isEnvTruthy(process.env.ALLOW_ANT_COMPUTER_USE_MCP)
-  ) {
-    return false
-  }
+  // 为继承了 monorepo 开发配置的 ant 禁用。
+  // MONOREPO_ROOT_DIR 由 config/local/zsh/zshrc 导出，laptop-setup.sh
+  // 将其接入 ~/.zshrc——它的存在是"有 monorepo 访问权限"的廉价代理。
+  // 覆盖：ALLOW_ANT_COMPUTER_USE_MCP=1。
+  
   return hasRequiredSubscription() && readConfig().enabled
 }
 
@@ -62,9 +56,9 @@ export function getChicagoSubGates(): CuSubGates {
   return subGates
 }
 
-// Frozen at first read — setup.ts builds tool descriptions and executor.ts
-// scales coordinates off the same value. A live read here lets a mid-session
-// GB flip tell the model "pixels" while transforming clicks as normalized.
+// 首次读取时冻结——setup.ts 构建工具描述，executor.ts 也基于同一值
+// 缩放坐标。这里的实时读取会让会话中期的 GB 翻转告诉模型 "pixels"，
+// 同时却把点击转换为归一化值。
 let frozenCoordinateMode: CoordinateMode | undefined
 export function getChicagoCoordinateMode(): CoordinateMode {
   frozenCoordinateMode ??= readConfig().coordinateMode

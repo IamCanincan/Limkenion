@@ -35,7 +35,7 @@ export function migrateAutoUpdatesToSettings(): void {
       },
     })
 
-    logEvent('内部代号_migrate_autoupdates_to_settings', {
+    logEvent('limkenion_migrate_autoupdates_to_settings', {
       was_user_preference: true,
       already_had_env_var: !!userSettings.env?.DISABLE_AUTOUPDATER,
     })
@@ -54,7 +54,7 @@ export function migrateAutoUpdatesToSettings(): void {
     })
   } catch (error) {
     logError(new Error(`Failed to migrate auto-updates: ${error}`))
-    logEvent('内部代号_migrate_autoupdates_error', {
+    logEvent('limkenion_migrate_autoupdates_error', {
       has_error: true,
     })
   }

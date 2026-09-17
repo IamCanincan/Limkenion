@@ -1316,7 +1316,7 @@ class Project {
           },
         )
       } catch {
-        logEvent('内部代号_session_persistence_failed', {})
+        logEvent('limkenion_session_persistence_failed', {})
         logForDebugging('Failed to write transcript as internal event')
       }
       return
@@ -1337,7 +1337,7 @@ class Project {
     )
 
     if (!success) {
-      logEvent('内部代号_session_persistence_failed', {})
+      logEvent('limkenion_session_persistence_failed', {})
       gracefulShutdownSync(1, 'other')
     }
   }
@@ -1891,7 +1891,7 @@ function applyPreservedSegmentRelinks(
       // the full pre-compact history. Known cause: mid-turn-yielded
       // attachment pushed to mutableMessages but never recordTranscript'd
       // (SDK subprocess restarted before next turn's qe:420 flush).
-      logEvent('内部代号_relink_walk_broken', {
+      logEvent('limkenion_relink_walk_broken', {
         tailInTranscript: messages.has(lastSeg.tailUuid),
         headInTranscript: messages.has(lastSeg.headUuid),
         anchorInTranscript: messages.has(lastSeg.anchorUuid),
@@ -2032,7 +2032,7 @@ function applySnipRemovals(messages: Map<UUID, TranscriptMessage>): void {
     relinkedCount++
   }
 
-  logEvent('内部代号_snip_resume_filtered', {
+  logEvent('limkenion_snip_resume_filtered', {
     removed_count: removedCount,
     relinked_count: relinkedCount,
   })
@@ -2080,7 +2080,7 @@ export function buildConversationChain(
           `Cycle detected in parentUuid chain at message ${currentMsg.uuid}. Returning partial transcript.`,
         ),
       )
-      logEvent('内部代号_chain_parent_cycle', {})
+      logEvent('limkenion_chain_parent_cycle', {})
       break
     }
     seen.add(currentMsg.uuid)
@@ -2192,7 +2192,7 @@ function recoverOrphanedParallelToolResults(
   }
 
   if (recoveredCount === 0) return chain
-  logEvent('内部代号_chain_parallel_tr_recovered', {
+  logEvent('limkenion_chain_parallel_tr_recovered', {
     recovered_count: recoveredCount,
   })
 
@@ -2208,7 +2208,7 @@ function recoverOrphanedParallelToolResults(
 /**
  * Find the latest turn_duration checkpoint in the reconstructed chain and
  * compare its recorded messageCount against the chain's position at that
- * point. Emits 内部代号_resume_consistency_delta for BigQuery monitoring of
+ * point. Emits limkenion_resume_consistency_delta for BigQuery monitoring of
  * write→load round-trip drift — the class of bugs where snip/compact/
  * parallel-TR operations mutate in-memory but the parentUuid walk on disk
  * reconstructs a different set (adamr-20260320-165831: 397K displayed →
@@ -2231,7 +2231,7 @@ export function checkResumeConsistency(chain: Message[]): void {
     // The checkpoint was appended AFTER messageCount messages, so its own
     // position should be messageCount (i.e., i === expected).
     const actual = i
-    logEvent('内部代号_resume_consistency_delta', {
+    logEvent('limkenion_resume_consistency_delta', {
       expected,
       actual,
       delta: actual - expected,
@@ -2547,7 +2547,7 @@ async function trackSessionBranchingAnalytics(
   const sessionsWithBranches = branchCounts.length
   const totalBranches = branchCounts.reduce((sum, count) => sum + count, 0)
 
-  logEvent('内部代号_session_forked_branches_fetched', {
+  logEvent('limkenion_session_forked_branches_fetched', {
     total_sessions: sessionIdCounts.size,
     sessions_with_branches: sessionsWithBranches,
     max_branches_per_session: Math.max(...branchCounts),
@@ -2631,7 +2631,7 @@ export async function saveCustomTitle(
   if (sessionId === getSessionId()) {
     getProject().currentSessionTitle = customTitle
   }
-  logEvent('内部代号_session_renamed', {
+  logEvent('limkenion_session_renamed', {
     source:
       source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
@@ -2651,7 +2651,7 @@ export async function saveCustomTitle(
  * - CAS semantics: VS Code's `onlyIfNoCustomTitle` check scans for the
  *   `customTitle` field only, so AI can overwrite its own previous AI
  *   title but never a user title.
- * - Metrics: `内部代号_session_renamed` is not fired for AI titles.
+ * - Metrics: `limkenion_session_renamed` is not fired for AI titles.
  *
  * Because the entry is never re-appended, it scrolls out of the 64KB tail
  * window once enough messages accumulate. Readers (`readLiteMetadata`,
@@ -2695,7 +2695,7 @@ export async function saveTag(sessionId: UUID, tag: string, fullPath?: string) {
   if (sessionId === getSessionId()) {
     getProject().currentSessionTag = tag
   }
-  logEvent('内部代号_session_tagged', {})
+  logEvent('limkenion_session_tagged', {})
 }
 
 /**
@@ -2725,7 +2725,7 @@ export async function linkSessionToPR(
     project.currentSessionPrUrl = prUrl
     project.currentSessionPrRepository = prRepository
   }
-  logEvent('内部代号_session_linked_to_pr', { prNumber })
+  logEvent('limkenion_session_linked_to_pr', { prNumber })
 }
 
 export function getCurrentSessionTag(sessionId: UUID): string | undefined {
@@ -2829,7 +2829,7 @@ export async function saveAgentName(
     getProject().currentSessionAgentName = agentName
     void updateSessionName(agentName)
   }
-  logEvent('内部代号_agent_name_set', {
+  logEvent('limkenion_agent_name_set', {
     source:
       source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
@@ -2850,7 +2850,7 @@ export async function saveAgentColor(
   if (sessionId === getSessionId()) {
     getProject().currentSessionAgentColor = agentColor
   }
-  logEvent('内部代号_agent_color_set', {})
+  logEvent('limkenion_agent_color_set', {})
 }
 
 /**
@@ -3728,7 +3728,7 @@ export async function loadTranscriptFile(
   const leafUuids = new Set<UUID>()
   let hasCycle = false
 
-  if (getFeatureValue_CACHED_MAY_BE_STALE('内部代号_pebble_leaf_prune', false)) {
+  if (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_pebble_leaf_prune', false)) {
     // Build a set of UUIDs that have user/assistant children
     // (these are mid-conversation nodes, not dead ends)
     const hasUserAssistantChild = new Set<UUID>()
@@ -3786,7 +3786,7 @@ export async function loadTranscriptFile(
   }
 
   if (hasCycle) {
-    logEvent('内部代号_transcript_parent_cycle', {})
+    logEvent('limkenion_transcript_parent_cycle', {})
   }
 
   return {
@@ -4354,7 +4354,7 @@ export function isLoggableMessage(m: Message): boolean {
   // they have sensitive info for training that we don't want exposed to the public.
   // When enabled, we allow hook_additional_context through since it contains
   // user-configured hook output that is useful for session context on resume.
-  if (m.type === 'attachment' && getUserType() !== 'ant') {
+  if (m.type === 'attachment') {
     if (
       m.attachment.type === 'hook_additional_context' &&
       isEnvTruthy(process.env.LIMKENION_SAVE_HOOK_ADDITIONAL_CONTEXT)
@@ -4452,12 +4452,10 @@ export function cleanMessagesForLogging(
   allMessages: readonly Message[] = messages,
 ): Transcript {
   const filtered = messages.filter(isLoggableMessage) as Transcript
-  return getUserType() !== 'ant'
-    ? transformMessagesForExternalTranscript(
-        filtered,
-        collectReplIds(allMessages),
-      )
-    : filtered
+  return transformMessagesForExternalTranscript(
+    filtered,
+    collectReplIds(allMessages),
+  )
 }
 
 /**

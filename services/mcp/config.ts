@@ -629,13 +629,13 @@ export async function addMcpConfig(
 ): Promise<void> {
   if (name.match(/[^a-zA-Z0-9_-]/)) {
     throw new Error(
-      `Invalid name ${name}. Names can only contain letters, numbers, hyphens, and underscores.`,
+      `无效的名称 ${name}。名称只能包含字母、数字、连字符和下划线。`,
     )
   }
 
   // Block reserved server name "limkenion-in-chrome"
   if (isLimkenionInChromeMCPServer(name)) {
-    throw new Error(`Cannot add MCP server "${name}": this name is reserved.`)
+    throw new Error(`无法添加 MCP 服务器 "${name}"：此名称已被保留。`)
   }
 
   if (feature('CHICAGO_MCP')) {
@@ -643,14 +643,14 @@ export async function addMcpConfig(
       '../../utils/computerUse/common.js'
     )
     if (isComputerUseMCPServer(name)) {
-      throw new Error(`Cannot add MCP server "${name}": this name is reserved.`)
+      throw new Error(`无法添加 MCP 服务器 "${name}"：此名称已被保留。`)
     }
   }
 
   // Block adding servers when enterprise MCP config exists (it has exclusive control)
   if (doesEnterpriseMcpConfigExist()) {
     throw new Error(
-      `Cannot add MCP server: enterprise MCP configuration is active and has exclusive control over MCP servers`,
+      `无法添加 MCP 服务器：企业版 MCP 配置处于启用状态，对 MCP 服务器拥有独占控制权`,
     )
   }
 
@@ -660,21 +660,21 @@ export async function addMcpConfig(
     const formattedErrors = result.error.issues
       .map(err => `${err.path.join('.')}: ${err.message}`)
       .join(', ')
-    throw new Error(`Invalid configuration: ${formattedErrors}`)
+    throw new Error(`无效的配置：${formattedErrors}`)
   }
   const validatedConfig = result.data
 
   // Check denylist (with config for command-based checks)
   if (isMcpServerDenied(name, validatedConfig)) {
     throw new Error(
-      `Cannot add MCP server "${name}": server is explicitly blocked by enterprise policy`,
+      `无法添加 MCP 服务器 "${name}"：该服务器已被企业策略明确拦截`,
     )
   }
 
   // Check allowlist (with config for command-based checks)
   if (!isMcpServerAllowedByPolicy(name, validatedConfig)) {
     throw new Error(
-      `Cannot add MCP server "${name}": not allowed by enterprise policy`,
+      `无法添加 MCP 服务器 "${name}"：企业策略不允许该服务器`,
     )
   }
 
@@ -683,30 +683,30 @@ export async function addMcpConfig(
     case 'project': {
       const { servers } = getProjectMcpConfigsFromCwd()
       if (servers[name]) {
-        throw new Error(`MCP server ${name} already exists in .mcp.json`)
+        throw new Error(`MCP 服务器 ${name} 已存在于 .mcp.json 中`)
       }
       break
     }
     case 'user': {
       const globalConfig = getGlobalConfig()
       if (globalConfig.mcpServers?.[name]) {
-        throw new Error(`MCP server ${name} already exists in user config`)
+        throw new Error(`MCP 服务器 ${name} 已存在于用户配置中`)
       }
       break
     }
     case 'local': {
       const projectConfig = getCurrentProjectConfig()
       if (projectConfig.mcpServers?.[name]) {
-        throw new Error(`MCP server ${name} already exists in local config`)
+        throw new Error(`MCP 服务器 ${name} 已存在于本地配置中`)
       }
       break
     }
     case 'dynamic':
-      throw new Error('Cannot add MCP server to scope: dynamic')
+      throw new Error('无法将 MCP 服务器添加到作用域：dynamic')
     case 'enterprise':
-      throw new Error('Cannot add MCP server to scope: enterprise')
+      throw new Error('无法将 MCP 服务器添加到作用域：enterprise')
     case 'limkenionai':
-      throw new Error('Cannot add MCP server to scope: limkenionai')
+      throw new Error('无法将 MCP 服务器添加到作用域：limkenionai')
   }
 
   // Add based on scope
@@ -728,7 +728,7 @@ export async function addMcpConfig(
       try {
         await writeMcpjsonFile(mcpConfig)
       } catch (error) {
-        throw new Error(`Failed to write to .mcp.json: ${error}`)
+        throw new Error(`写入 .mcp.json 失败：${error}`)
       }
       break
     }
@@ -756,7 +756,7 @@ export async function addMcpConfig(
     }
 
     default:
-      throw new Error(`Cannot add MCP server to scope: ${scope}`)
+      throw new Error(`无法将 MCP 服务器添加到作用域：${scope}`)
   }
 }
 
@@ -775,7 +775,7 @@ export async function removeMcpConfig(
       const { servers: existingServers } = getProjectMcpConfigsFromCwd()
 
       if (!existingServers[name]) {
-        throw new Error(`No MCP server found with name: ${name} in .mcp.json`)
+        throw new Error(`在 .mcp.json 中未找到名为 ${name} 的 MCP 服务器`)
       }
 
       // Strip scope information when writing back to .mcp.json
@@ -792,7 +792,7 @@ export async function removeMcpConfig(
       try {
         await writeMcpjsonFile(mcpConfig)
       } catch (error) {
-        throw new Error(`Failed to remove from .mcp.json: ${error}`)
+        throw new Error(`从 .mcp.json 移除失败：${error}`)
       }
       break
     }
@@ -800,7 +800,7 @@ export async function removeMcpConfig(
     case 'user': {
       const config = getGlobalConfig()
       if (!config.mcpServers?.[name]) {
-        throw new Error(`No user-scoped MCP server found with name: ${name}`)
+        throw new Error(`未找到名为 ${name} 的用户级 MCP 服务器`)
       }
       saveGlobalConfig(current => {
         const { [name]: _, ...restMcpServers } = current.mcpServers ?? {}
@@ -816,7 +816,7 @@ export async function removeMcpConfig(
       // Check if server exists before updating
       const config = getCurrentProjectConfig()
       if (!config.mcpServers?.[name]) {
-        throw new Error(`No project-local MCP server found with name: ${name}`)
+        throw new Error(`未找到名为 ${name} 的项目本地 MCP 服务器`)
       }
       saveCurrentProjectConfig(current => {
         const { [name]: _, ...restMcpServers } = current.mcpServers ?? {}
@@ -829,7 +829,7 @@ export async function removeMcpConfig(
     }
 
     default:
-      throw new Error(`Cannot remove MCP server from scope: ${scope}`)
+      throw new Error(`无法从作用域中移除 MCP 服务器：${scope}`)
   }
 }
 
@@ -1569,7 +1569,7 @@ export function setMcpServerEnabled(name: string, enabled: boolean): void {
   })
 
   if (isBuiltinStateChange) {
-    logEvent('内部代号_builtin_mcp_toggle', {
+    logEvent('limkenion_builtin_mcp_toggle', {
       serverName:
         name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       enabled,

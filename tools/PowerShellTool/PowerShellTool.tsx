@@ -226,33 +226,33 @@ const isBackgroundTasksDisabled =
 // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
 isEnvTruthy(process.env.LIMKENION_DISABLE_BACKGROUND_TASKS);
 const fullInputSchema = lazySchema(() => z.strictObject({
-  command: z.string().describe('The PowerShell command to execute'),
-  timeout: semanticNumber(z.number().optional()).describe(`Optional timeout in milliseconds (max ${getMaxTimeoutMs()})`),
-  description: z.string().optional().describe('Clear, concise description of what this command does in active voice.'),
-  run_in_background: semanticBoolean(z.boolean().optional()).describe(`Set to true to run this command in the background. Use Read to read the output later.`),
-  dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe('Set this to true to dangerously override sandbox mode and run commands without sandboxing.')
+  command: z.string().describe('要执行的 PowerShell 命令'),
+  timeout: semanticNumber(z.number().optional()).describe(`可选的超时时间（毫秒，最大 ${getMaxTimeoutMs()}）`),
+  description: z.string().optional().describe('用主动语态清晰、简洁地描述此命令的作用。'),
+  run_in_background: semanticBoolean(z.boolean().optional()).describe(`设为 true 以在后台运行此命令。稍后可用 Read 读取其输出。`),
+  dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe('设为 true 可危险地覆盖沙箱模式，在无沙箱的情况下运行命令。')
 }));
 
-// Conditionally remove run_in_background from schema when background tasks are disabled
+// 当后台任务被禁用时，条件性地从 schema 中移除 run_in_background
 const inputSchema = lazySchema(() => isBackgroundTasksDisabled ? fullInputSchema().omit({
   run_in_background: true
 }) : fullInputSchema());
 type InputSchema = ReturnType<typeof inputSchema>;
 
-// Use fullInputSchema for the type to always include run_in_background
-// (even when it's omitted from the schema, the code needs to handle it)
+// 使用 fullInputSchema 来做类型，以始终包含 run_in_background
+// （即使它已从 schema 中剥离，代码仍需处理它）
 export type PowerShellToolInput = z.infer<ReturnType<typeof fullInputSchema>>;
 const outputSchema = lazySchema(() => z.object({
-  stdout: z.string().describe('The standard output of the command'),
-  stderr: z.string().describe('The standard error output of the command'),
-  interrupted: z.boolean().describe('Whether the command was interrupted'),
-  returnCodeInterpretation: z.string().optional().describe('Semantic interpretation for non-error exit codes with special meaning'),
-  isImage: z.boolean().optional().describe('Flag to indicate if stdout contains image data'),
-  persistedOutputPath: z.string().optional().describe('Path to persisted full output when too large for inline'),
-  persistedOutputSize: z.number().optional().describe('Total output size in bytes when persisted'),
-  backgroundTaskId: z.string().optional().describe('ID of the background task if command is running in background'),
-  backgroundedByUser: z.boolean().optional().describe('True if the user manually backgrounded the command with Ctrl+B'),
-  assistantAutoBackgrounded: z.boolean().optional().describe('True if the command was auto-backgrounded by the assistant-mode blocking budget')
+  stdout: z.string().describe('命令的标准输出'),
+  stderr: z.string().describe('命令的标准错误输出'),
+  interrupted: z.boolean().describe('命令是否被中断'),
+  returnCodeInterpretation: z.string().optional().describe('对具有特殊含义的非错误退出码的语义解释'),
+  isImage: z.boolean().optional().describe('指示 stdout 是否包含图像数据的标志'),
+  persistedOutputPath: z.string().optional().describe('输出过大无法内联时持久化完整输出的路径'),
+  persistedOutputSize: z.number().optional().describe('持久化时输出的总字节大小'),
+  backgroundTaskId: z.string().optional().describe('命令在后台运行时后台任务的 ID'),
+  backgroundedByUser: z.boolean().optional().describe('用户是否用 Ctrl+B 手动将命令放入后台'),
+  assistantAutoBackgrounded: z.boolean().optional().describe('命令是否因助理模式的阻塞预算被自动放入后台')
 }));
 type OutputSchema = ReturnType<typeof outputSchema>;
 export type Out = z.infer<OutputSchema>;
@@ -634,7 +634,7 @@ export const PowerShellTool = buildTool({
         }
       }
       const finalStderr = [result.stderr || '', stderrForShellReset].filter(Boolean).join('\n');
-      logEvent('内部代号_powershell_tool_command_executed', {
+      logEvent('limkenion_powershell_tool_command_executed', {
         command_type: getCommandTypeForLogging(input.command),
         stdout_length: compressedStdout.length,
         stderr_length: finalStderr.length,
@@ -823,7 +823,7 @@ async function* runPowerShellCommand({
   // Set up auto-backgrounding on timeout if enabled
   if (shellCommand.onTimeout && shouldAutoBackground) {
     shellCommand.onTimeout(backgroundFn => {
-      startBackgrounding('内部代号_powershell_command_timeout_backgrounded', backgroundFn);
+      startBackgrounding('limkenion_powershell_command_timeout_backgrounded', backgroundFn);
     });
   }
 
@@ -834,7 +834,7 @@ async function* runPowerShellCommand({
     setTimeout(() => {
       if (shellCommand.status === 'running' && backgroundShellId === undefined) {
         assistantAutoBackgrounded = true;
-        startBackgrounding('内部代号_powershell_command_assistant_auto_backgrounded');
+        startBackgrounding('limkenion_powershell_command_assistant_auto_backgrounded');
       }
     }, ASSISTANT_BLOCKING_BUDGET_MS).unref();
   }
@@ -844,7 +844,7 @@ async function* runPowerShellCommand({
   // regardless of the command type (isAutobackgroundingAllowed only applies to automatic backgrounding)
   if (run_in_background === true && !isBackgroundTasksDisabled) {
     const shellId = await spawnBackgroundTask();
-    logEvent('内部代号_powershell_command_explicitly_backgrounded', {
+    logEvent('limkenion_powershell_command_explicitly_backgrounded', {
       command_type: getCommandTypeForLogging(command)
     });
     return {
@@ -926,7 +926,7 @@ async function* runPowerShellCommand({
       if (abortController.signal.aborted && abortController.signal.reason === 'interrupt' && !interruptBackgroundingStarted) {
         interruptBackgroundingStarted = true;
         if (!isBackgroundTasksDisabled) {
-          startBackgrounding('内部代号_powershell_command_interrupt_backgrounded');
+          startBackgrounding('limkenion_powershell_command_interrupt_backgrounded');
           // Reloop so the backgroundShellId check (above) catches the sync
           // foregroundTaskId→background path. Without this, we fall through
           // to the Ctrl+B check below, which matches status==='backgrounded'

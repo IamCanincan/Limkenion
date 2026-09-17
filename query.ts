@@ -475,7 +475,7 @@ async function* queryLoop(
         compactionUsage,
       } = compactionResult
 
-      logEvent('内部代号_auto_compact_succeeded', {
+      logEvent('limkenion_auto_compact_succeeded', {
         originalMessageCount: messages.length,
         compactedMessageCount:
           compactionResult.summaryMessages.length +
@@ -716,7 +716,7 @@ async function* queryLoop(
               for (const msg of assistantMessages) {
                 yield { type: 'tombstone' as const, message: msg }
               }
-              logEvent('内部代号_orphaned_messages_tombstoned', {
+              logEvent('limkenion_orphaned_messages_tombstoned', {
                 orphanedMessageCount: assistantMessages.length,
                 queryChainId: queryChainIdForAnalytics,
                 queryDepth: queryTracking.depth,
@@ -924,12 +924,10 @@ async function* queryLoop(
             // Thinking signatures are model-bound: replaying a protected-thinking
             // block (e.g. capybara) to an unprotected fallback (e.g. opus) 400s.
             // Strip before retry so the fallback model gets clean history.
-            if (process.env.USER_TYPE === 'ant') {
-              messagesForQuery = stripSignatureBlocks(messagesForQuery)
-            }
+            
 
             // Log the fallback event
-            logEvent('内部代号_model_fallback_triggered', {
+            logEvent('limkenion_model_fallback_triggered', {
               original_model:
                 innerError.originalModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               fallback_model:
@@ -956,7 +954,7 @@ async function* queryLoop(
       logError(error)
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      logEvent('内部代号_query_error', {
+      logEvent('limkenion_query_error', {
         assistantMessages: assistantMessages.length,
         toolUses: assistantMessages.flatMap(_ =>
           _.message.content.filter(content => content.type === 'tool_use'),
@@ -1193,7 +1191,7 @@ async function* queryLoop(
         // 64k also hits the cap.
         // 3P default: false (not validated on Bedrock/Vertex)
         const capEnabled = getFeatureValue_CACHED_MAY_BE_STALE(
-          '内部代号_otk_slot_v1',
+          'limkenion_otk_slot_v1',
           false,
         )
         if (
@@ -1201,7 +1199,7 @@ async function* queryLoop(
           maxOutputTokensOverride === undefined &&
           !process.env.LIMKENION_MAX_OUTPUT_TOKENS
         ) {
-          logEvent('内部代号_max_tokens_escalate', {
+          logEvent('limkenion_max_tokens_escalate', {
             escalatedTo: ESCALATED_MAX_TOKENS,
           })
           const next: State = {
@@ -1346,7 +1344,7 @@ async function* queryLoop(
               `Token budget early stop: diminishing returns at ${decision.completionEvent.pct}%`,
             )
           }
-          logEvent('内部代号_token_budget_completed', {
+          logEvent('limkenion_token_budget_completed', {
             ...decision.completionEvent,
             queryChainId: queryChainIdForAnalytics,
             queryDepth: queryTracking.depth,
@@ -1364,13 +1362,13 @@ async function* queryLoop(
 
 
     if (streamingToolExecutor) {
-      logEvent('内部代号_streaming_tool_execution_used', {
+      logEvent('limkenion_streaming_tool_execution_used', {
         tool_count: toolUseBlocks.length,
         queryChainId: queryChainIdForAnalytics,
         queryDepth: queryTracking.depth,
       })
     } else {
-      logEvent('内部代号_streaming_tool_execution_not_used', {
+      logEvent('limkenion_streaming_tool_execution_not_used', {
         tool_count: toolUseBlocks.length,
         queryChainId: queryChainIdForAnalytics,
         queryDepth: queryTracking.depth,
@@ -1522,7 +1520,7 @@ async function* queryLoop(
 
     if (tracking?.compacted) {
       tracking.turnCounter++
-      logEvent('内部代号_post_autocompact_turn', {
+      logEvent('limkenion_post_autocompact_turn', {
         turnId:
           tracking.turnId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         turnCounter: tracking.turnCounter,
@@ -1536,7 +1534,7 @@ async function* queryLoop(
     // will error if we interleave tool_result messages with regular user messages.
 
     // Instrumentation: Track message count before attachments
-    logEvent('内部代号_query_before_attachments', {
+    logEvent('limkenion_query_before_attachments', {
       messagesForQueryCount: messagesForQuery.length,
       assistantMessagesCount: assistantMessages.length,
       toolResultsCount: toolResults.length,
@@ -1649,7 +1647,7 @@ async function* queryLoop(
         tr.type === 'attachment' && tr.attachment.type === 'edited_text_file',
     )
 
-    logEvent('内部代号_query_after_attachments', {
+    logEvent('limkenion_query_after_attachments', {
       totalToolResultsCount: toolResults.length,
       fileChangeAttachmentCount,
       queryChainId: queryChainIdForAnalytics,

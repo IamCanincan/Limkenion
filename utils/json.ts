@@ -11,21 +11,23 @@ import { jsonStringify } from './slowOperations.js'
 
 type CachedParse = { ok: true; value: unknown } | { ok: false }
 
-// Memoized inner parse. Uses a discriminated-union wrapper because:
-// 1. memoizeWithLRU requires NonNullable<unknown>, but JSON.parse can return
-//    null (e.g. JSON.parse("null")).
-// 2. Invalid JSON must also be cached — otherwise repeated calls with the same
-//    bad string re-parse and re-log every time (behavioral regression vs the
-//    old lodash memoize which wrapped the entire try/catch).
-// Bounded to 50 entries to prevent unbounded memory growth — previously this
-// used lodash memoize which cached every unique JSON string forever (settings,
-// .mcp.json, notebooks, tool results), causing a significant memory leak.
-// Note: shouldLogError is intentionally excluded from the cache key (matching
-// lodash memoize default resolver = first arg only).
-// Skip caching above this size — the LRU stores the full string as the key,
-// so a 200KB config file would pin ~10MB in #keyList across 50 slots. Large
-// inputs like ~/.limkenion.json also change between reads (numStartups bumps on
-// every CC startup), so the cache never hits anyway.
+// 已记忆化的内层解析。使用判别联合包装是因为：
+// 1. memoizeWithLRU 要求 NonNullable<unknown>，但 JSON.parse 可能返回
+//    null（例如 JSON.parse("null")）。
+// 2. 无效的 JSON 也必须被缓存——否则用相同的坏串反复调用会每次都
+//    重新解析并重新记录（相比旧的包住整个 try/catch 的 lodash memoize
+//    是行为回退）。原来的实现每次遇到新的唯一字符串都会永久缓存
+//    每一个导致解析失败的字符串，导致内存泄漏。
+//    以下是针对这一点的修正。
+// 上限为 50 项，防止无界内存增长——之前使用 lodash memoize，会永久
+// 缓存每个唯一的 JSON 字符串（settings、.mcp.json、notebook、工具结果），
+// 造成显著的内存泄漏。
+// 注意：shouldLogError 被刻意排除在缓存键之外（与
+// lodash memoize 默认 resolver = 仅第一参数一致）。
+// 超过此大小的输入跳过缓存——LRU 把完整字符串存为键，
+// 因此一个 200KB 的配置文件会在 50 个槽位中固定约 10MB 的
+// #keyList。大的输入如 ~/.limkenion.json 在两次读取之间也会变化
+// （numStartups 每次 CC 启动都会递增），所以缓存从不会命中。
 const PARSE_CACHE_MAX_KEY_BYTES = 8 * 1024
 
 function parseJSONUncached(json: string, shouldLogError: boolean): CachedParse {
@@ -41,7 +43,7 @@ function parseJSONUncached(json: string, shouldLogError: boolean): CachedParse {
 
 const parseJSONCached = memoizeWithLRU(parseJSONUncached, json => json, 50)
 
-// Important: memoized for performance (LRU-bounded to 50 entries, small inputs only).
+// 重要：为了性能而记忆化（最多 50 项的 LRU 上限，仅小输入）。
 export const safeParseJSON = Object.assign(
   function safeParseJSON(
     json: string | null | undefined,
@@ -58,16 +60,16 @@ export const safeParseJSON = Object.assign(
 )
 
 /**
- * Safely parse JSON with comments (jsonc).
- * This is useful for VS Code configuration files like keybindings.json
- * which support comments and other jsonc features.
+ * 安全地解析带注释的 JSON（jsonc）。
+ * 这对 VS Code 配置文件（如 keybindings.json）很有用，
+ * 这类文件支持注释和其他 jsonc 特性。
  */
 export function safeParseJSONC(json: string | null | undefined): unknown {
   if (!json) {
     return null
   }
   try {
-    // Strip BOM before parsing - PowerShell 5.x adds BOM to UTF-8 files
+    // 解析前先去除 BOM——PowerShell 5.x 会向 UTF-8 文件添加 BOM
     return parseJsonc(stripBOM(json))
   } catch (e) {
     logError(e)
@@ -76,15 +78,15 @@ export function safeParseJSONC(json: string | null | undefined): unknown {
 }
 
 /**
- * Modify a jsonc string by adding a new item to an array, preserving comments and formatting.
- * @param content The jsonc string to modify
- * @param newItem The new item to add to the array
- * @returns The modified jsonc string
+ * 通过向数组添加新项来修改 jsonc 字符串，同时保留注释和格式。
+ * @param content 要修改的 jsonc 字符串
+ * @param newItem 要添加到数组的新项
+ * @returns 修改后的 jsonc 字符串
  */
 /**
- * Bun.JSONL.parseChunk if available, false otherwise.
- * Supports both strings and Buffers, minimizing memory usage and copies.
- * Also handles BOM stripping internally.
+ * Bun.JSONL.parseChunk（如可用），否则返回 false。
+ * 同时支持字符串和 Buffer，最大限度减少内存占用和拷贝。
+ * 内部也处理 BOM 去除。
  */
 type BunJSONLParseChunk = (
   data: string | Buffer,
@@ -106,7 +108,7 @@ function parseJSONLBun<T>(data: string | Buffer): T[] {
   if (!result.error || result.done || result.read >= len) {
     return result.values as T[]
   }
-  // Had an error mid-stream — collect what we got and keep going
+  // 流中间出现错误——收集已得的部分并继续
   let values = result.values as T[]
   let offset = result.read
   while (offset < len) {
@@ -130,7 +132,7 @@ function parseJSONLBuffer<T>(buf: Buffer): T[] {
   const bufLen = buf.length
   let start = 0
 
-  // Strip UTF-8 BOM (EF BB BF)
+  // 去除 UTF-8 BOM（EF BB BF）
   if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
     start = 3
   }
@@ -146,7 +148,7 @@ function parseJSONLBuffer<T>(buf: Buffer): T[] {
     try {
       results.push(JSON.parse(line) as T)
     } catch {
-      // Skip malformed lines
+      // 跳过格式错误的行
     }
   }
   return results
@@ -168,16 +170,16 @@ function parseJSONLString<T>(data: string): T[] {
     try {
       results.push(JSON.parse(line) as T)
     } catch {
-      // Skip malformed lines
+      // 跳过格式错误的行
     }
   }
   return results
 }
 
 /**
- * Parses JSONL data from a string or Buffer, skipping malformed lines.
- * Uses Bun.JSONL.parseChunk when available for better performance,
- * falls back to indexOf-based scanning otherwise.
+ * 从字符串或 Buffer 解析 JSONL 数据，跳过格式错误的行。
+ * 可用时使用 Bun.JSONL.parseChunk 以获得更好性能，
+ * 否则回退到基于 indexOf 的扫描。
  */
 export function parseJSONL<T>(data: string | Buffer): T[] {
   if (bunJSONLParse) {
@@ -192,11 +194,11 @@ export function parseJSONL<T>(data: string | Buffer): T[] {
 const MAX_JSONL_READ_BYTES = 100 * 1024 * 1024
 
 /**
- * Reads and parses a JSONL file, reading at most the last 100 MB.
- * For files larger than 100 MB, reads the tail and skips the first partial line.
+ * 读取并解析 JSONL 文件，最多读取最后 100 MB。
+ * 对大于 100 MB 的文件，读取尾部并跳过第一行不完整的行。
  *
- * 100 MB is more than sufficient since the longest context window we support
- * is ~2M tokens, which is well under 100 MB of JSONL.
+ * 100 MB 绰绰有余，因为我们支持的最长上下文窗口约 2M tokens，
+ * 远低于 100 MB 的 JSONL。
  */
 export async function readJSONLFile<T>(filePath: string): Promise<T[]> {
   const { size } = await stat(filePath)
@@ -217,7 +219,7 @@ export async function readJSONLFile<T>(filePath: string): Promise<T[]> {
     if (bytesRead === 0) break
     totalRead += bytesRead
   }
-  // Skip the first partial line
+  // 跳过第一行不完整的行
   const newlineIndex = buf.indexOf(0x0a)
   if (newlineIndex !== -1 && newlineIndex < totalRead - 1) {
     return parseJSONL<T>(buf.subarray(newlineIndex + 1, totalRead))
@@ -227,50 +229,50 @@ export async function readJSONLFile<T>(filePath: string): Promise<T[]> {
 
 export function addItemToJSONCArray(content: string, newItem: unknown): string {
   try {
-    // If the content is empty or whitespace, create a new JSON file
+    // 若内容为空或空白，创建新的 JSON 文件
     if (!content || content.trim() === '') {
       return jsonStringify([newItem], null, 4)
     }
 
-    // Strip BOM before parsing - PowerShell 5.x adds BOM to UTF-8 files
+    // 解析前先去除 BOM——PowerShell 5.x 会向 UTF-8 文件添加 BOM
     const cleanContent = stripBOM(content)
 
-    // Parse the content to check if it's valid JSON
+    // 解析内容以检查是否为有效 JSON
     const parsedContent = parseJsonc(cleanContent)
 
-    // If the parsed content is a valid array, modify it
+    // 若解析出的内容是有效数组，则修改之
     if (Array.isArray(parsedContent)) {
-      // Get the length of the array
+      // 获取数组的长度
       const arrayLength = parsedContent.length
 
-      // Determine if we are dealing with an empty array
+      // 判断是否为空数组
       const isEmpty = arrayLength === 0
 
-      // If it's an empty array we want to add at index 0, otherwise append to the end
+      // 若为空数组则在索引 0 处添加，否则追加到末尾
       const insertPath = isEmpty ? [0] : [arrayLength]
 
-      // Generate edits - we're using isArrayInsertion to add a new item without overwriting existing ones
+      // 生成编辑——使用 isArrayInsertion 添加新项而不覆盖现有项
       const edits = modify(cleanContent, insertPath, newItem, {
         formattingOptions: { insertSpaces: true, tabSize: 4 },
         isArrayInsertion: true,
       })
 
-      // If edits could not be generated, fall back to manual JSON string manipulation
+      // 若无法生成编辑，回退到手工 JSON 字符串拼接
       if (!edits || edits.length === 0) {
         const copy = [...parsedContent, newItem]
         return jsonStringify(copy, null, 4)
       }
 
-      // Apply the edits to preserve comments (use cleanContent without BOM)
+      // 应用编辑以保留注释（使用不含 BOM 的 cleanContent）
       return applyEdits(cleanContent, edits)
     }
-    // If it's not an array at all, create a new array with the item
+    // 若内容完全不是数组，创建仅含该新项的新数组
     else {
-      // If the content exists but is not an array, we'll replace it completely
+      // 若内容存在但不是数组，我们将其完全替换
       return jsonStringify([newItem], null, 4)
     }
   } catch (e) {
-    // If parsing fails for any reason, log the error and fallback to creating a new JSON array
+    // 若因任何原因解析失败，记录错误并回退到创建新的 JSON 数组
     logError(e)
     return jsonStringify([newItem], null, 4)
   }

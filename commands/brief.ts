@@ -16,9 +16,9 @@ import type {
 } from '../types/command.js'
 import { lazySchema } from '../utils/lazySchema.js'
 
-// Zod guards against fat-fingered GB pushes (same pattern as pollConfig.ts /
-// cronScheduler.ts). A malformed config falls back to DEFAULT_BRIEF_CONFIG
-// entirely rather than being partially trusted.
+// Zod 防止误推送的 GB 配置（与 pollConfig.ts / cronScheduler.ts 相同的模式）。
+// 格式错误的配置会完全回退到 DEFAULT_BRIEF_CONFIG，
+// 而不会被部分信任。
 const briefConfigSchema = lazySchema(() =>
   z.object({
     enable_slash_command: z.boolean(),
@@ -30,14 +30,14 @@ const DEFAULT_BRIEF_CONFIG: BriefConfig = {
   enable_slash_command: false,
 }
 
-// No TTL — this gate controls slash-command *visibility*, not a kill switch.
-// CACHED_MAY_BE_STALE still has one background-update flip (first call kicks
-// off fetch; second call sees fresh value), but no additional flips after that.
-// The tool-availability gate (内部代号_kairos_brief in isBriefEnabled) keeps its
-// 5-min TTL because that one IS a kill switch.
+// 无 TTL——这个门控控制的是斜杠命令的*可见性*，而非开关。
+// CACHED_MAY_BE_STALE 仍有一次后台更新的翻转（首次调用触发拉取，
+// 第二次调用看到新值），但此后不再有额外翻转。
+// 工具可用性门控（isBriefEnabled 中的 limkenion_kairos_brief）保持其
+// 5 分钟 TTL，因为那个才是真正的开关。
 function getBriefConfig(): BriefConfig {
   const raw = getFeatureValue_CACHED_MAY_BE_STALE<unknown>(
-    '内部代号_kairos_brief_config',
+    'limkenion_kairos_brief_config',
     DEFAULT_BRIEF_CONFIG,
   )
   const parsed = briefConfigSchema().safeParse(raw)
@@ -47,7 +47,7 @@ function getBriefConfig(): BriefConfig {
 const brief = {
   type: 'local-jsx',
   name: 'brief',
-  description: 'Toggle brief-only mode',
+  description: '切换仅简报模式',
   isEnabled: () => {
     if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
       return getBriefConfig().enable_slash_command
@@ -64,26 +64,25 @@ const brief = {
         const current = context.getAppState().isBriefOnly
         const newState = !current
 
-        // Entitlement check only gates the on-transition — off is always
-        // allowed so a user whose GB gate flipped mid-session isn't stuck.
+        // 资格检查只约束"开启"这一操作——关闭始终允许，
+        // 以免用户会话中途 GB 门控翻转时卡死。
         if (newState && !isBriefEntitled()) {
-          logEvent('内部代号_brief_mode_toggled', {
+          logEvent('limkenion_brief_mode_toggled', {
             enabled: false,
             gated: true,
             source:
               'slash_command' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           })
-          onDone('Brief tool is not enabled for your account', {
+          onDone('你的账号未启用 Brief 工具', {
             display: 'system',
           })
           return null
         }
 
-        // Two-way: userMsgOptIn tracks isBriefOnly so the tool is available
-        // exactly when brief mode is on. This invalidates prompt cache on
-        // each toggle (tool list changes), but a stale tool list is worse —
-        // when /brief is enabled mid-session the model was previously left
-        // without the tool, emitting plain text the filter hides.
+        // 双向：userMsgOptIn 追踪 isBriefOnly，使得工具恰好在简报模式开启时
+        // 可用。这会在每次切换时使提示词缓存失效（工具列表变了），
+        // 但工具列表过期更糟——当 /brief 在会话中途启用时，
+        // 模型此前没拿到该工具，会输出被过滤器隐藏的纯文本。
         setUserMsgOptIn(newState)
 
         context.setAppState(prev => {
@@ -91,35 +90,33 @@ const brief = {
           return { ...prev, isBriefOnly: newState }
         })
 
-        logEvent('内部代号_brief_mode_toggled', {
+        logEvent('limkenion_brief_mode_toggled', {
           enabled: newState,
           gated: false,
           source:
             'slash_command' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         })
 
-        // The tool list change alone isn't a strong enough signal mid-session
-        // (model may keep emitting plain text from inertia, or keep calling a
-        // tool that just vanished). Inject an explicit reminder into the next
-        // turn's context so the transition is unambiguous.
-        // Skip when Kairos is active: isBriefEnabled() short-circuits on
-        // getKairosActive() so the tool never actually leaves the list, and
-        // the Kairos system prompt already mandates SendUserMessage.
-        // Inline <system-reminder> wrap — importing wrapInSystemReminder from
-        // utils/messages.ts pulls constants/xml.ts into the bridge SDK bundle
-        // via this module's import chain, tripping the excluded-strings check.
+        // 仅仅改变工具列表在会话中途不是足够强的信号
+        //（模型可能出于惯性继续输出纯文本，或继续调用一个刚消失的工具）。
+        // 在下一轮上下文注入一条明确的提醒，让切换无歧义。
+        // 当 Kairos 激活时跳过：isBriefEnabled() 在 getKairosActive() 处短路，
+        // 工具其实从未离开列表，且 Kairos 系统提示词已强制要求 SendUserMessage。
+        // 内联 <system-reminder> 包裹——如果从 utils/messages.ts import
+        // wrapInSystemReminder，就会通过本模块的 import 链把 constants/xml.ts
+        // 拉进桥接 SDK 打包，触发排除字符串检查。
         const metaMessages = getKairosActive()
           ? undefined
           : [
               `<system-reminder>\n${
                 newState
-                  ? `Brief mode is now enabled. Use the ${BRIEF_TOOL_NAME} tool for all user-facing output — plain text outside it is hidden from the user's view.`
-                  : `Brief mode is now disabled. The ${BRIEF_TOOL_NAME} tool is no longer available — reply with plain text.`
+                  ? `简报模式现已启用。所有面向用户的输出都要用 ${BRIEF_TOOL_NAME} 工具——工具之外输出的纯文本对用户是不可见的。`
+                  : `简报模式现已禁用。${BRIEF_TOOL_NAME} 工具已不可用——请直接用纯文本回复。`
               }\n</system-reminder>`,
             ]
 
         onDone(
-          newState ? 'Brief-only mode enabled' : 'Brief-only mode disabled',
+          newState ? '已启用仅简报模式' : '已禁用仅简报模式',
           { display: 'system', metaMessages },
         )
         return null

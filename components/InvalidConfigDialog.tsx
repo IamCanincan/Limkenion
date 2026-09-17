@@ -20,7 +20,7 @@ interface InvalidConfigDialogProps {
 }
 
 /**
- * Dialog shown when the Limkenion config file contains invalid JSON
+ * 当 Limkenion 配置文件包含无效 JSON 时显示的对话框
  */
 function InvalidConfigDialog(t0) {
   const $ = _c(19);
@@ -48,7 +48,7 @@ function InvalidConfigDialog(t0) {
   const handleSelect = t1;
   let t2;
   if ($[3] !== filePath) {
-    t2 = <Text>The configuration file at <Text bold={true}>{filePath}</Text> contains invalid JSON.</Text>;
+    t2 = <Text>位于 <Text bold={true}>{filePath}</Text> 的配置文件包含无效的 JSON。</Text>;
     $[3] = filePath;
     $[4] = t2;
   } else {
@@ -73,7 +73,7 @@ function InvalidConfigDialog(t0) {
   }
   let t5;
   if ($[10] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Text bold={true}>Choose an option:</Text>;
+    t5 = <Text bold={true}>请选择一个选项：</Text>;
     $[10] = t5;
   } else {
     t5 = $[10];
@@ -81,10 +81,10 @@ function InvalidConfigDialog(t0) {
   let t6;
   if ($[11] === Symbol.for("react.memo_cache_sentinel")) {
     t6 = [{
-      label: "Exit and fix manually",
+      label: "退出并手动修复",
       value: "exit"
     }, {
-      label: "Reset with default configuration",
+      label: "使用默认配置重置",
       value: "reset"
     }];
     $[11] = t6;
@@ -102,7 +102,7 @@ function InvalidConfigDialog(t0) {
   }
   let t8;
   if ($[15] !== onExit || $[16] !== t4 || $[17] !== t7) {
-    t8 = <Dialog title="Configuration Error" color="error" onCancel={onExit}>{t4}{t7}</Dialog>;
+    t8 = <Dialog title="配置错误" color="error" onCancel={onExit}>{t4}{t7}</Dialog>;
     $[15] = onExit;
     $[16] = t4;
     $[17] = t7;
@@ -114,8 +114,8 @@ function InvalidConfigDialog(t0) {
 }
 
 /**
- * Safe fallback theme name for error dialogs to avoid circular dependency.
- * Uses a hardcoded dark theme that doesn't require reading from config.
+ * 错误对话框使用的安全回退主题名，以避免循环依赖。
+ * 使用硬编码的深色主题，无需从配置中读取。
  */
 const SAFE_ERROR_THEME_NAME: ThemeName = 'dark';
 export async function showInvalidConfigDialog({

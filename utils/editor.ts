@@ -14,9 +14,9 @@ function isCommandAvailable(command: string): boolean {
   return !!whichSync(command)
 }
 
-// GUI editors that open in a separate window and can be spawned detached
-// without fighting the TUI for stdin. VS Code forks (cursor, windsurf, codium)
-// are listed explicitly since none contain 'code' as a substring.
+// 在独立窗口打开并可分离派生的 GUI 编辑器，无需与 TUI 争夺 stdin。
+// VS Code 的分支（cursor、windsurf、codium）被显式列出，因为它们都不以
+// 'code' 作为子串。
 const GUI_EDITORS = [
   'code',
   'cursor',
@@ -29,22 +29,22 @@ const GUI_EDITORS = [
   'notepad',
 ]
 
-// Editors that accept +N as a goto-line argument. The Windows default
-// ('start /wait notepad') does not — notepad treats +42 as a filename.
+// 接受 +N 作为 goto-line 参数的编辑器。Windows 默认
+// （'start /wait notepad'）不接受——notepad 把 +42 当作文件名。
 const PLUS_N_EDITORS = /\b(vi|vim|nvim|nano|emacs|pico|micro|helix|hx)\b/
 
-// VS Code and forks use -g file:line. subl uses bare file:line (no -g).
+// VS Code 及其分支使用 -g file:line。subl 使用裸 file:line（不带 -g）。
 const VSCODE_FAMILY = new Set(['code', 'cursor', 'windsurf', 'codium'])
 
 /**
- * Classify the editor as GUI or not. Returns the matched GUI family name
- * for goto-line argv selection, or undefined for terminal editors.
- * Note: this is classification only — spawn the user's actual binary, not
- * this return value, so `code-insiders` / absolute paths are preserved.
+ * 将编辑器分类为 GUI 或非 GUI。返回匹配的 GUI 家族名称用于 goto-line
+ * argv 选择，或对终端编辑器返回 undefined。
+ * 注意：这只是分类——实际派生用户的真实二进制，而不是此返回值，
+ * 这样 'code-insiders' / 绝对路径能被保留。
  *
- * Uses basename so /home/alice/code/bin/nvim doesn't match 'code' via the
- * directory component. code-insiders → still matches 'code', /usr/bin/code →
- * 'code' → matches.
+ * 使用 basename，使 /home/alice/code/bin/nvim 不会经由目录组件匹配
+ * 'code'。code-insiders → 仍匹配 'code'，/usr/bin/code → 'code' →
+ * 匹配。
  */
 export function classifyGuiEditor(editor: string): string | undefined {
   const base = basename(editor.split(' ')[0] ?? '')
@@ -52,8 +52,8 @@ export function classifyGuiEditor(editor: string): string | undefined {
 }
 
 /**
- * Build goto-line argv for a GUI editor. VS Code family uses -g file:line;
- * subl uses bare file:line; others don't support goto-line.
+ * 为 GUI 编辑器构建 goto-line argv。VS Code 家族使用 -g file:line；
+ * subl 使用裸 file:line；其他不支持 goto-line。
  */
 function guiGotoArgv(
   guiFamily: string,
@@ -67,16 +67,16 @@ function guiGotoArgv(
 }
 
 /**
- * Launch a file in the user's external editor.
+ * 在用户的外部编辑器中打开文件。
  *
- * For GUI editors (code, subl, etc.): spawns detached — the editor opens
- * in a separate window and Limkenion stays interactive.
+ * 对 GUI 编辑器（code、subl 等）：分离派生——编辑器在独立窗口中打开，
+ * Limkenion 保持交互。
  *
- * For terminal editors (vim, nvim, nano, etc.): blocks via Ink's alt-screen
- * handoff until the editor exits. This is the same dance as editFileInEditor()
- * in promptEditor.ts, minus the read-back.
+ * 对终端编辑器（vim、nvim、nano 等）：通过 Ink 的备用屏幕切换阻塞，
+ * 直到编辑器退出。这与 editFileInEditor()（promptEditor.ts 中）的
+ * 处理相同，只是不做回读。
  *
- * Returns true if the editor was launched, false if no editor is available.
+ * 编辑器已启动则返回 true，无可用编辑器则返回 false。
  */
 export function openFileInExternalEditor(
   filePath: string,
@@ -85,9 +85,9 @@ export function openFileInExternalEditor(
   const editor = getExternalEditor()
   if (!editor) return false
 
-  // Spawn the user's actual binary (preserves code-insiders, abs paths, etc.).
-  // Split into binary + extra args so multi-word values like 'start /wait
-  // notepad' or 'code --wait' propagate all tokens to spawn.
+  // 派生用户的真实二进制（保留 code-insiders、绝对路径等）。
+  // 拆分为二进制 + 额外参数，使多词值（如 'start /wait
+  // notepad' 或 'code --wait'）把所有 token 传给 spawn。
   const parts = editor.split(' ')
   const base = parts[0] ?? editor
   const editorArgs = parts.slice(1)
@@ -98,20 +98,20 @@ export function openFileInExternalEditor(
     const detachedOpts: SpawnOptions = { detached: true, stdio: 'ignore' }
     let child
     if (process.platform === 'win32') {
-      // shell: true on win32 so code.cmd / cursor.cmd / windsurf.cmd resolve —
-      // CreateProcess can't execute .cmd/.bat directly. Assemble quoted command
-      // string; cmd.exe doesn't expand $() or backticks inside double quotes.
-      // Quote each arg so paths with spaces survive the shell join.
+      // win32 上使用 shell: true，使 code.cmd / cursor.cmd / windsurf.cmd
+      // 能解析——CreateProcess 无法直接执行 .cmd/.bat。拼装带引号的命令
+      // 字符串；cmd.exe 不会展开双引号内的 $() 或反引号。
+      // 给每个参数加引号，使带空格的路径能在 shell 拼接中存活。
       const gotoStr = gotoArgv.map(a => `"${a}"`).join(' ')
       child = spawn(`${editor} ${gotoStr}`, { ...detachedOpts, shell: true })
     } else {
-      // POSIX: argv array with no shell — injection-safe. shell: true would
-      // expand $() / backticks inside double quotes, and filePath is
-      // filesystem-sourced (possible RCE from a malicious repo filename).
+      // POSIX：无 shell 的 argv 数组——注入安全。shell: true 会
+      // 展开双引号内的 $() / 反引号，且 filePath 来自文件系统
+      // （恶意仓库文件名可能导致 RCE）。
       child = spawn(base, [...editorArgs, ...gotoArgv], detachedOpts)
     }
-    // spawn() emits ENOENT asynchronously. ENOENT on $VISUAL/$EDITOR is a
-    // user-config error, not an internal bug — don't pollute error telemetry.
+    // spawn() 异步地发出 ENOENT。$VISUAL/$EDITOR 上的 ENOENT 属于
+    // 用户配置错误，而非内部缺陷——不要污染错误遥测。
     child.on('error', e =>
       logForDebugging(`editor spawn failed: ${e}`, { level: 'error' }),
     )
@@ -119,30 +119,28 @@ export function openFileInExternalEditor(
     return true
   }
 
-  // Terminal editor — needs alt-screen handoff since it takes over the
-  // terminal. Blocks until the editor exits.
+  // 终端编辑器——需要备用屏幕切换，因为它接管了终端。阻塞直到编辑器退出。
   const inkInstance = instances.get(process.stdout)
   if (!inkInstance) return false
-  // Only prepend +N for editors known to support it — notepad treats +42 as a
-  // filename to open. Test basename so /home/vim/bin/kak doesn't match 'vim'
-  // via the directory segment.
+  // 仅对已知支持它的编辑器前置 +N——notepad 把 +42 当作要打开的文件名。
+  // 测试 basename，使 /home/vim/bin/kak 不会经由目录段匹配 'vim'。
   const useGotoLine = line && PLUS_N_EDITORS.test(basename(base))
   inkInstance.enterAlternateScreen()
   try {
     const syncOpts: SpawnSyncOptions = { stdio: 'inherit' }
     let result
     if (process.platform === 'win32') {
-      // On Windows use shell: true so cmd.exe builtins like `start` resolve.
-      // shell: true joins args unquoted, so assemble the command string with
-      // explicit quoting ourselves (matching promptEditor.ts:74). spawnSync
-      // returns errors in .error rather than throwing.
+      // Windows 上使用 shell: true，使 `start` 等 cmd.exe 内建命令能解析。
+      // shell: true 会以不带引号的方式拼接参数，因此我们自己用显式引号
+      // 拼装命令字符串（与 promptEditor.ts:74 一致）。spawnSync
+      // 通过 .error 而不通过抛异常返回错误。
       const lineArg = useGotoLine ? `+${line} ` : ''
       result = spawnSync(`${editor} ${lineArg}"${filePath}"`, {
         ...syncOpts,
         shell: true,
       })
     } else {
-      // POSIX: spawn directly (no shell), argv array is quote-safe.
+      // POSIX：直接派生（无 shell），argv 数组是引号安全的。
       const args = [
         ...editorArgs,
         ...(useGotoLine ? [`+${line}`, filePath] : [filePath]),
@@ -162,7 +160,7 @@ export function openFileInExternalEditor(
 }
 
 export const getExternalEditor = memoize((): string | undefined => {
-  // Prioritize environment variables
+  // 环境变量优先
   if (process.env.VISUAL?.trim()) {
     return process.env.VISUAL.trim()
   }
@@ -171,13 +169,13 @@ export const getExternalEditor = memoize((): string | undefined => {
     return process.env.EDITOR.trim()
   }
 
-  // `isCommandAvailable` breaks the limkenion process' stdin on Windows
-  // as a bandaid, we skip it
+  // `isCommandAvailable` 会在 Windows 上破坏 limkenion 进程的 stdin；
+  // 作为权宜之计，我们跳过它
   if (process.platform === 'win32') {
     return 'start /wait notepad'
   }
 
-  // Search for available editors in order of preference
+  // 按偏好顺序搜索可用的编辑器
   const editors = ['code', 'vi', 'nano']
   return editors.find(command => isCommandAvailable(command))
 })

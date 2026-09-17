@@ -31,14 +31,14 @@ import { getAPIProvider } from './model/providers.js'
 import { getInitialSettings } from './settings/settings.js'
 
 /**
- * SDK-provided betas that are allowed for API key users.
- * Only betas in this list can be passed via SDK options.
+ * 允许用于 API 密钥用户的 SDK 提供的 betas。
+ * 只有此列表中的 betas 才能通过 SDK 选项传入。
  */
 const ALLOWED_SDK_BETAS = [CONTEXT_1M_BETA_HEADER]
 
 /**
- * Filter betas to only include those in the allowlist.
- * Returns allowed and disallowed betas separately.
+ * 只保留白名单中的 betas。
+ * 分别返回允许与不允许的 betas。
  */
 function partitionBetasByAllowlist(betas: string[]): {
   allowed: string[]
@@ -57,9 +57,9 @@ function partitionBetasByAllowlist(betas: string[]): {
 }
 
 /**
- * Filter SDK betas to only include allowed ones.
- * Warns about disallowed betas and subscriber restrictions.
- * Returns undefined if no valid betas remain or if user is a subscriber.
+ * 将 SDK betas 过滤为仅允许的项。
+ * 对不允许的 betas 和订阅者限制发出警告。
+ * 若无有效 betas 剩余或用户是订阅者，则返回 undefined。
  */
 export function filterAllowedSdkBetas(
   sdkBetas: string[] | undefined,
@@ -71,7 +71,7 @@ export function filterAllowedSdkBetas(
   if (isLimkenionAISubscriber()) {
     // biome-ignore lint/suspicious/noConsole: intentional warning
     console.warn(
-      'Warning: Custom betas are only available for API key users. Ignoring provided betas.',
+      '警告：自定义 betas 仅适用于 API 密钥用户。已忽略提供的 betas。',
     )
     return undefined
   }
@@ -80,14 +80,14 @@ export function filterAllowedSdkBetas(
   for (const beta of disallowed) {
     // biome-ignore lint/suspicious/noConsole: intentional warning
     console.warn(
-      `Warning: Beta header '${beta}' is not allowed. Only the following betas are supported: ${ALLOWED_SDK_BETAS.join(', ')}`,
+      `警告：beta 头 '${beta}' 不被允许。仅支持以下 betas：${ALLOWED_SDK_BETAS.join(', ')}`,
     )
   }
   return allowed.length > 0 ? allowed : undefined
 }
 
-// Generally, foundry supports all 1P features;
-// however out of an abundance of caution, we do not enable any which are behind an experiment
+// 通常 foundry 支持所有 1P 特性；
+// 但出于谨慎，我们不会启用任何处于实验后端的特性
 
 export function modelSupportsISP(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(
@@ -99,7 +99,7 @@ export function modelSupportsISP(model: string): boolean {
   }
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // Foundry supports interleaved thinking for all models
+  // Foundry 对所有模型都支持交错思考
   if (provider === 'foundry') {
     return true
   }
@@ -113,7 +113,7 @@ export function modelSupportsISP(model: string): boolean {
 
 function vertexModelSupportsWebSearch(model: string): boolean {
   const canonical = getCanonicalName(model)
-  // Web search only supported on Limkenion 4.0+ models on Vertex
+  // Vertex 上仅 Limkenion 4.0+ 模型支持网络搜索
   return (
     canonical.includes('limkenion-opus-4') ||
     canonical.includes('limkenion-sonnet-4') ||
@@ -121,7 +121,7 @@ function vertexModelSupportsWebSearch(model: string): boolean {
   )
 }
 
-// Context management is supported on Limkenion 4+ models
+// 上下文管理支持于 Limkenion 4+ 模型
 export function modelSupportsContextManagement(model: string): boolean {
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
@@ -138,11 +138,11 @@ export function modelSupportsContextManagement(model: string): boolean {
   )
 }
 
-// @[MODEL LAUNCH]: Add the new model ID to this list if it supports structured outputs.
+// @[MODEL LAUNCH]: 若新模型支持结构化输出，请将其 ID 加入此列表。
 export function modelSupportsStructuredOutputs(model: string): boolean {
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // Structured outputs only supported on firstParty and Foundry (not Bedrock/Vertex yet)
+  // 结构化输出仅在 firstParty 和 Foundry 上受支持（Bedrock/Vertex 尚不支持）
   if (provider !== 'firstParty' && provider !== 'foundry') {
     return false
   }
@@ -156,23 +156,23 @@ export function modelSupportsStructuredOutputs(model: string): boolean {
   )
 }
 
-// @[MODEL LAUNCH]: Add the new model if it supports auto mode (specifically PI probes) — ask in #proj-limkenion-safety-research.
+// @[MODEL LAUNCH]: 若新模型支持自动模式（特指 PI 探测），请加入该模型——可在 #proj-limkenion-safety-research 中询问。
 export function modelSupportsAutoMode(model: string): boolean {
   if (feature('TRANSCRIPT_CLASSIFIER')) {
     const m = getCanonicalName(model)
-    // External: firstParty-only at launch (PI probes not wired for
-    // Bedrock/Vertex/Foundry yet). Checked before allowModels so the GB
-    // override can't enable auto mode on unsupported providers.
-    if (process.env.USER_TYPE !== 'ant' && getAPIProvider() !== 'firstParty') {
+    // 外部：启动时仅限 firstParty（PI 探测尚未接入
+    // Bedrock/Vertex/Foundry）。在 allowModels 之前检查，使 GB
+    // 覆盖无法在不支持的 provider 上启用自动模式。
+    if ((getAPIProvider() !== 'firstParty')) {
       return false
     }
-    // GrowthBook override: 内部代号_auto_mode_config.allowModels force-enables
-    // auto mode for listed models, bypassing the denylist/allowlist below.
-    // Exact model IDs (e.g. "limkenion-strudel-v6-p") match only that model;
-    // canonical names (e.g. "limkenion-strudel") match the whole family.
+    // GrowthBook 覆盖：limkenion_auto_mode_config.allowModels 为列出的模型
+    // 强制启用自动模式，绕过下方的拒绝列表/允许列表。
+    // 精确模型 ID（例如 "limkenion-strudel-v6-p"）仅匹配该模型；
+    // canonical 名称（例如 "limkenion-strudel"）匹配整个家族。
     const config = getFeatureValue_CACHED_MAY_BE_STALE<{
       allowModels?: string[]
-    }>('内部代号_auto_mode_config', {})
+    }>('limkenion_auto_mode_config', {})
     const rawLower = model.toLowerCase()
     if (
       config?.allowModels?.some(
@@ -181,21 +181,15 @@ export function modelSupportsAutoMode(model: string): boolean {
     ) {
       return true
     }
-    if (process.env.USER_TYPE === 'ant') {
-      // Denylist: block known-unsupported limkenion models, allow everything else (ant-internal models etc.)
-      if (m.includes('limkenion-3-')) return false
-      // limkenion-*-4 not followed by -[6-9]: blocks bare -4, -4-YYYYMMDD, -4@, -4-0 thru -4-5
-      if (/limkenion-(opus|sonnet|haiku)-4(?!-[6-9])/.test(m)) return false
-      return true
-    }
-    // External allowlist (firstParty already checked above).
+    
+    // 外部允许列表（firstParty 已在上方检查）。
     return /^limkenion-(opus|sonnet)-4-6/.test(m)
   }
   return false
 }
 
 /**
- * Get the correct tool search beta header for the current API provider.
+ * 为当前 API provider 获取正确的工具搜索 beta 头。
  * - Limkenion API / Foundry: advanced-tool-use-2025-11-20
  * - Vertex AI / Bedrock: tool-search-tool-2025-10-19
  */
@@ -208,9 +202,9 @@ export function getToolSearchBetaHeader(): string {
 }
 
 /**
- * Check if experimental betas should be included.
- * These are betas that are only available on firstParty provider
- * and may not be supported by proxies or other providers.
+ * 检查是否应包含实验性 betas。
+ * 这些 betas 仅适用于 firstParty provider，
+ * 代理或其他 provider 可能不支持它们。
  */
 export function shouldIncludeFirstPartyOnlyBetas(): boolean {
   return (
@@ -220,9 +214,9 @@ export function shouldIncludeFirstPartyOnlyBetas(): boolean {
 }
 
 /**
- * Global-scope prompt caching is firstParty only. Foundry is excluded because
- * GrowthBook never bucketed Foundry users into the rollout experiment — the
- * treatment data is firstParty-only.
+ * 全局作用域的提示缓存仅限 firstParty。Foundry 被排除，因为
+ * GrowthBook 从未把 Foundry 用户分桶进推送实验——处理数据是
+ * 仅限 firstParty 的。
  */
 export function shouldUseGlobalCacheScope(): boolean {
   return (
@@ -239,14 +233,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
 
   if (!isHaiku) {
     betaHeaders.push(LIMKENION_20250219_BETA_HEADER)
-    if (
-      process.env.USER_TYPE === 'ant' &&
-      process.env.LIMKENION_ENTRYPOINT === 'cli'
-    ) {
-      if (CLI_INTERNAL_BETA_HEADER) {
-        betaHeaders.push(CLI_INTERNAL_BETA_HEADER)
-      }
-    }
+    
   }
   if (isLimkenionAISubscriber()) {
     betaHeaders.push(OAUTH_BETA_HEADER)
@@ -261,12 +248,12 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(INTERLEAVED_THINKING_BETA_HEADER)
   }
 
-  // Skip the API-side Haiku thinking summarizer — the summary is only used
-  // for ctrl+o display, which interactive users rarely open. The API returns
-  // redacted_thinking blocks instead; AssistantRedactedThinkingMessage already
-  // renders those as a stub. SDK / print-mode keep summaries because callers
-  // may iterate over thinking content. Users can opt back in via settings.json
-  // showThinkingSummaries.
+  // 跳过 API 侧的 Haiku 思考摘要器——摘要仅用于
+  // ctrl+o 显示，交互式用户很少打开。API 改为返回
+  // redacted_thinking 块；AssistantRedactedThinkingMessage 已把它们
+  // 渲染为 stub。SDK / print 模式保留摘要，因为调用方
+  // 可能遍历思考内容。用户可通过 settings.json 的
+  // showThinkingSummaries 重新选择加入。
   if (
     includeFirstPartyOnlyBetas &&
     modelSupportsISP(model) &&
@@ -276,31 +263,30 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(REDACT_THINKING_BETA_HEADER)
   }
 
-  // POC: server-side connector-text summarization (anti-distillation). The
-  // API buffers assistant text between tool calls, summarizes it, and returns
-  // the summary with a signature so the original can be restored on subsequent
-  // turns — same mechanism as thinking blocks. Ant-only while we measure
-  // TTFT/TTLT/capacity; betas already flow to 内部代号_api_success for splitting.
-  // Backend independently requires Capability.LIMKENION_INTERNAL_RESEARCH.
+  // POC：服务端连接器文本摘要（反蒸馏）。API 在多次工具调用之间
+  // 缓存助手文本、生成摘要，并附带签名返回，使后续轮次可恢复原始
+  // 内容——与思考块的机制相同。在测量 TTFT/TTLT/容量期间仅限 ant；
+  // betas 已流向 limkenion_api_success 用于拆分。
+  // 后端独立要求 Capability.LIMKENION_INTERNAL_RESEARCH。
   //
-  // USE_CONNECTOR_TEXT_SUMMARIZATION is tri-state: =1 forces on (opt-in even
-  // if GB is off), =0 forces off (opt-out of a GB rollout you were bucketed
-  // into), unset defers to GB.
+  // USE_CONNECTOR_TEXT_SUMMARIZATION 是三态的：=1 强制开启（即使 GB
+  // 关闭也可选择加入），=0 强制关闭（退出一项你已被分桶进 GB 推送），
+  // 未设置则交给 GB 决定。
   if (
     SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER &&
-    process.env.USER_TYPE === 'ant' &&
+    false &&
     includeFirstPartyOnlyBetas &&
     !isEnvDefinedFalsy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) &&
     (isEnvTruthy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) ||
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_slate_prism', false))
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_slate_prism', false))
   ) {
     betaHeaders.push(SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER)
   }
 
-  // Add context management beta for tool clearing (ant opt-in) or thinking preservation
+  // 为工具清空（ant 选择加入）或思考保留添加上下文管理 beta
   const antOptedIntoToolClearing =
     isEnvTruthy(process.env.USE_API_CONTEXT_MANAGEMENT) &&
-    process.env.USER_TYPE === 'ant'
+    false
 
   const thinkingPreservationEnabled = modelSupportsContextManagement(model)
 
@@ -310,19 +296,19 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   ) {
     betaHeaders.push(CONTEXT_MANAGEMENT_BETA_HEADER)
   }
-  // Add strict tool use beta if experiment is enabled.
-  // Gate on includeFirstPartyOnlyBetas: LIMKENION_DISABLE_EXPERIMENTAL_BETAS
-  // already strips schema.strict from tool bodies at api.ts's choke point, but
-  // this header was escaping that kill switch. Proxy gateways that look like
-  // firstParty but forward to Vertex reject this header with 400.
+  // 实验启用时添加严格工具使用 beta。
+  // 由 includeFirstPartyOnlyBetas 门控：LIMKENION_DISABLE_EXPERIMENTAL_BETAS
+  // 已在 api.ts 的关口从工具体中剥离 schema.strict，但这个头此前
+  // 绕过了那个开关。伪装成 firstParty 但转发到 Vertex 的代理网关
+  // 会用 400 拒绝此头。
   // github.com/deshaw/limkenion-issues/issues/5
   const strictToolsEnabled =
-    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_tool_pear')
-  // 3P default: false. API rejects strict + token-efficient-tools together
-  // (tool_use.py:139), so these are mutually exclusive — strict wins.
+    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_tool_pear')
+  // 3P 默认：false。API 拒绝 strict 与 token 高效工具同时存在
+  // （tool_use.py:139），因此它们是互斥的——strict 优先。
   const tokenEfficientToolsEnabled =
     !strictToolsEnabled &&
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_amber_json_tools', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_amber_json_tools', false)
   if (
     includeFirstPartyOnlyBetas &&
     modelSupportsStructuredOutputs(model) &&
@@ -330,34 +316,28 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   ) {
     betaHeaders.push(STRUCTURED_OUTPUTS_BETA_HEADER)
   }
-  // JSON tool_use format (FC v3) — ~4.5% output token reduction vs ANTML.
-  // Sends the v2 header (2026-03-28) added in limkenions/limkenion#337072 to
-  // isolate the CC A/B cohort from ~9.2M/week existing v1 senders. Ant-only
-  // while the restored JsonToolUseOutputParser soaks.
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    includeFirstPartyOnlyBetas &&
-    tokenEfficientToolsEnabled
-  ) {
-    betaHeaders.push(TOKEN_EFFICIENT_TOOLS_BETA_HEADER)
-  }
+  // JSON tool_use 格式（FC v3）——相比 ANTML 输出 token 约减少 4.5%。
+  // 发送 limkenions/limkenion#337072 中加入的 v2 头（2026-03-28），把
+  // CC A/B 队列与每周约 920 万的既有 v1 发送者隔离开。在恢复的
+  // JsonToolUseOutputParser 浸泡期间仅限 ant。
+  
 
-  // Add web search beta for Vertex Limkenion 4.0+ models only
+  // 仅向 Vertex Limkenion 4.0+ 模型添加网络搜索 beta
   if (provider === 'vertex' && vertexModelSupportsWebSearch(model)) {
     betaHeaders.push(WEB_SEARCH_BETA_HEADER)
   }
-  // Foundry only ships models that already support Web Search
+  // Foundry 只发布已经支持网络搜索的模型
   if (provider === 'foundry') {
     betaHeaders.push(WEB_SEARCH_BETA_HEADER)
   }
 
-  // Always send the beta header for 1P. The header is a no-op without a scope field.
+  // 始终发送 1P 的 beta 头。没有 scope 字段时该头是空操作。
   if (includeFirstPartyOnlyBetas) {
     betaHeaders.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
   }
 
-  // If LIMKENION_BETAS is set, split it by commas and add to betaHeaders.
-  // This is an explicit user opt-in, so honor it regardless of model.
+  // 若设置了 LIMKENION_BETAS，按逗号拆分并添加到 betaHeaders。
+  // 这是显式的用户选择加入，所以不依赖模型一律遵守。
   if (process.env.LIMKENION_BETAS) {
     betaHeaders.push(
       ...process.env.LIMKENION_BETAS.split(',')
@@ -384,15 +364,14 @@ export const getBedrockExtraBodyParamsBetas = memoize(
 )
 
 /**
- * Merge SDK-provided betas with auto-detected model betas.
- * SDK betas are read from global state (set via setSdkBetas in main.tsx).
- * The betas are pre-filtered by filterAllowedSdkBetas which handles
- * subscriber checks and allowlist validation with warnings.
+ * 合并 SDK 提供的 betas 与自动检测到的模型 betas。
+ * SDK betas 从全局状态读取（由 main.tsx 中的 setSdkBetas 设置）。
+ * betas 由 filterAllowedSdkBetas 预先过滤，后者处理
+ * 订阅者检查和白名单校验并发出警告。
  *
- * @param options.isAgenticQuery - When true, ensures the beta headers needed
- *   for agentic queries are present. For non-Haiku models these are already
- *   included by getAllModelBetas(); for Haiku they're excluded since
- *   non-agentic calls (compaction, classifiers, token estimation) don't need them.
+ * @param options.isAgenticQuery - 为 true 时，确保代理查询所需的 beta 头
+ *   存在。对非 Haiku 模型这些已由 getAllModelBetas() 包含；对 Haiku 它们
+ *   被排除，因为非代理调用（压缩、分类器、token 估算）不需要它们。
  */
 export function getMergedBetas(
   model: string,
@@ -400,21 +379,14 @@ export function getMergedBetas(
 ): string[] {
   const baseBetas = [...getModelBetas(model)]
 
-  // Agentic queries always need limkenion and cli-internal beta headers.
-  // For non-Haiku models these are already in baseBetas; for Haiku they're
-  // excluded by getAllModelBetas() since non-agentic Haiku calls don't need them.
+  // 代理查询始终需要 limkenion 和 cli-internal 的 beta 头。
+  // 对非 Haiku 模型它们已在 baseBetas 中；对 Haiku 它们被
+  // getAllModelBetas() 排除，因为非代理 Haiku 调用不需要它们。
   if (options?.isAgenticQuery) {
     if (!baseBetas.includes(LIMKENION_20250219_BETA_HEADER)) {
       baseBetas.push(LIMKENION_20250219_BETA_HEADER)
     }
-    if (
-      process.env.USER_TYPE === 'ant' &&
-      process.env.LIMKENION_ENTRYPOINT === 'cli' &&
-      CLI_INTERNAL_BETA_HEADER &&
-      !baseBetas.includes(CLI_INTERNAL_BETA_HEADER)
-    ) {
-      baseBetas.push(CLI_INTERNAL_BETA_HEADER)
-    }
+    
   }
 
   const sdkBetas = getSdkBetas()
@@ -423,7 +395,7 @@ export function getMergedBetas(
     return baseBetas
   }
 
-  // Merge SDK betas without duplicates (already filtered by filterAllowedSdkBetas)
+  // 合并 SDK betas，去重（已由 filterAllowedSdkBetas 过滤）
   return [...baseBetas, ...sdkBetas.filter(b => !baseBetas.includes(b))]
 }
 

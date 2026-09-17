@@ -15,8 +15,8 @@ type Props = {
 };
 
 /**
- * Gets the theme color key for the teammate's assigned color.
- * Returns undefined if not a teammate or if the color is invalid.
+ * 获取队友所分配颜色的主题色键。
+ * 若非队友或颜色无效，则返回 undefined。
  */
 function getTeammateThemeColor(): keyof Theme | undefined {
   if (!isAgentSwarmsEnabled()) {
@@ -33,13 +33,13 @@ function getTeammateThemeColor(): keyof Theme | undefined {
 }
 type PromptCharProps = {
   isLoading: boolean;
-  // Dead code elimination: parameter named themeColor to avoid "teammate" string in external builds
+  // 死代码消除：参数命名为 themeColor 以避免外部构建中出现 "teammate" 字符串
   themeColor?: keyof Theme;
 };
 
 /**
- * Renders the prompt character (❯).
- * Teammate color overrides the default color when set.
+ * 渲染提示符字符（❯）。
+ * 设置队友颜色时，将覆盖默认颜色。
  */
 function PromptChar(t0) {
   const $ = _c(3);

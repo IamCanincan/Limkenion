@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { extraUsage } from 'src/commands/extra-usage/index.js';
 import { Box, Text } from 'src/ink.js';
 import { useLimkenionAiLimits } from 'src/services/limkenionAiLimitsHook.js';
-import { shouldProcessMockLimits } from 'src/services/rateLimitMocking.js'; // Used for /mock-limits command
+import { shouldProcessMockLimits } from 'src/services/rateLimitMocking.js'; // 用于 /mock-limits 命令
 import { getRateLimitTier, getSubscriptionType, isLimkenionAISubscriber } from 'src/utils/auth.js';
 import { hasLimkenionAiBillingAccess } from 'src/utils/billing.js';
 import { MessageResponse } from '../MessageResponse.js';
@@ -26,24 +26,24 @@ export function getUpsellMessage({
   if (!shouldShowUpsell) return null;
   if (isMax20x) {
     if (isExtraUsageCommandEnabled) {
-      return '/extra-usage to finish what you\u2019re working on.';
+      return '/extra-usage 来完成你正在进行的操作。';
     }
-    return '/login to switch to an API usage-billed account.';
+    return '/login 以切换到按 API 用量计费的账户。';
   }
   if (shouldAutoOpenRateLimitOptionsMenu) {
-    return 'Opening your options\u2026';
+    return '正在打开你的选项\u2026';
   }
   if (!isTeamOrEnterprise && !isExtraUsageCommandEnabled) {
-    return '/upgrade to increase your usage limit.';
+    return '/upgrade 以提高你的用量上限。';
   }
   if (isTeamOrEnterprise) {
     if (!isExtraUsageCommandEnabled) return null;
     if (hasBillingAccess) {
-      return '/extra-usage to finish what you\u2019re working on.';
+      return '/extra-usage 来完成你正在进行的操作。';
     }
-    return '/extra-usage to request more usage from your admin.';
+    return '/extra-usage 以向管理员申请更多用量。';
   }
-  return '/upgrade or /extra-usage to finish what you\u2019re working on.';
+  return '/upgrade 或 /extra-usage 以完成你正在进行的操作。';
 }
 type RateLimitMessageProps = {
   text: string;

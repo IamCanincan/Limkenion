@@ -46,14 +46,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
   constructor(options: { timeout?: number } = {}) {
     const defaultEndpoint = 'https://127.0.0.1/api/limkenion/metrics'
 
-    if (
-      process.env.USER_TYPE === 'ant' &&
-      process.env.ANT_LIMKENION_METRICS_ENDPOINT
-    ) {
-      this.endpoint =
-        process.env.ANT_LIMKENION_METRICS_ENDPOINT +
-        '/api/limkenion/metrics'
-    } else {
+     {
       this.endpoint = defaultEndpoint
     }
 

@@ -36,7 +36,7 @@ const ChannelAllowlistSchema = lazySchema(() =>
 
 export function getChannelAllowlist(): ChannelAllowlistEntry[] {
   const raw = getFeatureValue_CACHED_MAY_BE_STALE<unknown>(
-    '内部代号_harbor_ledger',
+    'limkenion_harbor_ledger',
     [],
   )
   const parsed = ChannelAllowlistSchema().safeParse(raw)
@@ -49,7 +49,7 @@ export function getChannelAllowlist(): ChannelAllowlistEntry[] {
  * Default false; GrowthBook 5-min refresh.
  */
 export function isChannelsEnabled(): boolean {
-  return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_harbor', false)
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_harbor', false)
 }
 
 /**

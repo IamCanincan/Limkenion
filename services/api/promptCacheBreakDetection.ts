@@ -28,42 +28,42 @@ function getCacheBreakDiffPath(): string {
 type PreviousState = {
   systemHash: number
   toolsHash: number
-  /** Hash of system blocks WITH cache_control intact. Catches scope/TTL flips
-   *  (global↔org, 1h↔5m) that stripCacheControl erases from systemHash. */
+  /** 系统块的 hash，其中 cache_control 保持完好。用于捕获 stripCacheControl
+   * 会从 systemHash 中擦除的 scope/TTL 翻转（global↔org、1h↔5m）。 */
   cacheControlHash: number
   toolNames: string[]
-  /** Per-tool schema hash. Diffed to name which tool's description changed
-   *  when toolSchemasChanged but added=removed=0 (77% of tool breaks per
-   *  BQ 2026-03-22). AgentTool/SkillTool embed dynamic agent/command lists. */
+  /** 每个工具 schema 的 hash。当 toolSchemasChanged 但 added=removed=0 时
+   * 通过 diff 来指出是哪个工具的描述变了（按 BQ 2026-03-22 数据，工具破坏中
+   * 77% 属此类）。AgentTool/SkillTool 会内嵌动态的 agent/命令列表。 */
   perToolHashes: Record<string, number>
   systemCharCount: number
   model: string
   fastMode: boolean
-  /** 'tool_based' | 'system_prompt' | 'none' — flips when MCP tools are
-   *  discovered/removed. */
+  /** 'tool_based' | 'system_prompt' | 'none' —— 在 MCP 工具被
+   * 发现/移除时会翻转。 */
   globalCacheStrategy: string
-  /** Sorted beta header list. Diffed to show which headers were added/removed. */
+  /** 排序后的 beta 响应头列表。通过 diff 展示哪些响应头被添加/移除。 */
   betas: string[]
-  /** AFK_MODE_BETA_HEADER presence — should NOT break cache anymore
-   *  (sticky-on latched in limkenion.ts). Tracked to verify the fix. */
+  /** AFK_MODE_BETA_HEADER 是否存在 —— 不应再破坏缓存
+   *（在 limkenion.ts 中粘附锁定）。随后来验证修复。 */
   autoModeActive: boolean
-  /** Overage state flip — should NOT break cache anymore (eligibility is
-   *  latched session-stable in should1hCacheTTL). Tracked to verify the fix. */
+  /** Overage 状态翻转 —— 不应再破坏缓存（资格在 should1hCacheTTL 中
+   * 会话级粘附锁定）。随后来验证修复。 */
   isUsingOverage: boolean
-  /** Cache-editing beta header presence — should NOT break cache anymore
-   *  (sticky-on latched in limkenion.ts). Tracked to verify the fix. */
+  /** 缓存编辑 beta 响应头是否存在 —— 不应再破坏缓存
+   *（在 limkenion.ts 中粘附锁定）。随后来验证修复。 */
   cachedMCEnabled: boolean
-  /** Resolved effort (env → options → model default). Goes into output_config
-   *  or limkenion_internal.effort_override. */
+  /** 已解析的 effort（env → options → 模型默认）。会写入 output_config
+   * 或 limkenion_internal.effort_override。 */
   effortValue: string
-  /** Hash of getExtraBodyParams() — catches LIMKENION_EXTRA_BODY and
-   *  limkenion_internal changes. */
+  /** getExtraBodyParams() 的 hash —— 捕获 LIMKENION_EXTRA_BODY 与
+   * limkenion_internal 的改动。 */
   extraBodyHash: number
   callCount: number
   pendingChanges: PendingChanges | null
   prevCacheReadTokens: number | null
-  /** Set when cached microcompact sends cache_edits deletions. Cache reads
-   *  will legitimately drop — this is expected, not a break. */
+  /** 当缓存的微压缩发送 cache_edits 删除时设置。缓存读取量
+   * 会合理地下降 —— 这是预期的，不是破坏。 */
   cacheDeletionsPending: boolean
   buildDiffableContent: () => string
 }
@@ -100,10 +100,10 @@ type PendingChanges = {
 
 const previousStateBySource = new Map<string, PreviousState>()
 
-// Cap the number of tracked sources to prevent unbounded memory growth.
-// Each entry stores a ~300KB+ diffableContent string (serialized system prompt
-// + tool schemas). Without a cap, spawning many subagents (each with a unique
-// agentId key) causes the map to grow indefinitely.
+// 限制跟踪的源头数量，防止无界内存增长。
+// 每条记录会存储约 300KB+ 的 diffableContent 字符串（序列化后的系统提示
+// + 工具 schema）。若不设上限，大量生成子代理（每个都有唯一的
+// agentId 键）会导致该 map 无限增长。
 const MAX_TRACKED_SOURCES = 10
 
 const TRACKED_SOURCE_PREFIXES = [
@@ -114,37 +114,34 @@ const TRACKED_SOURCE_PREFIXES = [
   'agent:builtin',
 ]
 
-// Minimum absolute token drop required to trigger a cache break warning.
-// Small drops (e.g., a few thousand tokens) can happen due to normal variation
-// and aren't worth alerting on.
+// 触发缓存破坏告警所需的最小绝对 token 下降量。
+// 小幅下降（例如几千 token）可能源于正常波动，不值得告警。
 const MIN_CACHE_MISS_TOKENS = 2_000
 
-// Limkenion's server-side prompt cache TTL thresholds to test.
-// Cache breaks after these durations are likely due to TTL expiration
-// rather than client-side changes.
+// Limkenion 服务端提示缓存 TTL 阈值，供测试对照。
+// 超过这些时长后发生的缓存破坏，更可能是 TTL 过期导致，
+// 而非客户端改动。
 const CACHE_TTL_5MIN_MS = 5 * 60 * 1000
 export const CACHE_TTL_1HOUR_MS = 60 * 60 * 1000
 
-// Models to exclude from cache break detection (e.g., haiku has different caching behavior)
+// 需排除在缓存破坏检测之外的模型（例如 haiku 的缓存行为不同）
 function isExcludedModel(model: string): boolean {
   return model.includes('haiku')
 }
 
 /**
- * Returns the tracking key for a querySource, or null if untracked.
- * Compact shares the same server-side cache as repl_main_thread
- * (same cacheSafeParams), so they share tracking state.
+ * 返回某个 querySource 的跟踪键；若不跟踪则返回 null。
+ * Compact 与 repl_main_thread 共用相同的服务端缓存
+ * （相同的 cacheSafeParams），因此它们共享跟踪状态。
  *
- * For subagents with a tracked querySource, uses the unique agentId to
- * isolate tracking state. This prevents false positive cache break
- * notifications when multiple instances of the same agent type run
- * concurrently.
+ * 对于带被跟踪 querySource 的子代理，使用唯一的 agentId 来
+ * 隔离跟踪状态，避免同一代理类型并发运行多个实例时
+ * 产生误报的缓存破坏通知。
  *
- * Untracked sources (speculation, session_memory, prompt_suggestion, etc.)
- * are short-lived forked agents where cache break detection provides no
- * value — they run 1-3 turns with a fresh agentId each time, so there's
- * nothing meaningful to compare against. Their cache metrics are still
- * logged via 内部代号_api_success for analytics.
+ * 未被跟踪的源头（speculation、session_memory、prompt_suggestion 等）
+ * 是短生命周期的 fork 代理，缓存破坏检测对它们没有价值——
+ * 每次都以全新的 agentId 运行 1-3 轮，没有可比对象。
+ * 其缓存指标仍通过 limkenion_api_success 记录以用于分析。
  */
 function getTrackingKey(
   querySource: QuerySource,
@@ -171,15 +168,15 @@ function computeHash(data: unknown): number {
   const str = jsonStringify(data)
   if (typeof Bun !== 'undefined') {
     const hash = Bun.hash(str)
-    // Bun.hash can return bigint for large inputs; convert to number safely
+    // Bun.hash 对较大输入可能返回 bigint；安全地转成 number
     return typeof hash === 'bigint' ? Number(hash & 0xffffffffn) : hash
   }
-  // Fallback for non-Bun runtimes (e.g. Node.js via npm global install)
+  // 非 Bun 运行时的回退方案（例如通过 npm 全局安装的 Node.js）
   return djb2Hash(str)
 }
 
-/** MCP tool names are user-controlled (server config) and may leak filepaths.
- *  Collapse them to 'mcp'; built-in names are a fixed vocabulary. */
+/** MCP 工具名由用户控制（服务器配置），可能泄露文件路径。
+ *  将其归并到 'mcp'；内置名称是固定词汇表。 */
 function sanitizeToolName(name: string): string {
   return name.startsWith('mcp__') ? 'mcp' : name
 }
@@ -221,9 +218,8 @@ function buildDiffableContent(
   return `Model: ${model}\n\n=== System Prompt ===\n\n${systemText}\n\n=== Tools (${tools.length}) ===\n\n${toolDetails}\n`
 }
 
-/** Extended tracking snapshot — everything that could affect the server-side
- *  cache key that we can observe from the client. All fields are optional so
- *  the call site can add incrementally; undefined fields compare as stable. */
+/** 扩展跟踪快照——可观察到的、可能影响服务端缓存键的全部信息。
+ *  所有字段均为可选，便于调用方按需逐步补充；未定义字段在比较时视为稳定。 */
 export type PromptStateSnapshot = {
   system: TextBlockParam[]
   toolSchemas: BetaToolUnion[]
@@ -241,8 +237,8 @@ export type PromptStateSnapshot = {
 }
 
 /**
- * Phase 1 (pre-call): Record the current prompt/tool state and detect what changed.
- * Does NOT fire events — just stores pending changes for phase 2 to use.
+ * 阶段 1（调用前）：记录当前提示词/工具状态并检测哪些发生了变化。
+ * 不会触发事件——仅暂存待定改动供阶段 2 使用。
  */
 export function recordPromptState(snapshot: PromptStateSnapshot): void {
   try {
@@ -273,15 +269,15 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
 
     const systemHash = computeHash(strippedSystem)
     const toolsHash = computeHash(strippedTools)
-    // Hash the full system array INCLUDING cache_control — this catches
-    // scope flips (global↔org/none) and TTL flips (1h↔5m) that the stripped
-    // hash can't see because the text content is identical.
+    // 对包含 cache_control 的完整系统数组计算 hash——这能捕获
+    // 剥离 hash 无法看到的 scope 翻转（global↔org/none）与 TTL 翻转
+    //（1h↔5m），因为此时文本内容完全相同。
     const cacheControlHash = computeHash(
       system.map(b => ('cache_control' in b ? b.cache_control : null)),
     )
     const toolNames = toolSchemas.map(t => ('name' in t ? t.name : 'unknown'))
-    // Only compute per-tool hashes when the aggregate changed — common case
-    // (tools unchanged) skips N extra jsonStringify calls.
+    // 仅在聚合值发生变化时才计算每个工具的 hash——常见情况
+    //（工具未变）可跳过 N 次额外的 jsonStringify 调用。
     const computeToolHashes = () =>
       computePerToolHashes(strippedTools, toolNames)
     const systemCharCount = getSystemCharCount(system)
@@ -296,7 +292,7 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
     const prev = previousStateBySource.get(key)
 
     if (!prev) {
-      // Evict oldest entries if map is at capacity
+      // map 已满时逐出最旧的条目
       while (previousStateBySource.size >= MAX_TRACKED_SOURCES) {
         const oldest = previousStateBySource.keys().next().value
         if (oldest !== undefined) previousStateBySource.delete(oldest)
@@ -430,9 +426,8 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
 }
 
 /**
- * Phase 2 (post-call): Check the API response's cache tokens to determine
- * if a cache break actually occurred. If it did, use the pending changes
- * from phase 1 to explain why.
+ * 阶段 2（调用后）：检查 API 响应的缓存 token，判断是否真的发生了
+ * 缓存破坏。若发生，则用阶段 1 记录的待定改动来解释原因。
  */
 export async function checkResponseForCacheBreak(
   querySource: QuerySource,
@@ -449,39 +444,38 @@ export async function checkResponseForCacheBreak(
     const state = previousStateBySource.get(key)
     if (!state) return
 
-    // Skip excluded models (e.g., haiku has different caching behavior)
+    // 跳过被排除的模型（例如 haiku 的缓存行为不同）
     if (isExcludedModel(state.model)) return
 
     const prevCacheRead = state.prevCacheReadTokens
     state.prevCacheReadTokens = cacheReadTokens
 
-    // Calculate time since last call for TTL detection by finding the most recent
-    // assistant message timestamp in the messages array (before the current response)
+    // 通过在 messages 数组中查找最近一次助手消息的时间戳
+    //（在当前响应之前），计算距离上次调用经过的时间用于 TTL 检测
     const lastAssistantMessage = messages.findLast(m => m.type === 'assistant')
     const timeSinceLastAssistantMsg = lastAssistantMessage
       ? Date.now() - new Date(lastAssistantMessage.timestamp).getTime()
       : null
 
-    // Skip the first call — no previous value to compare against
+    // 跳过首次调用——没有可比较的上一次取值
     if (prevCacheRead === null) return
 
     const changes = state.pendingChanges
 
-    // Cache deletions via cached microcompact intentionally reduce the cached
-    // prefix. The drop in cache read tokens is expected — reset the baseline
-    // so we don't false-positive on the next call.
+    // 通过缓存微压缩发送的 cache_edits 删除会有意缩减缓存前缀。
+    // 缓存读取量下降是预期行为——重置基线，避免下一次调用误报。
     if (state.cacheDeletionsPending) {
       state.cacheDeletionsPending = false
       logForDebugging(
-        `[PROMPT CACHE] cache deletion applied, cache read: ${prevCacheRead} → ${cacheReadTokens} (expected drop)`,
+        `[PROMPT CACHE] 已应用缓存删除，缓存读取：${prevCacheRead} → ${cacheReadTokens}（预期下降）`,
       )
-      // Don't flag as a break — the remaining state is still valid
+      // 不标记为破坏——其余状态仍然有效
       state.pendingChanges = null
       return
     }
 
-    // Detect a cache break: cache read dropped >5% from previous AND
-    // the absolute drop exceeds the minimum threshold.
+    // 检测缓存破坏：缓存读取相对上一次下降 >5% 且
+    // 绝对下降量超过最小阈值。
     const tokenDrop = prevCacheRead - cacheReadTokens
     if (
       cacheReadTokens >= prevCacheRead * 0.95 ||
@@ -491,12 +485,12 @@ export async function checkResponseForCacheBreak(
       return
     }
 
-    // Build explanation from pending changes (if any)
+    // 根据待定改动（如有）构建原因说明
     const parts: string[] = []
     if (changes) {
       if (changes.modelChanged) {
         parts.push(
-          `model changed (${changes.previousModel} → ${changes.newModel})`,
+          `模型已更改（${changes.previousModel} → ${changes.newModel}）`,
         )
       }
       if (changes.systemPromptChanged) {
@@ -505,23 +499,23 @@ export async function checkResponseForCacheBreak(
           charDelta === 0
             ? ''
             : charDelta > 0
-              ? ` (+${charDelta} chars)`
-              : ` (${charDelta} chars)`
-        parts.push(`system prompt changed${charInfo}`)
+              ? `（+${charDelta} 字符）`
+              : `（${charDelta} 字符）`
+        parts.push(`系统提示已更改${charInfo}`)
       }
       if (changes.toolSchemasChanged) {
         const toolDiff =
           changes.addedToolCount > 0 || changes.removedToolCount > 0
-            ? ` (+${changes.addedToolCount}/-${changes.removedToolCount} tools)`
-            : ' (tool prompt/schema changed, same tool set)'
-        parts.push(`tools changed${toolDiff}`)
+            ? `（+${changes.addedToolCount}/-${changes.removedToolCount} 个工具）`
+            : '（工具提示/schema 已更改，工具集相同）'
+        parts.push(`工具已更改${toolDiff}`)
       }
       if (changes.fastModeChanged) {
-        parts.push('fast mode toggled')
+        parts.push('快模式已切换')
       }
       if (changes.globalCacheStrategyChanged) {
         parts.push(
-          `global cache strategy changed (${changes.prevGlobalCacheStrategy || 'none'} → ${changes.newGlobalCacheStrategy || 'none'})`,
+          `全局缓存策略已更改（${changes.prevGlobalCacheStrategy || 'none'} → ${changes.newGlobalCacheStrategy || 'none'}）`,
         )
       }
       if (
@@ -529,9 +523,9 @@ export async function checkResponseForCacheBreak(
         !changes.globalCacheStrategyChanged &&
         !changes.systemPromptChanged
       ) {
-        // Only report as standalone cause if nothing else explains it —
-        // otherwise the scope/TTL flip is a consequence, not the root cause.
-        parts.push('cache_control changed (scope or TTL)')
+        // 仅当没有其他原因解释时，才将其作为独立原因上报——
+        // 否则 scope/TTL 翻转只是结果，而非根因。
+        parts.push('cache_control 已更改（scope 或 TTL）')
       }
       if (changes.betasChanged) {
         const added = changes.addedBetas.length
@@ -541,28 +535,28 @@ export async function checkResponseForCacheBreak(
           ? `-${changes.removedBetas.join(',')}`
           : ''
         const diff = [added, removed].filter(Boolean).join(' ')
-        parts.push(`betas changed${diff ? ` (${diff})` : ''}`)
+        parts.push(`betas 已更改${diff ? `（${diff}）` : ''}`)
       }
       if (changes.autoModeChanged) {
-        parts.push('auto mode toggled')
+        parts.push('自动模式已切换')
       }
       if (changes.overageChanged) {
-        parts.push('overage state changed (TTL latched, no flip)')
+        parts.push('overage 状态已更改（TTL 粘附锁定，无翻转）')
       }
       if (changes.cachedMCChanged) {
-        parts.push('cached microcompact toggled')
+        parts.push('缓存微压缩已切换')
       }
       if (changes.effortChanged) {
         parts.push(
-          `effort changed (${changes.prevEffortValue || 'default'} → ${changes.newEffortValue || 'default'})`,
+          `effort 已更改（${changes.prevEffortValue || 'default'} → ${changes.newEffortValue || 'default'}）`,
         )
       }
       if (changes.extraBodyChanged) {
-        parts.push('extra body params changed')
+        parts.push('extra body 参数已更改')
       }
     }
 
-    // Check if time gap suggests TTL expiration
+    // 检查时间间隔是否暗示 TTL 过期
     const lastAssistantMsgOver5minAgo =
       timeSinceLastAssistantMsg !== null &&
       timeSinceLastAssistantMsg > CACHE_TTL_5MIN_MS
@@ -570,24 +564,24 @@ export async function checkResponseForCacheBreak(
       timeSinceLastAssistantMsg !== null &&
       timeSinceLastAssistantMsg > CACHE_TTL_1HOUR_MS
 
-    // Post PR #19823 BQ analysis (bq-queries/prompt-caching/cache_break_pr19823_analysis.sql):
-    // when all client-side flags are false and the gap is under TTL, ~90% of breaks
-    // are server-side routing/eviction or billed/inference disagreement. Label
-    // accordingly instead of implying a CC bug hunt.
+    // PR #19823 之后的 BQ 分析（bq-queries/prompt-caching/cache_break_pr19823_analysis.sql）：
+    // 当所有客户端标志均为 false 且间隔低于 TTL 时，约 90% 的破坏
+    // 是服务端路由/驱逐或计费/推理不一致导致。据此给出标签，
+    // 而不要暗示是 CC bug 排查。
     let reason: string
     if (parts.length > 0) {
       reason = parts.join(', ')
     } else if (lastAssistantMsgOver1hAgo) {
-      reason = 'possible 1h TTL expiry (prompt unchanged)'
+      reason = '可能为 1h TTL 过期（提示未更改）'
     } else if (lastAssistantMsgOver5minAgo) {
-      reason = 'possible 5min TTL expiry (prompt unchanged)'
+      reason = '可能为 5min TTL 过期（提示未更改）'
     } else if (timeSinceLastAssistantMsg !== null) {
-      reason = 'likely server-side (prompt unchanged, <5min gap)'
+      reason = '可能为服务端问题（提示未更改，间隔<5min）'
     } else {
-      reason = 'unknown cause'
+      reason = '未知原因'
     }
 
-    logEvent('内部代号_prompt_cache_break', {
+    logEvent('limkenion_prompt_cache_break', {
       systemPromptChanged: changes?.systemPromptChanged ?? false,
       toolSchemasChanged: changes?.toolSchemasChanged ?? false,
       modelChanged: changes?.modelChanged ?? false,
@@ -603,8 +597,8 @@ export async function checkResponseForCacheBreak(
       addedToolCount: changes?.addedToolCount ?? 0,
       removedToolCount: changes?.removedToolCount ?? 0,
       systemCharDelta: changes?.systemCharDelta ?? 0,
-      // Tool names are sanitized: built-in names are a fixed vocabulary,
-      // MCP tools collapse to 'mcp' (user-configured, could leak paths).
+      // 工具名已做脱敏：内置名称是固定词汇表，
+      // MCP 工具归并为 'mcp'（用户配置，可能泄露路径）。
       addedTools: (changes?.addedTools ?? [])
         .map(sanitizeToolName)
         .join(
@@ -620,8 +614,8 @@ export async function checkResponseForCacheBreak(
         .join(
           ',',
         ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      // Beta header names and cache strategy are fixed enum-like values,
-      // not code or filepaths. requestId is an opaque server-generated ID.
+      // beta 响应头名称与缓存策略是固定的类枚举值，
+      // 并非代码或文件路径。requestId 是服务端生成的不透明 ID。
       addedBetas: (changes?.addedBetas ?? []).join(
         ',',
       ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -643,9 +637,9 @@ export async function checkResponseForCacheBreak(
         '') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
 
-    // Write diff file for ant debugging via --debug. The path is included in
-    // the summary log so ants can find it (DevBar UI removed — event data
-    // flows reliably to BQ for analytics).
+    // 为通过 --debug 进行的调试写出 diff 文件。路径会包含在
+    // 摘要日志中，便于定位（DevBar UI 已移除——事件数据
+    // 可靠地流向 BQ 用于分析）。
     let diffPath: string | undefined
     if (changes?.buildPrevDiffableContent) {
       diffPath = await writeCacheBreakDiff(
@@ -655,7 +649,7 @@ export async function checkResponseForCacheBreak(
     }
 
     const diffSuffix = diffPath ? `, diff: ${diffPath}` : ''
-    const summary = `[PROMPT CACHE BREAK] ${reason} [source=${querySource}, call #${state.callCount}, cache read: ${prevCacheRead} → ${cacheReadTokens}, creation: ${cacheCreationTokens}${diffSuffix}]`
+    const summary = `[PROMPT CACHE BREAK] ${reason} [source=${querySource}，调用 #${state.callCount}，缓存读取：${prevCacheRead} → ${cacheReadTokens}，创建：${cacheCreationTokens}${diffSuffix}]`
 
     logForDebugging(summary, { level: 'warn' })
 
@@ -666,9 +660,8 @@ export async function checkResponseForCacheBreak(
 }
 
 /**
- * Call when cached microcompact sends cache_edits deletions.
- * The next API response will have lower cache read tokens — that's
- * expected, not a cache break.
+ * 当缓存微压缩发送 cache_edits 删除时调用。
+ * 下一次 API 响应的缓存读取量会较低——这是预期行为，并非缓存破坏。
  */
 export function notifyCacheDeletion(
   querySource: QuerySource,
@@ -682,9 +675,9 @@ export function notifyCacheDeletion(
 }
 
 /**
- * Call after compaction to reset the cache read baseline.
- * Compaction legitimately reduces message count, so cache read tokens
- * will naturally drop on the next call — that's not a break.
+ * 压缩后调用以重置缓存读取基线。
+ * 压缩会合理地减少消息数量，因此下一次调用的缓存读取量
+ * 会自然下降——这不是缓存破坏。
  */
 export function notifyCompaction(
   querySource: QuerySource,

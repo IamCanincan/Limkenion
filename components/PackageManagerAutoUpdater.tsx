@@ -73,7 +73,7 @@ export function PackageManagerAutoUpdater(t0) {
   if (!updateAvailable) {
     return null;
   }
-  const updateCommand = packageManager === "homebrew" ? "brew upgrade limkenion" : packageManager === "winget" ? "winget upgrade Limkenion.Limkenion" : packageManager === "apk" ? "apk upgrade limkenion" : "your package manager update command";
+  const updateCommand = packageManager === "homebrew" ? "brew upgrade limkenion" : packageManager === "winget" ? "winget upgrade Limkenion.Limkenion" : packageManager === "apk" ? "apk upgrade limkenion" : "您的包管理器更新命令";
   let t4;
   if ($[3] !== verbose) {
     t4 = verbose && <Text dimColor={true} wrap="truncate">currentVersion: {MACRO.VERSION}</Text>;
@@ -84,7 +84,7 @@ export function PackageManagerAutoUpdater(t0) {
   }
   let t5;
   if ($[5] !== updateCommand) {
-    t5 = <Text color="warning" wrap="truncate">Update available! Run: <Text bold={true}>{updateCommand}</Text></Text>;
+    t5 = <Text color="warning" wrap="truncate">有可用更新！运行：<Text bold={true}>{updateCommand}</Text></Text>;
     $[5] = updateCommand;
     $[6] = t5;
   } else {

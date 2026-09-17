@@ -6,20 +6,20 @@ function validateUrl(url: string): void {
   try {
     parsedUrl = new URL(url)
   } catch (_error) {
-    throw new Error(`Invalid URL format: ${url}`)
+    throw new Error(`无效的 URL 格式：${url}`)
   }
 
-  // Validate URL protocol for security
+  // 出于安全校验 URL 协议
   if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
     throw new Error(
-      `Invalid URL protocol: must use http:// or https://, got ${parsedUrl.protocol}`,
+      `无效的 URL 协议：必须使用 http:// 或 https://，实际为 ${parsedUrl.protocol}`,
     )
   }
 }
 
 /**
- * Open a file or folder path using the system's default handler.
- * Uses `open` on macOS, `explorer` on Windows, `xdg-open` on Linux.
+ * 使用系统的默认处理器打开文件或文件夹路径。
+ * 在 macOS 上使用 `open`，在 Windows 上使用 `explorer`，在 Linux 上使用 `xdg-open`。
  */
 export async function openPath(path: string): Promise<boolean> {
   try {
@@ -38,7 +38,7 @@ export async function openPath(path: string): Promise<boolean> {
 
 export async function openBrowser(url: string): Promise<boolean> {
   try {
-    // Parse and validate the URL
+    // 解析并校验 URL
     validateUrl(url)
 
     const browserEnv = process.env.BROWSER
@@ -46,7 +46,7 @@ export async function openBrowser(url: string): Promise<boolean> {
 
     if (platform === 'win32') {
       if (browserEnv) {
-        // browsers require shell, else they will treat this as a file:/// handle
+        // 浏览器需要 shell，否则会把 URL 当作 file:/// 句柄
         const { code } = await execFileNoThrow(browserEnv, [`"${url}"`])
         return code === 0
       }

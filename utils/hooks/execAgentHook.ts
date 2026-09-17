@@ -239,7 +239,7 @@ When done, return your result using the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool with:
           logForDebugging(
             `Hooks: Agent hook did not complete within ${MAX_AGENT_TURNS} turns`,
           )
-          logEvent('内部代号_agent_stop_hook_max_turns', {
+          logEvent('limkenion_agent_stop_hook_max_turns', {
             durationMs: Date.now() - hookStartTime,
             turnCount,
             agentName:
@@ -254,7 +254,7 @@ When done, return your result using the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool with:
         // For other cases (e.g., agent finished without calling structured output tool),
         // just log and return cancelled (don't show error to user)
         logForDebugging(`Hooks: Agent hook did not return structured output`)
-        logEvent('内部代号_agent_stop_hook_error', {
+        logEvent('limkenion_agent_stop_hook_error', {
           durationMs: Date.now() - hookStartTime,
           turnCount,
           errorType: 1, // 1 = no structured output
@@ -284,7 +284,7 @@ When done, return your result using the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool with:
 
       // Condition was met
       logForDebugging(`Hooks: Agent hook condition was met`)
-      logEvent('内部代号_agent_stop_hook_success', {
+      logEvent('limkenion_agent_stop_hook_success', {
         durationMs: Date.now() - hookStartTime,
         turnCount,
         agentName:
@@ -316,7 +316,7 @@ When done, return your result using the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool with:
   } catch (error) {
     const errorMsg = errorMessage(error)
     logForDebugging(`Hooks: Agent hook error: ${errorMsg}`)
-    logEvent('内部代号_agent_stop_hook_error', {
+    logEvent('limkenion_agent_stop_hook_error', {
       durationMs: Date.now() - hookStartTime,
       errorType: 2, // 2 = general error
       agentName:

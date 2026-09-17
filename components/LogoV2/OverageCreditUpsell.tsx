@@ -62,7 +62,7 @@ export function incrementOverageCreditUpsellSeenCount(): void {
       overageCreditUpsellSeenCount: newCount
     };
   });
-  logEvent('内部代号_overage_credit_upsell_shown', {
+  logEvent('limkenion_overage_credit_upsell_shown', {
     seen_count: newCount
   });
 }

@@ -48,10 +48,10 @@ export function SandboxPromptFooterHint() {
   if (!SandboxManager.isSandboxingEnabled() || recentViolationCount === 0) {
     return null;
   }
-  const t2 = recentViolationCount === 1 ? "operation" : "operations";
+  const t2 = recentViolationCount === 1 ? "次操作" : "次操作";
   let t3;
   if ($[2] !== detailsShortcut || $[3] !== recentViolationCount || $[4] !== t2) {
-    t3 = <Box paddingX={0} paddingY={0}><Text color="inactive" wrap="truncate">⧈ Sandbox blocked {recentViolationCount}{" "}{t2} ·{" "}{detailsShortcut} for details · /sandbox to disable</Text></Box>;
+    t3 = <Box paddingX={0} paddingY={0}><Text color="inactive" wrap="truncate">⧈ 沙箱已拦截 {recentViolationCount}{" "}{t2} ·{" "}{detailsShortcut} 查看详情 · /sandbox 禁用</Text></Box>;
     $[2] = detailsShortcut;
     $[3] = recentViolationCount;
     $[4] = t2;

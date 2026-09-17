@@ -140,7 +140,7 @@ const BUILTIN_MCP_SERVER_NAMES: ReadonlySet<string> = new Set(
 /**
  * Spreadable helper for logEvent payloads — returns {mcpServerName, mcpToolName}
  * if the gate passes, empty object otherwise. Consolidates the identical IIFE
- * pattern at each 内部代号_tool_use_* call site.
+ * pattern at each limkenion_tool_use_* call site.
  */
 export function mcpToolDetailsForAnalytics(
   toolName: string,
@@ -492,7 +492,7 @@ export type EventMetadata = {
   rh?: string // Hashed repo remote URL (first 16 chars of SHA256), for joining with server-side data
   kairosActive?: true // KAIROS assistant mode active (ant-only; set in main.tsx after gate check)
   skillMode?: 'discovery' | 'coach' | 'discovery_and_coach' // Which skill surfacing mechanism(s) are gated on (ant-only; for BQ session segmentation)
-  observerMode?: 'backseat' | 'skillcoach' | 'both' // Which observer classifiers are gated on (ant-only; for BQ cohort splits on 内部代号_backseat_* events)
+  observerMode?: 'backseat' | 'skillcoach' | 'both' // Which observer classifiers are gated on (ant-only; for BQ cohort splits on limkenion_backseat_* events)
 }
 
 /**

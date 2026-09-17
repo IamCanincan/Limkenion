@@ -36,7 +36,7 @@ export type ListOutput = z.infer<OutputSchema>
 
 export const CronListTool = buildTool({
   name: CRON_LIST_TOOL_NAME,
-  searchHint: 'list active cron jobs',
+  searchHint: '列出活动中的计划任务',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   get inputSchema(): InputSchema {
@@ -62,7 +62,7 @@ export const CronListTool = buildTool({
   },
   async call() {
     const allTasks = await listAllCronTasks()
-    // Teammates only see their own crons; team lead (no ctx) sees all.
+    // 队友只能看到自己的计划任务；团队负责人（无 ctx）看到全部。
     const ctx = getTeammateContext()
     const tasks = ctx
       ? allTasks.filter(t => t.agentId === ctx.agentId)
@@ -86,10 +86,10 @@ export const CronListTool = buildTool({
           ? output.jobs
               .map(
                 j =>
-                  `${j.id} — ${j.humanSchedule}${j.recurring ? ' (recurring)' : ' (one-shot)'}${j.durable === false ? ' [session-only]' : ''}: ${truncate(j.prompt, 80, true)}`,
+                  `${j.id} — ${j.humanSchedule}${j.recurring ? '（重复）' : '（一次性）'}${j.durable === false ? ' [仅本次会话]' : ''}: ${truncate(j.prompt, 80, true)}`,
               )
               .join('\n')
-          : 'No scheduled jobs.',
+          : '没有计划任务。',
     }
   },
   renderToolUseMessage: renderListToolUseMessage,

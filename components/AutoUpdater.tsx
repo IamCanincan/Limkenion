@@ -38,11 +38,10 @@ export function AutoUpdater({
     void localInstallationExists().then(setHasLocalInstall);
   }, []);
 
-  // Track latest isUpdating value in a ref so the memoized checkForUpdates
-  // callback always sees the current value. Without this, the 30-minute
-  // interval fires with a stale closure where isUpdating is false, allowing
-  // a concurrent installGlobalPackage() to run while one is already in
-  // progress.
+  // 将最新的 isUpdating 值记录在 ref 中，使记忆化的 checkForUpdates
+  // 回调始终能看到当前值。否则，30 分钟
+  // 的定时器会以过期的闭包触发（其中 isUpdating 为 false），
+  // 导致在一个 installGlobalPackage() 正在进行时并发执行另一个。
   const isUpdatingRef = useRef(isUpdating);
   isUpdatingRef.current = isUpdating;
   const checkForUpdates = React.useCallback(async () => {
@@ -50,7 +49,7 @@ export function AutoUpdater({
       return;
     }
     if ("production" === 'test' || "production" === 'development') {
-      logForDebugging('AutoUpdater: Skipping update check in test/dev environment');
+      logForDebugging('AutoUpdater: 在测试/开发环境中跳过更新检查');
       return;
     }
     const currentVersion = MACRO.VERSION;
@@ -58,12 +57,12 @@ export function AutoUpdater({
     let latestVersion = await getLatestVersion(channel);
     const isDisabled = isAutoUpdaterDisabled();
 
-    // Check if max version is set (server-side kill switch for auto-updates)
+    // 检查是否设置了最大版本（服务端用于自动更新的熔断开关）
     const maxVersion = await getMaxVersion();
     if (maxVersion && latestVersion && gt(latestVersion, maxVersion)) {
-      logForDebugging(`AutoUpdater: maxVersion ${maxVersion} is set, capping update from ${latestVersion} to ${maxVersion}`);
+      logForDebugging(`AutoUpdater: 已设置 maxVersion ${maxVersion}，将更新上限从 ${latestVersion} 调整为 ${maxVersion}`);
       if (gte(currentVersion, maxVersion)) {
-        logForDebugging(`AutoUpdater: current version ${currentVersion} is already at or above maxVersion ${maxVersion}, skipping update`);
+        logForDebugging(`AutoUpdater: 当前版本 ${currentVersion} 已达到或超过 maxVersion ${maxVersion}，跳过更新`);
         setVersions({
           global: currentVersion,
           latest: latestVersion
@@ -77,50 +76,50 @@ export function AutoUpdater({
       latest: latestVersion
     });
 
-    // Check if update needed and perform update
+    // 判断是否需要更新并执行更新
     if (!isDisabled && currentVersion && latestVersion && !gte(currentVersion, latestVersion) && !shouldSkipVersion(latestVersion)) {
       const startTime = Date.now();
       onChangeIsUpdating(true);
 
-      // Remove native installer symlink since we're using JS-based updates
-      // But only if user hasn't migrated to native installation
+      // 移除 native 安装器的符号链接，因为我们改用基于 JS 的更新
+      // 但仅当用户尚未迁移到 native 安装方式时
       const config = getGlobalConfig();
       if (config.installMethod !== 'native') {
         await removeInstalledSymlink();
       }
 
-      // Detect actual running installation type
+      // 检测实际正在运行的安装类型
       const installationType = await getCurrentInstallationType();
-      logForDebugging(`AutoUpdater: Detected installation type: ${installationType}`);
+      logForDebugging(`AutoUpdater: 检测到安装类型：${installationType}`);
 
-      // Skip update for development builds
+      // 对开发版构建跳过更新
       if (installationType === 'development') {
-        logForDebugging('AutoUpdater: Cannot auto-update development build');
+        logForDebugging('AutoUpdater: 无法自动更新开发版构建');
         onChangeIsUpdating(false);
         return;
       }
 
-      // Choose the appropriate update method based on what's actually running
+      // 根据实际运行方式选择相应的更新方法
       let installStatus: InstallStatus;
       let updateMethod: 'local' | 'global';
       if (installationType === 'npm-local') {
-        // Use local update for local installations
-        logForDebugging('AutoUpdater: Using local update method');
+        // 本地安装使用本地更新
+        logForDebugging('AutoUpdater: 使用本地更新方法');
         updateMethod = 'local';
         installStatus = await installOrUpdateLimkenionPackage(channel);
       } else if (installationType === 'npm-global') {
-        // Use global update for global installations
-        logForDebugging('AutoUpdater: Using global update method');
+        // 全局安装使用全局更新
+        logForDebugging('AutoUpdater: 使用全局更新方法');
         updateMethod = 'global';
         installStatus = await installGlobalPackage();
       } else if (installationType === 'native') {
-        // This shouldn't happen - native should use NativeAutoUpdater
-        logForDebugging('AutoUpdater: Unexpected native installation in non-native updater');
+        // 不应发生——native 应使用 NativeAutoUpdater
+        logForDebugging('AutoUpdater: 非 native 更新器中出现了意外的 native 安装');
         onChangeIsUpdating(false);
         return;
       } else {
-        // Fallback to config-based detection for unknown types
-        logForDebugging(`AutoUpdater: Unknown installation type, falling back to config`);
+        // 对未知类型回退到基于配置的检测
+        logForDebugging(`AutoUpdater: 未知安装类型，回退到配置检测`);
         const isMigrated = config.installMethod === 'local';
         updateMethod = isMigrated ? 'local' : 'global';
         if (isMigrated) {
@@ -131,7 +130,7 @@ export function AutoUpdater({
       }
       onChangeIsUpdating(false);
       if (installStatus === 'success') {
-        logEvent('内部代号_auto_updater_success', {
+        logEvent('limkenion_auto_updater_success', {
           fromVersion: currentVersion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           toVersion: latestVersion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           durationMs: Date.now() - startTime,
@@ -139,7 +138,7 @@ export function AutoUpdater({
           installationType: installationType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
       } else {
-        logEvent('内部代号_auto_updater_fail', {
+        logEvent('limkenion_auto_updater_fail', {
           fromVersion: currentVersion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           attemptedVersion: latestVersion as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           status: installStatus as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -153,19 +152,19 @@ export function AutoUpdater({
         status: installStatus
       });
     }
-    // isUpdating intentionally omitted from deps; we read isUpdatingRef
-    // instead so the guard is always current without changing callback
-    // identity (which would re-trigger the initial-check useEffect below).
+    // 依赖中刻意省略 isUpdating；我们改为读取 isUpdatingRef
+    // 以保证守卫始终是最新的，同时不改变回调
+    // 身份（否则会重新触发下面的首次检查 useEffect）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // biome-ignore lint/correctness/useExhaustiveDependencies: isUpdating read via ref
   }, [onAutoUpdaterResult]);
 
-  // Initial check
+  // 首次检查
   useEffect(() => {
     void checkForUpdates();
   }, [checkForUpdates]);
 
-  // Check every 30 minutes
+  // 每 30 分钟检查一次
   useInterval(checkForUpdates, 30 * 60 * 1000);
   if (!autoUpdaterResult?.version && (!versions.global || !versions.latest)) {
     return null;
@@ -181,14 +180,14 @@ export function AutoUpdater({
       {isUpdating ? <>
           <Box>
             <Text color="text" dimColor wrap="truncate">
-              Auto-updating…
+              正在自动更新…
             </Text>
           </Box>
         </> : autoUpdaterResult?.status === 'success' && showSuccessMessage && updateSemver && <Text color="success" wrap="truncate">
-            ✓ Update installed · Restart to apply
+            ✓ 更新已安装 · 重启以生效
           </Text>}
       {(autoUpdaterResult?.status === 'install_failed' || autoUpdaterResult?.status === 'no_permissions') && <Text color="error" wrap="truncate">
-          ✗ Auto-update failed &middot; Try <Text bold>limkenion doctor</Text> or{' '}
+          ✗ 自动更新失败 · 请尝试 <Text bold>limkenion doctor</Text> 或{' '}
           <Text bold>
             {hasLocalInstall ? `cd ~/.limkenion/local && npm update ${MACRO.PACKAGE_URL}` : `npm i -g ${MACRO.PACKAGE_URL}`}
           </Text>

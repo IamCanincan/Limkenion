@@ -1,10 +1,10 @@
 /**
- * Files API client for managing files
+ * 用于管理文件上传下载的 Files API 客户端
  *
- * This module provides functionality to download and upload files to Limkenion Public Files API.
- * Used by the Limkenion agent to download file attachments at session startup.
+ * 该模块提供向 Limkenion Public Files API 下载和上传文件的功能。
+ * 由 Limkenion 代理在会话启动时用于下载文件附件。
  *
- * API Reference: https://docs.limkenion.com/en/api/files-content
+ * API 参考：https://docs.limkenion.com/en/api/files-content
  */
 
 import axios from 'axios'
@@ -22,13 +22,13 @@ import {
   logEvent,
 } from '../analytics/index.js'
 
-// Files API is currently in beta. oauth-2025-04-20 enables Bearer OAuth
-// on public-api routes (auth.py: "oauth_auth" not in beta_versions → 404).
+// Files API 目前处于 beta 阶段。oauth-2025-04-20 在 public-api 路由上
+// 启用了 Bearer OAuth（auth.py：beta_versions 里没有 "oauth_auth" → 404）。
 const FILES_API_BETA_HEADER = 'files-api-2025-04-14,oauth-2025-04-20'
 const LIMKENION_VERSION = '2023-06-01'
 
-// API base URL - uses LIMKENION_BASE_URL set by env-manager for the appropriate environment
-// Falls back to public API for standalone usage
+// API 基地址——使用 env-manager 为对应环境设置的 LIMKENION_BASE_URL
+// 未设置时回退到公开 API 以便独立使用
 function getDefaultApiBaseUrl(): string {
   return (
     process.env.LIMKENION_BASE_URL ||
@@ -46,8 +46,8 @@ function logDebug(message: string): void {
 }
 
 /**
- * File specification parsed from CLI args
- * Format: --file=<file_id>:<relative_path>
+ * 从 CLI 参数解析出的文件规格
+ * 格式：--file=<file_id>:<relative_path>
  */
 export type File = {
   fileId: string
@@ -55,19 +55,19 @@ export type File = {
 }
 
 /**
- * Configuration for the files API client
+ * Files API 客户端的配置
  */
 export type FilesApiConfig = {
-  /** OAuth token for authentication (from session JWT) */
+  /** 用于认证的 OAuth token（来自会话 JWT） */
   oauthToken: string
-  /** Base URL for the API (default: https://127.0.0.1) */
+  /** API 基地址（默认：https://127.0.0.1） */
   baseUrl?: string
-  /** Session ID for creating session-specific directories */
+  /** 用于创建会话专用目录的会话 ID */
   sessionId: string
 }
 
 /**
- * Result of a file download operation
+ * 一次文件下载操作的结果
  */
 export type DownloadResult = {
   fileId: string
@@ -82,17 +82,17 @@ const BASE_DELAY_MS = 500
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024 // 500MB
 
 /**
- * Result type for retry operations - signals whether to continue retrying
+ * 重试操作的返回类型——指示是否继续重试
  */
 type RetryResult<T> = { done: true; value: T } | { done: false; error?: string }
 
 /**
- * Executes an operation with exponential backoff retry logic
+ * 以指数退避重试逻辑执行操作
  *
- * @param operation - Operation name for logging
- * @param attemptFn - Function to execute on each attempt, returns RetryResult
- * @returns The successful result value
- * @throws Error if all retries exhausted
+ * @param operation - 用于日志记录的操作名
+ * @param attemptFn - 每次尝试执行的函数，返回 RetryResult
+ * @returns 成功的结果值
+ * @throws 所有重试耗尽时抛出 Error
  */
 async function retryWithBackoff<T>(
   operation: string,
@@ -107,27 +107,27 @@ async function retryWithBackoff<T>(
       return result.value
     }
 
-    lastError = result.error || `${operation} failed`
+    lastError = result.error || `${operation} 失败`
     logDebug(
-      `${operation} attempt ${attempt}/${MAX_RETRIES} failed: ${lastError}`,
+      `${operation} 第 ${attempt}/${MAX_RETRIES} 次尝试失败：${lastError}`,
     )
 
     if (attempt < MAX_RETRIES) {
       const delayMs = BASE_DELAY_MS * Math.pow(2, attempt - 1)
-      logDebug(`Retrying ${operation} in ${delayMs}ms...`)
+      logDebug(`将在 ${delayMs}ms 后重试 ${operation}...`)
       await sleep(delayMs)
     }
   }
 
-  throw new Error(`${lastError} after ${MAX_RETRIES} attempts`)
+  throw new Error(`${lastError}，经过 ${MAX_RETRIES} 次尝试之后`)
 }
 
 /**
- * Downloads a single file from the Limkenion Public Files API
+ * 从 Limkenion Public Files API 下载单个文件
  *
- * @param fileId - The file ID (e.g., "file_011CNha8iCJcU1wXNR6q4V8w")
- * @param config - Files API configuration
- * @returns The file content as a Buffer
+ * @param fileId - 文件 ID（例如 "file_011CNha8iCJcU1wXNR6q4V8w"）
+ * @param config - Files API 配置
+ * @returns 文件内容，作为 Buffer
  */
 export async function downloadFile(
   fileId: string,
@@ -142,34 +142,34 @@ export async function downloadFile(
     'limkenion-beta': FILES_API_BETA_HEADER,
   }
 
-  logDebug(`Downloading file ${fileId} from ${url}`)
+  logDebug(`正在从 ${url} 下载文件 ${fileId}`)
 
-  return retryWithBackoff(`Download file ${fileId}`, async () => {
+  return retryWithBackoff(`下载文件 ${fileId}`, async () => {
     try {
       const response = await axios.get(url, {
         headers,
         responseType: 'arraybuffer',
-        timeout: 60000, // 60 second timeout for large files
+        timeout: 60000, // 大文件的 60 秒超时
         validateStatus: status => status < 500,
       })
 
       if (response.status === 200) {
-        logDebug(`Downloaded file ${fileId} (${response.data.length} bytes)`)
+        logDebug(`已下载文件 ${fileId}（${response.data.length} 字节）`)
         return { done: true, value: Buffer.from(response.data) }
       }
 
-      // Non-retriable errors - throw immediately
+      // 不可重试的错误——立即抛出
       if (response.status === 404) {
-        throw new Error(`File not found: ${fileId}`)
+        throw new Error(`文件未找到：${fileId}`)
       }
       if (response.status === 401) {
-        throw new Error('Authentication failed: invalid or missing API key')
+        throw new Error('认证失败：API key 无效或缺失')
       }
       if (response.status === 403) {
-        throw new Error(`Access denied to file: ${fileId}`)
+        throw new Error(`无权限访问文件：${fileId}`)
       }
 
-      return { done: false, error: `status ${response.status}` }
+      return { done: false, error: `状态 ${response.status}` }
     } catch (error) {
       if (!axios.isAxiosError(error)) {
         throw error
@@ -180,9 +180,9 @@ export async function downloadFile(
 }
 
 /**
- * Normalizes a relative path, strips redundant prefixes, and builds the full
- * download path under {basePath}/{session_id}/uploads/.
- * Returns null if the path is invalid (e.g., path traversal).
+ * 对相对路径做规范化，去除冗余前缀，并构建
+ * {basePath}/{session_id}/uploads/ 下的完整下载路径。
+ * 若路径无效（例如路径穿越）则返回 null。
  */
 export function buildDownloadPath(
   basePath: string,
@@ -192,7 +192,7 @@ export function buildDownloadPath(
   const normalized = path.normalize(relativePath)
   if (normalized.startsWith('..')) {
     logDebugError(
-      `Invalid file path: ${relativePath}. Path must not traverse above workspace`,
+      `无效的文件路径：${relativePath}。路径不得越出工作区目录之上`,
     )
     return null
   }
@@ -210,11 +210,11 @@ export function buildDownloadPath(
 }
 
 /**
- * Downloads a file and saves it to the session-specific workspace directory
+ * 下载文件并保存到会话专属的工作区目录
  *
- * @param attachment - The file attachment to download
- * @param config - Files API configuration
- * @returns Download result with success/failure status
+ * @param attachment - 要下载的文件附件
+ * @param config - Files API 配置
+ * @returns 带成功/失败状态的下载结果
  */
 export async function downloadAndSaveFile(
   attachment: File,
@@ -228,22 +228,22 @@ export async function downloadAndSaveFile(
       fileId,
       path: '',
       success: false,
-      error: `Invalid file path: ${relativePath}`,
+      error: `无效的文件路径：${relativePath}`,
     }
   }
 
   try {
-    // Download the file content
+    // 下载文件内容
     const content = await downloadFile(fileId, config)
 
-    // Ensure the parent directory exists
+    // 确保父目录存在
     const parentDir = path.dirname(fullPath)
     await fs.mkdir(parentDir, { recursive: true })
 
-    // Write the file
+    // 写入文件
     await fs.writeFile(fullPath, content)
 
-    logDebug(`Saved file ${fileId} to ${fullPath} (${content.length} bytes)`)
+    logDebug(`已将文件 ${fileId} 保存到 ${fullPath}（${content.length} 字节）`)
 
     return {
       fileId,
@@ -252,7 +252,7 @@ export async function downloadAndSaveFile(
       bytesWritten: content.length,
     }
   } catch (error) {
-    logDebugError(`Failed to download file ${fileId}: ${errorMessage(error)}`)
+    logDebugError(`下载文件 ${fileId} 失败：${errorMessage(error)}`)
     if (error instanceof Error) {
       logError(error)
     }
@@ -266,16 +266,16 @@ export async function downloadAndSaveFile(
   }
 }
 
-// Default concurrency limit for parallel downloads
+// 并行下载的默认并发上限
 const DEFAULT_CONCURRENCY = 5
 
 /**
- * Execute promises with limited concurrency
+ * 以受限并发执行 promise
  *
- * @param items - Items to process
- * @param fn - Async function to apply to each item
- * @param concurrency - Maximum concurrent operations
- * @returns Results in the same order as input items
+ * @param items - 要处理的项目
+ * @param fn - 应用于每个项目的异步函数
+ * @param concurrency - 最大并发操作数
+ * @returns 与输入项目顺序一致的结果
  */
 async function parallelWithLimit<T, R>(
   items: T[],
@@ -295,7 +295,7 @@ async function parallelWithLimit<T, R>(
     }
   }
 
-  // Start workers up to the concurrency limit
+  // 启动最多到并发上限数量的 worker
   const workers: Promise<void>[] = []
   const workerCount = Math.min(concurrency, items.length)
   for (let i = 0; i < workerCount; i++) {
@@ -307,12 +307,12 @@ async function parallelWithLimit<T, R>(
 }
 
 /**
- * Downloads all file attachments for a session in parallel
+ * 并行下载某个会话的全部文件附件
  *
- * @param attachments - List of file attachments to download
- * @param config - Files API configuration
- * @param concurrency - Maximum concurrent downloads (default: 5)
- * @returns Array of download results in the same order as input
+ * @param attachments - 要下载的文件附件列表
+ * @param config - Files API 配置
+ * @param concurrency - 最大并发下载数（默认：5）
+ * @returns 与输入顺序一致的下载结果数组
  */
 export async function downloadSessionFiles(
   files: File[],
@@ -324,11 +324,11 @@ export async function downloadSessionFiles(
   }
 
   logDebug(
-    `Downloading ${files.length} file(s) for session ${config.sessionId}`,
+    `正在为会话 ${config.sessionId} 下载 ${files.length} 个文件`,
   )
   const startTime = Date.now()
 
-  // Download files in parallel with concurrency limit
+  // 以受限并发并行下载文件
   const results = await parallelWithLimit(
     files,
     file => downloadAndSaveFile(file, config),
@@ -338,18 +338,18 @@ export async function downloadSessionFiles(
   const elapsedMs = Date.now() - startTime
   const successCount = count(results, r => r.success)
   logDebug(
-    `Downloaded ${successCount}/${files.length} file(s) in ${elapsedMs}ms`,
+    `在 ${elapsedMs}ms 内下载了 ${successCount}/${files.length} 个文件`,
   )
 
   return results
 }
 
 // ============================================================================
-// Upload Functions (BYOC mode)
+// 上传相关函数（BYOC 模式）
 // ============================================================================
 
 /**
- * Result of a file upload operation
+ * 一次文件上传操作的结果
  */
 export type UploadResult =
   | {
@@ -365,15 +365,15 @@ export type UploadResult =
     }
 
 /**
- * Upload a single file to the Files API (BYOC mode)
+ * 向 Files API 上传单个文件（BYOC 模式）
  *
- * Size validation is performed after reading the file to avoid TOCTOU race
- * conditions where the file size could change between initial check and upload.
+ * 在读取文件之后执行大小校验，以避免 TOCTOU 竞态条件——
+ * 即文件大小在初次检查与上传之间可能发生变化。
  *
- * @param filePath - Absolute path to the file to upload
- * @param relativePath - Relative path for the file (used as filename in API)
- * @param config - Files API configuration
- * @returns Upload result with success/failure status
+ * @param filePath - 要上传文件的绝对路径
+ * @param relativePath - 文件的相对路径（在 API 中用作文件名）
+ * @param config - Files API 配置
+ * @returns 带成功/失败状态的上传结果
  */
 export async function uploadFile(
   filePath: string,
@@ -390,14 +390,14 @@ export async function uploadFile(
     'limkenion-beta': FILES_API_BETA_HEADER,
   }
 
-  logDebug(`Uploading file ${filePath} as ${relativePath}`)
+  logDebug(`正在将文件 ${filePath} 上传为 ${relativePath}`)
 
-  // Read file content first (outside retry loop since it's not a network operation)
+  // 先读取文件内容（放在重试循环之外，因为它不是网络操作）
   let content: Buffer
   try {
     content = await fs.readFile(filePath)
   } catch (error) {
-    logEvent('内部代号_file_upload_failed', {
+    logEvent('limkenion_file_upload_failed', {
       error_type:
         'file_read' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -411,25 +411,25 @@ export async function uploadFile(
   const fileSize = content.length
 
   if (fileSize > MAX_FILE_SIZE_BYTES) {
-    logEvent('内部代号_file_upload_failed', {
+    logEvent('limkenion_file_upload_failed', {
       error_type:
         'file_too_large' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
     return {
       path: relativePath,
-      error: `File exceeds maximum size of ${MAX_FILE_SIZE_BYTES} bytes (actual: ${fileSize})`,
+      error: `文件超过最大大小 ${MAX_FILE_SIZE_BYTES} 字节（实际：${fileSize}）`,
       success: false,
     }
   }
 
-  // Use crypto.randomUUID for boundary to avoid collisions when uploads start same millisecond
+  // 用 crypto.randomUUID 生成 boundary，避免多个上传在同一毫秒启动时发生碰撞
   const boundary = `----FormBoundary${randomUUID()}`
   const filename = path.basename(relativePath)
 
-  // Build the multipart body
+  // 构建 multipart 请求体
   const bodyParts: Buffer[] = []
 
-  // File part
+  // 文件部分
   bodyParts.push(
     Buffer.from(
       `--${boundary}\r\n` +
@@ -440,7 +440,7 @@ export async function uploadFile(
   bodyParts.push(content)
   bodyParts.push(Buffer.from('\r\n'))
 
-  // Purpose part
+  // purpose 部分
   bodyParts.push(
     Buffer.from(
       `--${boundary}\r\n` +
@@ -449,7 +449,7 @@ export async function uploadFile(
     ),
   )
 
-  // End boundary
+  // 结束 boundary
   bodyParts.push(Buffer.from(`--${boundary}--\r\n`))
 
   const body = Buffer.concat(bodyParts)
@@ -463,7 +463,7 @@ export async function uploadFile(
             'Content-Type': `multipart/form-data; boundary=${boundary}`,
             'Content-Length': body.length.toString(),
           },
-          timeout: 120000, // 2 minute timeout for uploads
+          timeout: 120000, // 上传的 2 分钟超时
           signal: opts?.signal,
           validateStatus: status => status < 500,
         })
@@ -473,10 +473,10 @@ export async function uploadFile(
           if (!fileId) {
             return {
               done: false,
-              error: 'Upload succeeded but no file ID returned',
+              error: '上传成功但未返回文件 ID',
             }
           }
-          logDebug(`Uploaded file ${filePath} -> ${fileId} (${fileSize} bytes)`)
+          logDebug(`已上传文件 ${filePath} -> ${fileId}（${fileSize} 字节）`)
           return {
             done: true,
             value: {
@@ -488,43 +488,43 @@ export async function uploadFile(
           }
         }
 
-        // Non-retriable errors - throw to exit retry loop
+        // 不可重试的错误——抛出以退出重试循环
         if (response.status === 401) {
-          logEvent('内部代号_file_upload_failed', {
+          logEvent('limkenion_file_upload_failed', {
             error_type:
               'auth' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           })
           throw new UploadNonRetriableError(
-            'Authentication failed: invalid or missing API key',
+            '认证失败：API key 无效或缺失',
           )
         }
 
         if (response.status === 403) {
-          logEvent('内部代号_file_upload_failed', {
+          logEvent('limkenion_file_upload_failed', {
             error_type:
               'forbidden' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           })
-          throw new UploadNonRetriableError('Access denied for upload')
+          throw new UploadNonRetriableError('无权限进行上传')
         }
 
         if (response.status === 413) {
-          logEvent('内部代号_file_upload_failed', {
+          logEvent('limkenion_file_upload_failed', {
             error_type:
               'size' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           })
-          throw new UploadNonRetriableError('File too large for upload')
+          throw new UploadNonRetriableError('文件过大，无法上传')
         }
 
-        return { done: false, error: `status ${response.status}` }
+        return { done: false, error: `状态 ${response.status}` }
       } catch (error) {
-        // Non-retriable errors propagate up
+        // 不可重试的错误向上传播
         if (error instanceof UploadNonRetriableError) {
           throw error
         }
         if (axios.isCancel(error)) {
-          throw new UploadNonRetriableError('Upload canceled')
+          throw new UploadNonRetriableError('上传已取消')
         }
-        // Network errors are retriable
+        // 网络错误可重试
         if (axios.isAxiosError(error)) {
           return { done: false, error: error.message }
         }
@@ -539,7 +539,7 @@ export async function uploadFile(
         success: false,
       }
     }
-    logEvent('内部代号_file_upload_failed', {
+    logEvent('limkenion_file_upload_failed', {
       error_type:
         'network' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -551,7 +551,7 @@ export async function uploadFile(
   }
 }
 
-/** Error class for non-retriable upload failures */
+/** 不可重试上传失败的错误类 */
 class UploadNonRetriableError extends Error {
   constructor(message: string) {
     super(message)
@@ -560,12 +560,12 @@ class UploadNonRetriableError extends Error {
 }
 
 /**
- * Upload multiple files in parallel with concurrency limit (BYOC mode)
+ * 以受限并发并行上传多个文件（BYOC 模式）
  *
- * @param files - Array of files to upload (path and relativePath)
- * @param config - Files API configuration
- * @param concurrency - Maximum concurrent uploads (default: 5)
- * @returns Array of upload results in the same order as input
+ * @param files - 要上传的文件数组（path 和 relativePath）
+ * @param config - Files API 配置
+ * @param concurrency - 最大并发上传数（默认：5）
+ * @returns 与输入顺序一致的上传结果数组
  */
 export async function uploadSessionFiles(
   files: Array<{ path: string; relativePath: string }>,
@@ -576,7 +576,7 @@ export async function uploadSessionFiles(
     return []
   }
 
-  logDebug(`Uploading ${files.length} file(s) for session ${config.sessionId}`)
+  logDebug(`正在为会话 ${config.sessionId} 上传 ${files.length} 个文件`)
   const startTime = Date.now()
 
   const results = await parallelWithLimit(
@@ -587,17 +587,17 @@ export async function uploadSessionFiles(
 
   const elapsedMs = Date.now() - startTime
   const successCount = count(results, r => r.success)
-  logDebug(`Uploaded ${successCount}/${files.length} file(s) in ${elapsedMs}ms`)
+  logDebug(`在 ${elapsedMs}ms 内上传了 ${successCount}/${files.length} 个文件`)
 
   return results
 }
 
 // ============================================================================
-// List Files Functions (1P/Cloud mode)
+// 列出文件相关函数（1P/Cloud 模式）
 // ============================================================================
 
 /**
- * File metadata returned from listFilesCreatedAfter
+ * listFilesCreatedAfter 返回的文件元数据
  */
 export type FileMetadata = {
   filename: string
@@ -606,13 +606,13 @@ export type FileMetadata = {
 }
 
 /**
- * List files created after a given timestamp (1P/Cloud mode).
- * Uses the public GET /v1/files endpoint with after_created_at query param.
- * Handles pagination via after_id cursor when has_more is true.
+ * 列出在给定时间戳之后创建的文件（1P/Cloud 模式）。
+ * 使用带 after_created_at 查询参数的公开 GET /v1/files 端点。
+ * 当 has_more 为 true 时通过 after_id 游标进行分页。
  *
- * @param afterCreatedAt - ISO 8601 timestamp to filter files created after
- * @param config - Files API configuration
- * @returns Array of file metadata for files created after the timestamp
+ * @param afterCreatedAt - 用于筛选其后创建文件的 ISO 8601 时间戳
+ * @param config - Files API 配置
+ * @returns 在时间戳之后创建的文件的元数据数组
  */
 export async function listFilesCreatedAfter(
   afterCreatedAt: string,
@@ -625,12 +625,12 @@ export async function listFilesCreatedAfter(
     'limkenion-beta': FILES_API_BETA_HEADER,
   }
 
-  logDebug(`Listing files created after ${afterCreatedAt}`)
+  logDebug(`正在列出 ${afterCreatedAt} 之后创建的文件`)
 
   const allFiles: FileMetadata[] = []
   let afterId: string | undefined
 
-  // Paginate through results
+  // 对结果进行分页
   while (true) {
     const params: Record<string, string> = {
       after_created_at: afterCreatedAt,
@@ -640,7 +640,7 @@ export async function listFilesCreatedAfter(
     }
 
     const page = await retryWithBackoff(
-      `List files after ${afterCreatedAt}`,
+      `列出 ${afterCreatedAt} 之后的文件`,
       async () => {
         try {
           const response = await axios.get(`${baseUrl}/v1/files`, {
@@ -655,26 +655,26 @@ export async function listFilesCreatedAfter(
           }
 
           if (response.status === 401) {
-            logEvent('内部代号_file_list_failed', {
+            logEvent('limkenion_file_list_failed', {
               error_type:
                 'auth' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             })
-            throw new Error('Authentication failed: invalid or missing API key')
+            throw new Error('认证失败：API key 无效或缺失')
           }
           if (response.status === 403) {
-            logEvent('内部代号_file_list_failed', {
+            logEvent('limkenion_file_list_failed', {
               error_type:
                 'forbidden' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             })
-            throw new Error('Access denied to list files')
+            throw new Error('无权限列出文件')
           }
 
-          return { done: false, error: `status ${response.status}` }
+          return { done: false, error: `状态 ${response.status}` }
         } catch (error) {
           if (!axios.isAxiosError(error)) {
             throw error
           }
-          logEvent('内部代号_file_list_failed', {
+          logEvent('limkenion_file_list_failed', {
             error_type:
               'network' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           })
@@ -696,7 +696,7 @@ export async function listFilesCreatedAfter(
       break
     }
 
-    // Use the last file's ID as cursor for next page
+    // 使用最后一个文件的 ID 作为下一页的游标
     const lastFile = files.at(-1)
     if (!lastFile?.id) {
       break
@@ -704,25 +704,25 @@ export async function listFilesCreatedAfter(
     afterId = lastFile.id
   }
 
-  logDebug(`Listed ${allFiles.length} files created after ${afterCreatedAt}`)
+  logDebug(`已列出 ${allFiles.length} 个在 ${afterCreatedAt} 之后创建的文件`)
   return allFiles
 }
 
 // ============================================================================
-// Parse Functions
+// 解析相关函数
 // ============================================================================
 
 /**
- * Parse file attachment specs from CLI arguments
- * Format: <file_id>:<relative_path>
+ * 从 CLI 参数解析文件附件规格
+ * 格式：<file_id>:<relative_path>
  *
- * @param fileSpecs - Array of file spec strings
- * @returns Parsed file attachments
+ * @param fileSpecs - 文件规格字符串数组
+ * @returns 已解析的文件附件
  */
 export function parseFileSpecs(fileSpecs: string[]): File[] {
   const files: File[] = []
 
-  // Sandbox-gateway may pass multiple specs as a single space-separated string
+  // Sandbox-gateway 可能以单个空格分隔的字符串传入多个规格
   const expandedSpecs = fileSpecs.flatMap(s => s.split(' ').filter(Boolean))
 
   for (const spec of expandedSpecs) {
@@ -736,7 +736,7 @@ export function parseFileSpecs(fileSpecs: string[]): File[] {
 
     if (!fileId || !relativePath) {
       logDebugError(
-        `Invalid file spec: ${spec}. Both file_id and path are required`,
+        `无效的文件规格：${spec}。file_id 和路径都是必需的`,
       )
       continue
     }

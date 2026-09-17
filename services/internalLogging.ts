@@ -15,7 +15,7 @@ import {
  * ...
  */
 const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return null
   }
   const namespacePath =
@@ -33,7 +33,7 @@ const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
  * Get the OCI container ID from within a running container
  */
 export const getContainerId = memoize(async (): Promise<string | null> => {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return null
   }
   const containerIdPath = '/proc/self/mountinfo'
@@ -72,11 +72,11 @@ export async function logPermissionContextForAnts(
   toolPermissionContext: ToolPermissionContext | null,
   moment: 'summary' | 'initialization',
 ): Promise<void> {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 
-  void logEvent('内部代号_internal_record_permission_context', {
+  void logEvent('limkenion_internal_record_permission_context', {
     moment:
       moment as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     namespace:

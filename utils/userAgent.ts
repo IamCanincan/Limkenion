@@ -1,8 +1,8 @@
 /**
- * User-Agent string helpers.
+ * User-Agent 字符串辅助函数。
  *
- * Kept dependency-free so SDK-bundled code (bridge, cli/transports) can
- * import without pulling in auth.ts and its transitive dependency tree.
+ * 保持零依赖，使 SDK 打包代码（bridge、cli/transports）无需引入
+ * auth.ts 及其传递依赖树即可导入。
  */
 
 export function getLimkenionUserAgent(): string {

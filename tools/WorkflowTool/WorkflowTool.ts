@@ -26,47 +26,47 @@ const inputSchema = lazySchema(() =>
       .max(WORKFLOW_SCRIPT_MAX_BYTES)
       .optional()
       .describe(
-        'Self-contained workflow script. Must begin with `export const meta = { name, description, phases }` ' +
-          '(pure literal, no computed values) followed by the script body using agent()/parallel()/pipeline()/phase().',
+        '自包含的工作流脚本。必须以 `export const meta = { name, description, phases }` 开头 ' +
+          '（纯字面量，不含计算值），后接使用 agent()/parallel()/pipeline()/phase() 的脚本主体。',
       ),
     scriptPath: z
       .string()
       .optional()
       .describe(
-        'Path to a workflow script file on disk. Every Workflow invocation persists its script under the ' +
-          'session directory and returns the path in the tool result. Takes precedence over `script` and `name`.',
+        '磁盘上工作流脚本文件的路径。每次 Workflow 调用都会把脚本持久化到 ' +
+          '会话目录，并在工具结果中返回该路径。优先级高于 `script` 和 `name`。',
       ),
     name: z
       .string()
       .optional()
       .describe(
-        'Name of a predefined workflow (built-in or from .limkenion/workflows/).',
+        '预定义工作流的名称（内置或来自 .limkenion/workflows/）。',
       ),
     args: z
       .unknown()
       .optional()
       .describe(
-        'Optional input value exposed to the script as the global `args`, verbatim. Pass arrays/objects as ' +
-          'actual JSON values, NOT as a JSON-encoded string.',
+        '作为全局 `args` 逐字暴露给脚本的可选输入值。传入的数组/对象请用 ' +
+          '实际的 JSON 值，而非 JSON 编码的字符串。',
       ),
-    title: z.string().optional().describe('Ignored — set the title in `meta`.'),
+    title: z.string().optional().describe('已忽略——请在 `meta` 中设置标题。'),
     description: z
       .string()
       .optional()
-      .describe('Ignored — set the description in `meta`.'),
+      .describe('已忽略——请在 `meta` 中设置描述。'),
     resumeFromRunId: z
       .string()
       .regex(/^wf_[a-z0-9-]{6,}$/)
       .optional()
       .describe(
-        'Run ID of a prior Workflow invocation to resume from. Completed agent() calls with unchanged ' +
-          '(prompt, opts) return their cached results instantly; only edited or new calls re-run.',
+        '要恢复的先前 Workflow 调用的运行 ID。参数（prompt、opts）未变化的已完成 agent() 调用 ' +
+          '会立即返回其缓存结果；只有被修改或新增的调用才会重新运行。',
       ),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
-// Mirrors the official WorkflowOutput in @上游兼容-ai/limkenion-code's
+// Mirrors the official WorkflowOutput in the upstream limkenion-code's
 // sdk-tools.d.ts. Optional fields are optional there too, so a transcript
 // written before a field existed still replays without re-validation failing.
 const outputSchema = lazySchema(() =>

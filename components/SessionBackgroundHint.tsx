@@ -17,12 +17,12 @@ type Props = {
 };
 
 /**
- * Shows a hint when user presses Ctrl+B to background the current session.
- * Uses double-press pattern: first press shows hint, second press within 800ms backgrounds.
+ * 当用户按 Ctrl+B 将当前会话放到后台时显示提示。
+ * 采用双击模式：第一次按下显示提示，800ms 内的第二次按下真正放到后台。
  *
- * Only activates when:
- * 1. isLoading is true (a query is in progress)
- * 2. No foreground tasks (bash/agent) are running (those take priority for Ctrl+B)
+ * 仅在以下情况下激活：
+ * 1. isLoading 为 true（有查询正在进行）
+ * 2. 没有前台任务（bash/agent）正在运行（它们优先占用 Ctrl+B）
  */
 export function SessionBackgroundHint(t0) {
   const $ = _c(10);
@@ -90,7 +90,7 @@ export function SessionBackgroundHint(t0) {
   }
   let t5;
   if ($[8] !== shortcut) {
-    t5 = <Box paddingLeft={2}><Text dimColor={true}><KeyboardShortcutHint shortcut={shortcut} action="background" /></Text></Box>;
+    t5 = <Box paddingLeft={2}><Text dimColor={true}><KeyboardShortcutHint shortcut={shortcut} action="后台" /></Text></Box>;
     $[8] = shortcut;
     $[9] = t5;
   } else {

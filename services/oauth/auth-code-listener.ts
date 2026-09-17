@@ -87,7 +87,7 @@ export class AuthCodeListener {
     if (customHandler) {
       customHandler(this.pendingResponse, scopes)
       this.pendingResponse = null
-      logEvent('内部代号_oauth_automatic_redirect', { custom_handler: true })
+      logEvent('limkenion_oauth_automatic_redirect', { custom_handler: true })
       return
     }
 
@@ -101,7 +101,7 @@ export class AuthCodeListener {
     this.pendingResponse.end()
     this.pendingResponse = null
 
-    logEvent('内部代号_oauth_automatic_redirect', {})
+    logEvent('limkenion_oauth_automatic_redirect', {})
   }
 
   /**
@@ -119,7 +119,7 @@ export class AuthCodeListener {
     this.pendingResponse.end()
     this.pendingResponse = null
 
-    logEvent('内部代号_oauth_automatic_redirect_error', {})
+    logEvent('limkenion_oauth_automatic_redirect_error', {})
   }
 
   private startLocalListener(onReady: () => Promise<void>): void {

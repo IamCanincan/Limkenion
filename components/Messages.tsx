@@ -630,7 +630,7 @@ const MessagesImpl = ({
       </MessageActionsSelectedContext.Provider>;
     if (unseenDivider && index === dividerBeforeIndex) {
       return [<Box key="unseen-divider" marginTop={1}>
-          <Divider title={`${unseenDivider.count} new ${plural(unseenDivider.count, 'message')}`} width={columns} color="inactive" />
+          <Divider title={`${unseenDivider.count} 条新消息`} width={columns} color="inactive" />
         </Box>, wrapped];
     }
     return wrapped;
@@ -679,14 +679,14 @@ const MessagesImpl = ({
       {!hideLogo && !(renderRange && renderRange[0] > 0) && <LogoHeader agentDefinitions={agentDefinitions} />}
 
       {/* Truncation indicator */}
-      {hasTruncatedMessages_0 && <Divider title={`${toggleShowAllShortcut} to show ${chalk.bold(hiddenMessageCount_0)} previous messages`} width={columns} />}
+      {hasTruncatedMessages_0 && <Divider title={`${toggleShowAllShortcut} 显示 ${chalk.bold(hiddenMessageCount_0)} 条之前的消息`} width={columns} />}
 
       {/* Show all indicator */}
       {isTranscriptMode && showAllInTranscript && hiddenMessageCount_0 > 0 &&
     // disableRenderCap (e.g. [ dump-to-scrollback) means we're uncapped
     // as a one-shot escape hatch, not a toggle — ctrl+e is dead and
     // nothing is actually "hidden" to restore.
-    !disableRenderCap && <Divider title={`${toggleShowAllShortcut} to hide ${chalk.bold(hiddenMessageCount_0)} previous messages`} width={columns} />}
+    !disableRenderCap && <Divider title={`${toggleShowAllShortcut} 隐藏 ${chalk.bold(hiddenMessageCount_0)} 条之前的消息`} width={columns} />}
 
       {/* Messages - rendered as memoized MessageRow components.
           flatMap inserts the unseen-divider as a separate keyed sibling so

@@ -41,32 +41,32 @@ type BootstrapResponse = z.infer<ReturnType<typeof bootstrapResponseSchema>>
 
 async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
   if (isEssentialTrafficOnly()) {
-    logForDebugging('[Bootstrap] Skipped: Nonessential traffic disabled')
+    logForDebugging('[Bootstrap] 已跳过：非必要流量已禁用')
     return null
   }
 
   if (getAPIProvider() !== 'firstParty') {
-    logForDebugging('[Bootstrap] Skipped: 3P provider')
+    logForDebugging('[Bootstrap] 已跳过：第三方 provider')
     return null
   }
 
-  // OAuth preferred (requires user:profile scope — service-key OAuth tokens
-  // lack it and would 403). Fall back to API key auth for console users.
+  // 优先使用 OAuth（需要 user:profile scope——service-key OAuth token
+  // 缺少该 scope 会得到 403）。控制台用户回退到 API key 认证。
   const apiKey = getLimkenionApiKey()
   const hasUsableOAuth =
     getLimkenionAIOAuthTokens()?.accessToken && hasProfileScope()
   if (!hasUsableOAuth && !apiKey) {
-    logForDebugging('[Bootstrap] Skipped: no usable OAuth or API key')
+    logForDebugging('[Bootstrap] 已跳过：无可用 OAuth 或 API key')
     return null
   }
 
   const endpoint = `${getOauthConfig().BASE_API_URL}/api/limkenion_cli/bootstrap`
 
-  // withOAuth401Retry handles the refresh-and-retry. API key users fail
-  // through on 401 (no refresh mechanism — no OAuth token to pass).
+  // withOAuth401Retry 负责刷新并重试。API key 用户在 401 时
+  // 直接失败（无刷新机制——没有可传入的 OAuth token）。
   try {
     return await withOAuth401Retry(async () => {
-      // Re-read OAuth each call so the retry picks up the refreshed token.
+      // 每次调用都重新读取 OAuth，以便重试拿到刷新后的 token。
       const token = getLimkenionAIOAuthTokens()?.accessToken
       let authHeaders: Record<string, string>
       if (token && hasProfileScope()) {
@@ -77,11 +77,11 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
       } else if (apiKey) {
         authHeaders = { 'x-api-key': apiKey }
       } else {
-        logForDebugging('[Bootstrap] No auth available on retry, aborting')
+        logForDebugging('[Bootstrap] 重试时没有可用认证，正在中止')
         return null
       }
 
-      logForDebugging('[Bootstrap] Fetching')
+      logForDebugging('[Bootstrap] 正在获取')
       const response = await axios.get<unknown>(endpoint, {
         headers: {
           'Content-Type': 'application/json',
@@ -93,23 +93,23 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
       const parsed = bootstrapResponseSchema().safeParse(response.data)
       if (!parsed.success) {
         logForDebugging(
-          `[Bootstrap] Response failed validation: ${parsed.error.message}`,
+          `[Bootstrap] 响应未通过校验：${parsed.error.message}`,
         )
         return null
       }
-      logForDebugging('[Bootstrap] Fetch ok')
+      logForDebugging('[Bootstrap] 获取成功')
       return parsed.data
     })
   } catch (error) {
     logForDebugging(
-      `[Bootstrap] Fetch failed: ${axios.isAxiosError(error) ? (error.response?.status ?? error.code) : 'unknown'}`,
+      `[Bootstrap] 获取失败：${axios.isAxiosError(error) ? (error.response?.status ?? error.code) : 'unknown'}`,
     )
     throw error
   }
 }
 
 /**
- * Fetch bootstrap data from the API and persist to disk cache.
+ * 从 API 获取 bootstrap 数据并持久化到磁盘缓存。
  */
 export async function fetchBootstrapData(): Promise<void> {
   try {
@@ -119,17 +119,17 @@ export async function fetchBootstrapData(): Promise<void> {
     const clientData = response.client_data ?? null
     const additionalModelOptions = response.additional_model_options ?? []
 
-    // Only persist if data actually changed — avoids a config write on every startup.
+    // 仅当数据确实发生变化时才持久化——避免每次启动都写配置。
     const config = getGlobalConfig()
     if (
       isEqual(config.clientDataCache, clientData) &&
       isEqual(config.additionalModelOptionsCache, additionalModelOptions)
     ) {
-      logForDebugging('[Bootstrap] Cache unchanged, skipping write')
+      logForDebugging('[Bootstrap] 缓存未变化，跳过写入')
       return
     }
 
-    logForDebugging('[Bootstrap] Cache updated, persisting to disk')
+    logForDebugging('[Bootstrap] 缓存已更新，正在持久化到磁盘')
     saveGlobalConfig(current => ({
       ...current,
       clientDataCache: clientData,

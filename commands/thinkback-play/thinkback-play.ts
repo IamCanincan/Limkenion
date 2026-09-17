@@ -9,14 +9,12 @@ const SKILL_NAME = 'thinkback'
 
 function getPluginId(): string {
   const marketplaceName =
-    process.env.USER_TYPE === 'ant'
-      ? INTERNAL_MARKETPLACE_NAME
-      : OFFICIAL_MARKETPLACE_NAME
+    OFFICIAL_MARKETPLACE_NAME
   return `thinkback@${marketplaceName}`
 }
 
 export async function call(): Promise<LocalCommandResult> {
-  // Get skill directory from installed plugins config
+  // 从已安装插件配置获取技能目录
   const v2Data = loadInstalledPluginsV2()
   const pluginId = getPluginId()
   const installations = v2Data.plugins[pluginId]
@@ -25,7 +23,7 @@ export async function call(): Promise<LocalCommandResult> {
     return {
       type: 'text' as const,
       value:
-        'Thinkback plugin not installed. Run /think-back first to install it.',
+        'Thinkback 插件未安装。请先运行 /think-back 安装它。',
     }
   }
 
@@ -33,7 +31,7 @@ export async function call(): Promise<LocalCommandResult> {
   if (!firstInstall?.installPath) {
     return {
       type: 'text' as const,
-      value: 'Thinkback plugin installation path not found.',
+      value: '未找到 Thinkback 插件的安装路径。',
     }
   }
 

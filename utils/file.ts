@@ -279,7 +279,7 @@ export function isCompactLinePrefixEnabled(): boolean {
   // 3P default: killswitch off = compact format enabled. Client-side only —
   // no server support needed, safe for Bedrock/Vertex/Foundry.
   return !getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_compact_line_prefix_killswitch',
+    'limkenion_compact_line_prefix_killswitch',
     false,
   )
 }
@@ -440,7 +440,7 @@ export function writeFileSyncAndFlush_DEPRECATED(
     logForDebugging(`Failed to write file atomically: ${atomicError}`, {
       level: 'error',
     })
-    logEvent('内部代号_atomic_write_error', {})
+    logEvent('limkenion_atomic_write_error', {})
 
     // Clean up temp file on error
     try {

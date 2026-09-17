@@ -19,10 +19,10 @@ export async function call(
   context: ToolUseContext & LocalJSXCommandContext,
   args: string,
 ): Promise<null> {
-  // Prevent teammates from renaming - their names are set by team leader
+  // 阻止 teammate 重命名——它们由团队负责人设置名字
   if (isTeammate()) {
     onDone(
-      'Cannot rename: This session is a swarm teammate. Teammate names are set by the team leader.',
+      '无法重命名：此会话是一个 swarm teammate。Teammate 的名字由团队负责人设置。',
       { display: 'system' },
     )
     return null
@@ -36,7 +36,7 @@ export async function call(
     )
     if (!generated) {
       onDone(
-        'Could not generate a name: no conversation context yet. Usage: /rename <name>',
+        '无法生成名字：尚无会话上下文。用法：/rename <name>',
         { display: 'system' },
       )
       return null
@@ -49,10 +49,10 @@ export async function call(
   const sessionId = getSessionId() as UUID
   const fullPath = getTranscriptPath()
 
-  // Always save the custom title (session name)
+  // 始终保存自定义标题（会话名）
   await saveCustomTitle(sessionId, newName, fullPath)
 
-  // Also persist as the session's agent name for prompt-bar display
+  // 同时作为会话的 agent 名持久化，用于提示栏显示
   await saveAgentName(sessionId, newName, fullPath)
   context.setAppState(prev => ({
     ...prev,
@@ -62,6 +62,6 @@ export async function call(
     },
   }))
 
-  onDone(`Session renamed to: ${newName}`, { display: 'system' })
+  onDone(`会话已更名为：${newName}`, { display: 'system' })
   return null
 }

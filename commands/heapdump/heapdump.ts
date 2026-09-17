@@ -6,7 +6,7 @@ export async function call(): Promise<{ type: 'text'; value: string }> {
   if (!result.success) {
     return {
       type: 'text',
-      value: `Failed to create heap dump: ${result.error}`,
+      value: `堆转储创建失败: ${result.error}`,
     }
   }
 

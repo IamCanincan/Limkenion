@@ -1,13 +1,13 @@
 /**
- * Classify an MCP tool as a search/read operation for UI collapsing.
- * Returns { isSearch: false, isRead: false } for tools that should not
- * collapse (e.g., send_message, create_*, update_*).
+ * 将 MCP 工具分类为搜索/读取操作，用于 UI 折叠。
+ * 对于不应折叠的工具（例如 send_message、create_*、update_*），
+ * 返回 { isSearch: false, isRead: false }。
  *
- * Uses explicit per-tool allowlists for the most common MCP servers.
- * Tool names are stable across installs (even when the server name varies,
- * e.g., "slack" vs "limkenion_ai_Slack"), so matching is keyed on the tool
- * name alone after normalizing camelCase/kebab-case to snake_case.
- * Unknown tool names don't collapse (conservative).
+ * 对最常见的 MCP 服务器使用显式的逐工具允许名单。
+ * 工具名在各个安装中是稳定的（即使服务器名可能不同，
+ * 例如 "slack" 与 "limkenion_ai_Slack"），因此在将 camelCase/kebab-case
+ * 归一化为 snake_case 后，仅依据工具名进行匹配。
+ * 未知的工具名不折叠（保守策略）。
  */
 
 // prettier-ignore
@@ -73,12 +73,12 @@ const SEARCH_TOOLS = new Set([
   'brave_web_search',
   'brave_local_search',
   // Git (mcp-server-git)
-  // (git has no search verbs)
+  // (git 没有搜索动词)
   // Grafana (grafana/mcp-grafana)
   'search_dashboards',
   'search_folders',
   // PagerDuty
-  // (pagerduty reads all use get_/list_, no search verbs)
+  // (pagerduty 的读取全部使用 get_/list_, 无搜索动词)
   // Supabase
   'search_docs',
   // Stripe

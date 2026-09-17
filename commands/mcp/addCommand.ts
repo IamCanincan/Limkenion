@@ -1,7 +1,7 @@
 /**
- * MCP add CLI subcommand
+ * MCP add CLI 子命令
  *
- * Extracted from main.tsx to enable direct testing.
+ * 从 main.tsx 中抽出，以便直接测试。
  */
 import { type Command, Option } from '@commander-js/extra-typings'
 import { cliError, cliOk } from '../../cli/exit.js'
@@ -79,11 +79,11 @@ export function registerMcpAddCommand(mcp: Command): void {
       ).hideHelp(!isXaaEnabled()),
     )
     .action(async (name, commandOrUrl, args, options) => {
-      // Commander.js handles -- natively: it consumes -- and everything after becomes args
+      // Commander.js 原生处理 --：它会消费 --，其后的所有内容都变成 args
       const actualCommand = commandOrUrl
       const actualArgs = args
 
-      // If no name is provided, error
+      // 若未提供名称，报错
       if (!name) {
         cliError(
           'Error: Server name is required.\n' +
@@ -91,8 +91,8 @@ export function registerMcpAddCommand(mcp: Command): void {
         )
       } else if (!actualCommand) {
         cliError(
-          'Error: Command is required when server name is provided.\n' +
-            'Usage: limkenion mcp add <name> <command> [args...]',
+          '错误：提供服务器名称时必须同时给出命令。\n' +
+            '用法：limkenion mcp add <名称> <命令> [参数...]',
         )
       }
 
@@ -100,7 +100,7 @@ export function registerMcpAddCommand(mcp: Command): void {
         const scope = ensureConfigScope(options.scope)
         const transport = ensureTransport(options.transport)
 
-        // XAA fail-fast: validate at add-time, not auth-time.
+        // XAA 快速失败：在添加时（而非认证时）校验。
         if (options.xaa && !isXaaEnabled()) {
           cliError(
             'Error: --xaa requires LIMKENION_ENABLE_XAA=1 in your environment',
@@ -132,7 +132,7 @@ export function registerMcpAddCommand(mcp: Command): void {
           actualCommand.endsWith('/sse') ||
           actualCommand.endsWith('/mcp')
 
-        logEvent('内部代号_mcp_add', {
+        logEvent('limkenion_mcp_add', {
           type: transport as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           scope:
             scope as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

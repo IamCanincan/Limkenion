@@ -39,7 +39,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
     const groveStatus = updatedSettings.grove_enabled ? 'true' : 'false';
     onDone(`"Help improve Limkenion" set to ${groveStatus}.`);
     if (settings.grove_enabled !== null && settings.grove_enabled !== updatedSettings.grove_enabled) {
-      logEvent('内部代号_grove_policy_toggled', {
+      logEvent('limkenion_grove_policy_toggled', {
         state: updatedSettings.grove_enabled as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         location: 'settings' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });

@@ -135,7 +135,7 @@ export async function toolToAPISchema(
 ): Promise<BetaToolUnion> {
   // Session-stable base schema: name, description, input_schema, strict,
   // eager_input_streaming. These are computed once per session and cached to
-  // prevent mid-session GrowthBook flips (内部代号_tool_pear, 内部代号_fgts) or
+  // prevent mid-session GrowthBook flips (limkenion_tool_pear, limkenion_fgts) or
   // tool.prompt() drift from churning the serialized tool array bytes.
   // See toolSchemaCache.ts for rationale.
   //
@@ -152,7 +152,7 @@ export async function toolToAPISchema(
   let base = cache.get(cacheKey)
   if (!base) {
     const strictToolsEnabled =
-      checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_tool_pear')
+      checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_tool_pear')
     // Use tool's JSON schema directly if provided, otherwise convert Zod schema
     let input_schema = (
       'inputJSONSchema' in tool && tool.inputJSONSchema
@@ -199,7 +199,7 @@ export async function toolToAPISchema(
     if (
       getAPIProvider() === 'firstParty' &&
       isFirstPartyLimkenionBaseUrl() &&
-      (getFeatureValue_CACHED_MAY_BE_STALE('内部代号_fgts', false) ||
+      (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_fgts', false) ||
         isEnvTruthy(process.env.LIMKENION_ENABLE_FINE_GRAINED_TOOL_STREAMING))
     ) {
       base.eager_input_streaming = true
@@ -281,7 +281,7 @@ function logStripOnce(stripped: string[]): void {
 export function logAPIPrefix(systemPrompt: SystemPrompt): void {
   const [firstSyspromptBlock] = splitSysPromptPrefix(systemPrompt)
   const firstSystemPrompt = firstSyspromptBlock?.text
-  logEvent('内部代号_sysprompt_block', {
+  logEvent('limkenion_sysprompt_block', {
     snippet: firstSystemPrompt?.slice(
       0,
       20,
@@ -324,7 +324,7 @@ export function splitSysPromptPrefix(
 ): SystemPromptBlock[] {
   const useGlobalCacheFeature = shouldUseGlobalCacheScope()
   if (useGlobalCacheFeature && options?.skipGlobalCacheForSystemPrompt) {
-    logEvent('内部代号_sysprompt_using_tool_based_cache', {
+    logEvent('limkenion_sysprompt_using_tool_based_cache', {
       promptBlockCount: systemPrompt.length,
     })
 
@@ -395,7 +395,7 @@ export function splitSysPromptPrefix(
       const dynamicJoined = dynamicBlocks.join('\n\n')
       if (dynamicJoined) result.push({ text: dynamicJoined, cacheScope: null })
 
-      logEvent('内部代号_sysprompt_boundary_found', {
+      logEvent('limkenion_sysprompt_boundary_found', {
         blockCount: result.length,
         staticBlockLength: staticJoined.length,
         dynamicBlockLength: dynamicJoined.length,
@@ -403,7 +403,7 @@ export function splitSysPromptPrefix(
 
       return result
     } else {
-      logEvent('内部代号_sysprompt_missing_boundary_marker', {
+      logEvent('limkenion_sysprompt_missing_boundary_marker', {
         promptBlockCount: systemPrompt.length,
       })
     }
@@ -549,7 +549,7 @@ export async function logContextMetrics(
     nonMcpToolsTokens += roughTokenCountEstimation(jsonStringify(schema))
   }
 
-  logEvent('内部代号_context_size', {
+  logEvent('limkenion_context_size', {
     git_status_size: gitStatusSize,
     limkenion_md_size: limkenionMdSize,
     total_context_size: totalContextSize,
@@ -596,7 +596,7 @@ export function normalizeToolInput<T extends Tool>(
 
       // Logging for commands that are only echoing a string. This is to help us understand how often  Limkenion talks via bash
       if (/^echo\s+["']?[^|&;><]*["']?$/i.test(normalizedCommand.trim())) {
-        logEvent('内部代号_bash_tool_simple_echo', {})
+        logEvent('limkenion_bash_tool_simple_echo', {})
       }
 
       // Check for run_in_background (may not exist in schema if LIMKENION_DISABLE_BACKGROUND_TASKS is set)

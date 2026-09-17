@@ -6,8 +6,8 @@ import { logError } from '../../utils/log.js'
 import { getLimkenionUserAgent } from '../../utils/userAgent.js'
 
 /**
- * Fetch the user's first Limkenion token date and store in config.
- * This is called after successful login to cache when they started using Limkenion.
+ * 获取用户第一次使用 Limkenion 的 token 日期并存入配置。
+ * 在成功登录后调用，用于缓存用户开始使用 Limkenion 的时间。
  */
 export async function fetchAndStoreLimkenionFirstTokenDate(): Promise<void> {
   try {
@@ -19,7 +19,7 @@ export async function fetchAndStoreLimkenionFirstTokenDate(): Promise<void> {
 
     const authHeaders = getAuthHeaders()
     if (authHeaders.error) {
-      logError(new Error(`Failed to get auth headers: ${authHeaders.error}`))
+      logError(new Error(`获取认证响应头失败：${authHeaders.error}`))
       return
     }
 
@@ -36,16 +36,16 @@ export async function fetchAndStoreLimkenionFirstTokenDate(): Promise<void> {
 
     const firstTokenDate = response.data?.first_token_date ?? null
 
-    // Validate the date if it's not null
+    // 若不为 null 则校验日期
     if (firstTokenDate !== null) {
       const dateTime = new Date(firstTokenDate).getTime()
       if (isNaN(dateTime)) {
         logError(
           new Error(
-            `Received invalid first_token_date from API: ${firstTokenDate}`,
+            `从 API 收到无效的 first_token_date：${firstTokenDate}`,
           ),
         )
-        // Don't save invalid dates
+        // 不保存无效日期
         return
       }
     }

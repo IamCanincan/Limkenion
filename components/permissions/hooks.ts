@@ -129,7 +129,7 @@ export function usePermissionRequestLogging(
     }))
 
     // Log analytics event
-    logEvent('内部代号_tool_use_show_permission_request', {
+    logEvent('limkenion_tool_use_show_permission_request', {
       messageID: toolUseConfirm.assistantMessage.message
         .id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       toolName: sanitizeToolNameForAnalytics(toolUseConfirm.tool.name),
@@ -139,62 +139,11 @@ export function usePermissionRequestLogging(
       sandboxEnabled: SandboxManager.isSandboxingEnabled(),
     })
 
-    if (process.env.USER_TYPE === 'ant') {
-      const permissionResult = toolUseConfirm.permissionResult
-      if (
-        toolUseConfirm.tool.name === BashTool.name &&
-        permissionResult.behavior === 'ask' &&
-        !hasRules(permissionResult.suggestions)
-      ) {
-        // Log if no rule suggestions ("always allow") are provided
-        logEvent('内部代号_internal_tool_use_permission_request_no_always_allow', {
-          messageID: toolUseConfirm.assistantMessage.message
-            .id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          toolName: sanitizeToolNameForAnalytics(toolUseConfirm.tool.name),
-          isMcp: toolUseConfirm.tool.isMcp ?? false,
-          decisionReasonType: (permissionResult.decisionReason?.type ??
-            'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          sandboxEnabled: SandboxManager.isSandboxingEnabled(),
-
-          // This DOES contain code/filepaths and should not be logged in the public build!
-          decisionReasonDetails: decisionReasonToString(
-            permissionResult.decisionReason,
-          ) as never,
-        })
-      }
-    }
+    
 
     // [ANT-ONLY] Log bash tool calls, so we can categorize
     // & burn down calls that should have been allowed
-    if (process.env.USER_TYPE === 'ant') {
-      const parsedInput = BashTool.inputSchema.safeParse(toolUseConfirm.input)
-      if (
-        toolUseConfirm.tool.name === BashTool.name &&
-        toolUseConfirm.permissionResult.behavior === 'ask' &&
-        parsedInput.success
-      ) {
-        // Note: All metadata fields in this event contain code/filepaths
-        let split = [parsedInput.data.command]
-        try {
-          split = splitCommand_DEPRECATED(parsedInput.data.command)
-        } catch {
-          // Ignore parse errors here - just log the full command
-        }
-        logEvent('内部代号_internal_bash_tool_use_permission_request', {
-          parts: jsonStringify(
-            split,
-          ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          input: jsonStringify(
-            toolUseConfirm.input,
-          ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          decisionReasonType: toolUseConfirm.permissionResult.decisionReason
-            ?.type as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          decisionReason: decisionReasonToString(
-            toolUseConfirm.permissionResult.decisionReason,
-          ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        })
-      }
-    }
+    
 
     void logUnaryEvent({
       completion_type: unaryEvent.completion_type,

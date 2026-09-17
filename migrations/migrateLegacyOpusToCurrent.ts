@@ -50,7 +50,7 @@ export function migrateLegacyOpusToCurrent(): void {
     ...current,
     legacyOpusMigrationTimestamp: Date.now(),
   }))
-  logEvent('内部代号_legacy_opus_migration', {
+  logEvent('limkenion_legacy_opus_migration', {
     from_model:
       model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })

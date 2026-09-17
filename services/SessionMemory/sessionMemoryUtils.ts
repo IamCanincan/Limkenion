@@ -114,7 +114,7 @@ export async function getSessionMemoryContent(): Promise<string | null> {
   try {
     const content = await fs.readFile(memoryPath, { encoding: 'utf-8' })
 
-    logEvent('内部代号_session_memory_loaded', {
+    logEvent('limkenion_session_memory_loaded', {
       content_length: content.length,
     })
 

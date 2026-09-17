@@ -7,7 +7,7 @@ import {
 import { getCharBudget } from '../../tools/SkillTool/prompt.js'
 
 /**
- * Logs a 内部代号_skill_loaded event for each skill available at session startup.
+ * Logs a limkenion_skill_loaded event for each skill available at session startup.
  * This enables analytics on which skills are available across sessions.
  */
 export async function logSkillsLoaded(
@@ -20,7 +20,7 @@ export async function logSkillsLoaded(
   for (const skill of skills) {
     if (skill.type !== 'prompt') continue
 
-    logEvent('内部代号_skill_loaded', {
+    logEvent('limkenion_skill_loaded', {
       // _PROTO_skill_name routes to the privileged skill_name BQ column.
       // Unredacted names don't go in additional_metadata.
       _PROTO_skill_name:

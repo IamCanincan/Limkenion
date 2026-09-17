@@ -8,13 +8,13 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 /**
  * Whether background memory consolidation should run. User setting
  * (autoDreamEnabled in settings.json) overrides the GrowthBook default
- * when explicitly set; otherwise falls through to 内部代号_onyx_plover.
+ * when explicitly set; otherwise falls through to limkenion_onyx_plover.
  */
 export function isAutoDreamEnabled(): boolean {
   const setting = getInitialSettings().autoDreamEnabled
   if (setting !== undefined) return setting
   const gb = getFeatureValue_CACHED_MAY_BE_STALE<{ enabled?: unknown } | null>(
-    '内部代号_onyx_plover',
+    'limkenion_onyx_plover',
     null,
   )
   return gb?.enabled === true

@@ -24,8 +24,7 @@ export function isReplModeEnabled(): boolean {
   if (isEnvDefinedFalsy(process.env.LIMKENION_REPL)) return false
   if (isEnvTruthy(process.env.LIMKENION_REPL_MODE)) return true
   return (
-    process.env.USER_TYPE === 'ant' &&
-    process.env.LIMKENION_ENTRYPOINT === 'cli'
+    false
   )
 }
 

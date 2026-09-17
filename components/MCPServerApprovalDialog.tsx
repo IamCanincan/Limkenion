@@ -18,7 +18,7 @@ export function MCPServerApprovalDialog(t0) {
   let t1;
   if ($[0] !== onDone || $[1] !== serverName) {
     t1 = function onChange(value) {
-      logEvent("内部代号_mcp_dialog_choice", {
+      logEvent("limkenion_mcp_dialog_choice", {
         choice: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       bb2: switch (value) {
@@ -60,7 +60,7 @@ export function MCPServerApprovalDialog(t0) {
     t1 = $[2];
   }
   const onChange = t1;
-  const t2 = `New MCP server found in .mcp.json: ${serverName}`;
+  const t2 = `在 .mcp.json 中发现新的 MCP 服务器：${serverName}`;
   let t3;
   if ($[3] !== onChange) {
     t3 = () => onChange("no");
@@ -79,13 +79,13 @@ export function MCPServerApprovalDialog(t0) {
   let t5;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
     t5 = [{
-      label: "Use this and all future MCP servers in this project",
+      label: "在此项目中使用此服务器及所有未来的 MCP 服务器",
       value: "yes_all"
     }, {
-      label: "Use this MCP server",
+      label: "使用此 MCP 服务器",
       value: "yes"
     }, {
-      label: "Continue without using this MCP server",
+      label: "不使用此 MCP 服务器继续",
       value: "no"
     }];
     $[6] = t5;

@@ -11,20 +11,20 @@ export function formatError(error: unknown): string {
   }
   const parts = getErrorParts(error)
   const fullMessage =
-    parts.filter(Boolean).join('\n').trim() || 'Command failed with no output'
+    parts.filter(Boolean).join('\n').trim() || '命令执行失败，没有输出'
   if (fullMessage.length <= 10000) {
     return fullMessage
   }
   const halfLength = 5000
   const start = fullMessage.slice(0, halfLength)
   const end = fullMessage.slice(-halfLength)
-  return `${start}\n\n... [${fullMessage.length - 10000} characters truncated] ...\n\n${end}`
+  return `${start}\n\n... [截断了 ${fullMessage.length - 10000} 个字符] ...\n\n${end}`
 }
 
 export function getErrorParts(error: Error): string[] {
   if (error instanceof ShellError) {
     return [
-      `Exit code ${error.code}`,
+      `退出码 ${error.code}`,
       error.interrupted ? INTERRUPT_MESSAGE_FOR_TOOL_USE : '',
       error.stderr,
       error.stdout,

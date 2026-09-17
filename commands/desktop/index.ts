@@ -14,7 +14,7 @@ const desktop = {
   type: 'local-jsx',
   name: 'desktop',
   aliases: ['app'],
-  description: 'Continue the current session in Limkenion Desktop',
+  description: '在 Limkenion 桌面端继续当前会话',
   availability: ['limkenion-ai'],
   isEnabled: isSupportedPlatform,
   get isHidden() {

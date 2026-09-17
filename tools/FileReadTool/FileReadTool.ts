@@ -226,18 +226,18 @@ function detectSessionFileType(
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    file_path: z.string().describe('The absolute path to the file to read'),
+    file_path: z.string().describe('要读取文件的绝对路径'),
     offset: semanticNumber(z.number().int().nonnegative().optional()).describe(
-      'The line number to start reading from. Only provide if the file is too large to read at once',
+      '开始读取的行号。仅在文件过大无法一次性读取时提供',
     ),
     limit: semanticNumber(z.number().int().positive().optional()).describe(
-      'The number of lines to read. Only provide if the file is too large to read at once.',
+      '要读取的行数。仅在文件过大无法一次性读取时提供。',
     ),
     pages: z
       .string()
       .optional()
       .describe(
-        `Page range for PDF files (e.g., "1-5", "3", "10-20"). Only applicable to PDF files. Maximum ${PDF_MAX_PAGES_PER_READ} pages per request.`,
+        `PDF 文件的页码范围（例如 "1-5"、"3"、"10-20"）。仅适用于 PDF 文件。每个请求最多 ${PDF_MAX_PAGES_PER_READ} 页。`,
       ),
   }),
 )
@@ -246,7 +246,7 @@ type InputSchema = ReturnType<typeof inputSchema>
 export type Input = z.infer<InputSchema>
 
 const outputSchema = lazySchema(() => {
-  // Define the media types supported for images
+  // 为图像定义支持的媒体类型
   const imageMediaTypes = z.enum([
     'image/jpeg',
     'image/png',
@@ -258,42 +258,42 @@ const outputSchema = lazySchema(() => {
     z.object({
       type: z.literal('text'),
       file: z.object({
-        filePath: z.string().describe('The path to the file that was read'),
-        content: z.string().describe('The content of the file'),
+        filePath: z.string().describe('已读取文件的路径'),
+        content: z.string().describe('文件的内容'),
         numLines: z
           .number()
-          .describe('Number of lines in the returned content'),
-        startLine: z.number().describe('The starting line number'),
-        totalLines: z.number().describe('Total number of lines in the file'),
+          .describe('返回内容中的行数'),
+        startLine: z.number().describe('起始行号'),
+        totalLines: z.number().describe('文件中的总行数'),
       }),
     }),
     z.object({
       type: z.literal('image'),
       file: z.object({
-        base64: z.string().describe('Base64-encoded image data'),
-        type: imageMediaTypes.describe('The MIME type of the image'),
-        originalSize: z.number().describe('Original file size in bytes'),
+        base64: z.string().describe('Base64 编码的图像数据'),
+        type: imageMediaTypes.describe('图像的 MIME 类型'),
+        originalSize: z.number().describe('原始文件大小（字节）'),
         dimensions: z
           .object({
             originalWidth: z
               .number()
               .optional()
-              .describe('Original image width in pixels'),
+              .describe('原始图像宽度（像素）'),
             originalHeight: z
               .number()
               .optional()
-              .describe('Original image height in pixels'),
+              .describe('原始图像高度（像素）'),
             displayWidth: z
               .number()
               .optional()
-              .describe('Displayed image width in pixels (after resizing)'),
+              .describe('显示图像宽度（像素，调整尺寸后）'),
             displayHeight: z
               .number()
               .optional()
-              .describe('Displayed image height in pixels (after resizing)'),
+              .describe('显示图像高度（像素，调整尺寸后）'),
           })
           .optional()
-          .describe('Image dimension info for coordinate mapping'),
+          .describe('用于坐标映射的图像尺寸信息'),
       }),
     }),
     z.object({
@@ -509,7 +509,7 @@ export const FileReadTool = buildTool({
     // Telemetry: track when callers override default read limits.
     // Only fires on override (low volume) — event count = override frequency.
     if (fileReadingLimits !== undefined) {
-      logEvent('内部代号_file_read_limits_override', {
+      logEvent('limkenion_file_read_limits_override', {
         hasMaxTokens: fileReadingLimits.maxTokens !== undefined,
         hasMaxSizeBytes: fileReadingLimits.maxSizeBytes !== undefined,
       })
@@ -534,7 +534,7 @@ export const FileReadTool = buildTool({
     // 3P default: killswitch off = dedup enabled. Client-side only — no
     // server support needed, safe for Bedrock/Vertex/Foundry.
     const dedupKillswitch = getFeatureValue_CACHED_MAY_BE_STALE(
-      '内部代号_read_dedup_killswitch',
+      'limkenion_read_dedup_killswitch',
       false,
     )
     const existingState = dedupKillswitch
@@ -556,7 +556,7 @@ export const FileReadTool = buildTool({
           const mtimeMs = await getFileModificationTimeAsync(fullFilePath)
           if (mtimeMs === existingState.timestamp) {
             const analyticsExt = getFileExtensionForAnalytics(fullFilePath)
-            logEvent('内部代号_file_read_dedup', {
+            logEvent('limkenion_file_read_dedup', {
               ...(analyticsExt !== undefined && { ext: analyticsExt }),
             })
             return {
@@ -901,7 +901,7 @@ async function callInner(
       if (!extractResult.success) {
         throw new Error(extractResult.error.message)
       }
-      logEvent('内部代号_pdf_page_extraction', {
+      logEvent('limkenion_pdf_page_extraction', {
         success: true,
         pageCount: extractResult.data.file.count,
         fileSize: extractResult.data.file.originalSize,
@@ -962,13 +962,13 @@ async function callInner(
     if (shouldExtractPages) {
       const extractResult = await extractPDFPages(resolvedFilePath)
       if (extractResult.success) {
-        logEvent('内部代号_pdf_page_extraction', {
+        logEvent('limkenion_pdf_page_extraction', {
           success: true,
           pageCount: extractResult.data.file.count,
           fileSize: extractResult.data.file.originalSize,
         })
       } else {
-        logEvent('内部代号_pdf_page_extraction', {
+        logEvent('limkenion_pdf_page_extraction', {
           success: false,
           available: extractResult.error.reason !== 'unavailable',
           fileSize: stats.size,
@@ -1066,7 +1066,7 @@ async function callInner(
 
   const sessionFileType = detectSessionFileType(fullFilePath)
   const analyticsExt = getFileExtensionForAnalytics(fullFilePath)
-  logEvent('内部代号_session_file_read', {
+  logEvent('limkenion_session_file_read', {
     totalLines,
     readLines: lineCount,
     totalBytes,

@@ -171,7 +171,7 @@ function logMemoryDirCounts(
           subdirCount++
         }
       }
-      logEvent('内部代号_memdir_loaded', {
+      logEvent('limkenion_memdir_loaded', {
         ...baseMetadata,
         total_file_count: fileCount,
         total_subdir_count: subdirCount,
@@ -179,7 +179,7 @@ function logMemoryDirCounts(
     },
     () => {
       // Directory unreadable — log without counts
-      logEvent('内部代号_memdir_loaded', baseMetadata)
+      logEvent('limkenion_memdir_loaded', baseMetadata)
     },
   )
 }
@@ -373,7 +373,7 @@ function buildAssistantDailyLogPrompt(skipIndex = false): string {
  * Build the "Searching past context" section if the feature gate is enabled.
  */
 export function buildSearchingPastContextSection(autoMemDir: string): string[] {
-  if (!getFeatureValue_CACHED_MAY_BE_STALE('内部代号_coral_fern', false)) {
+  if (!getFeatureValue_CACHED_MAY_BE_STALE('limkenion_coral_fern', false)) {
     return []
   }
   const projectDir = getProjectDir(getOriginalCwd())
@@ -420,14 +420,14 @@ export async function loadMemoryPrompt(): Promise<string | null> {
   const autoEnabled = isAutoMemoryEnabled()
 
   const skipIndex = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_moth_copse',
+    'limkenion_moth_copse',
     false,
   )
 
   // KAIROS daily-log mode takes precedence over TEAMMEM: the append-only
   // log paradigm does not compose with team sync (which expects a shared
   // MEMORY.md that both sides read + write). Gating on `autoEnabled` here
-  // means the !autoEnabled case falls through to the 内部代号_memdir_disabled
+  // means the !autoEnabled case falls through to the limkenion_memdir_disabled
   // telemetry block below, matching the non-KAIROS path.
   if (feature('KAIROS') && autoEnabled && getKairosActive()) {
     logMemoryDirCounts(getAutoMemPath(), {
@@ -489,7 +489,7 @@ export async function loadMemoryPrompt(): Promise<string | null> {
     ).join('\n')
   }
 
-  logEvent('内部代号_memdir_disabled', {
+  logEvent('limkenion_memdir_disabled', {
     disabled_by_env_var: isEnvTruthy(
       process.env.LIMKENION_DISABLE_AUTO_MEMORY,
     ),
@@ -500,8 +500,8 @@ export async function loadMemoryPrompt(): Promise<string | null> {
   // Gate on the GB flag directly, not isTeamMemoryEnabled() — that function
   // checks isAutoMemoryEnabled() first, which is definitionally false in this
   // branch. We want "was this user in the team-memory cohort at all."
-  if (getFeatureValue_CACHED_MAY_BE_STALE('内部代号_herring_clock', false)) {
-    logEvent('内部代号_team_memdir_disabled', {})
+  if (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_herring_clock', false)) {
+    logEvent('limkenion_team_memdir_disabled', {})
   }
   return null
 }

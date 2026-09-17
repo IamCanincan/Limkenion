@@ -49,7 +49,7 @@ function RateLimitOptionsMenu(t0) {
   const isMax = subscriptionType === "max";
   const isMax20x = isMax && rateLimitTier === "default_limkenion_max_20x";
   const isTeamOrEnterprise = subscriptionType === "team" || subscriptionType === "enterprise";
-  const buyFirst = getFeatureValue_CACHED_MAY_BE_STALE("内部代号_jade_anvil_4", false);
+  const buyFirst = getFeatureValue_CACHED_MAY_BE_STALE("limkenion_jade_anvil_4", false);
   let t3;
   bb0: {
     let actionOptions;
@@ -137,7 +137,7 @@ function RateLimitOptionsMenu(t0) {
   let t4;
   if ($[13] !== onDone) {
     t4 = function handleCancel() {
-      logEvent("内部代号_rate_limit_options_menu_cancel", {});
+      logEvent("limkenion_rate_limit_options_menu_cancel", {});
       onDone(undefined, {
         display: "skip"
       });
@@ -152,7 +152,7 @@ function RateLimitOptionsMenu(t0) {
   if ($[15] !== context || $[16] !== handleCancel || $[17] !== onDone) {
     t5 = function handleSelect(value) {
       if (value === "upgrade") {
-        logEvent("内部代号_rate_limit_options_menu_select_upgrade", {});
+        logEvent("limkenion_rate_limit_options_menu_select_upgrade", {});
         upgradeCall(onDone, context).then(jsx => {
           if (jsx) {
             setSubCommandJSX(jsx);
@@ -160,7 +160,7 @@ function RateLimitOptionsMenu(t0) {
         });
       } else {
         if (value === "extra-usage") {
-          logEvent("内部代号_rate_limit_options_menu_select_extra_usage", {});
+          logEvent("limkenion_rate_limit_options_menu_select_extra_usage", {});
           extraUsageCall(onDone, context).then(jsx_0 => {
             if (jsx_0) {
               setSubCommandJSX(jsx_0);

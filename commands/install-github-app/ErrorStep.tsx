@@ -23,7 +23,7 @@ export function ErrorStep(t0) {
   }
   let t2;
   if ($[1] !== error) {
-    t2 = <Text color="error">Error: {error}</Text>;
+    t2 = <Text color="error">错误：{error}</Text>;
     $[1] = error;
     $[2] = t2;
   } else {
@@ -31,7 +31,7 @@ export function ErrorStep(t0) {
   }
   let t3;
   if ($[3] !== errorReason) {
-    t3 = errorReason && <Box marginTop={1}><Text dimColor={true}>Reason: {errorReason}</Text></Box>;
+    t3 = errorReason && <Box marginTop={1}><Text dimColor={true}>原因：{errorReason}</Text></Box>;
     $[3] = errorReason;
     $[4] = t3;
   } else {
@@ -39,7 +39,7 @@ export function ErrorStep(t0) {
   }
   let t4;
   if ($[5] !== errorInstructions) {
-    t4 = errorInstructions && errorInstructions.length > 0 && <Box flexDirection="column" marginTop={1}><Text dimColor={true}>How to fix:</Text>{errorInstructions.map(_temp)}</Box>;
+    t4 = errorInstructions && errorInstructions.length > 0 && <Box flexDirection="column" marginTop={1}><Text dimColor={true}>如何修复：</Text>{errorInstructions.map(_temp)}</Box>;
     $[5] = errorInstructions;
     $[6] = t4;
   } else {
@@ -47,7 +47,7 @@ export function ErrorStep(t0) {
   }
   let t5;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Box marginTop={1}><Text dimColor={true}>For manual setup instructions, see:{" "}<Text color="limkenion">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
+    t5 = <Box marginTop={1}><Text dimColor={true}>如需手动设置说明，请查看：{" "}<Text color="limkenion">{GITHUB_ACTION_SETUP_DOCS_URL}</Text></Text></Box>;
     $[7] = t5;
   } else {
     t5 = $[7];
@@ -64,7 +64,7 @@ export function ErrorStep(t0) {
   }
   let t7;
   if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-    t7 = <Box marginLeft={3}><Text dimColor={true}>Press any key to exit</Text></Box>;
+    t7 = <Box marginLeft={3}><Text dimColor={true}>按任意键退出</Text></Box>;
     $[12] = t7;
   } else {
     t7 = $[12];

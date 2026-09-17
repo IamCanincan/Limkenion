@@ -47,7 +47,7 @@ export function enterTeammateView(
   taskId: string,
   setAppState: (updater: (prev: AppState) => AppState) => void,
 ): void {
-  logEvent('内部代号_transcript_view_enter', {})
+  logEvent('limkenion_transcript_view_enter', {})
   setAppState(prev => {
     const task = prev.tasks[taskId]
     const prevId = prev.viewingAgentTaskId
@@ -88,7 +88,7 @@ export function enterTeammateView(
 export function exitTeammateView(
   setAppState: (updater: (prev: AppState) => AppState) => void,
 ): void {
-  logEvent('内部代号_transcript_view_exit', {})
+  logEvent('limkenion_transcript_view_exit', {})
   setAppState(prev => {
     const id = prev.viewingAgentTaskId
     const cleared = {

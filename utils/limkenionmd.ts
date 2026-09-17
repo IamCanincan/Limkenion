@@ -1,28 +1,28 @@
 /**
- * Files are loaded in the following order:
+ * 文件按以下顺序加载：
  *
- * 1. Managed memory (eg. /etc/limkenion/LIMKENION.md) - Global instructions for all users
- * 2. User memory (~/.limkenion/LIMKENION.md) - Private global instructions for all projects
- * 3. Project memory (LIMKENION.md, .limkenion/LIMKENION.md, and .limkenion/rules/*.md in project roots) - Instructions checked into the codebase
- * 4. Local memory (LIMKENION.local.md in project roots) - Private project-specific instructions
+ * 1. 托管记忆（如 /etc/limkenion/LIMKENION.md）——面向所有用户的全局指令
+ * 2. 用户记忆（~/.limkenion/LIMKENION.md）——面向所有项目的私有全局指令
+ * 3. 项目记忆（仓库根目录下的 LIMKENION.md、.limkenion/LIMKENION.md 以及 .limkenion/rules/*.md）——已检入代码库的指令
+ * 4. 本地记忆（仓库根目录下的 LIMKENION.local.md）——私有的项目级指令
  *
- * Files are loaded in reverse order of priority, i.e. the latest files are highest priority
- * with the model paying more attention to them.
+ * 文件按优先级倒序加载，即后加载的文件优先级最高，
+ * 模型对它们的注意力也更强。
  *
- * File discovery:
- * - User memory is loaded from the user's home directory
- * - Project and Local files are discovered by traversing from the current directory up to root
- * - Files closer to the current directory have higher priority (loaded later)
- * - LIMKENION.md, .limkenion/LIMKENION.md, and all .md files in .limkenion/rules/ are checked in each directory for Project memory
+ * 文件发现：
+ * - 用户记忆从用户的主目录加载
+ * - 项目与本地文件通过从当前目录向上遍历直至根目录来发现
+ * - 离当前目录越近的文件优先级越高（加载越晚）
+ * - 在每个目录中都会检查 LIMKENION.md、.limkenion/LIMKENION.md 以及 .limkenion/rules/ 下的所有 .md 文件作为项目记忆
  *
- * Memory @include directive:
- * - Memory files can include other files using @ notation
- * - Syntax: @path, @./relative/path, @~/home/path, or @/absolute/path
- * - @path (without prefix) is treated as a relative path (same as @./path)
- * - Works in leaf text nodes only (not inside code blocks or code strings)
- * - Included files are added as separate entries before the including file
- * - Circular references are prevented by tracking processed files
- * - Non-existent files are silently ignored
+ * 记忆 @include 指令：
+ * - 记忆文件可使用 @ 记法包含其他文件
+ * - 语法：@path、@./relative/path、@~/home/path 或 @/absolute/path
+ * - @path（不带前缀）被视为相对路径（等同于 @./path）
+ * - 仅作用于叶子文本节点（代码块或代码字符串内部不生效）
+ * - 被包含的文件作为独立条目添加在包含它的文件之前
+ * - 通过跟踪已处理的文件来防止循环引用
+ * - 不存在的文件会被静默忽略
  */
 
 import { feature } from 'bun:bundle'
@@ -87,18 +87,18 @@ const teamMemPaths = feature('TEAMMEM')
 let hasLoggedInitialLoad = false
 
 const MEMORY_INSTRUCTION_PROMPT =
-  'Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.'
-// Recommended max character count for a memory file
+  '下面展示的是代码库与用户指令。请务必遵守这些指令。重要提示：这些指令会覆盖任何默认行为，你必须严格按原文逐字执行。'
+// 记忆文件的建议最大字符数
 export const MAX_MEMORY_CHARACTER_COUNT = 40000
 
-// File extensions that are allowed for @include directives
-// This prevents binary files (images, PDFs, etc.) from being loaded into memory
+// 允许 @include 指令加载的文件扩展名
+// 用于防止二进制文件（图片、PDF 等）被载入记忆
 const TEXT_FILE_EXTENSIONS = new Set([
-  // Markdown and text
+  // Markdown 与文本
   '.md',
   '.txt',
   '.text',
-  // Data formats
+  // 数据格式
   '.json',
   '.yaml',
   '.yml',
@@ -158,29 +158,29 @@ const TEXT_FILE_EXTENSIONS = new Set([
   '.ps1',
   '.bat',
   '.cmd',
-  // Config
+  // 配置
   '.env',
   '.ini',
   '.cfg',
   '.conf',
   '.config',
   '.properties',
-  // Database
+  // 数据库
   '.sql',
   '.graphql',
   '.gql',
-  // Protocol
+  // 协议
   '.proto',
-  // Frontend frameworks
+  // 前端框架
   '.vue',
   '.svelte',
   '.astro',
-  // Templating
+  // 模板引擎
   '.ejs',
   '.hbs',
   '.pug',
   '.jade',
-  // Other languages
+  // 其他语言
   '.php',
   '.pl',
   '.pm',
@@ -205,22 +205,22 @@ const TEXT_FILE_EXTENSIONS = new Set([
   '.f90',
   '.f95',
   '.for',
-  // Build files
+  // 构建文件
   '.cmake',
   '.make',
   '.makefile',
   '.gradle',
   '.sbt',
-  // Documentation
+  // 文档
   '.rst',
   '.adoc',
   '.asciidoc',
   '.org',
   '.tex',
   '.latex',
-  // Lock files (often text-based)
+  // 锁定文件（通常是文本格式）
   '.lock',
-  // Misc
+  // 其他
   '.log',
   '.diff',
   '.patch',
@@ -408,7 +408,7 @@ function handleMemoryFileReadError(error: unknown, filePath: string): void {
   // Log permission errors (EACCES) as they're actionable
   if (code === 'EACCES') {
     // Don't log the full file path to avoid PII/security issues
-    logEvent('内部代号_limkenion_md_permission_error', {
+    logEvent('limkenion_limkenion_md_permission_error', {
       is_access_error: 1,
       has_home_dir: filePath.includes(getLimkenionConfigHomeDir()) ? 1 : 0,
     })
@@ -778,7 +778,7 @@ export async function processMdRules({
     return result
   } catch (error) {
     if (error instanceof Error && error.message.includes('EACCES')) {
-      logEvent('内部代号_limkenion_rules_md_permission_error', {
+      logEvent('limkenion_limkenion_rules_md_permission_error', {
         is_access_error: 1,
         has_home_dir: rulesDir.includes(getLimkenionConfigHomeDir()) ? 1 : 0,
       })
@@ -1024,7 +1024,7 @@ export const getMemoryFiles = memoize(
 
     if (!hasLoggedInitialLoad) {
       hasLoggedInitialLoad = true
-      logEvent('内部代号_limkenionmd__initial_load', {
+      logEvent('limkenion_limkenionmd__initial_load', {
         file_count: result.length,
         total_content_length: totalContentLength,
         user_count: typeCounts['User'] ?? 0,
@@ -1134,7 +1134,7 @@ export function getLargeMemoryFiles(files: MemoryFileInfo[]): MemoryFileInfo[] {
 }
 
 /**
- * When 内部代号_moth_copse is on, the findRelevantMemories prefetch surfaces
+ * When limkenion_moth_copse is on, the findRelevantMemories prefetch surfaces
  * memory files via attachments, so the MEMORY.md index is no longer injected
  * into the system prompt. Callsites that care about "what's actually in
  * context" (context builder, /context viz) should filter through this.
@@ -1143,7 +1143,7 @@ export function filterInjectedMemoryFiles(
   files: MemoryFileInfo[],
 ): MemoryFileInfo[] {
   const skipMemoryIndex = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_moth_copse',
+    'limkenion_moth_copse',
     false,
   )
   if (!skipMemoryIndex) return files
@@ -1156,7 +1156,7 @@ export const getLimkenionMds = (
 ): string => {
   const memories: string[] = []
   const skipProjectLevel = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_paper_halyard',
+    'limkenion_paper_halyard',
     false,
   )
 
@@ -1167,22 +1167,22 @@ export const getLimkenionMds = (
     if (file.content) {
       const description =
         file.type === 'Project'
-          ? ' (project instructions, checked into the codebase)'
+          ? ' (项目指令，已检入代码库)'
           : file.type === 'Local'
-            ? " (user's private project instructions, not checked in)"
+            ? " (用户的私有项目指令，未检入代码库)"
             : feature('TEAMMEM') && file.type === 'TeamMem'
-              ? ' (shared team memory, synced across the organization)'
+              ? ' (共享的团队记忆，在组织内同步)'
               : file.type === 'AutoMem'
-                ? " (user's auto-memory, persists across conversations)"
-                : " (user's private global instructions for all projects)"
+                ? " (用户自动记忆，跨对话持续保留)"
+                : " (用户面向所有项目的私有全局指令)"
 
       const content = file.content.trim()
       if (feature('TEAMMEM') && file.type === 'TeamMem') {
         memories.push(
-          `Contents of ${file.path}${description}:\n\n<team-memory-content source="shared">\n${content}\n</team-memory-content>`,
+          `以下为 ${file.path}${description} 的内容：\n\n<team-memory-content source="shared">\n${content}\n</team-memory-content>`,
         )
       } else {
-        memories.push(`Contents of ${file.path}${description}:\n\n${content}`)
+        memories.push(`以下为 ${file.path}${description} 的内容：\n\n${content}`)
       }
     }
   }

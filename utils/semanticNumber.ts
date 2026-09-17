@@ -1,23 +1,21 @@
 import { z } from 'zod/v4'
 
 /**
- * Number that also accepts numeric string literals like "30", "-5", "3.14".
+ * 也接受数字字符串字面量（如 "30"、"-5"、"3.14"）的数值。
  *
- * Tool inputs arrive as model-generated JSON. The model occasionally quotes
- * numbers — `"head_limit":"30"` instead of `"head_limit":30` — and z.number()
- * rejects that with a type error. z.coerce.number() is the wrong fix: it
- * accepts values like "" or null by converting them via JS Number(), masking
- * bugs rather than surfacing them.
+ * 工具输入是模型生成的 JSON。模型偶尔会引用数字——`"head_limit":"30"`
+ * 而非 `"head_limit":30`——而 z.number() 会以类型错误拒绝它。
+ * z.coerce.number() 是错误的修复方式：它通过 JS Number() 转换接受像 ""
+ * 或 null 这样的值，掩盖缺陷而非暴露它们。
  *
- * Only strings that are valid decimal number literals (matching /^-?\d+(\.\d+)?$/)
- * are coerced. Anything else passes through and is rejected by the inner schema.
+ * 只有匹配 /^-?\d+(\.\d+)?$/ 的有效十进制数字字面量字符串才会被强制转换。
+ * 其余全部透传，并由内层 schema 拒绝。
  *
- * z.preprocess emits {"type":"number"} to the API schema, so the model is
- * still told this is a number — the string tolerance is invisible client-side
- * coercion, not an advertised input shape.
+ * z.preprocess 在 API schema 中发出 {"type":"number"}，因此模型仍被告知
+ * 这是数值——字符串容错是客户端侧不可见的强制转换，而不是对外宣称的输入形状。
  *
- * .optional()/.default() go INSIDE (on the inner schema), not chained after:
- * chaining them onto ZodPipe widens z.output<> to unknown in Zod v4.
+ * .optional()/.default() 要放在内层 schema 内部，而不是链式追加在后面：
+ * 把它们链到 ZodPipe 上会把 z.output<> 在 Zod v4 中加宽为 unknown。
  *
  *   semanticNumber()                              → number
  *   semanticNumber(z.number().optional())         → number | undefined

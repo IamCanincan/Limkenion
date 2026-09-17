@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { getSlowOperations } from '../bootstrap/state.js';
 import { Text, useInterval } from '../ink.js';
 
-// Show DevBar for dev builds or all ants
+// 为开发构建显示 DevBar（或全部蚂蚁）
 function shouldShowDevBar(): boolean {
-  return "production" === 'development' || "external" === 'ant';
+  return "production" === 'development' || false;
 }
 export function DevBar() {
   const $ = _c(5);
@@ -35,7 +35,7 @@ export function DevBar() {
   const recentOps = t1;
   let t2;
   if ($[3] !== recentOps) {
-    t2 = <Text wrap="truncate-end" color="warning">[ANT-ONLY] slow sync: {recentOps}</Text>;
+    t2 = <Text wrap="truncate-end" color="warning">[仅蚂蚁] 同步较慢：{recentOps}</Text>;
     $[3] = recentOps;
     $[4] = t2;
   } else {

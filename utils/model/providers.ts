@@ -30,9 +30,7 @@ export function isFirstPartyLimkenionBaseUrl(): boolean {
   try {
     const host = new URL(baseUrl).host
     const allowedHosts = ['127.0.0.1']
-    if (process.env.USER_TYPE === 'ant') {
-      allowedHosts.push('api-staging.limkenion.com')
-    }
+    
     return allowedHosts.includes(host)
   } catch {
     return false

@@ -14,7 +14,7 @@
  *
  * Kenneth's "would this let Limkenion self-approve?": the approving party is
  * the human via the channel, not Limkenion. But the trust boundary isn't the
- * terminal — it's the allowlist (内部代号_harbor_ledger). A compromised
+ * terminal — it's the allowlist (limkenion_harbor_ledger). A compromised
  * channel server CAN fabricate "yes <id>" without the human seeing the
  * prompt. Accepted risk: a compromised channel already has unlimited
  * conversation-injection turns (social-engineer over time, wait for
@@ -27,14 +27,14 @@ import { jsonStringify } from '../../utils/slowOperations.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 
 /**
- * GrowthBook runtime gate — separate from the channels gate (内部代号_harbor)
+ * GrowthBook runtime gate — separate from the channels gate (limkenion_harbor)
  * so channels can ship without permission-relay riding along (Kenneth: "no
  * bake time if it goes out tomorrow"). Default false; flip without a release.
  * Checked once at useManageMCPConnections mount — mid-session flag changes
  * don't apply until restart.
  */
 export function isChannelPermissionRelayEnabled(): boolean {
-  return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_harbor_permissions', false)
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_harbor_permissions', false)
 }
 
 export type ChannelPermissionResponse = {

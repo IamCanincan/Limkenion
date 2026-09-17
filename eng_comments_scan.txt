@@ -1,0 +1,441 @@
+﻿validation.ts:41: // resolve() strips the trailing slash expandPath can leave on absolute
+validation.ts:42: // inputs, so /foo and /foo/ map to the same storage key (CC-33).
+validation.ts:45: // Check if path exists and is a directory (single syscall)
+validation.ts:57: // Match prior existsSync() semantics: treat any of these as "not found"
+validation.ts:58: // rather than re-throwing. EACCES/EPERM in particular must not crash
+validation.ts:59: // startup when a settings-configured additional directory is inaccessible.
+validation.ts:75: // Get current permission context
+validation.ts:78: // Check if already within an existing working directory
+assistant.ts:1: // @generated stub from scan-missing-imports
+assistant.ts:36: // --- auto-added by scripts/fix-stub-exports.mjs ---
+index.ts:1: // @generated stub from scan-missing-imports
+branch.ts:74: // Ensure project directory exists
+branch.ts:77: // Read current transcript file
+branch.ts:89: // Parse all transcript entries (messages + metadata entries like content-replacement)
+branch.ts:92: // Filter to only main conversation messages (exclude sidechains and non-message entries)
+branch.ts:98: // Content-replacement entries for the original session. These record which
+branch.ts:99: // tool_result blocks were replaced with previews by the per-message budget.
+branch.ts:100: // Without them in the fork JSONL, `limkenion -r {forkId}` reconstructs state
+branch.ts:102: // as FROZEN and sent as full content (prompt cache miss + permanent overage).
+branch.ts:103: // sessionId must be rewritten since loadTranscriptFile keys lookup by the
+branch.ts:104: // session's messages' sessionId.
+branch.ts:117: // Build forked entries with new sessionId and preserved metadata
+branch.ts:123: // Create forked transcript entry preserving all original metadata
+branch.ts:135: // Build serialized message for LogOption
+branch.ts:148: // Append content-replacement entry (if any) with the fork's sessionId.
+branch.ts:149: // Written as a SINGLE entry (same shape as insertContentReplacement) so
+branch.ts:150: // loadTranscriptFile's content-replacement branch picks it up.
+branch.ts:160: // Write the fork session file
+branch.ts:182: // Check if this exact name already exists
+branch.ts:192: // Name collision - find a unique numbered suffix
+branch.ts:193: // Search for all sessions that start with the base pattern
+branch.ts:196: // Extract existing fork numbers to find the next available
+branch.ts:213: // Find the next available number
+branch.ts:240: // Build LogOption for resume
+branch.ts:246: // Save custom title - use provided title or firstPrompt as default
+branch.ts:247: // This ensures /status and /resume show the same session name
+branch.ts:248: // Always add " (Branch)" suffix to make it clear this is a branched session
+branch.ts:249: // Handle collisions by adding a number suffix (e.g., " (Branch 2)", " (Branch 3)")
+branch.ts:274: // Resume into the fork
+branch.ts:283: // Fallback if resume not available
+index.ts:7: // 'fork' alias only when /fork doesn't exist as its own command
+caches.ts:1: // @generated stub from scan-missing-imports
+conversation.ts:1: // @generated stub from scan-missing-imports
+caches.ts:51: // Clear context caches
+caches.ts:56: // Clear file suggestion caches (for @ mentions)
+caches.ts:59: // Clear commands/skills cache
+caches.ts:62: // Clear prompt cache break detection state
+caches.ts:65: // Clear system prompt injection (cache breaker)
+caches.ts:68: // Clear last emitted date so it's re-detected on next turn
+caches.ts:71: // Run post-compaction cleanup (clears system prompt sections, microcompact tracking,
+caches.ts:73: // files cache with load_reason 'compact').
+caches.ts:75: // Reset sent skill names so the skill listing is re-sent after /clear.
+caches.ts:76: // runPostCompactCleanup intentionally does NOT reset this (post-compact
+caches.ts:77: // re-injection costs ~4K tokens), but /clear wipes messages entirely so
+caches.ts:78: // the model needs the full listing again.
+caches.ts:80: // Override the memory cache reset with 'session_start': clearSessionCaches is called
+caches.ts:81: // from /clear and --resume/--continue, which are NOT compaction events. Without this,
+caches.ts:82: // the InstructionsLoaded hook would fire with load_reason 'compact' instead of
+caches.ts:83: // 'session_start' on the next getMemoryFiles() call.
+caches.ts:86: // Clear stored image paths cache
+caches.ts:89: // Clear all session ingress caches (lastUuidMap, sequentialAppendBySession)
+caches.ts:91: // Clear swarm permission pending callbacks
+caches.ts:94: // Clear tungsten session usage tracking
+caches.ts:96: // Clear attribution caches (file content cache, pending bash states)
+caches.ts:97: // Dynamic import to preserve dead code elimination for COMMIT_ATTRIBUTION feature flag
+caches.ts:103: // Clear repository detection caches
+caches.ts:105: // Clear bash command prefix caches (Haiku-extracted prefixes)
+caches.ts:107: // Clear dump prompts state
+caches.ts:109: // Clear invoked skills cache (each entry holds full skill file content)
+caches.ts:111: // Clear git dir resolution cache
+caches.ts:113: // Clear dynamic skills (loaded from skill directories)
+caches.ts:115: // Clear LSP diagnostic tracking state
+caches.ts:117: // Clear tracked magic docs
+caches.ts:119: // Clear session environment variables
+caches.ts:121: // Clear WebFetch URL cache (up to 50MB of cached page content)
+caches.ts:125: // Clear ToolSearch description cache (full tool prompts, ~500KB for 50 MCP tools)
+caches.ts:129: // Clear agent definitions cache (accumulates per-cwd via EnterWorktreeTool)
+caches.ts:133: // Clear SkillTool prompt cache (accumulates per project root)
+conversation.ts:66: // Execute SessionEnd hooks before clearing (bounded by
+conversation.ts:67: // LIMKENION_SESSIONEND_HOOKS_TIMEOUT_MS, default 1.5s)
+conversation.ts:76: // Signal to inference that this conversation's cache can be evicted.
+conversation.ts:87: // Compute preserved tasks up front so their per-agent state survives the
+conversation.ts:88: // cache wipe below. A task is preserved unless it explicitly has
+conversation.ts:90: // they write to an isolated per-task transcript and run under an agent
+conversation.ts:91: // context, so they're safe across session ID regeneration. See
+conversation.ts:92: // LocalMainSessionTask.ts startBackgroundSession.
+conversation.ts:111: // Clear context-blocked flag so proactive ticks resume after /clear
+conversation.ts:119: // Force logo re-render by updating conversationId
+conversation.ts:124: // Clear all session-related caches. Per-agent state for preserved background
+conversation.ts:125: // tasks (invoked skills, pending permission callbacks, dump state, cache-break
+conversation.ts:126: // tracking) is retained so those agents keep functioning.
+conversation.ts:134: // Clean out necessary items from App State
+conversation.ts:137: // Partition tasks using the same predicate computed above:
+conversation.ts:138: // kill+remove foreground tasks, preserve everything else.
+conversation.ts:145: // Foreground task: kill it and drop from state
+conversation.ts:172: // Clear standalone agent context (name/color set by /rename, /color)
+conversation.ts:173: // so the new session doesn't display the old session's identity badge
+conversation.ts:180: // Reset MCP state to default to trigger re-initialization.
+conversation.ts:181: // Preserve pluginReconnectKey so /clear doesn't cause a no-op
+conversation.ts:182: // (it's only bumped by /reload-plugins).
+conversation.ts:194: // Clear plan slug cache so a new plan file is used after /clear
+conversation.ts:197: // Clear cached session metadata (title, tag, agent name/color)
+conversation.ts:198: // so the new session doesn't inherit the previous session's identity
+conversation.ts:201: // Generate new session ID to provide fresh state
+conversation.ts:202: // Set the old session as parent for analytics lineage tracking
+conversation.ts:204: // Update the environment variable so subprocesses use the new session ID
+conversation.ts:208: // Preserved local_agent tasks had their TaskOutput symlink baked against the
+conversation.ts:209: // old session ID at spawn time, but post-clear transcript writes land under
+conversation.ts:210: // the new session directory (appendEntry re-reads getSessionId()). Re-point
+conversation.ts:211: // the symlinks so TaskOutput reads the live file instead of a frozen pre-clear
+conversation.ts:213: // again, so re-pointing would replace a valid symlink with a dangling one.
+conversation.ts:214: // Main-session tasks use the same per-agent path (they write via
+conversation.ts:215: // recordSidechainTranscript to getAgentTranscriptPath), so no special case.
+conversation.ts:224: // Re-persist mode and worktree state after the clear so future --resume
+conversation.ts:225: // knows what the new post-clear session was in. clearSessionMetadata
+conversation.ts:226: // wiped both from the cache, but the process is still in the same mode
+conversation.ts:227: // and (if applicable) the same worktree directory.
+conversation.ts:242: // Execute SessionStart hooks after clearing
+conversation.ts:245: // Update messages with hook results
+color.ts:25: // Teammates cannot set their own color
+color.ts:44: // Handle reset to default (gray)
+color.ts:49: // Use "default" sentinel (not empty string) so truthiness guards
+color.ts:50: // in sessionStorage.ts persist the reset across session restarts
+color.ts:78: // Save to transcript for persistence across sessions
+color.ts:81: // Update AppState for immediate effect
+compact.ts:45: // model doesn't summarize content that was intentionally removed.
+compact.ts:55: // Try session memory compaction first if no custom instructions
+compact.ts:56: // (session memory compaction doesn't support custom instructions)
+compact.ts:65: // Reset cache read baseline so the post-compact drop isn't flagged
+compact.ts:66: // as a break. compactConversation does this internally; SM-compact doesn't.
+compact.ts:74: // Suppress warning immediately after successful compaction
+compact.ts:85: // Reactive-only mode: route /compact through the reactive path.
+compact.ts:86: // Checked after session-memory (that path is cheap and orthogonal).
+compact.ts:96: // Fall back to traditional compaction
+compact.ts:97: // Run microcompact first to reduce tokens before summarization
+compact.ts:110: // Reset lastSummarizedMessageId since legacy compaction replaces all messages
+compact.ts:111: // and the old message UUID will no longer exist in the new messages array
+compact.ts:114: // Suppress the "Context left until auto-compact" warning after successful compaction
+compact.ts:157: // getCacheSharingParams walks all tools to build the system prompt;
+compact.ts:158: // pre-compact hooks spawn subprocesses. Neither depends on the other.
+compact.ts:197: // Mirrors the post-success cleanup in tryReactiveCompact, minus
+compact.ts:199: // type:'compact' results.
+compact.ts:205: // reactiveCompactOnPromptTooLong runs PostCompact hooks but not PreCompact
+compact.ts:207: // they can merge its userDisplayMessage with PostCompact's here. This
+compact.ts:208: // caller additionally runs it concurrently with getCacheSharingParams.
+context-noninteractive.ts:68: // analyzeContextUsage only reads options.{customSystemPrompt,appendSystemPrompt}
+context-noninteractive.ts:69: // but its signature declares the full Pick<ToolUseContext, 'options'>.
+context-noninteractive.ts:111: // the user needs to know which strategy is managing their context
+context-noninteractive.ts:112: // even before anything has fired.
+context-noninteractive.ts:150: // Main categories table
+context-noninteractive.ts:191: // MCP tools
+context-noninteractive.ts:202: // System tools (ant-only)
+context-noninteractive.ts:217: // System prompt sections (ant-only)
+context-noninteractive.ts:232: // Custom agents
+context-noninteractive.ts:269: // Memory files
+context-noninteractive.ts:280: // Skills
+context-noninteractive.ts:291: // Message breakdown (ant-only)
+index.ts:13: // Keep visible for Ants even if they're subscribers (they see cost breakdowns)
+extra-usage-core.ts:22: // Invalidate only the current org's entry so a follow-up read refetches
+extra-usage-core.ts:23: // the granted state. Separate from the visited flag since users may run
+extra-usage-core.ts:24: // /extra-usage more than once while iterating on the claim flow.
+extra-usage-core.ts:33: // Mirror apps/limkenion-ai useHasUnlimitedOverage(): if overage is enabled
+extra-usage-core.ts:34: // with no monthly cap, there is nothing to request. On fetch error, fall
+extra-usage-core.ts:35: // through and let the user ask (matching web's "err toward show" behavior).
+extra-usage-core.ts:79: // Fall through to creating a new request below
+extra-usage-core.ts:95: // Fall through to generic message below
+index.ts:1: // @generated stub from scan-missing-imports
+setupGitHubActions.ts:30: // Check if workflow file already exists
+setupGitHubActions.ts:45: // For OAuth tokens, use the limkenion_oauth_token parameter
+setupGitHubActions.ts:51: // For other custom secret names, keep using limkenion_api_key parameter
+setupGitHubActions.ts:137: // Check if repository exists
+setupGitHubActions.ts:156: // Get default branch
+setupGitHubActions.ts:176: // Get SHA of default branch
+setupGitHubActions.ts:198: // Create new branch
+setupGitHubActions.ts:221: // Create selected workflow files
+setupGitHubActions.ts:254: // Set the API key as a secret if provided
+setupGitHubActions.ts:287: // Create PR template URL instead of creating PR directly
+types.ts:1: // @generated stub from scan-missing-imports
+types.ts:36: // --- auto-added by scripts/fix-stub-exports.mjs ---
+install-slack-app.ts:11: // Track that user has clicked to install
+keybindings.ts:23: // the file already exists. Avoids a stat pre-check (TOCTOU race + extra syscall).
+keybindings.ts:39: // Open in editor
+addCommand.ts:82: // Commander.js handles -- natively: it consumes -- and everything after becomes args
+addCommand.ts:86: // If no name is provided, error
+addCommand.ts:103: // XAA fail-fast: validate at add-time, not auth-time.
+addCommand.ts:124: // Check if transport was explicitly provided
+addCommand.ts:127: // Check if the command looks like a URL (likely incorrect usage)
+addCommand.ts:251: // Warn if this looks like a URL but transport wasn't explicitly specified
+xaaIdpCommand.ts:45: // Validate everything BEFORE any writes. An exit(1) mid-write leaves
+xaaIdpCommand.ts:47: // updateSettingsForSource doesn't schema-check on write; a non-URL
+xaaIdpCommand.ts:48: // issuer lands on disk and then poisons the whole userSettings source
+xaaIdpCommand.ts:50: // returns { settings: null }, dropping everything, not just xaaIdp).
+xaaIdpCommand.ts:59: // OIDC discovery + token exchange run against this host. Allow http://
+xaaIdpCommand.ts:60: // only for loopback (conformance harness mock IdP); anything else leaks
+xaaIdpCommand.ts:61: // the client secret and authorization code over plaintext.
+xaaIdpCommand.ts:79: // settings-poisoning failure mode as the issuer check above.
+xaaIdpCommand.ts:95: // Read old config now (before settings overwrite) so we can clear stale
+xaaIdpCommand.ts:96: // keychain slots after a successful write. `clear` can't do this after
+xaaIdpCommand.ts:104: // and only deletes on explicit `undefined`, not on absent key. A conditional
+xaaIdpCommand.ts:105: // spread would leak a prior fixed port into a new IdP's config.
+xaaIdpCommand.ts:118: // otherwise a write failure leaves settings pointing at oldIssuer with
+xaaIdpCommand.ts:119: // its secret already gone. Compare via issuerKey(): trailing-slash or
+xaaIdpCommand.ts:120: // host-case differences normalize to the same keychain slot.
+xaaIdpCommand.ts:127: // cached id_token's aud claim and the stored secret are both for the
+xaaIdpCommand.ts:128: // old client. `xaa login` would send {new clientId, old secret} and
+xaaIdpCommand.ts:129: // fail with opaque `invalid_client`; downstream SEP-990 exchange
+xaaIdpCommand.ts:130: // would fail aud validation. Keep both when clientId is unchanged:
+xaaIdpCommand.ts:131: // re-setup without --client-secret means "tweak port, keep secret".
+xaaIdpCommand.ts:162: // TODO(paulc): read the JWT from stdin instead of argv to keep it out of
+xaaIdpCommand.ts:163: // shell history. Fine for conformance (docker exec uses argv directly,
+xaaIdpCommand.ts:164: // no shell parser), but a real user would want `echo $TOKEN | ... --stdin`.
+xaaIdpCommand.ts:177: // Direct-inject path: skip cache check, skip OIDC. Writing IS the
+xaaIdpCommand.ts:178: // operation. Issuer comes from settings (single source of truth), not
+xaaIdpCommand.ts:247: // Read issuer first so we can clear the right keychain slots.
+xaaIdpCommand.ts:249: // updateSettingsForSource uses mergeWith: set to undefined (not delete)
+xaaIdpCommand.ts:250: // to signal key removal.
+xaaIdpCommand.ts:258: // write failure leaves settings pointing at the IdP with its secrets
+xaaIdpCommand.ts:259: // already gone (same pattern as `setup`'s old-issuer cleanup).
+index.ts:1: // @generated stub from scan-missing-imports
+parseArgs.ts:1: // Parse plugin subcommand arguments into structured commands
+parseArgs.ts:38: // Check if it's in format plugin@marketplace
+parseArgs.ts:44: // Check if the target looks like a marketplace (URL or path)
+parseArgs.ts:53: // This is a marketplace URL/path, no plugin specified
+parseArgs.ts:57: // Otherwise treat it as a plugin name
+parseArgs.ts:94: // No action specified, show marketplace menu
+parseArgs.ts:100: // Unknown command, show menu
+types.ts:1: // @generated stub from scan-missing-imports
+types.ts:36: // --- auto-added by scripts/fix-stub-exports.mjs ---
+unifiedTypes.ts:1: // @generated stub from scan-missing-imports
+unifiedTypes.ts:36: // --- auto-added by scripts/fix-stub-exports.mjs ---
+usePagination.ts:12: // For backwards compatibility with page-based terminology
+usePagination.ts:19: // Get visible slice of items
+usePagination.ts:21: // Convert visible index to actual index
+usePagination.ts:23: // Check if actual index is visible
+usePagination.ts:25: // Navigation (kept for API compatibility)
+usePagination.ts:29: // Handle selection - just updates the index, scrolling is automatic
+usePagination.ts:34: // Page navigation - returns false for continuous scrolling (not needed)
+usePagination.ts:39: // Scroll position info for UI display
+usePagination.ts:55: // Use a ref to track the previous scroll offset for smooth scrolling
+usePagination.ts:58: // Compute the scroll offset based on selectedIndex
+usePagination.ts:59: // This ensures the selected item is always visible
+usePagination.ts:65: // If selected item is above the visible window, scroll up
+usePagination.ts:71: // If selected item is below the visible window, scroll down
+usePagination.ts:78: // Selected item is within visible window, keep current offset
+usePagination.ts:79: // But ensure offset is still valid
+usePagination.ts:111: // These are mostly no-ops for continuous scrolling but kept for API compatibility
+usePagination.ts:113: // No-op - scrolling is controlled by selectedIndex
+usePagination.ts:117: // No-op - scrolling is controlled by selectedIndex
+usePagination.ts:121: // No-op - scrolling is controlled by selectedIndex
+usePagination.ts:124: // Simple selection handler - just updates the index
+usePagination.ts:125: // Scrolling happens automatically via the useMemo above
+usePagination.ts:134: // Page navigation - disabled for continuous scrolling
+usePagination.ts:145: // Calculate page-like values for backwards compatibility
+release-notes.ts:20: // Try to fetch the latest changelog with a 500ms timeout
+release-notes.ts:31: // Either fetch failed or timed out - just use cached notes
+release-notes.ts:34: // If we have fresh notes from the quick fetch, use those
+release-notes.ts:39: // Otherwise check cached notes
+release-notes.ts:45: // Nothing available, show link
+index.ts:11: // SDK callers use query.reloadPlugins() (control request) instead of
+index.ts:13: // (commands, agents, plugins, mcpServers) for UI updates.
+reload-plugins.ts:11: // CCR: re-pull user settings before the cache sweep so enabledPlugins /
+reload-plugins.ts:12: // extraKnownMarketplaces pushed from the user's local CLI (settingsSync)
+reload-plugins.ts:13: // take effect. Non-CCR headless (e.g. vscode SDK subprocess) shares disk
+reload-plugins.ts:15: // re-pull needed there.
+reload-plugins.ts:17: // Managed settings intentionally NOT re-fetched: it already polls hourly
+reload-plugins.ts:18: // (POLLING_INTERVAL_MS), and policy enforcement is eventually-consistent
+reload-plugins.ts:19: // by design (stale-cache fallback on fetch failure). Interactive
+reload-plugins.ts:20: // /reload-plugins has never re-fetched it either.
+reload-plugins.ts:22: // No retries: user-initiated command, one attempt + fail-open. The user
+reload-plugins.ts:23: // can re-run /reload-plugins to retry. Startup path keeps its retries.
+reload-plugins.ts:29: // applyRemoteEntriesToLocal uses markInternalWrite to suppress the
+reload-plugins.ts:30: // file watcher (correct for startup, nothing listening yet); fire
+reload-plugins.ts:31: // notifyChange here so mid-session applySettingsChange runs.
+reload-plugins.ts:44: // "plugin MCP/LSP" disambiguates from user-config/built-in servers,
+reload-plugins.ts:45: // which /reload-plugins doesn't touch. Commands/hooks are plugin-only;
+reload-plugins.ts:46: // agent_count is total agents (incl. built-ins). (gh-31321)
+api.ts:92: // err.config.data would contain the POST body with the raw token.
+api.ts:93: // Do not include it in any log. The error code alone is enough.
+api.ts:131: // The /private/organizations/{org}/ path rejects CLI OAuth tokens (wrong
+api.ts:133: // fetchEnvironments() uses. Org is passed via x-organization-uuid header.
+generateSessionName.ts:60: // logForDebugging, not logError. Called automatically on every 3rd bridge
+generateSessionName.ts:61: // message (initReplBridge.ts), so errors here would flood the error file.
+rename.ts:22: // Prevent teammates from renaming - their names are set by team leader
+rename.ts:52: // Always save the custom title (session name)
+rename.ts:55: // Also persist as the session's agent name for prompt-bar display
+rewind.ts:11: // Return a skip message to not append any messages.
+index.ts:14: // Show warning icon if dependencies missing, otherwise enabled/disabled status
+index.ts:28: // Add unsandboxed fallback status
+index.ts:4: // Terminals that natively support CSI u / Kitty keyboard protocol
+index.ts:4: // Hidden command that just plays the animation
+index.ts:5: // Called by the thinkback skill after generation is complete
+thinkback-play.ts:17: // Get skill directory from installed plugins config
+vim.ts:12: // Handle backward compatibility - treat 'emacs' as 'normal'
+force-snip.ts:1: // @generated stub from scan-missing-imports
+insights.ts:40: // Model for facet extraction and summarization (Opus - best quality)
+insights.ts:45: // Model for narrative insights (Opus - best quality)
+insights.ts:51: // Homespace Data Collection
+insights.ts:81: // Types
+insights.ts:99: // New stats
+insights.ts:108: // Additional stats
+insights.ts:158: // New aggregated stats
+insights.ts:169: // Additional stats from Python reference
+insights.ts:176: // Multi-clauding stats (matching Python reference)
+insights.ts:185: // Constants
+insights.ts:207: // Label map for cleaning up category names (matching Python reference)
+insights.ts:209: // Goal categories
+insights.ts:223: // Success factors
+insights.ts:231: // Friction types
+insights.ts:244: // Satisfaction labels
+insights.ts:253: // Session types
+insights.ts:259: // Outcomes
+insights.ts:265: // Helpfulness
+insights.ts:273: // Lazy getters: getLimkenionConfigHomeDir() is memoized and reads process.env.
+insights.ts:274: // Calling it at module scope would populate the memoize cache before
+insights.ts:275: // entrypoints can set LIMKENION_CONFIG_DIR, breaking all 150+ other callers.
+insights.ts:315: // Helper Functions
+insights.ts:330: // New stats
+insights.ts:339: // Additional stats
+insights.ts:353: // New stats
+insights.ts:360: // Additional stats
+insights.ts:372: // Get message timestamp for response time calculation
+insights.ts:376: // Track timestamp for response time calculation
+insights.ts:398: // Check for special tool usage
+insights.ts:417: // Track files modified by Edit/Write tools
+insights.ts:432: // Track lines from Write tool (all added)
+insights.ts:449: // Check user messages
+insights.ts:453: // Check if this is an actual human message (has text) vs just tool_result
+insights.ts:454: // matching Python reference logic
+insights.ts:467: // Only track message hours and response times for actual human messages
+insights.ts:469: // Track message hour for time-of-day analysis and timestamp for multi-clauding
+insights.ts:475: // Collect timestamp for multi-clauding detection (matching Python)
+insights.ts:478: // Skip invalid timestamps
+insights.ts:482: // Calculate response time (time from last assistant message to this user message)
+insights.ts:483: // Only count gaps > 2 seconds (real user think time, not tool results)
+insights.ts:488: // Only count reasonable response times (2s-1 hour) matching Python
+insights.ts:495: // Process tool results (for error tracking)
+insights.ts:501: // Count and categorize tool errors (matching Python reference logic)
+insights.ts:541: // Check for interruptions (matching Python reference)
+insights.ts:568: // New stats
+insights.ts:577: // Additional stats
+insights.ts:605: // Only count user messages that have actual text content (human messages)
+insights.ts:606: // not just tool_result messages (matching Python reference)
+insights.ts:641: // New stats
+insights.ts:650: // Additional stats
+insights.ts:757: // On error, just return truncated chunk
+insights.ts:767: // If under 30k chars, use as-is
+insights.ts:772: // For long transcripts, split into chunks and summarize in parallel
+insights.ts:780: // Summarize all chunks in parallel
+insights.ts:783: // Combine summaries with session header
+insights.ts:805: // Delete corrupted cache file so it gets re-extracted next run
+insights.ts:809: // Ignore deletion errors
+insights.ts:823: // Directory may already exist
+insights.ts:848: // Directory may already exist
+insights.ts:862: // Use summarization for long transcripts
+insights.ts:865: // Build prompt asking for JSON directly (no tool use)
+insights.ts:899: // Parse JSON from response
+insights.ts:937: // Skip invalid timestamps
+insights.ts:947: // Sliding window: sessionLastIndex tracks the most recent index for each session
+insights.ts:954: // Shrink window from the left
+insights.ts:966: // Check if this session appeared earlier in the window (pattern: s1 -> s2 -> s1)
+insights.ts:1026: // New stats
+insights.ts:1037: // Additional stats
+insights.ts:1044: // Multi-clauding stats (matching Python reference)
+insights.ts:1065: // New stats aggregation
+insights.ts:1078: // Additional stats aggregation
+insights.ts:1099: // Goal categories
+insights.ts:1107: // Outcomes
+insights.ts:1111: // Satisfaction counts
+insights.ts:1120: // Helpfulness
+insights.ts:1124: // Session types
+insights.ts:1128: // Friction counts
+insights.ts:1135: // Success factors
+insights.ts:1156: // Calculate response time stats
+insights.ts:1165: // Calculate days active and messages per day
+insights.ts:1173: // Store message hours for time-of-day chart
+insights.ts:1182: // Parallel Insights Generation (6 sections)
+insights.ts:1191: // Sections that run in parallel first
+insights.ts:1420: // Parse JSON from response
+insights.ts:1441: // Build data context string
+insights.ts:1492: // Run sections in parallel first (excluding at_a_glance)
+insights.ts:1499: // Combine results
+insights.ts:1507: // Build rich context from generated sections for At a Glance
+insights.ts:1562: // Now generate "At a Glance" with access to other sections' outputs
+insights.ts:1625: // Escape HTML but render **bold** as <strong>
+insights.ts:1631: // Fixed orderings for specific charts (matching Python reference)
+insights.ts:1658: // Use fixed order, only including items that exist in data
+insights.ts:1663: // Sort by count descending
+insights.ts:1675: // Use LABEL_MAP if available, otherwise clean up underscores and title case
+insights.ts:1691: // Create buckets (matching Python reference)
+insights.ts:1730: // Group into time periods
+insights.ts:1790: // Build At a Glance section (new 4-part format with links to sections)
+insights.ts:1806: // Build project areas section
+insights.ts:1830: // Build interaction style section
+insights.ts:1842: // Build what works section
+insights.ts:1864: // Build friction section
+insights.ts:1887: // Build suggestions section
+insights.ts:1991: // Build On the Horizon section
+insights.ts:2015: // Build Team Feedback section (collapsible, ant-only)
+insights.ts:2082: // Build Fun Ending section
+insights.ts:2246: // Timezone selector for time of day chart (data is from our own analytics, not user input)
+insights.ts:2470: // Export Types & Functions
+insights.ts:2561: // Lite Session Scanning
+insights.ts:2602: // Yield to event loop every 10 project directories
+insights.ts:2608: // Sort by mtime descending (most recent first)
+insights.ts:2614: // Main Function
+insights.ts:2628: // Optionally collect data from remote hosts first (ant-only)
+insights.ts:2636: // Read cached metas in parallel batches to avoid blocking the event loop
+insights.ts:2659: // Load full message data only for uncached sessions and compute SessionMeta
+insights.ts:2662: // Filter out /insights meta-sessions (facet extraction API calls get logged as sessions)
+insights.ts:2680: // Load uncached sessions in batches to yield to event loop between batches
+insights.ts:2693: // Collect metas synchronously, then save them in parallel (independent writes)
+insights.ts:2701: // Keep the log around for potential facet extraction
+insights.ts:2708: // Deduplicate session branches (keep the one with most user messages per session_id)
+insights.ts:2709: // This prevents inflated totals when a session has multiple conversation branches
+insights.ts:2722: // Replace allMetas with deduplicated list and remove unused logs from logsForFacets
+insights.ts:2731: // Sort all metas by start_time descending (most recent first)
+insights.ts:2734: // Pre-filter obviously minimal sessions to save API calls
+insights.ts:2735: // (matching Python's substantive filtering concept)
+insights.ts:2737: // Skip sessions with very few user messages
+insights.ts:2739: // Skip very short sessions (< 1 minute)
+insights.ts:2751: // Load cached facets for all substantive sessions in parallel
+insights.ts:2769: // Extract facets for sessions that need them (50 concurrent)
+insights.ts:2779: // Collect facets synchronously, save in parallel (independent writes)
+insights.ts:2790: // Filter out warmup/minimal sessions (matching Python's is_minimal)
+insights.ts:2791: // A session is minimal if warmup_minimal is the ONLY goal category
+insights.ts:2814: // Generate parallel insights from Limkenion (6 sections)
+insights.ts:2817: // Generate HTML report
+insights.ts:2820: // Save reports
+insights.ts:2824: // Directory may already exist
+insights.ts:2853: // Command Definition
+insights.ts:2879: // Build header with stats
+insights.ts:2892: // Build remote host info (ant-only)
+insights.ts:2896: // Build markdown summary from insights
+insights.ts:2921: // Return prompt for Limkenion to respond to
+proactive.ts:1: // @generated stub from scan-missing-imports
+security-review.ts:206: // Parse frontmatter from the markdown
+security-review.ts:209: // Parse allowed tools from frontmatter
+security-review.ts:214: // Execute bash commands in the prompt
+subscribe-pr.ts:1: // @generated stub from scan-missing-imports
+torch.ts:1: // @generated stub from scan-missing-imports
+

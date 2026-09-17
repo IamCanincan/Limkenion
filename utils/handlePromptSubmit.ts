@@ -222,7 +222,7 @@ export async function handlePromptSubmit(
     (sum, r) => sum + (pastedContents[r.id]?.content.length ?? 0),
     0,
   )
-  logEvent('内部代号_paste_text', { pastedTextCount, pastedTextBytes })
+  logEvent('limkenion_paste_text', { pastedTextCount, pastedTextBytes })
 
   // Handle local-jsx immediate commands (e.g., /config, /doctor)
   // Skip for remote bridge messages — slash commands from CCR clients are plain text
@@ -250,7 +250,7 @@ export async function handlePromptSubmit(
       immediateCommand.type === 'local-jsx' &&
       (queryGuard.isActive || isExternalLoading)
     ) {
-      logEvent('内部代号_immediate_command_executed', {
+      logEvent('limkenion_immediate_command_executed', {
         commandName:
           immediateCommand.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
@@ -322,7 +322,7 @@ export async function handlePromptSubmit(
       logForDebugging(
         `[interrupt] Aborting current turn: streamMode=${params.streamMode}`,
       )
-      logEvent('内部代号_cancel', {
+      logEvent('limkenion_cancel', {
         source:
           'interrupt_on_submit' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         streamMode:

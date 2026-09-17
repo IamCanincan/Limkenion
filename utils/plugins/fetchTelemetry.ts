@@ -9,7 +9,7 @@
  *
  * Volume: these fire at startup (install-counts 24h-TTL)
  * and on explicit user action (install/update). NOT per-interaction. Similar
- * envelope to 内部代号_binary_download_*.
+ * envelope to limkenion_binary_download_*.
  */
 
 import {
@@ -84,8 +84,8 @@ export function logPluginFetch(
   errorKind?: string,
 ): void {
   // String values are bounded enums / hostname-only — no code, no paths,
-  // no raw error messages. Same privacy envelope as 内部代号_web_fetch_host.
-  logEvent('内部代号_plugin_remote_fetch', {
+  // no raw error messages. Same privacy envelope as limkenion_web_fetch_host.
+  logEvent('limkenion_plugin_remote_fetch', {
     source: source as SafeString,
     host: (urlOrSpec ? extractHost(urlOrSpec) : 'unknown') as SafeString,
     is_official: urlOrSpec ? isOfficialRepo(urlOrSpec) : false,

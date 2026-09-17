@@ -32,13 +32,13 @@ const inputSchema = lazySchema(() =>
     action: z
       .enum(['keep', 'remove'])
       .describe(
-        '"keep" leaves the worktree and branch on disk; "remove" deletes both.',
+        '"keep" 会将工作树和分支保留在磁盘上；"remove" 则两者都删除。',
       ),
     discard_changes: z
       .boolean()
       .optional()
       .describe(
-        'Required true when action is "remove" and the worktree has uncommitted files or unmerged commits. The tool will refuse and list them otherwise.',
+        '当 action 为 "remove" 且工作树含有未提交文件或未合并提交时，必须为 true。否则工具会拒绝并列出这些更改。',
       ),
   }),
 )
@@ -262,7 +262,7 @@ export const ExitWorktreeTool: Tool<InputSchema, Output> = buildTool({
       await keepWorktree()
       restoreSessionToOriginalCwd(originalCwd, projectRootIsWorktree)
 
-      logEvent('内部代号_worktree_kept', {
+      logEvent('limkenion_worktree_kept', {
         mid_session: true,
         commits,
         changed_files: changedFiles,
@@ -290,7 +290,7 @@ export const ExitWorktreeTool: Tool<InputSchema, Output> = buildTool({
     await cleanupWorktree()
     restoreSessionToOriginalCwd(originalCwd, projectRootIsWorktree)
 
-    logEvent('内部代号_worktree_removed', {
+    logEvent('limkenion_worktree_removed', {
       mid_session: true,
       commits,
       changed_files: changedFiles,

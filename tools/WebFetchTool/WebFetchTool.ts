@@ -23,24 +23,24 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    url: z.string().url().describe('The URL to fetch content from'),
-    prompt: z.string().describe('The prompt to run on the fetched content'),
+    url: z.string().url().describe('要抓取内容的 URL'),
+    prompt: z.string().describe('要对抓取内容运行的提示词'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    bytes: z.number().describe('Size of the fetched content in bytes'),
-    code: z.number().describe('HTTP response code'),
-    codeText: z.string().describe('HTTP response code text'),
+    bytes: z.number().describe('抓取内容的大小（字节）'),
+    code: z.number().describe('HTTP 响应码'),
+    codeText: z.string().describe('HTTP 响应码的文本'),
     result: z
       .string()
-      .describe('Processed result from applying the prompt to the content'),
+      .describe('将对提示词应用于内容后得到的结果'),
     durationMs: z
       .number()
-      .describe('Time taken to fetch and process the content'),
-    url: z.string().describe('The URL that was fetched'),
+      .describe('抓取并处理内容所用时间'),
+    url: z.string().describe('已抓取的 URL'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>

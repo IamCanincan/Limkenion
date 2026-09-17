@@ -17,11 +17,11 @@ export function useMaybeTruncateInput({
   setCursorOffset,
   setPastedContents,
 }: Props) {
-  // Track if we've initialized this specific input value
+  // 跟踪是否已初始化此特定输入值
   const [hasAppliedTruncationToInput, setHasAppliedTruncationToInput] =
     useState(false)
 
-  // Process input for truncation and pasted images from MessageSelector.
+  // 处理来自 MessageSelector 的输入截断和粘贴图片。
   useEffect(() => {
     if (hasAppliedTruncationToInput) {
       return
@@ -49,7 +49,7 @@ export function useMaybeTruncateInput({
     setCursorOffset,
   ])
 
-  // Reset hasInitializedInput when input is cleared (e.g., after submission)
+  // 当输入被清空时重置 hasInitializedInput（例如提交后）
   useEffect(() => {
     if (input === '') {
       setHasAppliedTruncationToInput(false)

@@ -18,7 +18,7 @@ const DEFAULT_MAX_MCP_OUTPUT_TOKENS = 25000
 /**
  * Resolve the MCP output token cap. Precedence:
  *   1. MAX_MCP_OUTPUT_TOKENS env var (explicit user override)
- *   2. 内部代号_satin_quoll GrowthBook flag's `mcp_tool` key (tokens, not chars —
+ *   2. limkenion_satin_quoll GrowthBook flag's `mcp_tool` key (tokens, not chars —
  *      unlike the other keys in that map which getPersistenceThreshold reads
  *      as chars; MCP has its own truncation layer upstream of that)
  *   3. Hardcoded default
@@ -34,7 +34,7 @@ export function getMaxMcpOutputTokens(): number {
   const overrides = getFeatureValue_CACHED_MAY_BE_STALE<Record<
     string,
     number
-  > | null>('内部代号_satin_quoll', {})
+  > | null>('limkenion_satin_quoll', {})
   const override = overrides?.['mcp_tool']
   if (
     typeof override === 'number' &&

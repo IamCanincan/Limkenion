@@ -27,13 +27,13 @@ type Match = {
 const VISIBLE_RESULTS = 12;
 const DEBOUNCE_MS = 100;
 const PREVIEW_CONTEXT_LINES = 4;
-// rg -m is per-file; we also cap the parsed array to keep memory bounded.
+// rg 的 -m 参数按文件生效；我们同时限制解析后的数组大小以控制内存。
 const MAX_MATCHES_PER_FILE = 10;
 const MAX_TOTAL_MATCHES = 500;
 
 /**
- * Global Search dialog (ctrl+shift+f / cmd+shift+f).
- * Debounced ripgrep search across the workspace.
+ * 全局搜索对话框（ctrl+shift+f / cmd+shift+f）。
+ * 在工作区中进行防抖的 ripgrep 搜索。
  */
 export function GlobalSearchDialog(t0) {
   const $ = _c(40);
@@ -107,7 +107,7 @@ export function GlobalSearchDialog(t0) {
         setPreview({
           file: focused.file,
           line: focused.line,
-          content: "(preview unavailable)"
+          content: "(预览暂时不可用)"
         });
       });
       return () => controller.abort();
@@ -159,7 +159,7 @@ export function GlobalSearchDialog(t0) {
   if ($[7] !== matches.length || $[8] !== onDone) {
     t7 = m_3 => {
       const opened = openFileInExternalEditor(resolvePath(getCwd(), m_3.file), m_3.line);
-      logEvent("内部代号_global_search_select", {
+      logEvent("limkenion_global_search_select", {
         result_count: matches.length,
         opened_editor: opened
       });
@@ -176,7 +176,7 @@ export function GlobalSearchDialog(t0) {
   if ($[10] !== matches.length || $[11] !== onDone || $[12] !== onInsert) {
     t8 = (m_4, mention) => {
       onInsert(mention ? `@${m_4.file}#L${m_4.line} ` : `${m_4.file}:${m_4.line} `);
-      logEvent("内部代号_global_search_insert", {
+      logEvent("limkenion_global_search_insert", {
         result_count: matches.length,
         mention
       });
@@ -190,12 +190,12 @@ export function GlobalSearchDialog(t0) {
     t8 = $[13];
   }
   const handleInsert = t8;
-  const matchLabel = matches.length > 0 ? `${matches.length}${truncated ? "+" : ""} matches${isSearching ? "\u2026" : ""}` : " ";
+  const matchLabel = matches.length > 0 ? `${matches.length}${truncated ? "+" : ""} 个匹配${isSearching ? "\u2026" : ""}` : " ";
   const t9 = previewOnRight ? "right" : "bottom";
   let t10;
   if ($[14] !== handleInsert) {
     t10 = {
-      action: "mention",
+      action: "提及",
       handler: m_5 => handleInsert(m_5, true)
     };
     $[14] = handleInsert;
@@ -206,7 +206,7 @@ export function GlobalSearchDialog(t0) {
   let t11;
   if ($[16] !== handleInsert) {
     t11 = {
-      action: "insert path",
+      action: "插入路径",
       handler: m_6 => handleInsert(m_6, false)
     };
     $[16] = handleInsert;
@@ -216,7 +216,7 @@ export function GlobalSearchDialog(t0) {
   }
   let t12;
   if ($[18] !== isSearching) {
-    t12 = q_0 => isSearching ? "Searching\u2026" : q_0 ? "No matches" : "Type to search\u2026";
+    t12 = q_0 => isSearching ? "搜索中…" : q_0 ? "无匹配项" : "输入以搜索…";
     $[18] = isSearching;
     $[19] = t12;
   } else {
@@ -234,7 +234,7 @@ export function GlobalSearchDialog(t0) {
   }
   let t14;
   if ($[24] !== preview || $[25] !== previewWidth || $[26] !== query) {
-    t14 = m_8 => preview?.file === m_8.file && preview.line === m_8.line ? <><Text dimColor={true}>{truncatePathMiddle(m_8.file, previewWidth)}:{m_8.line}</Text>{preview.content.split("\n").map((line_0, i) => <Text key={i}>{highlightMatch(truncateToWidth(line_0, previewWidth), query)}</Text>)}</> : <LoadingState message={"Loading\u2026"} dimColor={true} />;
+    t14 = m_8 => preview?.file === m_8.file && preview.line === m_8.line ? <><Text dimColor={true}>{truncatePathMiddle(m_8.file, previewWidth)}:{m_8.line}</Text>{preview.content.split("\n").map((line_0, i) => <Text key={i}>{highlightMatch(truncateToWidth(line_0, previewWidth), query)}</Text>)}</> : <LoadingState message={"加载中…"} dimColor={true} />;
     $[24] = preview;
     $[25] = previewWidth;
     $[26] = query;
@@ -244,7 +244,7 @@ export function GlobalSearchDialog(t0) {
   }
   let t15;
   if ($[28] !== handleOpen || $[29] !== matchLabel || $[30] !== matches || $[31] !== onDone || $[32] !== t10 || $[33] !== t11 || $[34] !== t12 || $[35] !== t13 || $[36] !== t14 || $[37] !== t9 || $[38] !== visibleResults) {
-    t15 = <FuzzyPicker title="Global Search" placeholder={"Type to search\u2026"} items={matches} getKey={matchKey} visibleCount={visibleResults} direction="up" previewPosition={t9} onQueryChange={handleQueryChange} onFocus={setFocused} onSelect={handleOpen} onTab={t10} onShiftTab={t11} onCancel={onDone} emptyMessage={t12} matchLabel={matchLabel} selectAction="open in editor" renderItem={t13} renderPreview={t14} />;
+    t15 = <FuzzyPicker title="全局搜索" placeholder={"输入以搜索…"} items={matches} getKey={matchKey} visibleCount={visibleResults} direction="up" previewPosition={t9} onQueryChange={handleQueryChange} onFocus={setFocused} onSelect={handleOpen} onTab={t10} onShiftTab={t11} onCancel={onDone} emptyMessage={t12} matchLabel={matchLabel} selectAction="在编辑器中打开" renderItem={t13} renderPreview={t14} />;
     $[28] = handleOpen;
     $[29] = matchLabel;
     $[30] = matches;
@@ -322,11 +322,10 @@ function matchKey(m: Match): string {
 }
 
 /**
- * Parse a ripgrep -n --no-heading output line: "path:line:text".
- * Windows paths may contain a drive letter ("C:\..."), so a simple split on
- * the first colon would mangle the path — use a regex that captures up to
- * the first :<digits>: instead.
- * @internal exported for testing
+ * 解析 ripgrep -n --no-heading 输出行："path:line:text"。
+ * Windows 路径可能包含盘符（"C:\..."），因此简单地按第一个冒号
+ * 拆分会破坏路径——使用能捕获到第一个 :<数字>: 之前的正则。
+ * @internal 导出用于测试
  */
 export function parseRipgrepLine(line: string): Match | null {
   const m = /^(.*?):(\d+):(.*)$/.exec(line);

@@ -27,7 +27,7 @@ function ModelPickerWrapper(t0) {
   let t1;
   if ($[0] !== mainLoopModel || $[1] !== onDone) {
     t1 = function handleCancel() {
-      logEvent("内部代号_model_command_menu", {
+      logEvent("limkenion_model_command_menu", {
         action: "cancel" as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       const displayModel = renderModelLabel(mainLoopModel);
@@ -45,7 +45,7 @@ function ModelPickerWrapper(t0) {
   let t2;
   if ($[3] !== isFastMode || $[4] !== mainLoopModel || $[5] !== onDone || $[6] !== setAppState) {
     t2 = function handleSelect(model, effort) {
-      logEvent("内部代号_model_command_menu", {
+      logEvent("limkenion_model_command_menu", {
         action: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         from_model: mainLoopModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         to_model: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -271,7 +271,7 @@ function _temp7(s) {
 export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   args = args?.trim() || '';
   if (COMMON_INFO_ARGS.includes(args)) {
-    logEvent('内部代号_model_command_inline_help', {
+    logEvent('limkenion_model_command_inline_help', {
       args: args as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     return <ShowModelAndClose onDone={onDone} />;
@@ -283,7 +283,7 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     return;
   }
   if (args) {
-    logEvent('内部代号_model_command_inline', {
+    logEvent('limkenion_model_command_inline', {
       args: args as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     return <SetModelAndClose args={args} onDone={onDone} />;

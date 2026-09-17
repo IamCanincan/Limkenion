@@ -14,7 +14,7 @@ export function areExplorePlanAgentsEnabled(): boolean {
   if (feature('BUILTIN_EXPLORE_PLAN_AGENTS')) {
     // 3P default: true — Bedrock/Vertex keep agents enabled (matches pre-experiment
     // external behavior). A/B test treatment sets false to measure impact of removal.
-    return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_amber_stoat', true)
+    return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_amber_stoat', true)
   }
   return false
 }
@@ -63,7 +63,7 @@ export function getBuiltInAgents(): AgentDefinition[] {
 
   if (
     feature('VERIFICATION_AGENT') &&
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_hive_evidence', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_hive_evidence', false)
   ) {
     agents.push(VERIFICATION_AGENT)
   }

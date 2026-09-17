@@ -4,7 +4,7 @@
  * This utility ensures forked agents:
  * 1. Share identical cache-critical params with the parent to guarantee prompt cache hits
  * 2. Track full usage metrics across the entire query loop
- * 3. Log metrics via the 内部代号_fork_agent_query event when complete
+ * 3. Log metrics via the limkenion_fork_agent_query event when complete
  * 4. Isolate mutable state to prevent interference with the main agent loop
  */
 
@@ -467,7 +467,7 @@ export function createSubagentContext(
  * This function:
  * 1. Uses identical cache-safe params from parent to enable prompt caching
  * 2. Accumulates usage across all query iterations
- * 3. Logs 内部代号_fork_agent_query with full usage when complete
+ * 3. Logs limkenion_fork_agent_query with full usage when complete
  *
  * @example
  * ```typescript
@@ -626,7 +626,7 @@ export async function runForkedAgent({
 }
 
 /**
- * Logs the 内部代号_fork_agent_query event with full NonNullableUsage fields.
+ * Logs the limkenion_fork_agent_query event with full NonNullableUsage fields.
  */
 function logForkAgentQueryEvent({
   forkLabel,
@@ -653,7 +653,7 @@ function logForkAgentQueryEvent({
       ? totalUsage.cache_read_input_tokens / totalInputTokens
       : 0
 
-  logEvent('内部代号_fork_agent_query', {
+  logEvent('limkenion_fork_agent_query', {
     // Metadata
     forkLabel:
       forkLabel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

@@ -303,7 +303,7 @@ export function addToTotalSessionCost(
   let totalCost = cost
   for (const advisorUsage of getAdvisorUsage(usage)) {
     const advisorCost = calculateUSDCost(advisorUsage.model, advisorUsage)
-    logEvent('内部代号_advisor_tool_token_usage', {
+    logEvent('limkenion_advisor_tool_token_usage', {
       advisor_model:
         advisorUsage.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       input_tokens: advisorUsage.input_tokens,

@@ -17,7 +17,7 @@ const DESKTOP_UPSELL_DEFAULT: DesktopUpsellConfig = {
   enable_startup_dialog: false
 };
 export function getDesktopUpsellConfig(): DesktopUpsellConfig {
-  return getDynamicConfig_CACHED_MAY_BE_STALE('内部代号_desktop_upsell', DESKTOP_UPSELL_DEFAULT);
+  return getDynamicConfig_CACHED_MAY_BE_STALE('limkenion_desktop_upsell', DESKTOP_UPSELL_DEFAULT);
 }
 function isSupportedPlatform(): boolean {
   return process.platform === 'darwin' || process.platform === 'win32' && process.arch === 'x64';
@@ -164,7 +164,7 @@ function _temp() {
       desktopUpsellSeenCount: newCount
     };
   });
-  logEvent("内部代号_desktop_upsell_shown", {
+  logEvent("limkenion_desktop_upsell_shown", {
     seen_count: newCount
   });
 }

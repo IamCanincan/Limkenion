@@ -211,7 +211,7 @@ export function createTokenRefreshScheduler({
     logForDebugging(
       `[${label}:token] Refreshing token for sessionId=${sessionId}: new token prefix=${oauthToken.slice(0, 15)}…`,
     )
-    logEvent('内部代号_bridge_token_refreshed', {})
+    logEvent('limkenion_bridge_token_refreshed', {})
     onRefresh(sessionId, oauthToken)
 
     // Schedule a follow-up refresh so long-running sessions stay authenticated.

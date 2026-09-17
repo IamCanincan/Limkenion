@@ -18,31 +18,31 @@ import type { IDEDiffSupport } from './ideDiffConfig.js';
 import type { FileOperationType, PermissionOption } from './permissionOptions.js';
 import { type ToolInput, useFilePermissionDialog } from './useFilePermissionDialog.js';
 export type FilePermissionDialogProps<T extends ToolInput = ToolInput> = {
-  // Required props from PermissionRequestProps
+  // 来自 PermissionRequestProps 的必填属性
   toolUseConfirm: ToolUseConfirm;
   toolUseContext: ToolUseContext;
   onDone: () => void;
   onReject: () => void;
 
-  // Dialog customization
+  // 对话框定制
   title: string;
   subtitle?: React.ReactNode;
   question?: string | React.ReactNode;
-  content?: React.ReactNode; // Can be general content or diff component
+  content?: React.ReactNode; // 可以是通用内容或 diff 组件
 
-  // Logging
+  // 日志记录
   completionType?: CompletionType;
-  languageName?: string; // override — derived from path when omitted
+  languageName?: string; // 覆盖项 —— 省略时根据路径推导
 
-  // File/directory operations
+  // 文件/目录操作
   path: string | null;
   parseInput: (input: unknown) => T;
   operationType?: FileOperationType;
 
-  // IDE diff support
+  // IDE diff 支持
   ideDiffSupport?: IDEDiffSupport<T>;
 
-  // Worker badge for teammate permission requests
+  // 给队友角色权限请求的 worker 徽章
   workerBadge: WorkerBadgeProps | undefined;
 };
 export function FilePermissionDialog<T extends ToolInput = ToolInput>({
@@ -52,7 +52,7 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
   onReject,
   title,
   subtitle,
-  question = 'Do you want to proceed?',
+  question = '您想继续吗？',
   content,
   completionType = 'tool_use_single',
   path,
@@ -62,10 +62,10 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
   workerBadge,
   languageName: languageNameOverride
 }: FilePermissionDialogProps<T>): React.ReactNode {
-  // Derive from path unless caller provided an explicit override (NotebookEdit
-  // passes 'python'/'markdown' from cell_type). getLanguageName is async;
-  // downstream UnaryEvent.language_name and logPermissionEvent already accept
-  // Promise<string>. useMemo keeps the promise stable across renders.
+  // 除非调用者提供了显式覆盖项，否则根据路径推导（NotebookEdit
+  // 从 cell_type 传入 'python'/'markdown'）。getLanguageName 是异步的；
+  // 下游 UnaryEvent.language_name 和 logPermissionEvent 已接受
+  // Promise<string>。useMemo 让该 promise 在多次渲染间保持稳定。
   const languageName = useMemo(() => languageNameOverride ?? (path ? getLanguageName(path) : 'none'), [languageNameOverride, path]);
   const unaryEvent = useMemo(() => ({
     completion_type: completionType,
@@ -98,7 +98,7 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
     operationType
   });
 
-  // Use file dialog results for options
+  // 使用文件对话框的结果作为选项
   const {
     options,
     acceptFeedback,
@@ -110,16 +110,16 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
     noInputMode
   } = fileDialogResult;
 
-  // Parse input using the provided parser
+  // 使用提供的解析器解析输入
   const parsedInput = parseInput(toolUseConfirm.input);
 
-  // Set up IDE diff support if enabled. Memoized: getConfig may do disk I/O
-  // (FileWrite's getConfig calls readFileSync for the old-content diff).
-  // Keyed on the raw input — parseInput is a pure Zod parse whose result
-  // depends only on toolUseConfirm.input.
+  // 如果启用则设置 IDE diff 支持。已记忆化：getConfig 可能执行磁盘 I/O
+  // （FileWrite 的 getConfig 会调用 readFileSync 获取旧内容 diff）。
+  // 以原始输入为键——parseInput 是纯 Zod 解析，
+  // 其结果仅取决于 toolUseConfirm.input。
   const ideDiffConfig = useMemo(() => ideDiffSupport ? ideDiffSupport.getConfig(parseInput(toolUseConfirm.input)) : null, [ideDiffSupport, toolUseConfirm.input]);
 
-  // Create diff params based on whether IDE diff is available
+  // 根据是否可用 IDE diff 创建 diff 参数
   const diffParams = ideDiffConfig ? {
     onChange: (option: PermissionOption, input: {
       file_path: string;
@@ -162,7 +162,7 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
   const isSymlinkOutsideCwd = symlinkTarget != null && relative(getCwd(), symlinkTarget).startsWith('..');
   const symlinkWarning = symlinkTarget ? <Box paddingX={1} marginBottom={1}>
       <Text color="warning">
-        {isSymlinkOutsideCwd ? `This will modify ${symlinkTarget} (outside working directory) via a symlink` : `Symlink target: ${symlinkTarget}`}
+        {isSymlinkOutsideCwd ? `此次将经由符号链接修改 ${symlinkTarget}（位于工作目录之外）` : `符号链接目标：${symlinkTarget}`}
       </Text>
     </Box> : null;
   return <>
@@ -174,13 +174,13 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
           <Select options={options} inlineDescriptions onChange={value => {
           const selected = options.find(opt => opt.value === value);
           if (selected) {
-            // For reject option
+            // 针对拒绝选项
             if (selected.option.type === 'reject') {
               const trimmedFeedback = rejectFeedback.trim();
               onChange(selected.option, trimmedFeedback || undefined);
               return;
             }
-            // For accept-once option, pass accept feedback if present
+            // 针对允许一次选项，若存在则传入允许反馈
             if (selected.option.type === 'accept-once') {
               const trimmedFeedback_0 = acceptFeedback.trim();
               onChange(selected.option, trimmedFeedback_0 || undefined);
@@ -195,8 +195,8 @@ export function FilePermissionDialog<T extends ToolInput = ToolInput>({
       </PermissionDialog>
       <Box paddingX={1} marginTop={1}>
         <Text dimColor>
-          Esc to cancel
-          {(focusedOption === 'yes' && !yesInputMode || focusedOption === 'no' && !noInputMode) && ' · Tab to amend'}
+          Esc 取消
+          {(focusedOption === 'yes' && !yesInputMode || focusedOption === 'no' && !noInputMode) && ' · Tab 修改'}
         </Text>
       </Box>
     </>;

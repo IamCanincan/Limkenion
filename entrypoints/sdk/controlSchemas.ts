@@ -1,10 +1,10 @@
 /**
- * SDK Control Schemas - Zod schemas for the control protocol.
+ * SDK 控制架构 - 控制协议对应的 Zod 架构。
  *
- * These schemas define the control protocol between SDK implementations and the CLI.
- * Used by SDK builders (e.g., Python SDK) to communicate with the CLI process.
+ * 这些架构定义了 SDK 实现与 CLI 之间的控制协议。
+ * 供 SDK 构建方（例如 Python SDK）用于与 CLI 进程通信。
  *
- * SDK consumers should use coreSchemas.ts instead.
+ * SDK 消费者应改用 coreSchemas.ts。
  */
 
 import { z } from 'zod/v4'
@@ -30,14 +30,14 @@ import {
 } from './coreSchemas.js'
 
 // ============================================================================
-// External Type Placeholders
+// 外部类型占位符
 // ============================================================================
 
-// JSONRPCMessage from @modelcontextprotocol/sdk - treat as unknown
+// 来自 @modelcontextprotocol/sdk 的 JSONRPCMessage - 视为 unknown
 export const JSONRPCMessagePlaceholder = lazySchema(() => z.unknown())
 
 // ============================================================================
-// Hook Callback Types
+// 钩子回调类型
 // ============================================================================
 
 export const SDKHookCallbackMatcherSchema = lazySchema(() =>
@@ -47,11 +47,11 @@ export const SDKHookCallbackMatcherSchema = lazySchema(() =>
       hookCallbackIds: z.array(z.string()),
       timeout: z.number().optional(),
     })
-    .describe('Configuration for matching and routing hook callbacks.'),
+    .describe('用于匹配和路由钩子回调的配置。'),
 )
 
 // ============================================================================
-// Control Request Types
+// 控制请求类型
 // ============================================================================
 
 export const SDKControlInitializeRequestSchema = lazySchema(() =>
@@ -70,7 +70,7 @@ export const SDKControlInitializeRequestSchema = lazySchema(() =>
       agentProgressSummaries: z.boolean().optional(),
     })
     .describe(
-      'Initializes the SDK session with hooks, MCP servers, and agent configuration.',
+      '初始化 SDK 会话，配置钩子、MCP 服务器和代理。',
     ),
 )
 
@@ -86,11 +86,11 @@ export const SDKControlInitializeResponseSchema = lazySchema(() =>
       pid: z
         .number()
         .optional()
-        .describe('@internal CLI process PID for tmux socket isolation'),
+        .describe('@internal 用于 tmux 套接字隔离的 CLI 进程 PID'),
       fast_mode_state: FastModeStateSchema().optional(),
     })
     .describe(
-      'Response from session initialization with available commands, models, and account info.',
+      '来自会话初始化的响应，包含可用的命令、模型和账户信息。',
     ),
 )
 
@@ -99,7 +99,7 @@ export const SDKControlInterruptRequestSchema = lazySchema(() =>
     .object({
       subtype: z.literal('interrupt'),
     })
-    .describe('Interrupts the currently running conversation turn.'),
+    .describe('中断当前正在运行的对话回合。'),
 )
 
 
@@ -118,7 +118,7 @@ export const SDKControlPermissionRequestSchema = lazySchema(() =>
       agent_id: z.string().optional(),
       description: z.string().optional(),
     })
-    .describe('Requests permission to use a tool with the given input.'),
+    .describe('请求使用给定输入调用工具所需的权限。'),
 )
 
 export const SDKControlSetPermissionModeRequestSchema = lazySchema(() =>
@@ -129,9 +129,9 @@ export const SDKControlSetPermissionModeRequestSchema = lazySchema(() =>
       ultraplan: z
         .boolean()
         .optional()
-        .describe('@internal CCR ultraplan session marker.'),
+        .describe('@internal CCR ultraplan 会话标记。'),
     })
-    .describe('Sets the permission mode for tool execution handling.'),
+    .describe('设置用于处理工具执行的权限模式。'),
 )
 
 export const SDKControlSetModelRequestSchema = lazySchema(() =>
@@ -140,7 +140,7 @@ export const SDKControlSetModelRequestSchema = lazySchema(() =>
       subtype: z.literal('set_model'),
       model: z.string().optional(),
     })
-    .describe('Sets the model to use for subsequent conversation turns.'),
+    .describe('设置用于后续对话回合的模型。'),
 )
 
 export const SDKControlSetMaxThinkingTokensRequestSchema = lazySchema(() =>
@@ -150,7 +150,7 @@ export const SDKControlSetMaxThinkingTokensRequestSchema = lazySchema(() =>
       max_thinking_tokens: z.number().nullable(),
     })
     .describe(
-      'Sets the maximum number of thinking tokens for extended thinking.',
+      '设置用于扩展思考的最大思考 token 数。',
     ),
 )
 
@@ -159,7 +159,7 @@ export const SDKControlMcpStatusRequestSchema = lazySchema(() =>
     .object({
       subtype: z.literal('mcp_status'),
     })
-    .describe('Requests the current status of all MCP server connections.'),
+    .describe('请求当前所有 MCP 服务器连接的状态。'),
 )
 
 export const SDKControlMcpStatusResponseSchema = lazySchema(() =>
@@ -168,7 +168,7 @@ export const SDKControlMcpStatusResponseSchema = lazySchema(() =>
       mcpServers: z.array(McpServerStatusSchema()),
     })
     .describe(
-      'Response containing the current status of all MCP server connections.',
+      '响应，包含当前所有 MCP 服务器连接的状态。',
     ),
 )
 
@@ -178,7 +178,7 @@ export const SDKControlGetContextUsageRequestSchema = lazySchema(() =>
       subtype: z.literal('get_context_usage'),
     })
     .describe(
-      'Requests a breakdown of current context window usage by category.',
+      '请求按类别统计的当前上下文窗口占用明细。',
     ),
 )
 
@@ -301,7 +301,7 @@ export const SDKControlGetContextUsageResponseSchema = lazySchema(() =>
         .nullable(),
     })
     .describe(
-      'Breakdown of current context window usage by category (system prompt, tools, messages, etc.).',
+      '按类别（系统提示、工具、消息等）统计的当前上下文窗口占用明细。',
     ),
 )
 
@@ -312,7 +312,7 @@ export const SDKControlRewindFilesRequestSchema = lazySchema(() =>
       user_message_id: z.string(),
       dry_run: z.boolean().optional(),
     })
-    .describe('Rewinds file changes made since a specific user message.'),
+    .describe('回退自特定用户消息以来所做的文件更改。'),
 )
 
 export const SDKControlRewindFilesResponseSchema = lazySchema(() =>
@@ -324,7 +324,7 @@ export const SDKControlRewindFilesResponseSchema = lazySchema(() =>
       insertions: z.number().optional(),
       deletions: z.number().optional(),
     })
-    .describe('Result of a rewindFiles operation.'),
+    .describe('rewindFiles 操作的结果。'),
 )
 
 export const SDKControlCancelAsyncMessageRequestSchema = lazySchema(() =>
@@ -334,7 +334,7 @@ export const SDKControlCancelAsyncMessageRequestSchema = lazySchema(() =>
       message_uuid: z.string(),
     })
     .describe(
-      'Drops a pending async user message from the command queue by uuid. No-op if already dequeued for execution.',
+      '按 uuid 从命令队列中丢弃待处理的异步用户消息。若已被取出执行，则为无操作。',
     ),
 )
 
@@ -344,7 +344,7 @@ export const SDKControlCancelAsyncMessageResponseSchema = lazySchema(() =>
       cancelled: z.boolean(),
     })
     .describe(
-      'Result of a cancel_async_message operation. cancelled=false means the message was not in the queue (already dequeued or never enqueued).',
+      'cancel_async_message 操作的结果。cancelled=false 表示该消息不在队列中（已被取出或从未入队）。',
     ),
 )
 
@@ -356,7 +356,7 @@ export const SDKControlSeedReadStateRequestSchema = lazySchema(() =>
       mtime: z.number(),
     })
     .describe(
-      'Seeds the readFileState cache with a path+mtime entry. Use when a prior Read was removed from context (e.g. by snip) so Edit validation would fail despite the client having observed the Read. The mtime lets the CLI detect if the file changed since the seeded Read — same staleness check as the normal path.',
+      '以 path+mtime 条目预置 readFileState 缓存。当先前的 Read 已从上下文中移除（例如被 snip）时使用，以免客户端已观察到该 Read 的情况下 Edit 校验仍失败。mtime 使 CLI 能检测自预置的 Read 之后文件是否发生变化——与常规路径的陈旧性检查一致。',
     ),
 )
 
@@ -368,7 +368,7 @@ export const SDKHookCallbackRequestSchema = lazySchema(() =>
       input: HookInputSchema(),
       tool_use_id: z.string().optional(),
     })
-    .describe('Delivers a hook callback with its input data.'),
+    .describe('传递带有其输入数据的钩子回调。'),
 )
 
 export const SDKControlMcpMessageRequestSchema = lazySchema(() =>
@@ -378,7 +378,7 @@ export const SDKControlMcpMessageRequestSchema = lazySchema(() =>
       server_name: z.string(),
       message: JSONRPCMessagePlaceholder(),
     })
-    .describe('Sends a JSON-RPC message to a specific MCP server.'),
+    .describe('向指定的 MCP 服务器发送 JSON-RPC 消息。'),
 )
 
 export const SDKControlMcpSetServersRequestSchema = lazySchema(() =>
@@ -387,7 +387,7 @@ export const SDKControlMcpSetServersRequestSchema = lazySchema(() =>
       subtype: z.literal('mcp_set_servers'),
       servers: z.record(z.string(), McpServerConfigForProcessTransportSchema()),
     })
-    .describe('Replaces the set of dynamically managed MCP servers.'),
+    .describe('替换动态管理的 MCP 服务器集合。'),
 )
 
 export const SDKControlMcpSetServersResponseSchema = lazySchema(() =>
@@ -398,7 +398,7 @@ export const SDKControlMcpSetServersResponseSchema = lazySchema(() =>
       errors: z.record(z.string(), z.string()),
     })
     .describe(
-      'Result of replacing the set of dynamically managed MCP servers.',
+      '替换动态管理的 MCP 服务器集合的结果。',
     ),
 )
 
@@ -408,7 +408,7 @@ export const SDKControlReloadPluginsRequestSchema = lazySchema(() =>
       subtype: z.literal('reload_plugins'),
     })
     .describe(
-      'Reloads plugins from disk and returns the refreshed session components.',
+      '从磁盘重新加载插件，并返回刷新后的会话组件。',
     ),
 )
 
@@ -428,7 +428,7 @@ export const SDKControlReloadPluginsResponseSchema = lazySchema(() =>
       error_count: z.number(),
     })
     .describe(
-      'Refreshed commands, agents, plugins, and MCP server status after reload.',
+      '重新加载后的命令、代理、插件及 MCP 服务器状态。',
     ),
 )
 
@@ -438,7 +438,7 @@ export const SDKControlMcpReconnectRequestSchema = lazySchema(() =>
       subtype: z.literal('mcp_reconnect'),
       serverName: z.string(),
     })
-    .describe('Reconnects a disconnected or failed MCP server.'),
+    .describe('重新连接已断开或失败的 MCP 服务器。'),
 )
 
 export const SDKControlMcpToggleRequestSchema = lazySchema(() =>
@@ -448,7 +448,7 @@ export const SDKControlMcpToggleRequestSchema = lazySchema(() =>
       serverName: z.string(),
       enabled: z.boolean(),
     })
-    .describe('Enables or disables an MCP server.'),
+    .describe('启用或禁用 MCP 服务器。'),
 )
 
 
@@ -458,7 +458,7 @@ export const SDKControlStopTaskRequestSchema = lazySchema(() =>
       subtype: z.literal('stop_task'),
       task_id: z.string(),
     })
-    .describe('Stops a running task.'),
+    .describe('停止运行中的任务。'),
 )
 
 export const SDKControlApplyFlagSettingsRequestSchema = lazySchema(() =>
@@ -468,7 +468,7 @@ export const SDKControlApplyFlagSettingsRequestSchema = lazySchema(() =>
       settings: z.record(z.string(), z.unknown()),
     })
     .describe(
-      'Merges the provided settings into the flag settings layer, updating the active configuration.',
+      '将提供的设置合并到 flag 设置层，更新当前生效的配置。',
     ),
 )
 
@@ -478,7 +478,7 @@ export const SDKControlGetSettingsRequestSchema = lazySchema(() =>
       subtype: z.literal('get_settings'),
     })
     .describe(
-      'Returns the effective merged settings and the raw per-source settings.',
+      '返回合并后的有效设置及各来源的原始设置。',
     ),
 )
 
@@ -500,22 +500,22 @@ export const SDKControlGetSettingsResponseSchema = lazySchema(() =>
           }),
         )
         .describe(
-          'Ordered low-to-high priority — later entries override earlier ones.',
+          '按从低到高的优先级排序——后面的条目会覆盖前面的条目。',
         ),
       applied: z
         .object({
           model: z.string(),
-          // String levels only — numeric effort is ant-only and the
-          // Zod→proto generator can't emit enum∪number unions.
+          // 仅字符串等级——数值型 effort 仅限 ant，且
+          // Zod→proto 生成器无法产出 enum∪number 联合。
           effort: z.enum(['low', 'medium', 'high', 'max']).nullable(),
         })
         .optional()
         .describe(
-          'Runtime-resolved values after env overrides, session state, and model-specific defaults are applied. Unlike `effective` (disk merge), these reflect what will actually be sent to the API.',
+          '应用环境变量覆盖、会话状态及模型特定默认值后，在运行时解析出的值。不同于 `effective`（磁盘合并），这些值反映的是实际将发送给 API 的值。',
         ),
     })
     .describe(
-      'Effective merged settings plus raw per-source settings in merge order.',
+      '合并后的有效设置，以及按合并顺序排列的各来源原始设置。',
     ),
 )
 
@@ -531,7 +531,7 @@ export const SDKControlElicitationRequestSchema = lazySchema(() =>
       requested_schema: z.record(z.string(), z.unknown()).optional(),
     })
     .describe(
-      'Requests the SDK consumer to handle an MCP elicitation (user input request).',
+      '请求 SDK 消费方处理一次 MCP 询问（用户输入请求）。',
     ),
 )
 
@@ -541,12 +541,12 @@ export const SDKControlElicitationResponseSchema = lazySchema(() =>
       action: z.enum(['accept', 'decline', 'cancel']),
       content: z.record(z.string(), z.unknown()).optional(),
     })
-    .describe('Response from the SDK consumer for an elicitation request.'),
+    .describe('SDK 消费方对询问请求的响应。'),
 )
 
 
 // ============================================================================
-// Control Request/Response Wrappers
+// 控制请求/响应包装
 // ============================================================================
 
 export const SDKControlRequestInnerSchema = lazySchema(() =>
@@ -615,7 +615,7 @@ export const SDKControlCancelRequestSchema = lazySchema(() =>
       type: z.literal('control_cancel_request'),
       request_id: z.string(),
     })
-    .describe('Cancels a currently open control request.'),
+    .describe('取消当前处于打开状态的控制请求。'),
 )
 
 export const SDKKeepAliveMessageSchema = lazySchema(() =>
@@ -623,7 +623,7 @@ export const SDKKeepAliveMessageSchema = lazySchema(() =>
     .object({
       type: z.literal('keep_alive'),
     })
-    .describe('Keep-alive message to maintain WebSocket connection.'),
+    .describe('用于维持 WebSocket 连接的保活消息。'),
 )
 
 export const SDKUpdateEnvironmentVariablesMessageSchema = lazySchema(() =>
@@ -632,11 +632,11 @@ export const SDKUpdateEnvironmentVariablesMessageSchema = lazySchema(() =>
       type: z.literal('update_environment_variables'),
       variables: z.record(z.string(), z.string()),
     })
-    .describe('Updates environment variables at runtime.'),
+    .describe('在运行时更新环境变量。'),
 )
 
 // ============================================================================
-// Aggregate Message Types
+// 聚合消息类型
 // ============================================================================
 
 export const StdoutMessageSchema = lazySchema(() =>

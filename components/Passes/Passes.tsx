@@ -45,7 +45,7 @@ export function Passes({
     if (key.return && referralLink) {
       void setClipboard(referralLink).then(raw => {
         if (raw) process.stdout.write(raw);
-        logEvent('内部代号_guest_passes_link_copied', {});
+        logEvent('limkenion_guest_passes_link_copied', {});
         onDone(`Referral link copied to clipboard!`);
       });
     }

@@ -39,5 +39,5 @@ export function migrateOpusToOpus1m(): void {
       : migrated
   updateSettingsForSource('userSettings', { model: modelToSet })
 
-  logEvent('内部代号_opus_to_opus1m_migration', {})
+  logEvent('limkenion_opus_to_opus1m_migration', {})
 }

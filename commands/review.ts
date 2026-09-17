@@ -2,38 +2,38 @@ import type { ContentBlockParam } from '../types/llm-protocol.js'
 import type { Command } from '../commands.js'
 import { isUltrareviewEnabled } from './review/ultrareviewEnabled.js'
 
-// Legal wants the explicit surface name plus a docs link visible before the
-// user triggers, so the description carries "Limkenion on the web" + URL.
+// 法务希望在用户触发前先看到明确的表面名称加上文档链接，
+// 因此描述中带有 "Limkenion on the web" 和 URL。
 const CCR_TERMS_URL = 'https://code.limkenion.com/docs/en/limkenion-on-the-web'
 
 const LOCAL_REVIEW_PROMPT = (args: string) => `
-      You are an expert code reviewer. Follow these steps:
+      你是一名资深代码审查者。按以下步骤操作：
 
-      1. If no PR number is provided in the args, run \`gh pr list\` to show open PRs
-      2. If a PR number is provided, run \`gh pr view <number>\` to get PR details
-      3. Run \`gh pr diff <number>\` to get the diff
-      4. Analyze the changes and provide a thorough code review that includes:
-         - Overview of what the PR does
-         - Analysis of code quality and style
-         - Specific suggestions for improvements
-         - Any potential issues or risks
+      1. 如果 args 中未提供 PR 编号，运行 \`gh pr list\` 显示开放的 PR
+      2. 如果提供了 PR 编号，运行 \`gh pr view <number>\` 获取 PR 详情
+      3. 运行 \`gh pr diff <number>\` 获取 diff
+      4. 分析改动并提供一次全面的代码审查，内容包括：
+         - 该 PR 做了什么的总览
+         - 代码质量与风格的评估
+         - 具体的改进建议
+         - 任何潜在问题或风险
 
-      Keep your review concise but thorough. Focus on:
-      - Code correctness
-      - Following project conventions
-      - Performance implications
-      - Test coverage
-      - Security considerations
+      让你的审查简明但全面。聚焦于：
+      - 代码正确性
+      - 遵循项目约定
+      - 性能影响
+      - 测试覆盖
+      - 安全考量
 
-      Format your review with clear sections and bullet points.
+      用清晰的分段和要点来格式化你的审查。
 
-      PR number: ${args}
+      PR 编号：${args}
     `
 
 const review: Command = {
   type: 'prompt',
   name: 'review',
-  description: 'Review a pull request',
+  description: '审查拉取请求（PR）',
   progressMessage: 'reviewing pull request',
   contentLength: 0,
   source: 'builtin',
@@ -42,13 +42,13 @@ const review: Command = {
   },
 }
 
-// /ultrareview is the ONLY entry point to the remote bughunter path —
-// /review stays purely local. local-jsx type renders the overage permission
-// dialog when free reviews are exhausted.
+// /ultrareview 是进入远程 bughunter 路径的唯一入口——
+// /review 始终保持在本地。local-jsx 类型会在免费审查耗尽时
+// 渲染超额权限对话框。
 const ultrareview: Command = {
   type: 'local-jsx',
   name: 'ultrareview',
-  description: `~10–20 min · Finds and verifies bugs in your branch. Runs in Limkenion on the web. See ${CCR_TERMS_URL}`,
+  description: `约 10–20 分钟 · 查找并验证你分支中的缺陷。在 Limkenion on the web 上运行。参见 ${CCR_TERMS_URL}`,
   isEnabled: () => isUltrareviewEnabled(),
   load: () => import('./review/ultrareviewCommand.js'),
 }

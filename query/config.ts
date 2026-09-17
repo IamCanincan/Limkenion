@@ -31,12 +31,12 @@ export function buildQueryConfig(): QueryConfig {
     sessionId: getSessionId(),
     gates: {
       streamingToolExecution: checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-        '内部代号_streaming_tool_execution2',
+        'limkenion_streaming_tool_execution2',
       ),
       emitToolUseSummaries: isEnvTruthy(
         process.env.LIMKENION_EMIT_TOOL_USE_SUMMARIES,
       ),
-      isAnt: process.env.USER_TYPE === 'ant',
+      isAnt: false,
       // Inlined from fastMode.ts to avoid pulling its heavy module graph
       // (axios, settings, auth, model, oauth, config) into test shards that
       // didn't previously load it — changes init order and breaks unrelated tests.

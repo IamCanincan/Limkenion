@@ -22,11 +22,11 @@ const inputSchema = lazySchema(() =>
       .string()
       .regex(/^[\w-]+$/)
       .optional()
-      .describe('Required for get, update, and run'),
+      .describe('get、update、run 需要用到'),
     body: z
       .record(z.string(), z.unknown())
       .optional()
-      .describe('JSON body for create and update'),
+      .describe('create 和 update 的 JSON body'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -45,7 +45,7 @@ const TRIGGERS_BETA = 'ccr-triggers-2026-01-30'
 
 export const RemoteTriggerTool = buildTool({
   name: REMOTE_TRIGGER_TOOL_NAME,
-  searchHint: 'manage scheduled remote agent triggers',
+  searchHint: '管理已安排的远程代理触发器',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   get inputSchema(): InputSchema {
@@ -56,7 +56,7 @@ export const RemoteTriggerTool = buildTool({
   },
   isEnabled() {
     return (
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_surreal_dali', false) &&
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_surreal_dali', false) &&
       isPolicyAllowed('allow_remote_sessions')
     )
   },
@@ -80,12 +80,12 @@ export const RemoteTriggerTool = buildTool({
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken
     if (!accessToken) {
       throw new Error(
-        'Not authenticated with a limkenion.ai account. Run /login and try again.',
+        '尚未使用 limkenion.ai 账号登录。请运行 /login 后重试。',
       )
     }
     const orgUUID = await getOrganizationUUID()
     if (!orgUUID) {
-      throw new Error('Unable to resolve organization UUID.')
+      throw new Error('无法解析组织 UUID。')
     }
 
     const base = `${getOauthConfig().BASE_API_URL}/v1/code/triggers`
@@ -107,25 +107,25 @@ export const RemoteTriggerTool = buildTool({
         url = base
         break
       case 'get':
-        if (!trigger_id) throw new Error('get requires trigger_id')
+        if (!trigger_id) throw new Error('get 需要 trigger_id')
         method = 'GET'
         url = `${base}/${trigger_id}`
         break
       case 'create':
-        if (!body) throw new Error('create requires body')
+        if (!body) throw new Error('create 需要 body')
         method = 'POST'
         url = base
         data = body
         break
       case 'update':
-        if (!trigger_id) throw new Error('update requires trigger_id')
-        if (!body) throw new Error('update requires body')
+        if (!trigger_id) throw new Error('update 需要 trigger_id')
+        if (!body) throw new Error('update 需要 body')
         method = 'POST'
         url = `${base}/${trigger_id}`
         data = body
         break
       case 'run':
-        if (!trigger_id) throw new Error('run requires trigger_id')
+        if (!trigger_id) throw new Error('run 需要 trigger_id')
         method = 'POST'
         url = `${base}/${trigger_id}/run`
         data = {}

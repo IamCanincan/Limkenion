@@ -12,9 +12,8 @@ export type UltrareviewQuotaResponse = {
 }
 
 /**
- * Peek the ultrareview quota for display and nudge decisions. Consume
- * happens server-side at session creation. Null when not a subscriber or
- * the endpoint errors.
+ * 查询 ultrareview 配额，用于展示和引导决策。消耗
+ * 发生在服务端会话创建时。非订阅者或端点出错时返回 null。
  */
 export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse | null> {
   if (!isLimkenionAISubscriber()) return null
@@ -32,7 +31,7 @@ export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse 
     )
     return response.data
   } catch (error) {
-    logForDebugging(`fetchUltrareviewQuota failed: ${error}`)
+    logForDebugging(`fetchUltrareviewQuota 失败：${error}`)
     return null
   }
 }

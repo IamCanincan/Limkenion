@@ -22,7 +22,7 @@ export function GroupedToolUseContent({
     return null;
   }
 
-  // Build a map from tool_use_id to result data
+  // 构建从 tool_use_id 到结果数据的映射
   const resultsByToolUseId = new Map<string, {
     param: ToolResultBlockParam;
     output: unknown;

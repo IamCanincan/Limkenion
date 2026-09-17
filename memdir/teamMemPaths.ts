@@ -74,7 +74,7 @@ export function isTeamMemoryEnabled(): boolean {
   if (!isAutoMemoryEnabled()) {
     return false
   }
-  return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_herring_clock', false)
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_herring_clock', false)
 }
 
 /**

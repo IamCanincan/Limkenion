@@ -1,10 +1,10 @@
 import { feature } from 'bun:bundle';
 
-// Bugfix for corepack auto-pinning, which adds yarnpkg to peoples' package.jsons
+// 修复 corepack 自动锁定版本的问题，它会把 yarnpkg 添加进用户的 package.json
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 process.env.COREPACK_ENABLE_AUTO_PIN = '0';
 
-// Set max heap size for child processes in CCR environments (containers have 16GB)
+// 在 CCR 环境中为子进程设置最大堆大小（容器有 16GB 内存）
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level, custom-rules/safe-env-boolean-check
 if (process.env.LIMKENION_REMOTE === 'true') {
   // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
@@ -13,10 +13,10 @@ if (process.env.LIMKENION_REMOTE === 'true') {
   process.env.NODE_OPTIONS = existing ? `${existing} --max-old-space-size=8192` : '--max-old-space-size=8192';
 }
 
-// Harness-science L0 ablation baseline. Inlined here (not init.ts) because
-// BashTool/AgentTool/PowerShellTool capture DISABLE_BACKGROUND_TASKS into
-// module-level consts at import time — init() runs too late. feature() gate
-// DCEs this entire block from external builds.
+// Harness-science 的 L0 消融基线。内联在此处（而非 init.ts），因为
+// BashTool/AgentTool/PowerShellTool 会在 import 时把 DISABLE_BACKGROUND_TASKS
+// 捕获进模块级常量 —— 那时 init() 已经执行得太晚。feature() 分支
+// 会在外部构建中通过 DCE 移除整个代码块。
 // eslint-disable-next-line custom-rules/no-top-level-side-effects, custom-rules/no-process-env-top-level
 if (feature('ABLATION_BASELINE') && process.env.LIMKENION_ABLATION_BASELINE) {
   for (const k of ['LIMKENION_SIMPLE', 'LIMKENION_DISABLE_THINKING', 'DISABLE_INTERLEAVED_THINKING', 'DISABLE_COMPACT', 'DISABLE_AUTO_COMPACT', 'LIMKENION_DISABLE_AUTO_MEMORY', 'LIMKENION_DISABLE_BACKGROUND_TASKS']) {
@@ -26,30 +26,30 @@ if (feature('ABLATION_BASELINE') && process.env.LIMKENION_ABLATION_BASELINE) {
 }
 
 /**
- * Bootstrap entrypoint - checks for special flags before loading the full CLI.
- * All imports are dynamic to minimize module evaluation for fast paths.
- * Fast-path for --version has zero imports beyond this file.
+ * 引导入口 —— 在加载完整 CLI 之前先检查特殊标识。
+ * 所有导入均为动态导入，以尽量减小快速路径下的模块求值开销。
+ * --version 的快速路径在本文件之外无需任何导入。
  */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
-  // Fast-path for --version/-v: zero module loading needed
+  // 快速路径 --version/-v：无需加载任何模块
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
-    // MACRO.VERSION is inlined at build time
+    // MACRO.VERSION 在构建时内联
     // biome-ignore lint/suspicious/noConsole:: intentional console output
     console.log(`${MACRO.VERSION} (Limkenion)`);
     return;
   }
 
-  // For all other paths, load the startup profiler
+  // 对所有其它路径，加载启动性能分析器
   const {
     profileCheckpoint
   } = await import('../utils/startupProfiler.js');
   profileCheckpoint('cli_entry');
 
-  // Fast-path for --dump-system-prompt: output the rendered system prompt and exit.
-  // Used by prompt sensitivity evals to extract the system prompt at a specific commit.
-  // Ant-only: eliminated from external builds via feature flag.
+  // 快速路径 --dump-system-prompt：输出渲染后的系统提示词后退出。
+  // 供提示词敏感性评估使用，用于在特定提交下提取系统提示词。
+  // 仅限内部：通过 feature 标识在产品外部构建中剔除。
   if (feature('DUMP_SYSTEM_PROMPT') && args[0] === '--dump-system-prompt') {
     profileCheckpoint('cli_dump_system_prompt_path');
     const {
@@ -92,11 +92,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for `--daemon-worker=<kind>` (internal — supervisor spawns this).
-  // Must come before the daemon subcommand check: spawned per-worker, so
-  // perf-sensitive. No enableConfigs(), no analytics sinks at this layer —
-  // workers are lean. If a worker kind needs configs/auth (assistant will),
-  // it calls them inside its run() fn.
+  // 快速路径 `--daemon-worker=<kind>`（内部机制 —— 由 supervisor 启动）。
+  // 必须放在 daemon 子命令检查之前：每个 worker 都会启动，因此对性能敏感。
+  // 这一层不调用 enableConfigs()，也没有分析 sink —— worker 保持精简。
+  // 如果某个 worker 类型需要配置/鉴权（assistant 就需要），
+  // 会在其 run() 函数内部自行调用。
   if (feature('DAEMON') && args[0] === '--daemon-worker') {
     const {
       runDaemonWorker
@@ -105,10 +105,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for `limkenion remote-control` (also accepts legacy `limkenion remote` / `limkenion sync` / `limkenion bridge`):
-  // serve local machine as bridge environment.
+  // 快速路径 `limkenion remote-control`（同时兼容旧命令 `limkenion remote` / `limkenion sync` / `limkenion bridge`）：
+  // 把本地机器作为桥接环境对外提供服务。
 
-  // Fast-path for `limkenion daemon [subcommand]`: long-running supervisor.
+  // 快速路径 `limkenion daemon [subcommand]`：常驻 supervisor。
   if (feature('DAEMON') && args[0] === 'daemon') {
     profileCheckpoint('cli_daemon_path');
     const {
@@ -126,9 +126,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for `limkenion ps|logs|attach|kill` and `--bg`/`--background`.
-  // Session management against the ~/.limkenion/sessions/ registry. Flag
-  // literals are inlined so bg.js only loads when actually dispatching.
+  // 快速路径 `limkenion ps|logs|attach|kill` 以及 `--bg`/`--background`。
+  // 针对 ~/.limkenion/sessions/ 注册表的会话管理。标识
+  // 字面量已内联，因此仅在实际分发时才会加载 bg.js。
   if (feature('BG_SESSIONS') && (args[0] === 'ps' || args[0] === 'logs' || args[0] === 'attach' || args[0] === 'kill' || args.includes('--bg') || args.includes('--background'))) {
     profileCheckpoint('cli_bg_path');
     const {
@@ -155,21 +155,21 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for template job commands.
+  // 快速路径：用于模板作业命令。
   if (feature('TEMPLATES') && (args[0] === 'new' || args[0] === 'list' || args[0] === 'reply')) {
     profileCheckpoint('cli_templates_path');
     const {
       templatesMain
     } = await import('../cli/handlers/templateJobs.js');
     await templatesMain(args);
-    // process.exit (not return) — mountFleetView's Ink TUI can leave event
-    // loop handles that prevent natural exit.
+    // 使用 process.exit（而非 return）—— mountFleetView 的 Ink TUI 可能会留下
+    // 阻止自然退出的事件循环句柄。
     // eslint-disable-next-line custom-rules/no-process-exit
     process.exit(0);
   }
 
-  // Fast-path for `limkenion environment-runner`: headless BYOC runner.
-  // feature() must stay inline for build-time dead code elimination.
+  // 快速路径 `limkenion environment-runner`：无头 BYOC 运行器。
+  // feature() 必须保持内联，以便在构建时进行死代码消除。
   if (feature('BYOC_ENVIRONMENT_RUNNER') && args[0] === 'environment-runner') {
     profileCheckpoint('cli_environment_runner_path');
     const {
@@ -179,9 +179,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for `limkenion self-hosted-runner`: headless self-hosted-runner
-  // targeting the SelfHostedRunnerWorkerService API (register + poll; poll IS
-  // heartbeat). feature() must stay inline for build-time dead code elimination.
+  // 快速路径 `limkenion self-hosted-runner`：无头自托管运行器，
+  // 面向 SelfHostedRunnerWorkerService API（注册 + 轮询；轮询即
+  // 心跳）。feature() 必须保持内联，以便在构建时进行死代码消除。
   if (feature('SELF_HOSTED_RUNNER') && args[0] === 'self-hosted-runner') {
     profileCheckpoint('cli_self_hosted_runner_path');
     const {
@@ -191,7 +191,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for --worktree --tmux: exec into tmux before loading full CLI
+  // 快速路径 --worktree --tmux：在加载完整 CLI 之前先 exec 进 tmux
   const hasTmuxFlag = args.includes('--tmux') || args.includes('--tmux=classic');
   if (hasTmuxFlag && (args.includes('-w') || args.includes('--worktree') || args.some(a => a.startsWith('--worktree=')))) {
     profileCheckpoint('cli_tmux_worktree_fast_path');
@@ -210,7 +210,7 @@ async function main(): Promise<void> {
       if (result.handled) {
         return;
       }
-      // If not handled (e.g., error), fall through to normal CLI
+      // 如果未被处理（例如出错），则回退到正常 CLI
       if (result.error) {
         const {
           exitWithError
@@ -220,18 +220,18 @@ async function main(): Promise<void> {
     }
   }
 
-  // Redirect common update flag mistakes to the update subcommand
+  // 将常见的更新标识拼写错误重定向到 update 子命令
   if (args.length === 1 && (args[0] === '--update' || args[0] === '--upgrade')) {
     process.argv = [process.argv[0]!, process.argv[1]!, 'update'];
   }
 
-  // --bare: set SIMPLE early so gates fire during module eval / commander
-  // option building (not just inside the action handler).
+  // --bare：尽早设置 SIMPLE，以便门控在模块求值 / commander 选项构建期间即生效
+  // （而不仅仅是在 action 处理器内部）。
   if (args.includes('--bare')) {
     process.env.LIMKENION_SIMPLE = '1';
   }
 
-  // No special flags detected, load and run the full CLI
+  // 未检测到特殊标识，加载并运行完整 CLI
   const {
     startCapturingEarlyInput
   } = await import('../utils/earlyInput.js');
@@ -241,12 +241,12 @@ async function main(): Promise<void> {
     main: cliMain
   } = await import('../main.js');
   profileCheckpoint('cli_after_main_import');
-  // Never swallow the error: `void main()` above does not handle rejections, so an
-  // empty catch here would reproduce the original "exit 0 with zero output" bug.
-  // Print it and exit non-zero so failures are always visible.
+  // 绝不吞掉错误：上面的 `void main()` 不处理 rejections，因此
+  // 这里若是空的 catch 就会复现最初的"exit 0 且零输出"的 bug。
+  // 打印它并返回非零退出码，确保任何失败都清晰可见。
   await cliMain().catch(err => {
     process.stderr.write(
-      `[Limkenion] fatal: ${err && err.stack ? err.stack : String(err)}\n`,
+      `[Limkenion] 致命错误: ${err && err.stack ? err.stack : String(err)}\n`,
     )
     process.exit(1)
   })

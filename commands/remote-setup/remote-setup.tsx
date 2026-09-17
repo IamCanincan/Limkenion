@@ -88,11 +88,11 @@ function Web({
     name: 'checking'
   });
   useEffect(() => {
-    logEvent('内部代号_remote_setup_started', {});
+    logEvent('limkenion_remote_setup_started', {});
     void checkLoginState().then(async result => {
       switch (result.status) {
         case 'not_signed_in':
-          logEvent('内部代号_remote_setup_result', {
+          logEvent('limkenion_remote_setup_result', {
             result: 'not_signed_in' as SafeString
           });
           onDone('Not signed in to Limkenion. Run /login first.');
@@ -102,7 +102,7 @@ function Web({
           {
             const url = `${getCodeWebUrl()}/onboarding?step=alt-auth`;
             await openBrowser(url);
-            logEvent('内部代号_remote_setup_result', {
+            logEvent('limkenion_remote_setup_result', {
               result: result.status as SafeString
             });
             onDone(result.status === 'gh_not_installed' ? `GitHub CLI not found. Install it via https://cli.github.com/, then run \`gh auth login\`, or connect GitHub on the web: ${url}` : `GitHub CLI not authenticated. Run \`gh auth login\` and try again, or connect GitHub on the web: ${url}`);
@@ -119,7 +119,7 @@ function Web({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const handleCancel = () => {
-    logEvent('内部代号_remote_setup_result', {
+    logEvent('limkenion_remote_setup_result', {
       result: 'cancelled' as SafeString
     });
     onDone();
@@ -130,7 +130,7 @@ function Web({
     });
     const result = await importGithubToken(token);
     if (!result.ok) {
-      logEvent('内部代号_remote_setup_result', {
+      logEvent('limkenion_remote_setup_result', {
         result: 'import_failed' as SafeString,
         error_kind: result.error.kind as SafeString
       });
@@ -144,7 +144,7 @@ function Web({
     await createDefaultEnvironment();
     const url = getCodeWebUrl();
     await openBrowser(url);
-    logEvent('内部代号_remote_setup_result', {
+    logEvent('limkenion_remote_setup_result', {
       result: 'success' as SafeString
     });
     onDone(`Connected as ${result.result.github_username}. Opened ${url}`);

@@ -24,7 +24,7 @@ function formatAgent(agent: ResolvedAgent): string {
     parts.push(model)
   }
   if (agent.memory) {
-    parts.push(`${agent.memory} memory`)
+    parts.push(`${agent.memory} 记忆`)
   }
   return parts.join(' · ')
 }
@@ -49,7 +49,7 @@ export async function agentsHandler(): Promise<void> {
     for (const agent of groupAgents) {
       if (agent.overriddenBy) {
         const winnerSource = getOverrideSourceLabel(agent.overriddenBy)
-        lines.push(`  (shadowed by ${winnerSource}) ${formatAgent(agent)}`)
+        lines.push(`  (被 ${winnerSource} 遮蔽) ${formatAgent(agent)}`)
       } else {
         lines.push(`  ${formatAgent(agent)}`)
         totalActive++
@@ -60,10 +60,10 @@ export async function agentsHandler(): Promise<void> {
 
   if (lines.length === 0) {
     // biome-ignore lint/suspicious/noConsole:: intentional console output
-    console.log('No agents found.')
+    console.log('未找到任何 agent。')
   } else {
     // biome-ignore lint/suspicious/noConsole:: intentional console output
-    console.log(`${totalActive} active agents\n`)
+    console.log(`${totalActive} 个活跃 agent\n`)
     // biome-ignore lint/suspicious/noConsole:: intentional console output
     console.log(lines.join('\n').trimEnd())
   }

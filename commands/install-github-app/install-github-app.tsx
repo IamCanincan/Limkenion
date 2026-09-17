@@ -30,7 +30,7 @@ const INITIAL_STATE: State = {
   selectedRepoName: '',
   currentRepo: '',
   useCurrentRepo: false,
-  // Default to false, will be set to true if repo detected
+  // 默认为 false，若检测到仓库则设为 true
   apiKeyOrOAuthToken: '',
   useExistingKey: true,
   currentWorkflowInstallStep: 0,
@@ -54,37 +54,37 @@ function InstallGitHubApp(props: {
   });
   useExitOnCtrlCDWithKeybindings();
   React.useEffect(() => {
-    logEvent('内部代号_install_github_app_started', {});
+    logEvent('limkenion_install_github_app_started', {});
   }, []);
   const checkGitHubCLI = useCallback(async () => {
     const warnings: Warning[] = [];
 
-    // Check if gh is installed
+    // 检查是否已安装 gh
     const ghVersionResult = await execa('gh --version', {
       shell: true,
       reject: false
     });
     if (ghVersionResult.exitCode !== 0) {
       warnings.push({
-        title: 'GitHub CLI not found',
-        message: 'GitHub CLI (gh) does not appear to be installed or accessible.',
-        instructions: ['Install GitHub CLI from https://cli.github.com/', 'macOS: brew install gh', 'Windows: winget install --id GitHub.cli', 'Linux: See installation instructions at https://github.com/cli/cli#installation']
+        title: '未找到 GitHub CLI',
+        message: 'GitHub CLI（gh）似乎未安装或无法访问。',
+        instructions: ['从 https://cli.github.com/ 安装 GitHub CLI', 'macOS：brew install gh', 'Windows：winget install --id GitHub.cli', 'Linux：查看 https://github.com/cli/cli#installation 上的安装说明']
       });
     }
 
-    // Check auth status
+    // 检查认证状态
     const authResult = await execa('gh auth status -a', {
       shell: true,
       reject: false
     });
     if (authResult.exitCode !== 0) {
       warnings.push({
-        title: 'GitHub CLI not authenticated',
-        message: 'GitHub CLI does not appear to be authenticated.',
-        instructions: ['Run: gh auth login', 'Follow the prompts to authenticate with GitHub', 'Or set up authentication using environment variables or other methods']
+        title: 'GitHub CLI 未登录',
+        message: 'GitHub CLI 似乎未登录。',
+        instructions: ['运行：gh auth login', '按照提示使用 GitHub 登录', '或使用环境变量或其他方法设置登录认证']
       });
     } else {
-      // Check if required scopes are present in the Token scopes line
+      // 检查 Token scopes 行中是否包含所需作用域
       const tokenScopesMatch = authResult.stdout.match(/Token scopes:.*$/m);
       if (tokenScopesMatch) {
         const scopes = tokenScopesMatch[0];
@@ -96,22 +96,22 @@ function InstallGitHubApp(props: {
           missingScopes.push('workflow');
         }
         if (missingScopes.length > 0) {
-          // Missing required scopes - exit immediately
+          // 缺少必要作用域 - 立即退出
           setState(prev => ({
             ...prev,
             step: 'error',
-            error: `GitHub CLI is missing required permissions: ${missingScopes.join(', ')}.`,
-            errorReason: 'Missing required scopes',
-            errorInstructions: [`Your GitHub CLI authentication is missing the "${missingScopes.join('" and "')}" ${plural(missingScopes.length, 'scope')} needed to manage GitHub Actions and secrets.`, '', 'To fix this, run:', '  gh auth refresh -h github.com -s repo,workflow', '', 'This will add the necessary permissions to manage workflows and secrets.']
+            error: `GitHub CLI 缺少必要的权限：${missingScopes.join(', ')}。`,
+            errorReason: '缺少必要的作用域',
+            errorInstructions: [`你的 GitHub CLI 登录认证缺少管理 GitHub Actions 和 secrets 所需的"${missingScopes.join('"和"')}"${plural(missingScopes.length, 'scope')}。`, '', '要修复此问题，请运行：', '  gh auth refresh -h github.com -s repo,workflow', '', '这将为管理工作流和 secrets 添加所需权限。']
           }));
           return;
         }
       }
     }
 
-    // Check if in a git repo and get remote URL
+    // 检查是否位于 git 仓库中并获取远程 URL
     const currentRepo = (await getGithubRepo()) ?? '';
-    logEvent('内部代号_install_github_app_step_completed', {
+    logEvent('limkenion_install_github_app_step_completed', {
       step: 'check-gh' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     setState(prev_0 => ({
@@ -120,7 +120,7 @@ function InstallGitHubApp(props: {
       currentRepo,
       selectedRepoName: currentRepo,
       useCurrentRepo: !!currentRepo,
-      // Set to false if no repo detected
+      // 若未检测到仓库则设为 false
       step: warnings.length > 0 ? 'warnings' : 'choose-repo'
     }));
   }, []);
@@ -146,7 +146,7 @@ function InstallGitHubApp(props: {
         workflowExists: state.workflowExists,
         secretExists: state.secretExists
       });
-      logEvent('内部代号_install_github_app_step_completed', {
+      logEvent('limkenion_install_github_app_step_completed', {
         step: 'creating' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       setState(prev_5 => ({
@@ -154,27 +154,27 @@ function InstallGitHubApp(props: {
         step: 'success'
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to set up GitHub Actions';
+      const errorMessage = error instanceof Error ? error.message : '设置 GitHub Actions 失败';
       if (errorMessage.includes('workflow file already exists')) {
-        logEvent('内部代号_install_github_app_error', {
+        logEvent('limkenion_install_github_app_error', {
           reason: 'workflow_file_exists' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
         setState(prev_2 => ({
           ...prev_2,
           step: 'error',
-          error: 'A Limkenion workflow file already exists in this repository.',
-          errorReason: 'Workflow file conflict',
-          errorInstructions: ['The file .github/workflows/limkenion.yml already exists', 'You can either:', '  1. Delete the existing file and run this command again', '  2. Update the existing file manually using the template from:', `     ${GITHUB_ACTION_SETUP_DOCS_URL}`]
+          error: '此仓库中已存在 Limkenion 工作流文件。',
+          errorReason: '工作流文件冲突',
+          errorInstructions: ['文件 .github/workflows/limkenion.yml 已存在', '你可以选择：', '  1. 删除现有文件并重新运行此命令', '  2. 使用模板手动更新现有文件，模板来自：', `     ${GITHUB_ACTION_SETUP_DOCS_URL}`]
         }));
       } else {
-        logEvent('内部代号_install_github_app_error', {
+        logEvent('limkenion_install_github_app_error', {
           reason: 'setup_github_actions_failed' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
         setState(prev_3 => ({
           ...prev_3,
           step: 'error',
           error: errorMessage,
-          errorReason: 'GitHub Actions setup failed',
+          errorReason: 'GitHub Actions 设置失败',
           errorInstructions: []
         }));
       }
@@ -229,9 +229,9 @@ function InstallGitHubApp(props: {
           step: 'check-existing-secret'
         }));
       } else {
-        // No existing secret found
+        // 未找到现有 secret
         if (existingApiKey) {
-          // User has local key, skip to creating with it
+          // 用户有本地密钥，使用它直接进入创建流程
           setState(prev_7 => ({
             ...prev_7,
             apiKeyOrOAuthToken: existingApiKey,
@@ -239,7 +239,7 @@ function InstallGitHubApp(props: {
           }));
           await runSetupGitHubActions(existingApiKey, state.secretName);
         } else {
-          // No local key, go to API key step
+          // 无本地密钥，进入 API 密钥步骤
           setState(prev_8 => ({
             ...prev_8,
             step: 'api-key'
@@ -247,9 +247,9 @@ function InstallGitHubApp(props: {
         }
       }
     } else {
-      // Error checking secrets
+      // 检查 secrets 时出错
       if (existingApiKey) {
-        // User has local key, skip to creating with it
+        // 用户有本地密钥，使用它直接进入创建流程
         setState(prev_9 => ({
           ...prev_9,
           apiKeyOrOAuthToken: existingApiKey,
@@ -257,7 +257,7 @@ function InstallGitHubApp(props: {
         }));
         await runSetupGitHubActions(existingApiKey, state.secretName);
       } else {
-        // No local key, go to API key step
+        // 无本地密钥，进入 API 密钥步骤
         setState(prev_10 => ({
           ...prev_10,
           step: 'api-key'
@@ -267,7 +267,7 @@ function InstallGitHubApp(props: {
   }
   const handleSubmit = async () => {
     if (state.step === 'warnings') {
-      logEvent('内部代号_install_github_app_step_completed', {
+      logEvent('limkenion_install_github_app_step_completed', {
         step: 'warnings' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       setState(prev_11 => ({
@@ -285,9 +285,9 @@ function InstallGitHubApp(props: {
         const match = repoName_1.match(/github\.com[:/]([^/]+\/[^/]+)(\.git)?$/);
         if (!match) {
           repoWarnings.push({
-            title: 'Invalid GitHub URL format',
-            message: 'The repository URL format appears to be invalid.',
-            instructions: ['Use format: owner/repo or https://github.com/owner/repo', 'Example: limkenions/limkenion-cli']
+            title: 'GitHub URL 格式无效',
+            message: '仓库 URL 格式似乎无效。',
+            instructions: ['使用格式：owner/repo 或 https://github.com/owner/repo', '示例：limkenions/limkenion-cli']
           });
         } else {
           repoName_1 = match[1]?.replace(/\.git$/, '') || '';
@@ -295,23 +295,23 @@ function InstallGitHubApp(props: {
       }
       if (!repoName_1.includes('/')) {
         repoWarnings.push({
-          title: 'Repository format warning',
-          message: 'Repository should be in format "owner/repo"',
-          instructions: ['Use format: owner/repo', 'Example: limkenions/limkenion-cli']
+          title: '仓库格式警告',
+          message: '仓库应采用 "owner/repo" 格式',
+          instructions: ['使用格式：owner/repo', '示例：limkenions/limkenion-cli']
         });
       }
       const permissionCheck = await checkRepositoryPermissions(repoName_1);
       if (permissionCheck.error === 'repository_not_found') {
         repoWarnings.push({
-          title: 'Repository not found',
-          message: `Repository ${repoName_1} was not found or you don't have access.`,
-          instructions: [`Check that the repository name is correct: ${repoName_1}`, 'Ensure you have access to this repository', 'For private repositories, make sure your GitHub token has the "repo" scope', 'You can add the repo scope with: gh auth refresh -h github.com -s repo,workflow']
+          title: '仓库不存在',
+          message: `未找到仓库 ${repoName_1}，或你没有访问权限。`,
+          instructions: [`请确认仓库名称是否正确：${repoName_1}`, '请确保你有权访问此仓库', '对于私有仓库，请确保你的 GitHub token 具有 "repo" 作用域', '你可以通过以下命令添加 repo 作用域：gh auth refresh -h github.com -s repo,workflow']
         });
       } else if (!permissionCheck.hasAccess) {
         repoWarnings.push({
-          title: 'Admin permissions required',
-          message: `You might need admin permissions on ${repoName_1} to set up GitHub Actions.`,
-          instructions: ['Repository admins can install GitHub Apps and set secrets', 'Ask a repository admin to run this command if setup fails', 'Alternatively, you can use the manual setup instructions']
+          title: '需要管理员权限',
+          message: `你或许需要 ${repoName_1} 的管理员权限才能设置 GitHub Actions。`,
+          instructions: ['仓库管理员可以安装 GitHub Apps 并设置 secrets', '如果设置失败，请让仓库管理员运行此命令', '此外，你也可以查看手动设置说明']
         });
       }
       const workflowExists = await checkExistingWorkflowFile(repoName_1);
@@ -325,7 +325,7 @@ function InstallGitHubApp(props: {
           step: 'warnings'
         }));
       } else {
-        logEvent('内部代号_install_github_app_step_completed', {
+        logEvent('limkenion_install_github_app_step_completed', {
           step: 'choose-repo' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
         setState(prev_13 => ({
@@ -337,7 +337,7 @@ function InstallGitHubApp(props: {
         setTimeout(openGitHubAppInstallation, 0);
       }
     } else if (state.step === 'install-app') {
-      logEvent('内部代号_install_github_app_step_completed', {
+      logEvent('limkenion_install_github_app_step_completed', {
         step: 'install-app' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       if (state.workflowExists) {
@@ -354,48 +354,48 @@ function InstallGitHubApp(props: {
     } else if (state.step === 'check-existing-workflow') {
       return;
     } else if (state.step === 'select-workflows') {
-      // Handled by the WorkflowMultiselectDialog component
+      // 由 WorkflowMultiselectDialog 组件处理
       return;
     } else if (state.step === 'check-existing-secret') {
-      logEvent('内部代号_install_github_app_step_completed', {
+      logEvent('limkenion_install_github_app_step_completed', {
         step: 'check-existing-secret' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       if (state.useExistingSecret) {
         await runSetupGitHubActions(null, state.secretName);
       } else {
-        // User wants to use a new secret name with their API key
+        // 用户希望使用新 secret 名称配合其 API 密钥
         await runSetupGitHubActions(state.apiKeyOrOAuthToken, state.secretName);
       }
     } else if (state.step === 'api-key') {
-      // In the new flow, api-key step only appears when user has no existing key
-      // They either entered a new key or will create OAuth token
+      // 在此新流程中，仅当用户没有现有密钥时才出现 api-key 步骤
+      // 他们要么输入了新密钥，要么将创建 OAuth token
       if (state.selectedApiKeyOption === 'oauth') {
-        // OAuth flow already handled by handleCreateOAuthToken
+        // OAuth 流程已由 handleCreateOAuthToken 处理
         return;
       }
 
-      // If user selected 'existing' option, use the existing API key
+      // 如果用户选择 'existing' 选项，则使用现有的 API 密钥
       const apiKeyToUse = state.selectedApiKeyOption === 'existing' ? existingApiKey : state.apiKeyOrOAuthToken;
       if (!apiKeyToUse) {
-        logEvent('内部代号_install_github_app_error', {
+        logEvent('limkenion_install_github_app_error', {
           reason: 'api_key_missing' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
         setState(prev_16 => ({
           ...prev_16,
           step: 'error',
-          error: 'API key is required'
+          error: '需要 API 密钥'
         }));
         return;
       }
 
-      // Store the API key being used (either existing or newly entered)
+      // 存储正在使用的 API 密钥（现有或新输入的）
       setState(prev_17 => ({
         ...prev_17,
         apiKeyOrOAuthToken: apiKeyToUse,
         useExistingKey: state.selectedApiKeyOption === 'existing'
       }));
 
-      // Check if LIMKENION_API_KEY secret already exists
+      // 检查 LIMKENION_API_KEY secret 是否已存在
       const checkSecretsResult_0 = await execFileNoThrow('gh', ['secret', 'list', '--app', 'actions', '--repo', state.selectedRepoName]);
       if (checkSecretsResult_0.code === 0) {
         const lines_0 = checkSecretsResult_0.stdout.split('\n');
@@ -403,7 +403,7 @@ function InstallGitHubApp(props: {
           return /^LIMKENION_API_KEY\s+/.test(line_0);
         });
         if (hasLimkenionKey_0) {
-          logEvent('内部代号_install_github_app_step_completed', {
+          logEvent('limkenion_install_github_app_step_completed', {
             step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           });
           setState(prev_18 => ({
@@ -412,17 +412,17 @@ function InstallGitHubApp(props: {
             step: 'check-existing-secret'
           }));
         } else {
-          logEvent('内部代号_install_github_app_step_completed', {
+          logEvent('limkenion_install_github_app_step_completed', {
             step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           });
-          // No existing secret, proceed to creating
+          // 无现有 secret，继续进入创建流程
           await runSetupGitHubActions(apiKeyToUse, state.secretName);
         }
       } else {
-        logEvent('内部代号_install_github_app_step_completed', {
+        logEvent('limkenion_install_github_app_step_completed', {
           step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
-        // Error checking secrets, proceed anyway
+        // 检查 secrets 时出错，无论如何继续
         await runSetupGitHubActions(apiKeyToUse, state.secretName);
       }
     }
@@ -446,7 +446,7 @@ function InstallGitHubApp(props: {
     }));
   };
   const handleCreateOAuthToken = useCallback(() => {
-    logEvent('内部代号_install_github_app_step_completed', {
+    logEvent('limkenion_install_github_app_step_completed', {
       step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     setState(prev_22 => ({
@@ -455,7 +455,7 @@ function InstallGitHubApp(props: {
     }));
   }, []);
   const handleOAuthSuccess = useCallback((token: string) => {
-    logEvent('内部代号_install_github_app_step_completed', {
+    logEvent('limkenion_install_github_app_step_completed', {
       step: 'oauth-flow' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     setState(prev_23 => ({
@@ -502,10 +502,10 @@ function InstallGitHubApp(props: {
   };
   const handleWorkflowAction = async (action: 'update' | 'skip' | 'exit') => {
     if (action === 'exit') {
-      props.onDone('Installation cancelled by user');
+      props.onDone('安装已被用户取消');
       return;
     }
-    logEvent('内部代号_install_github_app_step_completed', {
+    logEvent('limkenion_install_github_app_step_completed', {
       step: 'check-existing-workflow' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     setState(prev_29 => ({
@@ -513,11 +513,11 @@ function InstallGitHubApp(props: {
       workflowAction: action
     }));
     if (action === 'skip' || action === 'update') {
-      // Check if user has existing local API key
+      // 检查用户是否已有本地 API 密钥
       if (existingApiKey) {
         await checkExistingSecret();
       } else {
-        // No local key, go straight to API key step
+        // 无本地密钥，直接进入 API 密钥步骤
         setState(prev_30 => ({
           ...prev_30,
           step: 'api-key'
@@ -528,9 +528,9 @@ function InstallGitHubApp(props: {
   function handleDismissKeyDown(e: KeyboardEvent): void {
     e.preventDefault();
     if (state.step === 'success') {
-      logEvent('内部代号_install_github_app_completed', {});
+      logEvent('limkenion_install_github_app_completed', {});
     }
-    props.onDone(state.step === 'success' ? 'GitHub Actions setup complete!' : state.error ? `Couldn't install GitHub App: ${state.error}\nFor manual setup instructions, see: ${GITHUB_ACTION_SETUP_DOCS_URL}` : `GitHub App installation failed\nFor manual setup instructions, see: ${GITHUB_ACTION_SETUP_DOCS_URL}`);
+    props.onDone(state.step === 'success' ? 'GitHub Actions 设置完成！' : state.error ? `无法安装 GitHub App：${state.error}\n如需手动设置说明，请查看：${GITHUB_ACTION_SETUP_DOCS_URL}` : `GitHub App 安装失败\n如需手动设置说明，请查看：${GITHUB_ACTION_SETUP_DOCS_URL}`);
   }
   switch (state.step) {
     case 'check-gh':
@@ -559,18 +559,18 @@ function InstallGitHubApp(props: {
         </Box>;
     case 'select-workflows':
       return <WorkflowMultiselectDialog defaultSelections={state.selectedWorkflows} onSubmit={selectedWorkflows => {
-        logEvent('内部代号_install_github_app_step_completed', {
+        logEvent('limkenion_install_github_app_step_completed', {
           step: 'select-workflows' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
         setState(prev_31 => ({
           ...prev_31,
           selectedWorkflows
         }));
-        // Check if user has existing local API key
+        // 检查用户是否已有本地 API 密钥
         if (existingApiKey) {
           void checkExistingSecret();
         } else {
-          // No local key, go straight to API key step
+          // 无本地密钥，直接进入 API 密钥步骤
           setState(prev_32 => ({
             ...prev_32,
             step: 'api-key'

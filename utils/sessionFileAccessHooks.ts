@@ -159,49 +159,49 @@ async function handleSessionFileAccess(
   const subagentProps = subagentName ? { subagent_name: subagentName } : {}
 
   if (fileType === 'session_memory') {
-    logEvent('内部代号_session_memory_accessed', { ...subagentProps })
+    logEvent('limkenion_session_memory_accessed', { ...subagentProps })
   } else if (fileType === 'session_transcript') {
-    logEvent('内部代号_transcript_accessed', { ...subagentProps })
+    logEvent('limkenion_transcript_accessed', { ...subagentProps })
   }
 
   // Memdir access tracking
   const filePath = getFilePathFromInput(input.tool_name, input.tool_input)
   if (filePath && isAutoMemFile(filePath)) {
-    logEvent('内部代号_memdir_accessed', {
+    logEvent('limkenion_memdir_accessed', {
       tool: input.tool_name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       ...subagentProps,
     })
 
     switch (input.tool_name) {
       case FILE_READ_TOOL_NAME:
-        logEvent('内部代号_memdir_file_read', { ...subagentProps })
+        logEvent('limkenion_memdir_file_read', { ...subagentProps })
         break
       case FILE_EDIT_TOOL_NAME:
-        logEvent('内部代号_memdir_file_edit', { ...subagentProps })
+        logEvent('limkenion_memdir_file_edit', { ...subagentProps })
         break
       case FILE_WRITE_TOOL_NAME:
-        logEvent('内部代号_memdir_file_write', { ...subagentProps })
+        logEvent('limkenion_memdir_file_write', { ...subagentProps })
         break
     }
   }
 
   // Team memory access tracking
   if (feature('TEAMMEM') && filePath && teamMemPaths!.isTeamMemFile(filePath)) {
-    logEvent('内部代号_team_mem_accessed', {
+    logEvent('limkenion_team_mem_accessed', {
       tool: input.tool_name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       ...subagentProps,
     })
 
     switch (input.tool_name) {
       case FILE_READ_TOOL_NAME:
-        logEvent('内部代号_team_mem_file_read', { ...subagentProps })
+        logEvent('limkenion_team_mem_file_read', { ...subagentProps })
         break
       case FILE_EDIT_TOOL_NAME:
-        logEvent('内部代号_team_mem_file_edit', { ...subagentProps })
+        logEvent('limkenion_team_mem_file_edit', { ...subagentProps })
         teamMemWatcher?.notifyTeamMemoryWrite()
         break
       case FILE_WRITE_TOOL_NAME:
-        logEvent('内部代号_team_mem_file_write', { ...subagentProps })
+        logEvent('limkenion_team_mem_file_write', { ...subagentProps })
         teamMemWatcher?.notifyTeamMemoryWrite()
         break
     }

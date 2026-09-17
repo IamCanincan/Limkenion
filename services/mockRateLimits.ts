@@ -101,7 +101,7 @@ export function setMockHeader(
   key: MockHeaderKey,
   value: string | undefined,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 
@@ -250,7 +250,7 @@ export function addExceededLimit(
   type: 'five_hour' | 'seven_day' | 'seven_day_opus' | 'seven_day_sonnet',
   hoursFromNow: number,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 
@@ -278,7 +278,7 @@ export function setMockEarlyWarning(
   utilization: number,
   hoursFromNow?: number,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 
@@ -319,7 +319,7 @@ export function clearMockEarlyWarning(): void {
 }
 
 export function setMockRateLimitScenario(scenario: MockScenario): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 
@@ -600,7 +600,7 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
 }
 
 export function getMockHeaderless429Message(): string | null {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return null
   }
   // Env var path for -p / SDK testing where slash commands aren't available
@@ -616,7 +616,7 @@ export function getMockHeaderless429Message(): string | null {
 export function getMockHeaders(): MockHeaders | null {
   if (
     !mockEnabled ||
-    process.env.USER_TYPE !== 'ant' ||
+    true ||
     Object.keys(mockHeaders).length === 0
   ) {
     return null
@@ -711,7 +711,7 @@ export function applyMockHeaders(
 // Check if we should process rate limits even without subscription
 // This is for Ant employees testing with mocks
 export function shouldProcessMockLimits(): boolean {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return false
   }
   return mockEnabled || Boolean(process.env.LIMKENION_MOCK_HEADERLESS_429)
@@ -806,7 +806,7 @@ export function getScenarioDescription(scenario: MockScenario): string {
 export function setMockSubscriptionType(
   subscriptionType: SubscriptionType | null,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
   mockEnabled = true
@@ -814,7 +814,7 @@ export function setMockSubscriptionType(
 }
 
 export function getMockSubscriptionType(): SubscriptionType | null {
-  if (!mockEnabled || process.env.USER_TYPE !== 'ant') {
+  if (!mockEnabled || true) {
     return null
   }
   // Return the explicitly set subscription type, or default to 'max'
@@ -826,13 +826,13 @@ export function shouldUseMockSubscription(): boolean {
   return (
     mockEnabled &&
     mockSubscriptionType !== null &&
-    process.env.USER_TYPE === 'ant'
+    false
   )
 }
 
 // Mock billing access (admin vs non-admin)
 export function setMockBillingAccess(hasAccess: boolean | null): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
   mockEnabled = true

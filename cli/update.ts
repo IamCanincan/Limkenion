@@ -28,62 +28,62 @@ import { gte } from 'src/utils/semver.js'
 import { getInitialSettings } from 'src/utils/settings/settings.js'
 
 export async function update() {
-  logEvent('内部代号_update_check', {})
-  writeToStdout(`Current version: ${MACRO.VERSION}\n`)
+  logEvent('limkenion_update_check', {})
+  writeToStdout(`当前版本：${MACRO.VERSION}\n`)
 
   const channel = getInitialSettings()?.autoUpdatesChannel ?? 'latest'
-  writeToStdout(`Checking for updates to ${channel} version...\n`)
+  writeToStdout(`正在检查 ${channel} 版本的更新…\n`)
 
-  logForDebugging('update: Starting update check')
+  logForDebugging('update: 开始检查更新')
 
-  // Run diagnostic to detect potential issues
-  logForDebugging('update: Running diagnostic')
+  // 运行诊断以检测潜在问题
+  logForDebugging('update: 正在运行诊断')
   const diagnostic = await getDoctorDiagnostic()
-  logForDebugging(`update: Installation type: ${diagnostic.installationType}`)
+  logForDebugging(`update: 安装类型: ${diagnostic.installationType}`)
   logForDebugging(
-    `update: Config install method: ${diagnostic.configInstallMethod}`,
+    `update: 配置安装方式: ${diagnostic.configInstallMethod}`,
   )
 
-  // Check for multiple installations
+  // 检查是否存在多个安装版本
   if (diagnostic.multipleInstallations.length > 1) {
     writeToStdout('\n')
-    writeToStdout(chalk.yellow('Warning: Multiple installations found') + '\n')
+    writeToStdout(chalk.yellow('警告：发现多个安装版本') + '\n')
     for (const install of diagnostic.multipleInstallations) {
       const current =
         diagnostic.installationType === install.type
-          ? ' (currently running)'
+          ? '（当前运行中）'
           : ''
-      writeToStdout(`- ${install.type} at ${install.path}${current}\n`)
+      writeToStdout(`- ${install.type} 位于 ${install.path}${current}\n`)
     }
   }
 
-  // Display warnings if any exist
+  // 如有警告则显示
   if (diagnostic.warnings.length > 0) {
     writeToStdout('\n')
     for (const warning of diagnostic.warnings) {
-      logForDebugging(`update: Warning detected: ${warning.issue}`)
+      logForDebugging(`update: 检测到警告: ${warning.issue}`)
 
-      // Don't skip PATH warnings - they're always relevant
-      // The user needs to know that 'which limkenion' points elsewhere
-      logForDebugging(`update: Showing warning: ${warning.issue}`)
+      // 不要跳过 PATH 警告——它们始终与用户相关
+      // 用户需要知道 'which limkenion' 指向了别处
+      logForDebugging(`update: 正在显示警告: ${warning.issue}`)
 
-      writeToStdout(chalk.yellow(`Warning: ${warning.issue}\n`))
+      writeToStdout(chalk.yellow(`警告：${warning.issue}\n`))
 
-      writeToStdout(chalk.bold(`Fix: ${warning.fix}\n`))
+      writeToStdout(chalk.bold(`修复：${warning.fix}\n`))
     }
   }
 
-  // Update config if installMethod is not set (but skip for package managers)
+  // 如果 installMethod 未设置则更新配置（但包管理器安装跳过此操作）
   const config = getGlobalConfig()
   if (
     !config.installMethod &&
     diagnostic.installationType !== 'package-manager'
   ) {
     writeToStdout('\n')
-    writeToStdout('Updating configuration to track installation method...\n')
+    writeToStdout('正在更新配置以记录安装方式…\n')
     let detectedMethod: 'local' | 'native' | 'global' | 'unknown' = 'unknown'
 
-    // Map diagnostic installation type to config install method
+    // 把诊断得到的安装类型映射为配置里的安装方式
     switch (diagnostic.installationType) {
       case 'npm-local':
         detectedMethod = 'local'
@@ -102,70 +102,70 @@ export async function update() {
       ...current,
       installMethod: detectedMethod,
     }))
-    writeToStdout(`Installation method set to: ${detectedMethod}\n`)
+    writeToStdout(`已设置安装方式：${detectedMethod}\n`)
   }
 
-  // Check if running from development build
+  // 检查是否运行在开发版构建
   if (diagnostic.installationType === 'development') {
     writeToStdout('\n')
     writeToStdout(
-      chalk.yellow('Warning: Cannot update development build') + '\n',
+      chalk.yellow('警告：无法更新开发版构建') + '\n',
     )
     await gracefulShutdown(1)
   }
 
-  // Check if running from a package manager
+  // 检查是否由包管理器管理
   if (diagnostic.installationType === 'package-manager') {
     const packageManager = await getPackageManager()
     writeToStdout('\n')
 
     if (packageManager === 'homebrew') {
-      writeToStdout('Limkenion is managed by Homebrew.\n')
+      writeToStdout('Limkenion 由 Homebrew 管理。\n')
       const latest = await getLatestVersion(channel)
       if (latest && !gte(MACRO.VERSION, latest)) {
-        writeToStdout(`Update available: ${MACRO.VERSION} → ${latest}\n`)
+        writeToStdout(`发现可用更新：${MACRO.VERSION} → ${latest}\n`)
         writeToStdout('\n')
-        writeToStdout('To update, run:\n')
+        writeToStdout('如需更新，请运行：\n')
         writeToStdout(chalk.bold('  brew upgrade limkenion') + '\n')
       } else {
-        writeToStdout('Limkenion is up to date!\n')
+        writeToStdout('Limkenion 已是最新版本！\n')
       }
     } else if (packageManager === 'winget') {
-      writeToStdout('Limkenion is managed by winget.\n')
+      writeToStdout('Limkenion 由 winget 管理。\n')
       const latest = await getLatestVersion(channel)
       if (latest && !gte(MACRO.VERSION, latest)) {
-        writeToStdout(`Update available: ${MACRO.VERSION} → ${latest}\n`)
+        writeToStdout(`发现可用更新：${MACRO.VERSION} → ${latest}\n`)
         writeToStdout('\n')
-        writeToStdout('To update, run:\n')
+        writeToStdout('如需更新，请运行：\n')
         writeToStdout(
           chalk.bold('  winget upgrade Limkenion.Limkenion') + '\n',
         )
       } else {
-        writeToStdout('Limkenion is up to date!\n')
+        writeToStdout('Limkenion 已是最新版本！\n')
       }
     } else if (packageManager === 'apk') {
-      writeToStdout('Limkenion is managed by apk.\n')
+      writeToStdout('Limkenion 由 apk 管理。\n')
       const latest = await getLatestVersion(channel)
       if (latest && !gte(MACRO.VERSION, latest)) {
-        writeToStdout(`Update available: ${MACRO.VERSION} → ${latest}\n`)
+        writeToStdout(`发现可用更新：${MACRO.VERSION} → ${latest}\n`)
         writeToStdout('\n')
-        writeToStdout('To update, run:\n')
+        writeToStdout('如需更新，请运行：\n')
         writeToStdout(chalk.bold('  apk upgrade limkenion') + '\n')
       } else {
-        writeToStdout('Limkenion is up to date!\n')
+        writeToStdout('Limkenion 已是最新版本！\n')
       }
     } else {
-      // pacman, deb, and rpm don't get specific commands because they each have
-      // multiple frontends (pacman: yay/paru/makepkg, deb: apt/apt-get/aptitude/nala,
-      // rpm: dnf/yum/zypper)
-      writeToStdout('Limkenion is managed by a package manager.\n')
-      writeToStdout('Please use your package manager to update.\n')
+      // pacman、deb 和 rpm 没有统一的具体命令，因为各有多种前端
+      // （pacman: yay/paru/makepkg，deb: apt/apt-get/aptitude/nala，
+      //  rpm: dnf/yum/zypper）
+      writeToStdout('Limkenion 由包管理器管理。\n')
+      writeToStdout('请使用你的包管理器进行更新。\n')
     }
 
     await gracefulShutdown(0)
   }
 
-  // Check for config/reality mismatch (skip for package-manager installs)
+  // 检查配置与实际安装是否一致（包管理器安装跳过此检查）
   if (
     config.installMethod &&
     diagnostic.configInstallMethod !== 'not set' &&
@@ -174,7 +174,7 @@ export async function update() {
     const runningType = diagnostic.installationType
     const configExpects = diagnostic.configInstallMethod
 
-    // Map installation types for comparison
+    // 映射安装类型，用于比较
     const typeMapping: Record<string, string> = {
       'npm-local': 'local',
       'npm-global': 'global',
@@ -190,135 +190,133 @@ export async function update() {
       configExpects !== 'unknown'
     ) {
       writeToStdout('\n')
-      writeToStdout(chalk.yellow('Warning: Configuration mismatch') + '\n')
-      writeToStdout(`Config expects: ${configExpects} installation\n`)
-      writeToStdout(`Currently running: ${runningType}\n`)
+      writeToStdout(chalk.yellow('警告：配置与实际安装不一致') + '\n')
+      writeToStdout(`配置期望：${configExpects} 安装\n`)
+      writeToStdout(`当前运行：${runningType}\n`)
       writeToStdout(
         chalk.yellow(
-          `Updating the ${runningType} installation you are currently using`,
+          `正在更新你当前使用的 ${runningType} 安装`,
         ) + '\n',
       )
 
-      // Update config to match reality
+      // 更新配置以匹配实际安装
       saveGlobalConfig(current => ({
         ...current,
         installMethod: normalizedRunningType as InstallMethod,
       }))
       writeToStdout(
-        `Config updated to reflect current installation method: ${normalizedRunningType}\n`,
+        `配置已更新以反映当前安装方式：${normalizedRunningType}\n`,
       )
     }
   }
 
-  // Handle native installation updates first
+  // 优先处理原生安装方式的更新
   if (diagnostic.installationType === 'native') {
     logForDebugging(
-      'update: Detected native installation, using native updater',
+      'update: 检测到原生安装，使用原生更新器',
     )
     try {
       const result = await installLatestNative(channel, true)
 
-      // Handle lock contention gracefully
+      // 优雅处理锁竞争
       if (result.lockFailed) {
         const pidInfo = result.lockHolderPid
           ? ` (PID ${result.lockHolderPid})`
           : ''
         writeToStdout(
           chalk.yellow(
-            `Another Limkenion process${pidInfo} is currently running. Please try again in a moment.`,
+            `另一个 Limkenion 进程${pidInfo}正在运行。请稍后再试。`,
           ) + '\n',
         )
         await gracefulShutdown(0)
       }
 
       if (!result.latestVersion) {
-        process.stderr.write('Failed to check for updates\n')
+        process.stderr.write('检查更新失败\n')
         await gracefulShutdown(1)
       }
 
       if (result.latestVersion === MACRO.VERSION) {
         writeToStdout(
-          chalk.green(`Limkenion is up to date (${MACRO.VERSION})`) + '\n',
+          chalk.green(`Limkenion 已是最新版本（${MACRO.VERSION}）`) + '\n',
         )
       } else {
         writeToStdout(
           chalk.green(
-            `Successfully updated from ${MACRO.VERSION} to version ${result.latestVersion}`,
+            `已成功从 ${MACRO.VERSION} 更新到版本 ${result.latestVersion}`,
           ) + '\n',
         )
         await regenerateCompletionCache()
       }
       await gracefulShutdown(0)
     } catch (error) {
-      process.stderr.write('Error: Failed to install native update\n')
+      process.stderr.write('错误：原生更新安装失败\n')
       process.stderr.write(String(error) + '\n')
-      process.stderr.write('Try running "limkenion doctor" for diagnostics\n')
+      process.stderr.write('可运行 "limkenion doctor" 进行诊断\n')
       await gracefulShutdown(1)
     }
   }
 
-  // Fallback to existing JS/npm-based update logic
-  // Remove native installer symlink since we're not using native installation
-  // But only if user hasn't migrated to native installation
+  // 回退到现有的 JS/npm 更新逻辑
+  // 由于不使用原生安装，移除原生安装器的符号链接
+  // 但仅当用户尚未迁移到原生安装时
   if (config.installMethod !== 'native') {
     await removeInstalledSymlink()
   }
 
-  logForDebugging('update: Checking npm registry for latest version')
-  logForDebugging(`update: Package URL: ${MACRO.PACKAGE_URL}`)
+  logForDebugging('update: 正在从 npm registry 检查最新版本')
+  logForDebugging(`update: 包 URL: ${MACRO.PACKAGE_URL}`)
   const npmTag = channel === 'stable' ? 'stable' : 'latest'
   const npmCommand = `npm view ${MACRO.PACKAGE_URL}@${npmTag} version`
-  logForDebugging(`update: Running: ${npmCommand}`)
+  logForDebugging(`update: 正在运行: ${npmCommand}`)
   const latestVersion = await getLatestVersion(channel)
   logForDebugging(
-    `update: Latest version from npm: ${latestVersion || 'FAILED'}`,
+    `update: npm 上的最新版本: ${latestVersion || 'FAILED'}`,
   )
 
   if (!latestVersion) {
-    logForDebugging('update: Failed to get latest version from npm registry')
-    process.stderr.write(chalk.red('Failed to check for updates') + '\n')
-    process.stderr.write('Unable to fetch latest version from npm registry\n')
+    logForDebugging('update: 无法从 npm registry 获取最新版本')
+    process.stderr.write(chalk.red('检查更新失败') + '\n')
+    process.stderr.write('无法从 npm 源获取最新版本\n')
     process.stderr.write('\n')
-    process.stderr.write('Possible causes:\n')
-    process.stderr.write('  • Network connectivity issues\n')
-    process.stderr.write('  • npm registry is unreachable\n')
-    process.stderr.write('  • Corporate proxy/firewall blocking npm\n')
+    process.stderr.write('可能的原因：\n')
+    process.stderr.write('  • 网络连接问题\n')
+    process.stderr.write('  • npm 源不可达\n')
+    process.stderr.write('  • 公司代理/防火墙阻止了 npm 访问\n')
     if (MACRO.PACKAGE_URL && !MACRO.PACKAGE_URL.startsWith('@limkenion')) {
       process.stderr.write(
-        '  • Internal/development build not published to npm\n',
+        '  • 内部/开发版构建未发布到 npm\n',
       )
     }
     process.stderr.write('\n')
-    process.stderr.write('Try:\n')
-    process.stderr.write('  • Check your internet connection\n')
-    process.stderr.write('  • Run with --debug flag for more details\n')
+    process.stderr.write('可以尝试：\n')
+    process.stderr.write('  • 检查你的网络连接\n')
+    process.stderr.write('  • 使用 --debug 参数获取更多详情\n')
     const packageName =
       MACRO.PACKAGE_URL ||
-      (process.env.USER_TYPE === 'ant'
-        ? '@limkenion-ai/limkenion-cli'
-        : '@limkenion-ai/limkenion')
+      ('@limkenion-ai/limkenion')
     process.stderr.write(
-      `  • Manually check: npm view ${packageName} version\n`,
+      `  • 手动检查：npm view ${packageName} version\n`,
     )
 
-    process.stderr.write('  • Check if you need to login: npm whoami\n')
+    process.stderr.write('  • 检查是否需要登录：npm whoami\n')
     await gracefulShutdown(1)
   }
 
-  // Check if versions match exactly, including any build metadata (like SHA)
+  // 检查版本是否完全一致，包括任何构建元数据（如 SHA）
   if (latestVersion === MACRO.VERSION) {
     writeToStdout(
-      chalk.green(`Limkenion is up to date (${MACRO.VERSION})`) + '\n',
+      chalk.green(`Limkenion 已是最新版本（${MACRO.VERSION}）`) + '\n',
     )
     await gracefulShutdown(0)
   }
 
   writeToStdout(
-    `New version available: ${latestVersion} (current: ${MACRO.VERSION})\n`,
+    `发现新版本：${latestVersion}（当前：${MACRO.VERSION}）\n`,
   )
-  writeToStdout('Installing update...\n')
+  writeToStdout('正在安装更新…\n')
 
-  // Determine update method based on what's actually running
+  // 根据实际运行环境确定更新方式
   let useLocalUpdate = false
   let updateMethodName = ''
 
@@ -332,89 +330,89 @@ export async function update() {
       updateMethodName = 'global'
       break
     case 'unknown': {
-      // Fallback to detection if we can't determine installation type
+      // 无法确定安装类型时，回退到文件检测
       const isLocal = await localInstallationExists()
       useLocalUpdate = isLocal
       updateMethodName = isLocal ? 'local' : 'global'
       writeToStdout(
-        chalk.yellow('Warning: Could not determine installation type') + '\n',
+        chalk.yellow('警告：无法确定安装类型') + '\n',
       )
       writeToStdout(
-        `Attempting ${updateMethodName} update based on file detection...\n`,
+        `将根据文件检测尝试${updateMethodName}更新…\n`,
       )
       break
     }
     default:
       process.stderr.write(
-        `Error: Cannot update ${diagnostic.installationType} installation\n`,
+        `错误：无法更新 ${diagnostic.installationType} 安装\n`,
       )
       await gracefulShutdown(1)
   }
 
-  writeToStdout(`Using ${updateMethodName} installation update method...\n`)
+  writeToStdout(`正在使用 ${updateMethodName} 安装方式更新…\n`)
 
-  logForDebugging(`update: Update method determined: ${updateMethodName}`)
+  logForDebugging(`update: 已确定的更新方式: ${updateMethodName}`)
   logForDebugging(`update: useLocalUpdate: ${useLocalUpdate}`)
 
   let status: InstallStatus
 
   if (useLocalUpdate) {
     logForDebugging(
-      'update: Calling installOrUpdateLimkenionPackage() for local update',
+      'update: 调用 installOrUpdateLimkenionPackage() 进行本地更新',
     )
     status = await installOrUpdateLimkenionPackage(channel)
   } else {
-    logForDebugging('update: Calling installGlobalPackage() for global update')
+    logForDebugging('update: 调用 installGlobalPackage() 进行全局更新')
     status = await installGlobalPackage()
   }
 
-  logForDebugging(`update: Installation status: ${status}`)
+  logForDebugging(`update: 安装状态: ${status}`)
 
   switch (status) {
     case 'success':
       writeToStdout(
         chalk.green(
-          `Successfully updated from ${MACRO.VERSION} to version ${latestVersion}`,
+          `已成功从 ${MACRO.VERSION} 更新到版本 ${latestVersion}`,
         ) + '\n',
       )
       await regenerateCompletionCache()
       break
     case 'no_permissions':
       process.stderr.write(
-        'Error: Insufficient permissions to install update\n',
+        '错误：权限不足，无法安装更新\n',
       )
       if (useLocalUpdate) {
-        process.stderr.write('Try manually updating with:\n')
+        process.stderr.write('可尝试手动更新：\n')
         process.stderr.write(
           `  cd ~/.limkenion/local && npm update ${MACRO.PACKAGE_URL}\n`,
         )
       } else {
-        process.stderr.write('Try running with sudo or fix npm permissions\n')
+        process.stderr.write('可尝试使用 sudo 运行或修复 npm 权限\n')
         process.stderr.write(
-          'Or consider using native installation with: limkenion install\n',
+          '或考虑使用原生安装方式：limkenion install\n',
         )
       }
       await gracefulShutdown(1)
       break
     case 'install_failed':
-      process.stderr.write('Error: Failed to install update\n')
+      process.stderr.write('错误：安装更新失败\n')
       if (useLocalUpdate) {
-        process.stderr.write('Try manually updating with:\n')
+        process.stderr.write('可尝试手动更新：\n')
         process.stderr.write(
           `  cd ~/.limkenion/local && npm update ${MACRO.PACKAGE_URL}\n`,
         )
       } else {
         process.stderr.write(
-          'Or consider using native installation with: limkenion install\n',
+          '可考虑使用原生安装方式：limkenion install\n',
         )
       }
       await gracefulShutdown(1)
       break
     case 'in_progress':
       process.stderr.write(
-        'Error: Another instance is currently performing an update\n',
+        '错误：另一个实例正在进行更新\n',
       )
-      process.stderr.write('Please wait and try again later\n')
+      process.stderr.write('请稍后重试\n')
       await gracefulShutdown(1)
       break
   }

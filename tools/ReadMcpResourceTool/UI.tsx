@@ -11,7 +11,7 @@ export function renderToolUseMessage(input: Partial<z.infer<ReturnType<typeof in
   if (!input.uri || !input.server) {
     return null;
   }
-  return `Read resource "${input.uri}" from server "${input.server}"`;
+  return `从服务器 "${input.server}" 读取资源 "${input.uri}"`;
 }
 export function userFacingName(): string {
   return 'readMcpResource';
@@ -24,13 +24,13 @@ export function renderToolResultMessage(output: Output, _progressMessagesForMess
   if (!output || !output.contents || output.contents.length === 0) {
     return <Box justifyContent="space-between" overflowX="hidden" width="100%">
         <MessageResponse height={1}>
-          <Text dimColor>(No content)</Text>
+          <Text dimColor>（无内容）</Text>
         </MessageResponse>
       </Box>;
   }
 
-  // Format as JSON for better readability
-  // eslint-disable-next-line no-restricted-syntax -- human-facing UI, not tool_result
+  // 以 JSON 格式输出以获得更好的可读性
+  // eslint-disable-next-line no-restricted-syntax -- 面向用户的 UI，而非 tool_result
   const formattedOutput = jsonStringify(output, null, 2);
   return <OutputLine content={formattedOutput} verbose={verbose} />;
 }

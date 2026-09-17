@@ -174,7 +174,7 @@ export async function validateGitState(): Promise<void> {
     ignoreUntracked: true
   });
   if (!isClean) {
-    logEvent('内部代号_teleport_error_git_not_clean', {});
+    logEvent('limkenion_teleport_error_git_not_clean', {});
     const error = new TeleportOperationError('Git working directory is not clean. Please commit or stash your changes before using --teleport.', chalk.red('Error: Git working directory is not clean. Please commit or stash your changes before using --teleport.\n'));
     throw error;
   }
@@ -273,7 +273,7 @@ async function checkoutBranch(branchName: string): Promise<void> {
     }
   }
   if (checkoutCode !== 0) {
-    logEvent('内部代号_teleport_error_branch_checkout_failed', {});
+    logEvent('limkenion_teleport_error_branch_checkout_failed', {});
     throw new TeleportOperationError(`Failed to checkout branch '${branchName}': ${checkoutStderr}`, chalk.red(`Failed to checkout branch '${branchName}'\n`));
   }
 
@@ -435,7 +435,7 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
   try {
     const accessToken = getLimkenionAIOAuthTokens()?.accessToken;
     if (!accessToken) {
-      logEvent('内部代号_teleport_resume_error', {
+      logEvent('limkenion_teleport_resume_error', {
         error_type: 'no_access_token' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       throw new Error('Limkenion web sessions require authentication with a Limkenion.ai account. API key authentication is not sufficient. Please run /login to authenticate, or check your authentication status with /status.');
@@ -444,7 +444,7 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
     // Get organization UUID
     const orgUUID = await getOrganizationUUID();
     if (!orgUUID) {
-      logEvent('内部代号_teleport_resume_error', {
+      logEvent('limkenion_teleport_resume_error', {
         error_type: 'no_org_uuid' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       throw new Error('Unable to get organization UUID for constructing session URL');
@@ -461,7 +461,7 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
         break;
       case 'not_in_repo':
         {
-          logEvent('内部代号_teleport_error_repo_not_in_git_dir_sessions_api', {
+          logEvent('limkenion_teleport_error_repo_not_in_git_dir_sessions_api', {
             sessionId: sessionId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           });
           // Include host for GHE users so they know which instance the repo is on
@@ -470,7 +470,7 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
         }
       case 'mismatch':
         {
-          logEvent('内部代号_teleport_error_repo_mismatch_sessions_api', {
+          logEvent('limkenion_teleport_error_repo_mismatch_sessions_api', {
             sessionId: sessionId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           });
           // Only include host prefix when hosts actually differ to disambiguate
@@ -495,7 +495,7 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
     }
     const err = toError(error);
     logError(err);
-    logEvent('内部代号_teleport_resume_error', {
+    logEvent('limkenion_teleport_resume_error', {
       error_type: 'resume_session_id_catch' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
     throw new TeleportOperationError(err.message, chalk.red(`Error: ${err.message}\n`));
@@ -510,7 +510,7 @@ async function handleTeleportPrerequisites(root: Root, errorsToIgnore?: Set<Tele
   const errors = await getTeleportErrors();
   if (errors.size > 0) {
     // Log teleport errors detected
-    logEvent('内部代号_teleport_errors_detected', {
+    logEvent('limkenion_teleport_errors_detected', {
       error_types: Array.from(errors).join(',') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       errors_ignored: Array.from(errorsToIgnore || []).join(',') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
@@ -521,7 +521,7 @@ async function handleTeleportPrerequisites(root: Root, errorsToIgnore?: Set<Tele
           <KeybindingSetup>
             <TeleportError errorsToIgnore={errorsToIgnore} onComplete={() => {
             // Log when errors are resolved
-            logEvent('内部代号_teleport_errors_resolved', {
+            logEvent('limkenion_teleport_errors_resolved', {
               error_types: Array.from(errors).join(',') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
             });
             void resolve();
@@ -605,7 +605,7 @@ export async function teleportFromSessionsAPI(sessionId: string, orgUUID: string
 
     // Handle 404 specifically
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      logEvent('内部代号_teleport_error_session_not_found_404', {
+      logEvent('limkenion_teleport_error_session_not_found_404', {
         sessionId: sessionId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
       throw new TeleportOperationError(`${sessionId} not found.`, `${sessionId} not found.\n${chalk.dim('Run /status in Limkenion to check your account.')}`);
@@ -848,7 +848,7 @@ export async function teleportToRemote(options: {
           return null;
         }
         seedBundleFileId = bundle.fileId;
-        logEvent('内部代号_teleport_bundle_mode', {
+        logEvent('limkenion_teleport_bundle_mode', {
           size_bytes: bundle.bundleSizeBytes,
           scope: bundle.scope as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           has_wip: bundle.hasWip,
@@ -941,7 +941,7 @@ export async function teleportToRemote(options: {
     // point awaiting GrowthBook when there's nothing to bundle.
     const gitRoot = findGitRoot(getCwd());
     const forceBundle = !options.skipBundle && isEnvTruthy(process.env.CCR_FORCE_BUNDLE);
-    const bundleSeedGateOn = !options.skipBundle && gitRoot !== null && (isEnvTruthy(process.env.CCR_ENABLE_BUNDLE) || (await checkGate_CACHED_OR_BLOCKING('内部代号_ccr_bundle_seed_enabled')));
+    const bundleSeedGateOn = !options.skipBundle && gitRoot !== null && (isEnvTruthy(process.env.CCR_ENABLE_BUNDLE) || (await checkGate_CACHED_OR_BLOCKING('limkenion_ccr_bundle_seed_enabled')));
     if (repoInfo && !forceBundle) {
       if (repoInfo.host === 'github.com') {
         ghViable = await checkGithubAppInstalled(repoInfo.owner, repoInfo.name, signal);
@@ -1036,14 +1036,14 @@ export async function teleportToRemote(options: {
         return null;
       }
       seedBundleFileId = bundle.fileId;
-      logEvent('内部代号_teleport_bundle_mode', {
+      logEvent('limkenion_teleport_bundle_mode', {
         size_bytes: bundle.bundleSizeBytes,
         scope: bundle.scope as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         has_wip: bundle.hasWip,
         reason: sourceReason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
     }
-    logEvent('内部代号_teleport_source_decision', {
+    logEvent('limkenion_teleport_source_decision', {
       reason: sourceReason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       path: (gitSource ? 'github' : seedBundleFileId ? 'bundle' : 'empty') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });

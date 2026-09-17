@@ -53,7 +53,7 @@ export type FileReadingLimits = {
 export const getDefaultFileReadingLimits = memoize((): FileReadingLimits => {
   const override =
     getFeatureValue_CACHED_MAY_BE_STALE<Partial<FileReadingLimits> | null>(
-      '内部代号_amber_wren',
+      'limkenion_amber_wren',
       {},
     )
 

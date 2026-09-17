@@ -3,18 +3,16 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 /**
- * Generate a temporary file path.
+ * 生成一个临时文件路径。
  *
- * @param prefix Optional prefix for the temp file name
- * @param extension Optional file extension (defaults to '.md')
- * @param options.contentHash When provided, the identifier is derived from a
- *   SHA-256 hash of this string (first 16 hex chars). This produces a path
- *   that is stable across process boundaries — any process with the same
- *   content will get the same path. Use this when the path ends up in content
- *   sent to the Limkenion API (e.g., sandbox deny lists in tool descriptions),
- *   because a random UUID would change on every subprocess spawn and
- *   invalidate the prompt cache prefix.
- * @returns Temp file path
+ * @param prefix 临时文件名的可选前缀
+ * @param extension 可选文件扩展名（默认为 '.md'）
+ * @param options.contentHash 提供时，标识符由该字符串的 SHA-256 哈希
+ *   （前 16 个十六进制字符）导出。这会生成在进程边界内稳定的路径——
+ *   任何具有相同内容的进程都会得到相同的路径。当该路径会进入发送给
+ *   Limkenion API 的内容（例如工具描述中的沙箱拒绝列表）时使用此项，
+ *   因为随机 UUID 会在每次子进程生成时变化，并使提示缓存前缀失效。
+ * @returns 临时文件路径
  */
 export function generateTempFilePath(
   prefix: string = 'limkenion-prompt',

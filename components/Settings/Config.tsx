@@ -201,7 +201,7 @@ export function Config({
   const autoUpdaterDisabledReason = getAutoUpdaterDisabledReason();
   function onChangeMainModelConfig(value: string | null): void {
     const previousModel = mainLoopModel;
-    logEvent('内部代号_config_model_changed', {
+    logEvent('limkenion_config_model_changed', {
       from_model: previousModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       to_model: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
@@ -276,7 +276,7 @@ export function Config({
         ...getGlobalConfig(),
         autoCompactEnabled
       });
-      logEvent('内部代号_auto_compact_setting_changed', {
+      logEvent('limkenion_auto_compact_setting_changed', {
         enabled: autoCompactEnabled
       });
     }
@@ -294,7 +294,7 @@ export function Config({
         ...prev_3,
         spinnerTipsEnabled
       }));
-      logEvent('内部代号_tips_setting_changed', {
+      logEvent('limkenion_tips_setting_changed', {
         enabled: spinnerTipsEnabled
       });
     }
@@ -319,7 +319,7 @@ export function Config({
           prefersReducedMotion
         }
       }));
-      logEvent('内部代号_reduce_motion_setting_changed', {
+      logEvent('limkenion_reduce_motion_setting_changed', {
         enabled: prefersReducedMotion
       });
     }
@@ -336,7 +336,7 @@ export function Config({
       updateSettingsForSource('userSettings', {
         alwaysThinkingEnabled: enabled ? undefined : false
       });
-      logEvent('内部代号_thinking_toggled', {
+      logEvent('limkenion_thinking_toggled', {
         enabled
       });
     }
@@ -375,7 +375,7 @@ export function Config({
         }));
       }
     }
-  }] : []), ...(getFeatureValue_CACHED_MAY_BE_STALE('内部代号_chomp_inflection', false) ? [{
+  }] : []), ...(getFeatureValue_CACHED_MAY_BE_STALE('limkenion_chomp_inflection', false) ? [{
     id: 'promptSuggestionEnabled',
     label: 'Prompt suggestions',
     value: promptSuggestionEnabled,
@@ -391,28 +391,7 @@ export function Config({
     }
   }] : []),
   // Speculation toggle (ant-only)
-  ...("external" === 'ant' ? [{
-    id: 'speculationEnabled',
-    label: 'Speculative execution',
-    value: globalConfig.speculationEnabled ?? true,
-    type: 'boolean' as const,
-    onChange(enabled_2: boolean) {
-      saveGlobalConfig(current_1 => {
-        if (current_1.speculationEnabled === enabled_2) return current_1;
-        return {
-          ...current_1,
-          speculationEnabled: enabled_2
-        };
-      });
-      setGlobalConfig({
-        ...getGlobalConfig(),
-        speculationEnabled: enabled_2
-      });
-      logEvent('内部代号_speculation_setting_changed', {
-        enabled: enabled_2
-      });
-    }
-  }] : []), ...(isFileCheckpointingAvailable ? [{
+  ...([]), ...(isFileCheckpointingAvailable ? [{
     id: 'fileCheckpointingEnabled',
     label: 'Rewind code (checkpoints)',
     value: globalConfig.fileCheckpointingEnabled,
@@ -426,7 +405,7 @@ export function Config({
         ...getGlobalConfig(),
         fileCheckpointingEnabled: enabled_3
       });
-      logEvent('内部代号_file_history_snapshots_setting_changed', {
+      logEvent('limkenion_file_history_snapshots_setting_changed', {
         enabled: enabled_3
       });
     }
@@ -450,11 +429,11 @@ export function Config({
         ...getGlobalConfig(),
         terminalProgressBarEnabled
       });
-      logEvent('内部代号_terminal_progress_bar_setting_changed', {
+      logEvent('limkenion_terminal_progress_bar_setting_changed', {
         enabled: terminalProgressBarEnabled
       });
     }
-  }, ...(getFeatureValue_CACHED_MAY_BE_STALE('内部代号_terminal_sidebar', false) ? [{
+  }, ...(getFeatureValue_CACHED_MAY_BE_STALE('limkenion_terminal_sidebar', false) ? [{
     id: 'showStatusInTerminalTab',
     label: 'Show status in terminal tab',
     value: globalConfig.showStatusInTerminalTab ?? false,
@@ -468,7 +447,7 @@ export function Config({
         ...getGlobalConfig(),
         showStatusInTerminalTab
       });
-      logEvent('内部代号_terminal_tab_status_setting_changed', {
+      logEvent('limkenion_terminal_tab_status_setting_changed', {
         enabled: showStatusInTerminalTab
       });
     }
@@ -486,7 +465,7 @@ export function Config({
         ...getGlobalConfig(),
         showTurnDuration
       });
-      logEvent('内部代号_show_turn_duration_setting_changed', {
+      logEvent('limkenion_show_turn_duration_setting_changed', {
         enabled: showTurnDuration
       });
     }
@@ -535,7 +514,7 @@ export function Config({
         ...prev_13,
         defaultPermissionMode: mode
       }));
-      logEvent('内部代号_config_changed', {
+      logEvent('limkenion_config_changed', {
         setting: 'defaultPermissionMode' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -585,7 +564,7 @@ export function Config({
         ...getGlobalConfig(),
         respectGitignore
       });
-      logEvent('内部代号_respect_gitignore_setting_changed', {
+      logEvent('limkenion_respect_gitignore_setting_changed', {
         enabled: respectGitignore
       });
     }
@@ -603,7 +582,7 @@ export function Config({
         ...getGlobalConfig(),
         copyFullResponse
       });
-      logEvent('内部代号_config_changed', {
+      logEvent('limkenion_config_changed', {
         setting: 'copyFullResponse' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: String(copyFullResponse) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -625,7 +604,7 @@ export function Config({
         ...getGlobalConfig(),
         copyOnSelect
       });
-      logEvent('内部代号_config_changed', {
+      logEvent('limkenion_config_changed', {
         setting: 'copyOnSelect' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: String(copyOnSelect) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -754,7 +733,7 @@ export function Config({
         ...prev_19,
         'Default view': selected
       }));
-      logEvent('内部代号_default_view_setting_changed', {
+      logEvent('limkenion_default_view_setting_changed', {
         value: (defaultView ?? 'unset') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
     }
@@ -780,7 +759,7 @@ export function Config({
         ...getGlobalConfig(),
         editorMode: value_1 as GlobalConfig['editorMode']
       });
-      logEvent('内部代号_editor_mode_changed', {
+      logEvent('limkenion_editor_mode_changed', {
         mode: value_1 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -802,7 +781,7 @@ export function Config({
         ...getGlobalConfig(),
         prStatusFooterEnabled: enabled_4
       });
-      logEvent('内部代号_pr_status_footer_setting_changed', {
+      logEvent('limkenion_pr_status_footer_setting_changed', {
         enabled: enabled_4
       });
     }
@@ -827,7 +806,7 @@ export function Config({
         ...getGlobalConfig(),
         diffTool: diffTool as GlobalConfig['diffTool']
       });
-      logEvent('内部代号_diff_tool_changed', {
+      logEvent('limkenion_diff_tool_changed', {
         tool: diffTool as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -846,7 +825,7 @@ export function Config({
         ...getGlobalConfig(),
         autoConnectIde
       });
-      logEvent('内部代号_auto_connect_ide_changed', {
+      logEvent('limkenion_auto_connect_ide_changed', {
         enabled: autoConnectIde,
         source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -865,7 +844,7 @@ export function Config({
         ...getGlobalConfig(),
         autoInstallIdeExtension
       });
-      logEvent('内部代号_auto_install_ide_extension_changed', {
+      logEvent('limkenion_auto_install_ide_extension_changed', {
         enabled: autoInstallIdeExtension,
         source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -884,7 +863,7 @@ export function Config({
         ...getGlobalConfig(),
         limkenionInChromeDefaultEnabled: enabled_5
       });
-      logEvent('内部代号_limkenion_in_chrome_setting_changed', {
+      logEvent('limkenion_limkenion_in_chrome_setting_changed', {
         enabled: enabled_5
       });
     }
@@ -913,7 +892,7 @@ export function Config({
           ...getGlobalConfig(),
           teammateMode: mode_0
         });
-        logEvent('内部代号_teammate_mode_changed', {
+        logEvent('limkenion_teammate_mode_changed', {
           mode: mode_0 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
       }
@@ -926,53 +905,7 @@ export function Config({
     }];
   })() : []),
   // Remote at startup toggle — gated on build flag + GrowthBook + policy
-  ...(false ? [{
-    id: 'remoteControlAtStartup',
-    label: 'Enable Remote Control for all sessions',
-    value: globalConfig.remoteControlAtStartup === undefined ? 'default' : String(globalConfig.remoteControlAtStartup),
-    options: ['true', 'false', 'default'],
-    type: 'enum' as const,
-    onChange(selected_0: string) {
-      if (selected_0 === 'default') {
-        // Unset the config key so it falls back to the platform default
-        saveGlobalConfig(current_20 => {
-          if (current_20.remoteControlAtStartup === undefined) return current_20;
-          const next_0 = {
-            ...current_20
-          };
-          delete next_0.remoteControlAtStartup;
-          return next_0;
-        });
-        setGlobalConfig({
-          ...getGlobalConfig(),
-          remoteControlAtStartup: undefined
-        });
-      } else {
-        const enabled_6 = selected_0 === 'true';
-        saveGlobalConfig(current_21 => {
-          if (current_21.remoteControlAtStartup === enabled_6) return current_21;
-          return {
-            ...current_21,
-            remoteControlAtStartup: enabled_6
-          };
-        });
-        setGlobalConfig({
-          ...getGlobalConfig(),
-          remoteControlAtStartup: enabled_6
-        });
-      }
-      // Sync to AppState so useReplBridge reacts immediately
-      const resolved = getRemoteControlAtStartup();
-      setAppState(prev_20 => {
-        if (prev_20.replBridgeEnabled === resolved && !prev_20.replBridgeOutboundOnly) return prev_20;
-        return {
-          ...prev_20,
-          replBridgeEnabled: resolved,
-          replBridgeOutboundOnly: false
-        };
-      });
-    }
-  }] : []), ...(shouldShowExternalIncludesToggle ? [{
+  ...([]), ...(shouldShowExternalIncludesToggle ? [{
     id: 'showExternalIncludesDialog',
     label: 'External LIMKENION.md includes',
     value: (() => {
@@ -1092,7 +1025,7 @@ export function Config({
     // Log any changes that were made
     // TODO: Make these proper messages
     const formattedChanges: string[] = Object.entries(changes).map(([key, value_2]) => {
-      logEvent('内部代号_config_changed', {
+      logEvent('limkenion_config_changed', {
         key: key as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: value_2 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -1106,7 +1039,7 @@ export function Config({
     const currentUsingCustomKey = Boolean(effectiveApiKey && globalConfig.customApiKeyResponses?.approved?.includes(normalizeApiKeyForConfig(effectiveApiKey)));
     if (initialUsingCustomKey !== currentUsingCustomKey) {
       formattedChanges.push(`${currentUsingCustomKey ? 'Enabled' : 'Disabled'} custom API key`);
-      logEvent('内部代号_config_changed', {
+      logEvent('limkenion_config_changed', {
         key: 'env.LIMKENION_API_KEY' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: currentUsingCustomKey as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
@@ -1350,7 +1283,7 @@ export function Config({
           autoUpdatesChannel: 'latest',
           minimumVersion: undefined
         }));
-        logEvent('内部代号_autoupdate_channel_changed', {
+        logEvent('limkenion_autoupdate_channel_changed', {
           channel: 'latest' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
       }
@@ -1504,7 +1437,7 @@ export function Config({
           ...prev_25,
           teammateDefaultModel: teammateModelDisplayString(model_1)
         }));
-        logEvent('内部代号_teammate_default_model_changed', {
+        logEvent('limkenion_teammate_default_model_changed', {
           model: model_1 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
       }} onCancel={() => {
@@ -1539,7 +1472,7 @@ export function Config({
         updateSettingsForSource('localSettings', {
           outputStyle: style
         });
-        void logEvent('内部代号_output_style_changed', {
+        void logEvent('limkenion_output_style_changed', {
           style: (style ?? DEFAULT_OUTPUT_STYLE_NAME) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           settings_source: 'localSettings' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -1565,7 +1498,7 @@ export function Config({
         updateSettingsForSource('userSettings', {
           language
         });
-        void logEvent('内部代号_language_changed', {
+        void logEvent('limkenion_language_changed', {
           language: (language ?? 'default') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           source: 'config_panel' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
@@ -1618,7 +1551,7 @@ export function Config({
           autoUpdatesChannel: channel as 'latest' | 'stable',
           minimumVersion: undefined
         }));
-        logEvent('内部代号_autoupdate_enabled', {
+        logEvent('limkenion_autoupdate_enabled', {
           channel: channel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
       }} />}
@@ -1646,7 +1579,7 @@ export function Config({
         ...prev_27,
         ...newSettings
       }));
-      logEvent('内部代号_autoupdate_channel_changed', {
+      logEvent('limkenion_autoupdate_channel_changed', {
         channel: 'stable' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         minimum_version_set: choice === 'stay'
       });

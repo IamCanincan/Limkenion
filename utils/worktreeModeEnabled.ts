@@ -1,10 +1,9 @@
 /**
- * Worktree mode is now unconditionally enabled for all users.
+ * 工作目录（worktree）模式现在对所有用户无条件启用。
  *
- * Previously gated by GrowthBook flag '内部代号_worktree_mode', but the
- * CACHED_MAY_BE_STALE pattern returns the default (false) on first launch
- * before the cache is populated, silently swallowing --worktree.
- * See https://github.com/limkenions/limkenion/issues/27044.
+ * 此前由 GrowthBook 标志 'limkenion_worktree_mode' 控制，但
+ * CACHED_MAY_BE_STALE 模式在首次启动时、缓存填充前会返回默认值（false），
+ * 从而静默吞掉 --worktree。参见 https://github.com/limkenions/limkenion/issues/27044。
  */
 export function isWorktreeModeEnabled(): boolean {
   return true

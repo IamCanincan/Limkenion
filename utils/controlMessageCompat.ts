@@ -1,14 +1,14 @@
 /**
- * Normalize camelCase `requestId` → snake_case `request_id` on incoming
- * control messages (control_request, control_response).
+ * 将入站控制消息（control_request、control_response）中的 camelCase
+ * `requestId` 规范化为 snake_case `request_id`。
  *
- * Older iOS app builds send `requestId` due to a missing Swift CodingKeys
- * mapping. Without this shim, `isSDKControlRequest` in replBridge.ts rejects
- * the message (it checks `'request_id' in value`), and structuredIO.ts reads
- * `message.response.request_id` as undefined — both silently drop the message.
+ * 较旧的 iOS 应用构建因缺少 Swift CodingKeys 映射而发送 `requestId`。
+ * 没有这个垫片，replBridge.ts 中的 isSDKControlRequest 会拒绝该消息
+ * （它检查 `'request_id' in value`），structuredIO.ts 会把
+ * `message.response.request_id` 读取为 undefined——两者都会静默丢弃消息。
  *
- * If both `request_id` and `requestId` are present, snake_case wins.
- * Mutates the object in place.
+ * 若 `request_id` 和 `requestId` 同时存在，snake_case 优先。
+ * 原地修改该对象。
  */
 export function normalizeControlMessageKeys(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') return obj

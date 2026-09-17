@@ -11,8 +11,8 @@ import { AGENT_TOOL_NAME } from '../constants.js'
 import type { BuiltInAgentDefinition } from '../loadAgentsDir.js'
 
 function getExploreSystemPrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find/grep via Bash instead.
+  // 官方内置构建会把 find/grep 别名为内嵌的 bfs/ugrep，并移除专用的
+  // Glob/Grep 工具，因此请通过 Bash 使用 find/grep。
   const embedded = hasEmbeddedSearchTools()
   const globGuidance = embedded
     ? `- Use \`find\` via ${BASH_TOOL_NAME} for broad file pattern matching`
@@ -74,8 +74,8 @@ export const EXPLORE_AGENT: BuiltInAgentDefinition = {
   source: 'built-in',
   baseDir: 'built-in',
   // Ants get inherit to use the main agent's model; external users get haiku for speed
-  // Note: For ants, getAgentModel() checks 内部代号_explore_agent GrowthBook flag at runtime
-  model: process.env.USER_TYPE === 'ant' ? 'inherit' : 'haiku',
+  // Note: For ants, getAgentModel() checks limkenion_explore_agent GrowthBook flag at runtime
+  model: 'haiku',
   // Explore is a fast read-only search agent — it doesn't need commit/PR/lint
   // rules from LIMKENION.md. The main agent has full context and interprets results.
   omitLimkenionMd: true,

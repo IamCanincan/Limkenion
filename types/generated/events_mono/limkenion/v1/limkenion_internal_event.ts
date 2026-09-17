@@ -78,7 +78,7 @@ export interface SlackContext {
  * Source table: proj-product-data-nhme.raw_statsig_internal_tools.events
  */
 export interface LimkenionInternalEvent {
-  /** Event name (e.g., "内部代号_binary_feedback", "内部代号_api_success") */
+  /** Event name (e.g., "limkenion_binary_feedback", "limkenion_api_success") */
   event_name?: string | undefined
   /** Event timestamp */
   client_timestamp?: Date | undefined

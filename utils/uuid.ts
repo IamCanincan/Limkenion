@@ -5,21 +5,21 @@ const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
- * Validate uuid
- * @param maybeUUID The value to be checked if it is a uuid
- * @returns string as UUID or null if it is not valid
+ * 校验 uuid
+ * @param maybeUUID 要检查是否为 uuid 的值
+ * @returns 若有效则返回 UUID 字符串，否则返回 null
  */
 export function validateUuid(maybeUuid: unknown): UUID | null {
-  // UUID format: 8-4-4-4-12 hex digits
+  // UUID 格式：8-4-4-4-12 十六进制数字
   if (typeof maybeUuid !== 'string') return null
 
   return uuidRegex.test(maybeUuid) ? (maybeUuid as UUID) : null
 }
 
 /**
- * Generate a new agent ID with prefix for consistency with task IDs.
- * Format: a{label-}{16 hex chars}
- * Example: aa3f2c1b4d5e6f7a8, acompact-a3f2c1b4d5e6f7a8
+ * 生成带前缀的新的智能体 ID，与任务 ID 保持一致。
+ * 格式：a{label-}{16 个十六进制字符}
+ * 例如：aa3f2c1b4d5e6f7a8、acompact-a3f2c1b4d5e6f7a8
  */
 export function createAgentId(label?: string): AgentId {
   const suffix = randomBytes(8).toString('hex')

@@ -38,12 +38,12 @@ const inputSchema = lazySchema(() =>
     setting: z
       .string()
       .describe(
-        'The setting key (e.g., "theme", "model", "permissions.defaultMode")',
+        '设置键（例如 "theme"、"model"、"permissions.defaultMode"）',
       ),
     value: z
       .union([z.string(), z.boolean(), z.number()])
       .optional()
-      .describe('The new value. Omit to get current value.'),
+      .describe('新值。省略以获取当前值。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -290,7 +290,7 @@ export const ConfigTool = buildTool({
         })
       }
 
-      logEvent('内部代号_config_tool_changed', {
+      logEvent('limkenion_config_tool_changed', {
         setting:
           setting as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: String(

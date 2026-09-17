@@ -40,7 +40,7 @@ function logLoadOnce(success: boolean): void {
   logForDebugging(
     success ? 'tree-sitter: native module loaded' : 'tree-sitter: unavailable',
   )
-  logEvent('内部代号_tree_sitter_load', { success })
+  logEvent('limkenion_tree_sitter_load', { success })
 }
 
 /**
@@ -61,7 +61,7 @@ export async function parseCommand(
   // Gate: ant-only until pentest. External builds fall back to legacy
   // regex/shell-quote path. Guarding the whole body inside the positive
   // branch lets Bun DCE the NAPI import AND keeps telemetry honest — we
-  // only fire 内部代号_tree_sitter_load when a load was genuinely attempted.
+  // only fire limkenion_tree_sitter_load when a load was genuinely attempted.
   if (feature('TREE_SITTER_BASH')) {
     await ensureParserInitialized()
     const mod = getParserModule()
@@ -117,7 +117,7 @@ export async function parseCommandRaw(
       // Previously collapsed into `return null` → parse-unavailable → legacy
       // path, which lacks EVAL_LIKE_BUILTINS — `trap`, `enable`, `hash` leaked.
       if (result === null) {
-        logEvent('内部代号_tree_sitter_parse_abort', {
+        logEvent('limkenion_tree_sitter_parse_abort', {
           cmdLength: command.length,
           panic: false,
         })
@@ -125,7 +125,7 @@ export async function parseCommandRaw(
       }
       return result
     } catch {
-      logEvent('内部代号_tree_sitter_parse_abort', {
+      logEvent('limkenion_tree_sitter_parse_abort', {
         cmdLength: command.length,
         panic: true,
       })

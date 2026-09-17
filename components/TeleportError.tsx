@@ -145,18 +145,18 @@ export function TeleportError(t0) {
         }
         let t9;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t9 = <Box flexDirection="column"><Text dimColor={true}>Teleport requires a Limkenion.ai account.</Text><Text dimColor={true}>Your Limkenion Pro/Max subscription will be used by Limkenion.</Text></Box>;
+          t9 = <Box flexDirection="column"><Text dimColor={true}>Teleport 需要一个 Limkenion.ai 账户。</Text><Text dimColor={true}>您的 Limkenion Pro/Max 订阅将由 Limkenion 使用。</Text></Box>;
           $[16] = t9;
         } else {
           t9 = $[16];
         }
         let t10;
         if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t10 = <Dialog title="Log in to Limkenion" onCancel={onCancel}>{t9}<Select options={[{
-              label: "Login with Limkenion account",
+          t10 = <Dialog title="登录 Limkenion" onCancel={onCancel}>{t9}<Select options={[{
+              label: "使用 Limkenion 账户登录",
               value: "login"
             }, {
-              label: "Exit",
+              label: "退出",
               value: "exit"
             }]} onChange={handleLoginDialogSelect} /></Dialog>;
           $[17] = t10;

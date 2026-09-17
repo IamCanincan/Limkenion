@@ -113,7 +113,7 @@ function logApprovalEvent(
   if (source === 'config') {
     // Auto-approved by allowlist in settings -- no user wait time
     logEvent(
-      '内部代号_tool_use_granted_in_config',
+      'limkenion_tool_use_granted_in_config',
       baseMetadata(messageId, tool.name, undefined),
     )
     return
@@ -123,7 +123,7 @@ function logApprovalEvent(
     source.type === 'classifier'
   ) {
     logEvent(
-      '内部代号_tool_use_granted_by_classifier',
+      'limkenion_tool_use_granted_by_classifier',
       baseMetadata(messageId, tool.name, waitMs),
     )
     return
@@ -132,13 +132,13 @@ function logApprovalEvent(
     case 'user':
       logEvent(
         source.permanent
-          ? '内部代号_tool_use_granted_in_prompt_permanent'
-          : '内部代号_tool_use_granted_in_prompt_temporary',
+          ? 'limkenion_tool_use_granted_in_prompt_permanent'
+          : 'limkenion_tool_use_granted_in_prompt_temporary',
         baseMetadata(messageId, tool.name, waitMs),
       )
       break
     case 'hook':
-      logEvent('内部代号_tool_use_granted_by_permission_hook', {
+      logEvent('limkenion_tool_use_granted_by_permission_hook', {
         ...baseMetadata(messageId, tool.name, waitMs),
         permanent: source.permanent ?? false,
       })
@@ -158,12 +158,12 @@ function logRejectionEvent(
   if (source === 'config') {
     // Denied by denylist in settings
     logEvent(
-      '内部代号_tool_use_denied_in_config',
+      'limkenion_tool_use_denied_in_config',
       baseMetadata(messageId, tool.name, undefined),
     )
     return
   }
-  logEvent('内部代号_tool_use_rejected_in_prompt', {
+  logEvent('limkenion_tool_use_rejected_in_prompt', {
     ...baseMetadata(messageId, tool.name, waitMs),
     // Distinguish hook rejections from user rejections via separate fields
     ...(source.type === 'hook'

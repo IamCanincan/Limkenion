@@ -1,5 +1,5 @@
 /**
- * Note: this code is hot, so is optimized for speed.
+ * 注意：此代码处于热路径，已针对速度优化。
  */
 export function difference<A>(a: Set<A>, b: Set<A>): Set<A> {
   const result = new Set<A>()
@@ -12,7 +12,7 @@ export function difference<A>(a: Set<A>, b: Set<A>): Set<A> {
 }
 
 /**
- * Note: this code is hot, so is optimized for speed.
+ * 注意：此代码处于热路径，已针对速度优化。
  */
 export function intersects<A>(a: Set<A>, b: Set<A>): boolean {
   if (a.size === 0 || b.size === 0) {
@@ -27,7 +27,7 @@ export function intersects<A>(a: Set<A>, b: Set<A>): boolean {
 }
 
 /**
- * Note: this code is hot, so is optimized for speed.
+ * 注意：此代码处于热路径，已针对速度优化。
  */
 export function every<A>(a: ReadonlySet<A>, b: ReadonlySet<A>): boolean {
   for (const item of a) {
@@ -39,7 +39,7 @@ export function every<A>(a: ReadonlySet<A>, b: ReadonlySet<A>): boolean {
 }
 
 /**
- * Note: this code is hot, so is optimized for speed.
+ * 注意：此代码处于热路径，已针对速度优化。
  */
 export function union<A>(a: Set<A>, b: Set<A>): Set<A> {
   const result = new Set<A>()

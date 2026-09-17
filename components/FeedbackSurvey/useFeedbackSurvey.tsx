@@ -55,9 +55,9 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
     timeLastShown: null,
     submitCountAtLastAppearance: null
   }));
-  const config = useDynamicConfig<FeedbackSurveyConfig>('内部代号_feedback_survey_config', DEFAULT_FEEDBACK_SURVEY_CONFIG);
-  const badTranscriptAskConfig = useDynamicConfig<TranscriptAskConfig>('内部代号_bad_survey_transcript_ask_config', DEFAULT_TRANSCRIPT_ASK_CONFIG);
-  const goodTranscriptAskConfig = useDynamicConfig<TranscriptAskConfig>('内部代号_good_survey_transcript_ask_config', DEFAULT_TRANSCRIPT_ASK_CONFIG);
+  const config = useDynamicConfig<FeedbackSurveyConfig>('limkenion_feedback_survey_config', DEFAULT_FEEDBACK_SURVEY_CONFIG);
+  const badTranscriptAskConfig = useDynamicConfig<TranscriptAskConfig>('limkenion_bad_survey_transcript_ask_config', DEFAULT_TRANSCRIPT_ASK_CONFIG);
+  const goodTranscriptAskConfig = useDynamicConfig<TranscriptAskConfig>('limkenion_good_survey_transcript_ask_config', DEFAULT_TRANSCRIPT_ASK_CONFIG);
   const settingsRate = getInitialSettings().feedbackSurveyRate;
   const sessionStartTime = useRef(Date.now());
   const submitCountAtSessionStart = useRef(submitCount);
@@ -93,7 +93,7 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
   }, []);
   const onOpen = useCallback((appearanceId: string) => {
     updateLastShownTime(Date.now(), submitCountRef.current);
-    logEvent('内部代号_feedback_survey_event', {
+    logEvent('limkenion_feedback_survey_event', {
       event_type: 'appeared' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       appearance_id: appearanceId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       last_assistant_message_id: lastAssistantMessageIdRef.current as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -107,7 +107,7 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
   }, [updateLastShownTime, surveyType]);
   const onSelect = useCallback((appearanceId_0: string, selected: FeedbackSurveyResponse) => {
     updateLastShownTime(Date.now(), submitCountRef.current);
-    logEvent('内部代号_feedback_survey_event', {
+    logEvent('limkenion_feedback_survey_event', {
       event_type: 'responded' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       appearance_id: appearanceId_0 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       response: selected as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -143,7 +143,7 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
   }, [badTranscriptAskConfig.probability, goodTranscriptAskConfig.probability]);
   const onTranscriptPromptShown = useCallback((appearanceId_1: string, surveyResponse: FeedbackSurveyResponse) => {
     const trigger: TranscriptShareTrigger = surveyResponse === 'good' ? 'good_feedback_survey' : 'bad_feedback_survey';
-    logEvent('内部代号_feedback_survey_event', {
+    logEvent('limkenion_feedback_survey_event', {
       event_type: 'transcript_prompt_appeared' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       appearance_id: appearanceId_1 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       last_assistant_message_id: lastAssistantMessageIdRef.current as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -158,7 +158,7 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
   }, [surveyType]);
   const onTranscriptSelect = useCallback(async (appearanceId_2: string, selected_1: TranscriptShareResponse, surveyResponse_0: FeedbackSurveyResponse | null): Promise<boolean> => {
     const trigger_0: TranscriptShareTrigger = surveyResponse_0 === 'good' ? 'good_feedback_survey' : 'bad_feedback_survey';
-    logEvent('内部代号_feedback_survey_event', {
+    logEvent('limkenion_feedback_survey_event', {
       event_type: `transcript_share_${selected_1}` as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       appearance_id: appearanceId_2 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       last_assistant_message_id: lastAssistantMessageIdRef.current as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -173,7 +173,7 @@ export function useFeedbackSurvey(messages: Message[], isLoading: boolean, submi
     }
     if (selected_1 === 'yes') {
       const result = await submitTranscriptShare(messagesRef.current, trigger_0, appearanceId_2);
-      logEvent('内部代号_feedback_survey_event', {
+      logEvent('limkenion_feedback_survey_event', {
         event_type: (result.success ? 'transcript_share_submitted' : 'transcript_share_failed') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         appearance_id: appearanceId_2 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         trigger: trigger_0 as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS

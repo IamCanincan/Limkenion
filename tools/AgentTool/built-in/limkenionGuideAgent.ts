@@ -21,8 +21,8 @@ const CDP_DOCS_MAP_URL = 'https://platform.limkenion.com/llms.txt'
 export const LIMKENION_GUIDE_AGENT_TYPE = 'limkenion-guide'
 
 function getLimkenionGuideBasePrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find/grep instead.
+  // 官方内置构建会把 find/grep 别名为内嵌的 bfs/ugrep，并移除专用的
+  // Glob/Grep 工具，因此请改用 find/grep。
   const localSearchHint = hasEmbeddedSearchTools()
     ? `${FILE_READ_TOOL_NAME}, \`find\`, and \`grep\``
     : `${FILE_READ_TOOL_NAME}, ${GLOB_TOOL_NAME}, and ${GREP_TOOL_NAME}`
@@ -98,8 +98,8 @@ function getFeedbackGuideline(): string {
 export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
   agentType: LIMKENION_GUIDE_AGENT_TYPE,
   whenToUse: `Use this agent when the user asks questions ("Can Limkenion...", "Does Limkenion...", "How do I...") about: (1) Limkenion (the CLI tool) - features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) Limkenion Agent SDK - building custom agents; (3) Limkenion API (formerly Limkenion API) - API usage, tool use, Limkenion SDK usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed limkenion-guide agent that you can continue via ${SEND_MESSAGE_TOOL_NAME}.`,
-  // Ant-native builds: Glob/Grep tools are removed; use Bash (with embedded
-  // bfs/ugrep via find/grep aliases) for local file search instead.
+  // 官方内置构建：会移除 Glob/Grep 工具；请使用 Bash（借助 find/grep
+  // 别名调用内嵌的 bfs/ugrep）进行本地文件搜索。
   tools: hasEmbeddedSearchTools()
     ? [
         BASH_TOOL_NAME,

@@ -8,18 +8,17 @@ import type { Message } from '../types/message.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 
 export type McpInstructionsDelta = {
-  /** Server names — for stateless-scan reconstruction. */
+  /** 服务器名称——用于无状态扫描重建。 */
   addedNames: string[]
-  /** Rendered "## {name}\n{instructions}" blocks for addedNames. */
+  /** 针对 addedNames 渲染出的 "## {name}\n{instructions}" 块。 */
   addedBlocks: string[]
   removedNames: string[]
 }
 
 /**
- * Client-authored instruction block to announce when a server connects,
- * in addition to (or instead of) the server's own `InitializeResult.instructions`.
- * Lets first-party servers (e.g., limkenion-in-chrome) carry client-side
- * context the server itself doesn't know about.
+ * 客户端撰写的指令块，用于在服务器连接时发布，
+ * 作为服务器自身 `InitializeResult.instructions` 的补充（或替代）。
+ * 让第一方服务器（如 limkenion-in-chrome）携带服务器自身不知道的客户端上下文。
  */
 export type ClientSideInstruction = {
   serverName: string
@@ -27,30 +26,27 @@ export type ClientSideInstruction = {
 }
 
 /**
- * True → announce MCP server instructions via persisted delta attachments.
- * False → prompts.ts keeps its DANGEROUS_uncachedSystemPromptSection
- * (rebuilt every turn; cache-busts on late connect).
+ * 为 true → 通过持久化的增量附件来发布 MCP 服务器指令。
+ * 为 false → prompts.ts 继续使用其 DANGEROUS_uncachedSystemPromptSection
+ * （每轮重建；在迟到连接时驱逐缓存）。
  *
- * Env override for local testing: LIMKENION_MCP_INSTR_DELTA=true/false
- * wins over both ant bypass and the GrowthBook gate.
+ * 本地测试的环境变量覆盖：LIMKENION_MCP_INSTR_DELTA=true/false
+ * 优先于 ant 分流和 GrowthBook 开关。
  */
 export function isMcpInstructionsDeltaEnabled(): boolean {
   if (isEnvTruthy(process.env.LIMKENION_MCP_INSTR_DELTA)) return true
   if (isEnvDefinedFalsy(process.env.LIMKENION_MCP_INSTR_DELTA)) return false
   return (
-    process.env.USER_TYPE === 'ant' ||
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_basalt_3kr', false)
+    (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_basalt_3kr', false))
   )
 }
 
 /**
- * Diff the current set of connected MCP servers that have instructions
- * (server-authored via InitializeResult, or client-side synthesized)
- * against what's already been announced in this conversation. Null if
- * nothing changed.
+ * 将当前已连接且带有指令（服务器通过 InitializeResult 提供，或客户端合成）
+ * 的 MCP 服务器集合，与本次对话中已经公布过的集合做差异对比。
+ * 若没有任何变化则返回 null。
  *
- * Instructions are immutable for the life of a connection (set once at
- * handshake), so the scan diffs on server NAME, not on content.
+ * 指令在连接生命周期内不可变（握手时设定一次），因此扫描按服务器 NAME 而非内容做差异对比。
  */
 export function getMcpInstructionsDelta(
   mcpClients: MCPServerConnection[],
@@ -74,8 +70,8 @@ export function getMcpInstructionsDelta(
   )
   const connectedNames = new Set(connected.map(c => c.name))
 
-  // Servers with instructions to announce (either channel). A server can
-  // have both: server-authored instructions + a client-side block appended.
+  // 需发布指令的服务器（任一种通道）。一个服务器可同时具备：
+  // 服务器撰写的指令 + 追加的客户端侧块。
   const blocks = new Map<string, string>()
   for (const c of connected) {
     if (c.instructions) blocks.set(c.name, `## ${c.name}\n${c.instructions}`)
@@ -96,12 +92,10 @@ export function getMcpInstructionsDelta(
     if (!announced.has(name)) added.push({ name, block })
   }
 
-  // A previously-announced server that is no longer connected → removed.
-  // There is no "announced but now has no instructions" case for a still-
-  // connected server: InitializeResult is immutable, and client-side
-  // instruction gates are session-stable in practice. (/model can flip
-  // the model gate, but deferred_tools_delta has the same property and
-  // we treat history as historical — no retroactive retractions.)
+  // 之前已公布、现已不再连接的服务器 → 标记为 removed。
+  // 对于仍连接的服务器，不存在"已公布但如今没有指令"的情况：InitializeResult 不可变，
+  // 客户端指令的开关在实际运行中也是会话内稳定的。（/model 可能切换模型开关，
+  // 但 deferred_tools_delta 具有同样性质，且我们把历史视为既定历史——不做追溯性撤销。）
   const removed: string[] = []
   for (const n of announced) {
     if (!connectedNames.has(n)) removed.push(n)
@@ -109,9 +103,9 @@ export function getMcpInstructionsDelta(
 
   if (added.length === 0 && removed.length === 0) return null
 
-  // Same diagnostic fields as 内部代号_deferred_tools_pool_change — same
-  // scan-fails-in-prod bug, same attachment persistence path.
-  logEvent('内部代号_mcp_instructions_pool_change', {
+  // 与 limkenion_deferred_tools_pool_change 相同的诊断字段——相同的发布环境扫描缺陷，
+  // 相同的附件持久化路径。
+  logEvent('limkenion_mcp_instructions_pool_change', {
     addedCount: added.length,
     removedCount: removed.length,
     priorAnnouncedCount: announced.size,

@@ -5,7 +5,7 @@ import { Box, Text } from '../../ink.js';
 import { CtrlOToExpand } from '../CtrlOToExpand.js';
 import { Markdown } from '../Markdown.js';
 type Props = {
-  // Accept either full ThinkingBlock/ThinkingBlockParam or a minimal shape with just type and thinking
+  // 接受完整的 ThinkingBlock/ThinkingBlockParam，或仅含 type 与 thinking 的最小结构
   param: ThinkingBlock | ThinkingBlockParam | {
     type: 'thinking';
     thinking: string;
@@ -13,7 +13,7 @@ type Props = {
   addMargin: boolean;
   isTranscriptMode: boolean;
   verbose: boolean;
-  /** When true, hide this thinking block entirely (used for past thinking in transcript mode) */
+  /** 为 true 时完全隐藏此思考块（用于 transcript 模式中的历史思考） */
   hideInTranscript?: boolean;
 };
 export function AssistantThinkingMessage(t0) {
@@ -41,7 +41,7 @@ export function AssistantThinkingMessage(t0) {
     const t4 = addMargin ? 1 : 0;
     let t5;
     if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
-      t5 = <Text dimColor={true} italic={true}>{"\u2234 Thinking"} <CtrlOToExpand /></Text>;
+      t5 = <Text dimColor={true} italic={true}>{"\u2234 思考中"} <CtrlOToExpand /></Text>;
       $[0] = t5;
     } else {
       t5 = $[0];
@@ -59,7 +59,7 @@ export function AssistantThinkingMessage(t0) {
   const t4 = addMargin ? 1 : 0;
   let t5;
   if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
-    t5 = <Text dimColor={true} italic={true}>{"\u2234 Thinking"}…</Text>;
+    t5 = <Text dimColor={true} italic={true}>{"\u2234 思考中"}…</Text>;
     $[3] = t5;
   } else {
     t5 = $[3];

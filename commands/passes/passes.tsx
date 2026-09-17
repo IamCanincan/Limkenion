@@ -16,7 +16,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
       passesLastSeenRemaining: remaining ?? current.passesLastSeenRemaining
     }));
   }
-  logEvent('内部代号_guest_passes_visited', {
+  logEvent('limkenion_guest_passes_visited', {
     is_first_visit: isFirstVisit
   });
   return <Passes onDone={onDone} />;

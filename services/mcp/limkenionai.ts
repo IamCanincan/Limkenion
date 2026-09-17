@@ -41,7 +41,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
     try {
       if (isEnvDefinedFalsy(process.env.ENABLE_LIMKENIONAI_MCP_SERVERS)) {
         logForDebugging('[limkenionai-mcp] Disabled via env var')
-        logEvent('内部代号_limkenionai_mcp_eligibility', {
+        logEvent('limkenion_limkenionai_mcp_eligibility', {
           state:
             'disabled_env_var' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         })
@@ -51,7 +51,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
       const tokens = getLimkenionAIOAuthTokens()
       if (!tokens?.accessToken) {
         logForDebugging('[limkenionai-mcp] No access token')
-        logEvent('内部代号_limkenionai_mcp_eligibility', {
+        logEvent('limkenion_limkenionai_mcp_eligibility', {
           state:
             'no_oauth_token' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         })
@@ -67,7 +67,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
         logForDebugging(
           `[limkenionai-mcp] Missing user:mcp_servers scope (scopes=${tokens.scopes?.join(',') || 'none'})`,
         )
-        logEvent('内部代号_limkenionai_mcp_eligibility', {
+        logEvent('limkenion_limkenionai_mcp_eligibility', {
           state:
             'missing_scope' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         })
@@ -121,7 +121,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
       logForDebugging(
         `[limkenionai-mcp] Fetched ${Object.keys(configs).length} servers`,
       )
-      logEvent('内部代号_limkenionai_mcp_eligibility', {
+      logEvent('limkenion_limkenionai_mcp_eligibility', {
         state:
           'eligible' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })

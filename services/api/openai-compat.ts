@@ -38,8 +38,23 @@ function getConfig() {
     // 推理强度：low / medium / high（对应 codex 的 reasoning.effort，
     // 也是 上游 extended thinking 在 OpenAI 协议下的等效物）。
     // 仅对支持该参数的模型（OpenAI o-series / gpt-5+、部分兼容网关）生效。
-    reasoningEffort: process.env.REASONING_EFFORT || '',
+    // 运行时 set 优先于 env，其次默认空（见对 getRuntimeReasoningEffort 的调用）。
+    reasoningEffort: getRuntimeReasoningEffort(),
   }
+}
+
+/**
+ * 模块内可变的推理强度（low / medium / high），可会话中切换、不重启。
+ * 优先级：运行时 set > REASONING_EFFORT env > 空。
+ */
+let runtimeReasoningEffort: string | undefined
+
+export function setRuntimeReasoningEffort(value: string | undefined): void {
+  runtimeReasoningEffort = value
+}
+
+export function getRuntimeReasoningEffort(): string {
+  return runtimeReasoningEffort ?? process.env.REASONING_EFFORT ?? ''
 }
 
 /** 上游 content block -> 纯文本（OpenAI 只接受字符串或 content part 数组） */
@@ -222,6 +237,7 @@ export async function* queryOpenAICompat({
 
   // 流式累积
   let text = ''
+  let thinking = ''
   const toolCallMap = new Map<number, { id?: string; name?: string; args: string }>()
   let finishReason: string | undefined
   let usage: any
@@ -233,6 +249,13 @@ export async function* queryOpenAICompat({
       continue
     }
     const delta = choice.delta ?? {}
+    // 思维链在前，正文在后（参考 web/server/deepseek.mjs 的消费顺序）。
+    // 思考增量作为独立的 thinking_delta 流事件输出，交由上层展示；
+    // 不会混入下面的正文累积，也不影响 tool_calls 累积。
+    if (typeof delta.reasoning_content === 'string' && delta.reasoning_content) {
+      thinking += delta.reasoning_content
+      yield { type: 'thinking_delta', thinking: delta.reasoning_content }
+    }
     if (typeof delta.content === 'string' && delta.content) text += delta.content
 
     if (Array.isArray(delta.tool_calls)) {
@@ -252,6 +275,8 @@ export async function* queryOpenAICompat({
 
   // 组装 上游 风格 content blocks
   const content: any[] = []
+  // 思考链单独成块，避免混入正文文本
+  if (thinking) content.push({ type: 'thinking', thinking })
   if (text) content.push({ type: 'text', text })
 
   for (const [, tc] of [...toolCallMap.entries()].sort((a, b) => a[0] - b[0])) {

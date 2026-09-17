@@ -1,39 +1,39 @@
 /**
- * Session ID tag translation helpers for the CCR v2 compat layer.
+ * 用于 CCR v2 兼容层的会话 ID 标签转换辅助函数。
  *
- * Lives in its own file (rather than workSecret.ts) so that sessionHandle.ts
- * and replBridgeTransport.ts (bridge.mjs entry points) can import from
- * workSecret.ts without pulling in these retag functions.
+ * 放在独立文件中（而非 workSecret.ts），使 sessionHandle.ts 和
+ * replBridgeTransport.ts（bridge.mjs 入口点）可以从 workSecret.ts 导入，
+ * 而不拉入这些重新打标签的函数。
  *
- * The isCseShimEnabled kill switch is injected via setCseShimGate() to avoid
- * a static import of bridgeEnabled.ts → growthbook.ts → config.ts — all
- * banned from the sdk.mjs bundle (scripts/build-agent-sdk.sh). Callers that
- * already import bridgeEnabled.ts register the gate; the SDK path never does,
- * so the shim defaults to active (matching isCseShimEnabled()'s own default).
+ * isCseShimEnabled 杀开关通过 setCseShimGate() 注入，以避免静态导入
+ * bridgeEnabled.ts → growthbook.ts → config.ts——这些都被禁止进入 sdk.mjs
+ * 打包（scripts/build-agent-sdk.sh）。已经导入 bridgeEnabled.ts 的调用方会
+ * 注册该门控；SDK 路径从不注册，因此垫片默认为启用（与 isCseShimEnabled()
+ * 自身的默认一致）。
  */
 
 let _isCseShimEnabled: (() => boolean) | undefined
 
 /**
- * Register the GrowthBook gate for the cse_ shim. Called from bridge
- * init code that already imports bridgeEnabled.ts.
+ * 为 cse_ 垫片注册 GrowthBook 门控。由已经导入 bridgeEnabled.ts 的
+ * bridge 初始化代码调用。
  */
 export function setCseShimGate(gate: () => boolean): void {
   _isCseShimEnabled = gate
 }
 
 /**
- * Re-tag a `cse_*` session ID to `session_*` for use with the v1 compat API.
+ * 把 `cse_*` 会话 ID 重新打标签为 `session_*`，用于 v1 兼容 API。
  *
- * Worker endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*`; that's
- * what the work poll delivers. Client-facing compat endpoints
- * (/v1/sessions/{id}, /v1/sessions/{id}/archive, /v1/sessions/{id}/events)
- * want `session_*` — compat/convert.go:27 validates TagSession. Same UUID,
- * different costume. No-op for IDs that aren't `cse_*`.
+ * 工作端端点（/v1/code/sessions/{id}/worker/*）需要 `cse_*`；这就是任务轮询
+ * 交付的内容。面向客户端的兼容端点（/v1/sessions/{id}、
+ * /v1/sessions/{id}/archive、/v1/sessions/{id}/events）需要 `session_*`——
+ * compat/convert.go:27 会校验 TagSession。同样的 UUID，不同的马甲。对非
+ * `cse_*` 的 ID 为无操作。
  *
- * bridgeMain holds one sessionId variable for both worker registration and
- * session-management calls. It arrives as `cse_*` from the work poll under
- * the compat gate, so archiveSession/fetchSessionTitle need this re-tag.
+ * bridgeMain 对 worker 注册和会话管理调用持有一个 sessionId 变量。在兼容
+ * 门控下它从任务轮询中以 `cse_*` 到达，因此 archiveSession/
+ * fetchSessionTitle 需要这种重新打标签。
  */
 export function toCompatSessionId(id: string): string {
   if (!id.startsWith('cse_')) return id
@@ -42,14 +42,14 @@ export function toCompatSessionId(id: string): string {
 }
 
 /**
- * Re-tag a `session_*` session ID to `cse_*` for infrastructure-layer calls.
+ * 把 `session_*` 会话 ID 重新打标签为 `cse_*`，用于基础设施层调用。
  *
- * Inverse of toCompatSessionId. POST /v1/environments/{id}/bridge/reconnect
- * lives below the compat layer: once ccr_v2_compat_enabled is on server-side,
- * it looks sessions up by their infra tag (`cse_*`). createBridgeSession still
- * returns `session_*` (compat/convert.go:41) and that's what bridge-pointer
- * stores — so perpetual reconnect passes the wrong costume and gets "Session
- * not found" back. Same UUID, wrong tag. No-op for IDs that aren't `session_*`.
+ * 是 toCompatSessionId 的逆操作。POST /v1/environments/{id}/bridge/reconnect
+ * 位于兼容层之下：一旦服务端开启 ccr_v2_compat_enabled，它便按基础设施标签
+ * （`cse_*`）查会话。createBridgeSession 仍返回 `session_*`
+ * （compat/convert.go:41），而 bridge-pointer 存储的正是它——所以持久重连
+ * 会传入错误的马甲并收到「Session not found（会话未找到）」。同样的 UUID，
+ * 错误的标签。对非 `session_*` 的 ID 为无操作。
  */
 export function toInfraSessionId(id: string): string {
   if (!id.startsWith('session_')) return id

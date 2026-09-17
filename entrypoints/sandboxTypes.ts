@@ -9,7 +9,7 @@ import { z } from 'zod/v4'
 import { lazySchema } from '../utils/lazySchema.js'
 
 /**
- * Network configuration schema for sandbox.
+ * 沙箱的网络配置 schema。
  */
 export const SandboxNetworkConfigSchema = lazySchema(() =>
   z
@@ -19,20 +19,20 @@ export const SandboxNetworkConfigSchema = lazySchema(() =>
         .boolean()
         .optional()
         .describe(
-          'When true (and set in managed settings), only allowedDomains and WebFetch(domain:...) allow rules from managed settings are respected. ' +
-            'User, project, local, and flag settings domains are ignored. Denied domains are still respected from all sources.',
+          '为 true 时（并在托管设置中设置），仅遵守来自托管设置的 allowedDomains 与 WebFetch(domain:...) 允许规则。' +
+            '忽略用户、项目、本地和标识设置的网域。来自所有来源的拒绝网域仍会被遵守。',
         ),
       allowUnixSockets: z
         .array(z.string())
         .optional()
         .describe(
-          'macOS only: Unix socket paths to allow. Ignored on Linux (seccomp cannot filter by path).',
+          '仅限 macOS：要允许的 Unix socket 路径。在 Linux 上忽略（seccomp 无法按路径过滤）。',
         ),
       allowAllUnixSockets: z
         .boolean()
         .optional()
         .describe(
-          'If true, allow all Unix sockets (disables blocking on both platforms).',
+          '为 true 时，允许所有 Unix socket（在两个平台上都禁用拦截）。',
         ),
       allowLocalBinding: z.boolean().optional(),
       httpProxyPort: z.number().optional(),
@@ -42,7 +42,7 @@ export const SandboxNetworkConfigSchema = lazySchema(() =>
 )
 
 /**
- * Filesystem configuration schema for sandbox.
+ * 沙箱的文件系统配置 schema。
  */
 export const SandboxFilesystemConfigSchema = lazySchema(() =>
   z
@@ -51,42 +51,42 @@ export const SandboxFilesystemConfigSchema = lazySchema(() =>
         .array(z.string())
         .optional()
         .describe(
-          'Additional paths to allow writing within the sandbox. ' +
-            'Merged with paths from Edit(...) allow permission rules.',
+          '沙箱内额外允许写入的路径。' +
+            '与 Edit(...) 允许权限规则中的路径合并。',
         ),
       denyWrite: z
         .array(z.string())
         .optional()
         .describe(
-          'Additional paths to deny writing within the sandbox. ' +
-            'Merged with paths from Edit(...) deny permission rules.',
+          '沙箱内额外禁止写入的路径。' +
+            '与 Edit(...) 拒绝权限规则中的路径合并。',
         ),
       denyRead: z
         .array(z.string())
         .optional()
         .describe(
-          'Additional paths to deny reading within the sandbox. ' +
-            'Merged with paths from Read(...) deny permission rules.',
+          '沙箱内额外禁止读取的路径。' +
+            '与 Read(...) 拒绝权限规则中的路径合并。',
         ),
       allowRead: z
         .array(z.string())
         .optional()
         .describe(
-          'Paths to re-allow reading within denyRead regions. ' +
-            'Takes precedence over denyRead for matching paths.',
+          '在 denyRead 区域中重新允许读取的路径。' +
+            '对于匹配的路径，优先于 denyRead。',
         ),
       allowManagedReadPathsOnly: z
         .boolean()
         .optional()
         .describe(
-          'When true (set in managed settings), only allowRead paths from policySettings are used.',
+          '为 true 时（在托管设置中设置），仅使用来自 policySettings 的 allowRead 路径。',
         ),
     })
     .optional(),
 )
 
 /**
- * Sandbox settings schema.
+ * 沙箱设置 schema。
  */
 export const SandboxSettingsSchema = lazySchema(() =>
   z
@@ -96,27 +96,26 @@ export const SandboxSettingsSchema = lazySchema(() =>
         .boolean()
         .optional()
         .describe(
-          'Exit with an error at startup if sandbox.enabled is true but the sandbox cannot start ' +
-            '(missing dependencies, unsupported platform, or platform not in enabledPlatforms). ' +
-            'When false (default), a warning is shown and commands run unsandboxed. ' +
-            'Intended for managed-settings deployments that require sandboxing as a hard gate.',
+          '当 sandbox.enabled 为 true 但沙箱无法启动时，在启动时报错退出 ' +
+            '（缺少依赖、平台不受支持，或是平台不在 enabledPlatforms 中）。' +
+            '为 false（默认值）时，会显示警告，命令以非沙箱方式运行。' +
+            '适用于要求将沙箱作为硬性门控的托管设置部署。',
         ),
-      // Note: enabledPlatforms is an undocumented setting read via .passthrough()
-      // It restricts sandboxing to specific platforms (e.g., ["macos"]).
+      // 注意：enabledPlatforms 是通过 .passthrough() 读取的未记录设置。
+      // 它把沙箱限制到特定平台（例如 ["macos"]）。
       //
-      // Added to unblock NVIDIA enterprise rollout: they want to enable
-      // autoAllowBashIfSandboxed but only on macOS initially, since Linux/WSL
-      // sandbox support is newer and less battle-tested. This allows them to
-      // set enabledPlatforms: ["macos"] to disable sandbox (and auto-allow)
-      // on other platforms until they're ready to expand.
+      // 为了放行 NVIDIA 企业级部署而加入：他们想启用
+      // autoAllowBashIfSandboxed，但初期只在 macOS 上启用，因为 Linux/WSL
+      // 上的沙箱支持较新且未经充分验证。这使他们在其它平台准备好之前，
+      // 可以设置 enabledPlatforms: ["macos"] 来禁用沙箱（以及自动放行）。
       autoAllowBashIfSandboxed: z.boolean().optional(),
       allowUnsandboxedCommands: z
         .boolean()
         .optional()
         .describe(
-          'Allow commands to run outside the sandbox via the dangerouslyDisableSandbox parameter. ' +
-            'When false, the dangerouslyDisableSandbox parameter is completely ignored and all commands must run sandboxed. ' +
-            'Default: true.',
+          '允许命令通过 dangerouslyDisableSandbox 参数在沙箱之外运行。' +
+            '为 false 时，dangerouslyDisableSandbox 参数会被完全忽略，所有命令都必须在沙箱中运行。' +
+            '默认值：true。',
         ),
       network: SandboxNetworkConfigSchema(),
       filesystem: SandboxFilesystemConfigSchema(),
@@ -126,10 +125,9 @@ export const SandboxSettingsSchema = lazySchema(() =>
         .boolean()
         .optional()
         .describe(
-          'macOS only: Allow access to com.apple.trustd.agent in the sandbox. ' +
-            'Needed for Go-based CLI tools (gh, gcloud, terraform, etc.) to verify TLS certificates ' +
-            'when using httpProxyPort with a MITM proxy and custom CA. ' +
-            '**Reduces security** — opens a potential data exfiltration vector through the trustd service. Default: false',
+          '仅限 macOS：允许在沙箱中访问 com.apple.trustd.agent。' +
+            '基于 Go 的 CLI 工具（gh、gcloud、terraform 等）在通过 httpProxyPort 使用带 MITM 代理和自定义 CA 时，需要它来验证 TLS 证书。' +
+            '**会降低安全性** —— 通过 trustd 服务打开潜在的数据外泄途径。默认值：false',
         ),
       excludedCommands: z.array(z.string()).optional(),
       ripgrep: z
@@ -138,12 +136,12 @@ export const SandboxSettingsSchema = lazySchema(() =>
           args: z.array(z.string()).optional(),
         })
         .optional()
-        .describe('Custom ripgrep configuration for bundled ripgrep support'),
+        .describe('内置 ripgrep 支持的自定义 ripgrep 配置'),
     })
     .passthrough(),
 )
 
-// Inferred types from schemas
+// 由 schema 推断出的类型
 export type SandboxSettings = z.infer<ReturnType<typeof SandboxSettingsSchema>>
 export type SandboxNetworkConfig = NonNullable<
   z.infer<ReturnType<typeof SandboxNetworkConfigSchema>>

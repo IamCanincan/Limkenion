@@ -6,9 +6,9 @@ import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../../services/anal
 const thinkbackPlay = {
   type: 'local',
   name: 'thinkback-play',
-  description: 'Play the thinkback animation',
+  description: '播放 thinkback 动画',
   isEnabled: () =>
-    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_thinkback'),
+    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_thinkback'),
   isHidden: true,
   supportsNonInteractive: false,
   load: () => import('./thinkback-play.js'),

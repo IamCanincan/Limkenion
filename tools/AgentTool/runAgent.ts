@@ -359,11 +359,7 @@ export async function* runAgent({
   }
 
   // Log API calls path for subagents (ant-only)
-  if (process.env.USER_TYPE === 'ant') {
-    logForDebugging(
-      `[Subagent ${agentDefinition.agentType}] API calls: ${getDisplayPath(getDumpPromptsPath(agentId))}`,
-    )
-  }
+  
 
   // Handle message forking for context sharing
   // Filter out incomplete tool calls from parent messages to avoid API errors
@@ -386,11 +382,11 @@ export async function* runAgent({
   // LIMKENION.md — the main agent has full context and interprets their output.
   // Dropping limkenionMd here saves ~5-15 Gtok/week across 34M+ Explore spawns.
   // Explicit override.userContext from callers is preserved untouched.
-  // Kill-switch defaults true; flip 内部代号_slim_subagent_limkenionmd=false to revert.
+  // Kill-switch defaults true; flip limkenion_slim_subagent_limkenionmd=false to revert.
   const shouldOmitLimkenionMd =
     agentDefinition.omitLimkenionMd &&
     !override?.userContext &&
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_slim_subagent_limkenionmd', true)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_slim_subagent_limkenionmd', true)
   const { limkenionMd: _omittedLimkenionMd, ...userContextNoLimkenionMd } =
     baseUserContext
   const resolvedUserContext = shouldOmitLimkenionMd

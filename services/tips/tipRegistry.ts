@@ -109,7 +109,7 @@ const externalTips: Tip[] = [
       `Use Plan Mode to prepare for a complex request before making changes. Press ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} twice to enable.`,
     cooldownSessions: 5,
     isRelevant: async () => {
-      if (process.env.USER_TYPE === 'ant') return false
+      
       const config = getGlobalConfig()
       // Show to users who haven't used plan mode recently (7+ days)
       const daysSinceLastUse = config.lastPlanModeUse
@@ -401,9 +401,7 @@ const externalTips: Tip[] = [
   {
     id: 'shift-tab',
     content: async () =>
-      process.env.USER_TYPE === 'ant'
-        ? `Hit ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} to cycle between default mode and auto mode`
-        : `Hit ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} to cycle between default mode, auto-accept edit mode, and plan mode`,
+      `Hit ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} to cycle between default mode, auto-accept edit mode, and plan mode`,
     cooldownSessions: 10,
     isRelevant: async () => true,
   },
@@ -476,7 +474,7 @@ const externalTips: Tip[] = [
       `Your default model setting is Opus Plan Mode. Press ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} twice to activate Plan Mode and plan with Limkenion Opus.`,
     cooldownSessions: 2,
     async isRelevant() {
-      if (process.env.USER_TYPE === 'ant') return false
+      
       const config = getGlobalConfig()
       const modelSetting = getUserSpecifiedModelSetting()
       const hasOpusPlanMode = modelSetting === 'opusplan'
@@ -519,7 +517,7 @@ const externalTips: Tip[] = [
       const cmd = blue('/effort high')
       const variant = getFeatureValue_CACHED_MAY_BE_STALE<
         'off' | 'copy_a' | 'copy_b'
-      >('内部代号_tide_elm', 'off')
+      >('limkenion_tide_elm', 'off')
       return variant === 'copy_b'
         ? `Use ${cmd} for better one-shot answers. Limkenion thinks it through first.`
         : `Working on something tricky? ${cmd} gives better first answers`
@@ -536,7 +534,7 @@ const externalTips: Tip[] = [
       if (persisted === 'high' || persisted === 'max') return false
       return (
         getFeatureValue_CACHED_MAY_BE_STALE<'off' | 'copy_a' | 'copy_b'>(
-          '内部代号_tide_elm',
+          'limkenion_tide_elm',
           'off',
         ) !== 'off'
       )
@@ -548,7 +546,7 @@ const externalTips: Tip[] = [
       const blue = color('suggestion', ctx.theme)
       const variant = getFeatureValue_CACHED_MAY_BE_STALE<
         'off' | 'copy_a' | 'copy_b'
-      >('内部代号_tern_alloy', 'off')
+      >('limkenion_tern_alloy', 'off')
       return variant === 'copy_b'
         ? `For big tasks, tell Limkenion to ${blue('use subagents')}. They work in parallel and keep your main thread clean.`
         : `Say ${blue('"fan out subagents"')} and Limkenion sends a team. Each one digs deep so nothing gets missed.`
@@ -558,7 +556,7 @@ const externalTips: Tip[] = [
       if (!is1PApiCustomer()) return false
       return (
         getFeatureValue_CACHED_MAY_BE_STALE<'off' | 'copy_a' | 'copy_b'>(
-          '内部代号_tern_alloy',
+          'limkenion_tern_alloy',
           'off',
         ) !== 'off'
       )
@@ -570,7 +568,7 @@ const externalTips: Tip[] = [
       const blue = color('suggestion', ctx.theme)
       const variant = getFeatureValue_CACHED_MAY_BE_STALE<
         'off' | 'copy_a' | 'copy_b'
-      >('内部代号_timber_lark', 'off')
+      >('limkenion_timber_lark', 'off')
       return variant === 'copy_b'
         ? `Use ${blue('/loop 5m check the deploy')} to run any prompt on a schedule. Set it and forget it.`
         : `${blue('/loop')} runs any prompt on a recurring schedule. Great for monitoring deploys, babysitting PRs, or polling status.`
@@ -581,7 +579,7 @@ const externalTips: Tip[] = [
       if (!isKairosCronEnabled()) return false
       return (
         getFeatureValue_CACHED_MAY_BE_STALE<'off' | 'copy_a' | 'copy_b'>(
-          '内部代号_timber_lark',
+          'limkenion_timber_lark',
           'off',
         ) !== 'off'
       )
@@ -624,33 +622,14 @@ const externalTips: Tip[] = [
     content: async () => 'Use /feedback to help us improve!',
     cooldownSessions: 15,
     async isRelevant() {
-      if (process.env.USER_TYPE === 'ant') {
-        return false
-      }
+      
       const config = getGlobalConfig()
       return config.numStartups > 5
     },
   },
 ]
 const internalOnlyTips: Tip[] =
-  process.env.USER_TYPE === 'ant'
-    ? [
-        {
-          id: 'important-limkenionmd',
-          content: async () =>
-            '[ANT-ONLY] Use "IMPORTANT:" prefix for must-follow LIMKENION.md rules',
-          cooldownSessions: 30,
-          isRelevant: async () => true,
-        },
-        {
-          id: 'skillify',
-          content: async () =>
-            '[ANT-ONLY] Use /skillify at the end of a workflow to turn it into a reusable skill',
-          cooldownSessions: 15,
-          isRelevant: async () => true,
-        },
-      ]
-    : []
+  []
 
 function getCustomTips(): Tip[] {
   const settings = getInitialSettings()

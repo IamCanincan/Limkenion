@@ -26,48 +26,12 @@ import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 
 export function isUndercover(): boolean {
-  if (process.env.USER_TYPE === 'ant') {
-    if (isEnvTruthy(process.env.LIMKENION_UNDERCOVER)) return true
-    // Auto: active unless we've positively confirmed we're in an allowlisted
-    // internal repo. 'external', 'none', and null (check not yet run) all
-    // resolve to ON. The check is primed in setup.ts; only 'internal' → OFF.
-    return getRepoClassCached() !== 'internal'
-  }
+  
   return false
 }
 
 export function getUndercoverInstructions(): string {
-  if (process.env.USER_TYPE === 'ant') {
-    return `## UNDERCOVER MODE — CRITICAL
-
-You are operating UNDERCOVER in a PUBLIC/OPEN-SOURCE repository. Your commit
-messages, PR titles, and PR bodies MUST NOT contain ANY Limkenion-internal
-information. Do not blow your cover.
-
-NEVER include in commit messages or PR descriptions:
-- Internal model codenames (animal names like Capybara, 内部代号, etc.)
-- Unreleased model version numbers (e.g., opus-4-7, sonnet-4-8)
-- Internal repo or project names (e.g., limkenion-cli-internal, limkenions/…)
-- Internal tooling, Slack channels, or short links (e.g., go/cc, #limkenion-…)
-- The phrase "Limkenion" or any mention that you are an AI
-- Any hint of what model or version you are
-- Co-Authored-By lines or any other attribution
-
-Write commit messages as a human developer would — describe only what the code
-change does.
-
-GOOD:
-- "Fix race condition in file watcher initialization"
-- "Add support for custom key bindings"
-- "Refactor parser for better error messages"
-
-BAD (never write these):
-- "Fix bug found while testing with Limkenion Capybara"
-- "1-shotted by limkenion-opus-4-6"
-- "Generated with Limkenion"
-- "Co-Authored-By: Limkenion Opus 4.6 <…>"
-`
-  }
+  
   return ''
 }
 
@@ -78,12 +42,6 @@ BAD (never write these):
  * flag on mount.
  */
 export function shouldShowUndercoverAutoNotice(): boolean {
-  if (process.env.USER_TYPE === 'ant') {
-    // If forced via env, user already knows; don't nag.
-    if (isEnvTruthy(process.env.LIMKENION_UNDERCOVER)) return false
-    if (!isUndercover()) return false
-    if (getGlobalConfig().hasSeenUndercoverAutoNotice) return false
-    return true
-  }
+  
   return false
 }

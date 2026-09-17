@@ -4,7 +4,7 @@ import type { AgentDefinitionsResult } from '../tools/AgentTool/loadAgentsDir.js
 export const AGENT_DESCRIPTIONS_THRESHOLD = 15_000
 
 /**
- * Calculate cumulative token estimate for agent descriptions
+ * 计算智能体描述的总 token 估算值
  */
 export function getAgentDescriptionsTotalTokens(
   agentDefinitions?: AgentDefinitionsResult,

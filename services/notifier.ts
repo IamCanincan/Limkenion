@@ -26,7 +26,7 @@ export async function sendNotification(
 
   const methodUsed = await sendToChannel(channel, notif, terminal)
 
-  logEvent('内部代号_notification_method_used', {
+  logEvent('limkenion_notification_method_used', {
     configured_channel:
       channel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     method_used:

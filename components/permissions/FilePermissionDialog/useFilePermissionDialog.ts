@@ -178,20 +178,20 @@ export function useFilePermissionDialog<T extends ToolInput>({
       if (value === 'yes') {
         if (yesInputMode) {
           setYesInputMode(false)
-          logEvent('内部代号_accept_feedback_mode_collapsed', analyticsProps)
+          logEvent('limkenion_accept_feedback_mode_collapsed', analyticsProps)
         } else {
           setYesInputMode(true)
           setYesFeedbackModeEntered(true)
-          logEvent('内部代号_accept_feedback_mode_entered', analyticsProps)
+          logEvent('limkenion_accept_feedback_mode_entered', analyticsProps)
         }
       } else if (value === 'no') {
         if (noInputMode) {
           setNoInputMode(false)
-          logEvent('内部代号_reject_feedback_mode_collapsed', analyticsProps)
+          logEvent('limkenion_reject_feedback_mode_collapsed', analyticsProps)
         } else {
           setNoInputMode(true)
           setNoFeedbackModeEntered(true)
-          logEvent('内部代号_reject_feedback_mode_entered', analyticsProps)
+          logEvent('limkenion_reject_feedback_mode_entered', analyticsProps)
         }
       }
     },

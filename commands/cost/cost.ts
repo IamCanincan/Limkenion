@@ -9,15 +9,13 @@ export const call: LocalCommandCall = async () => {
 
     if (currentLimits.isUsingOverage) {
       value =
-        'You are currently using your overages to power your Limkenion usage. We will automatically switch you back to your subscription rate limits when they reset'
+        '你当前正在使用超额量来驱动你的 Limkenion 使用。当订阅速率限制重置时，我们会自动将你切回订阅速率限制'
     } else {
       value =
-        'You are currently using your subscription to power your Limkenion usage'
+        '你当前正在使用你的订阅来驱动你的 Limkenion 使用'
     }
 
-    if (process.env.USER_TYPE === 'ant') {
-      value += `\n\n[ANT-ONLY] Showing cost anyway:\n ${formatTotalCost()}`
-    }
+    
     return { type: 'text', value }
   }
   return { type: 'text', value: formatTotalCost() }

@@ -6,10 +6,10 @@ const web = {
   type: 'local-jsx',
   name: 'web-setup',
   description:
-    'Setup Limkenion on the web (requires connecting your GitHub account)',
+    '在 Web 上设置 Limkenion（需要连接你的 GitHub 账号）',
   availability: ['limkenion-ai'],
   isEnabled: () =>
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_cobalt_lantern', false) &&
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_cobalt_lantern', false) &&
     isPolicyAllowed('allow_remote_sessions'),
   get isHidden() {
     return !isPolicyAllowed('allow_remote_sessions')

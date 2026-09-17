@@ -19,13 +19,13 @@ interface SessionIngressError {
   }
 }
 
-// Module-level state
+// 模块级状态
 const lastUuidMap: Map<string, UUID> = new Map()
 
 const MAX_RETRIES = 10
 const BASE_DELAY_MS = 500
 
-// Per-session sequential wrappers to prevent concurrent log writes
+// 每个会话一个顺序包装器，防止并发写入日志
 const sequentialAppendBySession: Map<
   string,
   (
@@ -36,8 +36,8 @@ const sequentialAppendBySession: Map<
 > = new Map()
 
 /**
- * Gets or creates a sequential wrapper for a session
- * This ensures that log appends for a session are processed one at a time
+ * 获取或创建某个会话的顺序包装器
+ * 这确保一个会话的日志追加是逐条依次处理的
  */
 function getOrCreateSequentialAppend(sessionId: string) {
   let sequentialAppend = sequentialAppendBySession.get(sessionId)
@@ -55,10 +55,10 @@ function getOrCreateSequentialAppend(sessionId: string) {
 }
 
 /**
- * Internal implementation of appendSessionLog with retry logic
- * Retries on transient errors (network, 5xx, 429). On 409, adopts the server's
- * last UUID and retries (handles stale state from killed process's in-flight
- * requests). Fails immediately on 401.
+ * appendSessionLog 的内部实现，带重试逻辑
+ * 对瞬时错误（网络、5xx、429）重试。遇到 409 时，采用服务器的
+ * 最新 UUID 并重试（处理被终止进程的进行中请求残留的过期状态）。
+ * 遇到 401 则立即失败。
  */
 async function appendSessionLogImpl(
   sessionId: string,
@@ -82,52 +82,51 @@ async function appendSessionLogImpl(
       if (response.status === 200 || response.status === 201) {
         lastUuidMap.set(sessionId, entry.uuid)
         logForDebugging(
-          `Successfully persisted session log entry for session ${sessionId}`,
+          `已成功持久化会话 ${sessionId} 的日志条目`,
         )
         return true
       }
 
       if (response.status === 409) {
-        // Check if our entry was actually stored (server returned 409 but entry exists)
-        // This handles the scenario where entry was stored but client received an error
-        // response, causing lastUuidMap to be stale
+        // 检查我们的条目是否实际上已被存储（服务器返回 409 但条目已存在）
+        // 这处理了条目已存储但客户端收到错误响应、导致 lastUuidMap 过期的场景
         const serverLastUuid = response.headers['x-last-uuid']
         if (serverLastUuid === entry.uuid) {
-          // Our entry IS the last entry on server - it was stored successfully previously
+          // 我们的条目就是服务器上的最后条目——之前已成功存储
           lastUuidMap.set(sessionId, entry.uuid)
           logForDebugging(
-            `Session entry ${entry.uuid} already present on server, recovering from stale state`,
+            `会话条目 ${entry.uuid} 已存在于服务器上，正在从过期状态恢复`,
           )
           logForDiagnosticsNoPII('info', 'session_persist_recovered_from_409')
           return true
         }
 
-        // Another writer (e.g. in-flight request from a killed process)
-        // advanced the server's chain. Try to adopt the server's last UUID
-        // from the response header, or re-fetch the session to discover it.
+        // 另一个写入者（例如被终止进程的进行中请求）
+        // 推进了服务器的链。尝试从响应请求头中采用服务器的最新 UUID，
+        // 或重新拉取会话以发现它。
         if (serverLastUuid) {
           lastUuidMap.set(sessionId, serverLastUuid as UUID)
           logForDebugging(
-            `Session 409: adopting server lastUuid=${serverLastUuid} from header, retrying entry ${entry.uuid}`,
+            `会话 409：正在从请求头采用服务器 lastUuid=${serverLastUuid}，重试条目 ${entry.uuid}`,
           )
         } else {
-          // Server didn't return x-last-uuid (e.g. v1 endpoint). Re-fetch
-          // the session to discover the current head of the append chain.
+          // 服务器未返回 x-last-uuid（例如 v1 端点）。重新拉取
+          // 会话以发现追加链的当前头部。
           const logs = await fetchSessionLogsFromUrl(sessionId, url, headers)
           const adoptedUuid = findLastUuid(logs)
           if (adoptedUuid) {
             lastUuidMap.set(sessionId, adoptedUuid)
             logForDebugging(
-              `Session 409: re-fetched ${logs!.length} entries, adopting lastUuid=${adoptedUuid}, retrying entry ${entry.uuid}`,
+              `会话 409：已重新拉取 ${logs!.length} 条条目，采用 lastUuid=${adoptedUuid}，重试条目 ${entry.uuid}`,
             )
           } else {
-            // Can't determine server state — give up
+            // 无法确定服务器状态——放弃
             const errorData = response.data as SessionIngressError
             const errorMessage =
-              errorData.error?.message || 'Concurrent modification detected'
+              errorData.error?.message || '检测到并发修改'
             logError(
               new Error(
-                `Session persistence conflict: UUID mismatch for session ${sessionId}, entry ${entry.uuid}. ${errorMessage}`,
+                `会话持久化冲突：会话 ${sessionId} 的 UUID 不匹配，条目 ${entry.uuid}。${errorMessage}`,
               ),
             )
             logForDiagnosticsNoPII(
@@ -138,27 +137,27 @@ async function appendSessionLogImpl(
           }
         }
         logForDiagnosticsNoPII('info', 'session_persist_409_adopt_server_uuid')
-        continue // retry with updated lastUuid
+        continue // 使用更新的 lastUuid 重试
       }
 
       if (response.status === 401) {
-        logForDebugging('Session token expired or invalid')
+        logForDebugging('会话 token 已过期或无效')
         logForDiagnosticsNoPII('error', 'session_persist_fail_bad_token')
-        return false // Non-retryable
+        return false // 不可重试
       }
 
-      // Other 4xx (429, etc.) - retryable
+      // 其他 4xx（429 等）——可重试
       logForDebugging(
-        `Failed to persist session log: ${response.status} ${response.statusText}`,
+        `持久化会话日志失败：${response.status} ${response.statusText}`,
       )
       logForDiagnosticsNoPII('error', 'session_persist_fail_status', {
         status: response.status,
         attempt,
       })
     } catch (error) {
-      // Network errors, 5xx - retryable
+      // 网络错误、5xx——可重试
       const axiosError = error as AxiosError<SessionIngressError>
-      logError(new Error(`Error persisting session log: ${axiosError.message}`))
+      logError(new Error(`持久化会话日志出错：${axiosError.message}`))
       logForDiagnosticsNoPII('error', 'session_persist_fail_status', {
         status: axiosError.status,
         attempt,
@@ -166,7 +165,7 @@ async function appendSessionLogImpl(
     }
 
     if (attempt === MAX_RETRIES) {
-      logForDebugging(`Remote persistence failed after ${MAX_RETRIES} attempts`)
+      logForDebugging(`远程持久化在 ${MAX_RETRIES} 次尝试后失败`)
       logForDiagnosticsNoPII(
         'error',
         'session_persist_error_retries_exhausted',
@@ -177,7 +176,7 @@ async function appendSessionLogImpl(
 
     const delayMs = Math.min(BASE_DELAY_MS * Math.pow(2, attempt - 1), 8000)
     logForDebugging(
-      `Remote persistence attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delayMs}ms…`,
+      `远程持久化第 ${attempt}/${MAX_RETRIES} 次尝试失败，将在 ${delayMs}ms 后重试…`,
     )
     await sleep(delayMs)
   }
@@ -186,9 +185,9 @@ async function appendSessionLogImpl(
 }
 
 /**
- * Append a log entry to the session using JWT token
- * Uses optimistic concurrency control with Last-Uuid header
- * Ensures sequential execution per session to prevent race conditions
+ * 使用 JWT token 将会话日志条目追加到会话
+ * 通过 Last-Uuid 请求头进行乐观并发控制
+ * 确保每个会话顺序执行，以防止竞态条件
  */
 export async function appendSessionLog(
   sessionId: string,
@@ -197,7 +196,7 @@ export async function appendSessionLog(
 ): Promise<boolean> {
   const sessionToken = getSessionIngressAuthToken()
   if (!sessionToken) {
-    logForDebugging('No session token available for session persistence')
+    logForDebugging('没有可用于会话持久化的会话 token')
     logForDiagnosticsNoPII('error', 'session_persist_fail_jwt_no_token')
     return false
   }
@@ -212,7 +211,7 @@ export async function appendSessionLog(
 }
 
 /**
- * Get all session logs for hydration
+ * 获取全部会话日志用于水合恢复
  */
 export async function getSessionLogs(
   sessionId: string,
@@ -220,7 +219,7 @@ export async function getSessionLogs(
 ): Promise<Entry[] | null> {
   const sessionToken = getSessionIngressAuthToken()
   if (!sessionToken) {
-    logForDebugging('No session token available for fetching session logs')
+    logForDebugging('没有可用于获取会话日志的会话 token')
     logForDiagnosticsNoPII('error', 'session_get_fail_no_token')
     return null
   }
@@ -229,7 +228,7 @@ export async function getSessionLogs(
   const logs = await fetchSessionLogsFromUrl(sessionId, url, headers)
 
   if (logs && logs.length > 0) {
-    // Update our lastUuid to the last entry's UUID
+    // 将我们的 lastUuid 更新为最后一条条目的 UUID
     const lastEntry = logs.at(-1)
     if (lastEntry && 'uuid' in lastEntry && lastEntry.uuid) {
       lastUuidMap.set(sessionId, lastEntry.uuid)
@@ -240,8 +239,8 @@ export async function getSessionLogs(
 }
 
 /**
- * Get all session logs for hydration via OAuth
- * Used for teleporting sessions from the Sessions API
+ * 通过 OAuth 获取全部会话日志用于水合恢复
+ * 用于从 Sessions API 传送会话
  */
 export async function getSessionLogsViaOAuth(
   sessionId: string,
@@ -249,7 +248,7 @@ export async function getSessionLogsViaOAuth(
   orgUUID: string,
 ): Promise<Entry[] | null> {
   const url = `${getOauthConfig().BASE_API_URL}/v1/session_ingress/session/${sessionId}`
-  logForDebugging(`[session-ingress] Fetching session logs from: ${url}`)
+  logForDebugging(`[session-ingress] 正在从以下地址获取会话日志：${url}`)
   const headers = {
     ...getOAuthHeaders(accessToken),
     'x-organization-uuid': orgUUID,
@@ -259,10 +258,9 @@ export async function getSessionLogsViaOAuth(
 }
 
 /**
- * Response shape from GET /v1/code/sessions/{id}/teleport-events.
- * WorkerEvent.payload IS the Entry (TranscriptMessage struct) — the CLI
- * writes it via AddWorkerEvent, the server stores it opaque, we read it
- * back here.
+ * GET /v1/code/sessions/{id}/teleport-events 的响应结构。
+ * WorkerEvent.payload 就是 Entry（TranscriptMessage 结构）——CLI
+ * 通过 AddWorkerEvent 写入它，服务器将其不透明存储，我们在此读回。
  */
 type TeleportEventsResponse = {
   data: Array<{
@@ -272,21 +270,21 @@ type TeleportEventsResponse = {
     payload: Entry | null
     created_at: string
   }>
-  // Unset when there are no more pages — this IS the end-of-stream
-  // signal (no separate has_more field).
+  // 当没有更多页时未设置——这本身就是流的结束
+  // 信号（没有单独的 has_more 字段）。
   next_cursor?: string
 }
 
 /**
- * Get worker events (transcript) via the CCR v2 Sessions API. Replaces
- * getSessionLogsViaOAuth once session-ingress is retired.
+ * 通过 CCR v2 Sessions API 获取 worker 事件（会话记录）。一旦
+ * session-ingress 退役，它将取代 getSessionLogsViaOAuth。
  *
- * The server dispatches per-session: Spanner for v2-native sessions,
- * threadstore for pre-backfill session_* IDs. The cursor is opaque to us —
- * echo it back until next_cursor is unset.
+ * 服务器按会话分发：v2 原生会话走 Spanner，
+ * 回填前的 session_* ID 走 threadstore。游标对我们而言是不透明的——
+ * 原样回传，直到 next_cursor 未设置。
  *
- * Paginated (500/page default, server max 1000). session-ingress's one-shot
- * 50k is gone; we loop.
+ * 分页（默认每页 500，服务器上限 1000）。session-ingress 的一次性
+ * 5 万条已取消；我们改为循环拉取。
  */
 export async function getTeleportEvents(
   sessionId: string,
@@ -299,15 +297,15 @@ export async function getTeleportEvents(
     'x-organization-uuid': orgUUID,
   }
 
-  logForDebugging(`[teleport] Fetching events from: ${baseUrl}`)
+  logForDebugging(`[teleport] 正在从以下地址获取事件：${baseUrl}`)
 
   const all: Entry[] = []
   let cursor: string | undefined
   let pages = 0
 
-  // Infinite-loop guard: 1000/page × 100 pages = 100k events. Larger than
-  // session-ingress's 50k one-shot. If we hit this, something's wrong
-  // (server not advancing cursor) — bail rather than hang.
+  // 防无限循环：1000/页 × 100 页 = 10 万条事件。大于
+  // session-ingress 的一次性 5 万条。若触发此上限，说明有问题
+  //（服务器未推进游标）——应退出而非挂起。
   const maxPages = 100
 
   while (pages < maxPages) {
@@ -326,27 +324,27 @@ export async function getTeleportEvents(
       })
     } catch (e) {
       const err = e as AxiosError
-      logError(new Error(`Teleport events fetch failed: ${err.message}`))
+      logError(new Error(`Teleport 事件获取失败：${err.message}`))
       logForDiagnosticsNoPII('error', 'teleport_events_fetch_fail')
       return null
     }
 
     if (response.status === 404) {
-      // 404 on page 0 is ambiguous during the migration window:
-      //   (a) Session genuinely not found (not in Spanner AND not in
-      //       threadstore) — nothing to fetch.
-      //   (b) Route-level 404: endpoint not deployed yet, or session is
-      //       a threadstore session not yet backfilled into Spanner.
-      // We can't tell them apart from the response alone. Returning null
-      // lets the caller fall back to session-ingress, which will correctly
-      // return empty for case (a) and data for case (b). Once the backfill
-      // is complete and session-ingress is gone, the fallback also returns
-      // null → same "Failed to fetch session logs" error as today.
+      // 迁移窗口期的 404 存在歧义：
+      //   (a) 会话确实未找到（既不在 Spanner 也不在
+      //       threadstore 中）——无可获取。
+      //   (b) 路由级 404：端点尚未部署，或该会话是
+      //       尚未回填进 Spanner 的 threadstore 会话。
+      // 仅凭响应我们无法区分二者。返回 null
+      // 可让调用方回退到 session-ingress，它会对场景 (a) 正确返回空、
+      // 对场景 (b) 返回数据。一旦回填完成且 session-ingress
+      // 下线，回退也会返回 null → 与今天相同的 "Failed to fetch
+      // session logs" 错误。
       //
-      // 404 mid-pagination (pages > 0) means session was deleted between
-      // pages — return what we have.
+      // 分页中途（pages > 0）的 404 表示会话在页与页之间被删除——
+      // 返回我们已有的内容。
       logForDebugging(
-        `[teleport] Session ${sessionId} not found (page ${pages})`,
+        `[teleport] 未找到会话 ${sessionId}（第 ${pages} 页）`,
       )
       logForDiagnosticsNoPII('warn', 'teleport_events_not_found')
       return pages === 0 ? null : all
@@ -355,14 +353,14 @@ export async function getTeleportEvents(
     if (response.status === 401) {
       logForDiagnosticsNoPII('error', 'teleport_events_bad_token')
       throw new Error(
-        'Your session has expired. Please run /login to sign in again.',
+        '你的会话已过期。请运行 /login 重新登录。',
       )
     }
 
     if (response.status !== 200) {
       logError(
         new Error(
-          `Teleport events returned ${response.status}: ${jsonStringify(response.data)}`,
+          `Teleport 事件返回 ${response.status}：${jsonStringify(response.data)}`,
         ),
       )
       logForDiagnosticsNoPII('error', 'teleport_events_bad_status')
@@ -373,15 +371,15 @@ export async function getTeleportEvents(
     if (!Array.isArray(data)) {
       logError(
         new Error(
-          `Teleport events invalid response shape: ${jsonStringify(response.data)}`,
+          `Teleport 事件响应结构无效：${jsonStringify(response.data)}`,
         ),
       )
       logForDiagnosticsNoPII('error', 'teleport_events_invalid_shape')
       return null
     }
 
-    // payload IS the Entry. null payload happens for threadstore non-generic
-    // events (server skips them) or encryption failures — skip here too.
+    // payload 就是 Entry。null payload 出现在 threadstore 非通用
+    // 事件（服务器跳过它们）或加密失败时——这里也一并跳过。
     for (const ev of data) {
       if (ev.payload !== null) {
         all.push(ev.payload)
@@ -389,10 +387,10 @@ export async function getTeleportEvents(
     }
 
     pages++
-    // == null covers both `null` and `undefined` — the proto omits the
-    // field at end-of-stream, but some serializers emit `null`. Strict
-    // `=== undefined` would loop forever on `null` (cursor=null in query
-    // params stringifies to "null", which the server rejects or echoes).
+    // == null 同时覆盖 `null` 和 `undefined`——proto 在流结束时省略
+    // 该字段，但有些序列化器会发出 `null`。严格的
+    // `=== undefined` 会在 `null` 上无限循环（查询参数中的
+    // cursor=null 会字符串化为 "null"，服务器会拒绝或原样回显）。
     if (next_cursor == null) {
       break
     }
@@ -400,22 +398,22 @@ export async function getTeleportEvents(
   }
 
   if (pages >= maxPages) {
-    // Don't fail — return what we have. Better to teleport with a
-    // truncated transcript than not at all.
+    // 不要失败——返回我们已有的内容。带截断的会话记录传送
+    // 总比完全无法传送要好。
     logError(
-      new Error(`Teleport events hit page cap (${maxPages}) for ${sessionId}`),
+      new Error(`Teleport 事件达到页数上限（${maxPages}）会话 ${sessionId}`),
     )
     logForDiagnosticsNoPII('warn', 'teleport_events_page_cap')
   }
 
   logForDebugging(
-    `[teleport] Fetched ${all.length} events over ${pages} page(s) for ${sessionId}`,
+    `[teleport] 已通过 ${pages} 页为会话 ${sessionId} 获取 ${all.length} 条事件`,
   )
   return all
 }
 
 /**
- * Shared implementation for fetching session logs from a URL
+ * 从 URL 获取会话日志的共享实现
  */
 async function fetchSessionLogsFromUrl(
   sessionId: string,
@@ -435,11 +433,11 @@ async function fetchSessionLogsFromUrl(
     if (response.status === 200) {
       const data = response.data
 
-      // Validate the response structure
+      // 验证响应结构
       if (!data || typeof data !== 'object' || !Array.isArray(data.loglines)) {
         logError(
           new Error(
-            `Invalid session logs response format: ${jsonStringify(data)}`,
+            `无效的会话日志响应格式：${jsonStringify(data)}`,
           ),
         )
         logForDiagnosticsNoPII('error', 'session_get_fail_invalid_response')
@@ -448,27 +446,27 @@ async function fetchSessionLogsFromUrl(
 
       const logs = data.loglines as Entry[]
       logForDebugging(
-        `Fetched ${logs.length} session logs for session ${sessionId}`,
+        `已为会话 ${sessionId} 获取 ${logs.length} 条会话日志`,
       )
       return logs
     }
 
     if (response.status === 404) {
-      logForDebugging(`No existing logs for session ${sessionId}`)
+      logForDebugging(`会话 ${sessionId} 没有现有日志`)
       logForDiagnosticsNoPII('warn', 'session_get_no_logs_for_session')
       return []
     }
 
     if (response.status === 401) {
-      logForDebugging('Auth token expired or invalid')
+      logForDebugging('认证 token 已过期或无效')
       logForDiagnosticsNoPII('error', 'session_get_fail_bad_token')
       throw new Error(
-        'Your session has expired. Please run /login to sign in again.',
+        '你的会话已过期。请运行 /login 重新登录。',
       )
     }
 
     logForDebugging(
-      `Failed to fetch session logs: ${response.status} ${response.statusText}`,
+      `获取会话日志失败：${response.status} ${response.statusText}`,
     )
     logForDiagnosticsNoPII('error', 'session_get_fail_status', {
       status: response.status,
@@ -476,7 +474,7 @@ async function fetchSessionLogsFromUrl(
     return null
   } catch (error) {
     const axiosError = error as AxiosError<SessionIngressError>
-    logError(new Error(`Error fetching session logs: ${axiosError.message}`))
+    logError(new Error(`获取会话日志出错：${axiosError.message}`))
     logForDiagnosticsNoPII('error', 'session_get_fail_status', {
       status: axiosError.status,
     })
@@ -485,8 +483,8 @@ async function fetchSessionLogsFromUrl(
 }
 
 /**
- * Walk backward through entries to find the last one with a uuid.
- * Some entry types (SummaryMessage, TagMessage) don't have one.
+ * 从后往前遍历条目，找到最后一条带 uuid 的条目。
+ * 有些条目类型（SummaryMessage、TagMessage）没有 uuid。
  */
 function findLastUuid(logs: Entry[] | null): UUID | undefined {
   if (!logs) {
@@ -497,7 +495,7 @@ function findLastUuid(logs: Entry[] | null): UUID | undefined {
 }
 
 /**
- * Clear cached state for a session
+ * 清除某个会话的缓存状态
  */
 export function clearSession(sessionId: string): void {
   lastUuidMap.delete(sessionId)
@@ -505,8 +503,8 @@ export function clearSession(sessionId: string): void {
 }
 
 /**
- * Clear all cached session state (all sessions).
- * Use this on /clear to free sub-agent session entries.
+ * 清除所有会话的缓存状态（全部会话）。
+ * 在 /clear 时调用，以释放子代理会话条目。
  */
 export function clearAllSessions(): void {
   lastUuidMap.clear()

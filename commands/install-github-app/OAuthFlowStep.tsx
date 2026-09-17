@@ -32,7 +32,7 @@ type OAuthStatus = {
   state: 'about_to_retry';
   nextState: OAuthStatus;
 };
-const PASTE_HERE_MSG = 'Paste code here if prompted > ';
+const PASTE_HERE_MSG = '如需粘贴代码，请粘贴此处 > ';
 export function OAuthFlowStep({
   onSuccess,
   onCancel
@@ -46,7 +46,7 @@ export function OAuthFlowStep({
   const [showPastePrompt, setShowPastePrompt] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
-  // Separate ref so startOAuth's timer clear doesn't cancel the urlCopied reset
+  // 使用独立 ref，这样 startOAuth 的定时器清理不会取消 urlCopied 的重置
   const urlCopiedTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const terminalSize = useTerminalSize();
   const textInputColumns = Math.max(50, terminalSize.columns - PASTE_HERE_MSG.length - 4);
@@ -66,12 +66,12 @@ export function OAuthFlowStep({
   }
   async function handleSubmitCode(value: string, url: string) {
     try {
-      // Expecting format "authorizationCode#state" from the authorization callback URL
+      // 期望从授权回调 URL 中获得 "authorizationCode#state" 格式
       const [authorizationCode, state] = value.split('#');
       if (!authorizationCode || !state) {
         setOAuthStatus({
           state: 'error',
-          message: 'Invalid code. Please make sure the full code was copied',
+          message: '代码无效。请确保已复制完整代码',
           toRetry: {
             state: 'waiting_for_login',
             url
@@ -80,8 +80,8 @@ export function OAuthFlowStep({
         return;
       }
 
-      // Track which path the user is taking (manual code entry)
-      logEvent('内部代号_oauth_manual_entry', {});
+      // 记录用户当前所走的路径（手动输入代码）
+      logEvent('limkenion_oauth_manual_entry', {});
       oauthService.handleManualAuthCodeInput({
         authorizationCode,
         state
@@ -99,7 +99,7 @@ export function OAuthFlowStep({
     }
   }
   const startOAuth = useCallback(async () => {
-    // Clear any existing timers when starting new OAuth flow
+    // 启动新的 OAuth 流程时清除所有现有定时器
     timersRef.current.forEach(timer => clearTimeout(timer));
     timersRef.current.clear();
     try {
@@ -112,28 +112,28 @@ export function OAuthFlowStep({
         timersRef.current.add(timer_0);
       }, {
         loginWithLimkenionAi: true,
-        // Always use Limkenion AI for subscription tokens
+        // 订阅 token 始终使用 Limkenion AI
         inferenceOnly: true,
         expiresIn: 365 * 24 * 60 * 60 // 1 year
       });
 
-      // Show processing state
+      // 显示处理中的状态
       setOAuthStatus({
         state: 'processing'
       });
 
-      // OAuthFlowStep creates inference-only tokens for GitHub Actions, not a
-      // replacement login. Use saveOAuthTokensIfNeeded directly to avoid
-      // performLogout which would destroy the user's existing auth session.
+      // OAuthFlowStep 为 GitHub Actions 创建仅推理（inference-only）token，
+      // 并非替代登录。直接使用 saveOAuthTokensIfNeeded，以免
+      // performLogout 破坏用户现有的认证会话。
       saveOAuthTokensIfNeeded(result);
 
-      // For OAuth flow, the access token can be used as an API key
+      // 对于 OAuth 流程，access token 可当作 API 密钥使用
       const timer1 = setTimeout((setOAuthStatus_0, accessToken, onSuccess_0, timersRef_0) => {
         setOAuthStatus_0({
           state: 'success',
           token: accessToken
         });
-        // Auto-continue after brief delay to show success
+        // 短暂延迟后自动继续，以展示成功状态
         const timer2 = setTimeout(onSuccess_0, 1000, accessToken);
         timersRef_0.current.add(timer2);
       }, 100, setOAuthStatus, result.accessToken, onSuccess, timersRef);
@@ -145,10 +145,10 @@ export function OAuthFlowStep({
         message: errorMessage,
         toRetry: {
           state: 'starting'
-        } // Allow retry by starting fresh OAuth flow
+        } // 通过重新启动 OAuth 流程来允许重试
       });
       logError(err_0);
-      logEvent('内部代号_oauth_error', {
+      logEvent('limkenion_oauth_error', {
         error: errorMessage as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
     }
@@ -159,11 +159,11 @@ export function OAuthFlowStep({
     }
   }, [oauthStatus.state, startOAuth]);
 
-  // Retry logic
+  // 重试逻辑
   useEffect(() => {
     if (oauthStatus.state === 'about_to_retry') {
       const timer_1 = setTimeout((nextState, setShowPastePrompt_0, setOAuthStatus_1) => {
-        // Only show paste prompt when retrying to waiting_for_login
+        // 仅在重试到 waiting_for_login 时显示粘贴提示
         setShowPastePrompt_0(nextState.state === 'waiting_for_login');
         setOAuthStatus_1(nextState);
       }, 500, oauthStatus.nextState, setShowPastePrompt, setOAuthStatus);
@@ -182,32 +182,32 @@ export function OAuthFlowStep({
     }
   }, [pastedCode, oauthStatus, showPastePrompt, urlCopied]);
 
-  // Cleanup OAuth service and timers when component unmounts
+  // 组件卸载时清理 OAuth service 和定时器
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
       oauthService.cleanup();
-      // Clear all timers
+      // 清除所有定时器
       timers.forEach(timer_2 => clearTimeout(timer_2));
       timers.clear();
       clearTimeout(urlCopiedTimerRef.current);
     };
   }, [oauthService]);
 
-  // Helper function to render the appropriate status message
+  // 辅助函数，用于渲染相应的状态消息
   function renderStatusMessage(): React.ReactNode {
     switch (oauthStatus.state) {
       case 'starting':
         return <Box>
             <Spinner />
-            <Text>Starting authentication…</Text>
+            <Text>正在启动认证…</Text>
           </Box>;
       case 'waiting_for_login':
         return <Box flexDirection="column" gap={1}>
             {!showPastePrompt && <Box>
                 <Spinner />
                 <Text>
-                  Opening browser to sign in with your Limkenion account…
+                  正在打开浏览器，使用你的 Limkenion 账户登录…
                 </Text>
               </Box>}
 
@@ -219,48 +219,48 @@ export function OAuthFlowStep({
       case 'processing':
         return <Box>
             <Spinner />
-            <Text>Processing authentication…</Text>
+            <Text>正在处理认证…</Text>
           </Box>;
       case 'success':
         return <Box flexDirection="column" gap={1}>
             <Text color="success">
-              ✓ Authentication token created successfully!
+              ✓ 认证 token 创建成功！
             </Text>
-            <Text dimColor>Using token for GitHub Actions setup…</Text>
+            <Text dimColor>正在使用 token 进行 GitHub Actions 设置…</Text>
           </Box>;
       case 'error':
         return <Box flexDirection="column" gap={1}>
-            <Text color="error">OAuth error: {oauthStatus.message}</Text>
+            <Text color="error">OAuth 错误：{oauthStatus.message}</Text>
             {oauthStatus.toRetry ? <Text dimColor>
-                Press Enter to try again, or any other key to cancel
-              </Text> : <Text dimColor>Press any key to return to API key selection</Text>}
+                按 Enter 重试，或按任意其他键取消
+              </Text> : <Text dimColor>按任意键返回 API 密钥选择</Text>}
           </Box>;
       case 'about_to_retry':
         return <Box flexDirection="column" gap={1}>
-            <Text color="permission">Retrying…</Text>
+            <Text color="permission">正在重试…</Text>
           </Box>;
       default:
         return null;
     }
   }
   return <Box flexDirection="column" gap={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
-      {/* Show header inline only for initial starting state */}
+      {/* 仅对初始 starting 状态内联显示标题 */}
       {oauthStatus.state === 'starting' && <Box flexDirection="column" gap={1} paddingBottom={1}>
-          <Text bold>Create Authentication Token</Text>
-          <Text dimColor>Creating a long-lived token for GitHub Actions</Text>
+          <Text bold>创建认证令牌</Text>
+          <Text dimColor>为 GitHub Actions 创建长期 token</Text>
         </Box>}
-      {/* Show header for non-starting states (to avoid duplicate with inline header)*/}
+      {/* 为非 starting 状态显示标题（避免与内联标题重复）*/}
       {oauthStatus.state !== 'success' && oauthStatus.state !== 'starting' && oauthStatus.state !== 'processing' && <Box key="header" flexDirection="column" gap={1} paddingBottom={1}>
-            <Text bold>Create Authentication Token</Text>
-            <Text dimColor>Creating a long-lived token for GitHub Actions</Text>
+            <Text bold>创建认证令牌</Text>
+            <Text dimColor>为 GitHub Actions 创建长期 token</Text>
           </Box>}
-      {/* Show URL when paste prompt is visible */}
+      {/* URL 在粘贴提示可见时显示 */}
       {oauthStatus.state === 'waiting_for_login' && showPastePrompt && <Box flexDirection="column" key="urlToCopy" gap={1} paddingBottom={1}>
           <Box paddingX={1}>
             <Text dimColor>
-              Browser didn&apos;t open? Use the url below to sign in{' '}
+              浏览器没打开？使用下面的链接登录{' '}
             </Text>
-            {urlCopied ? <Text color="success">(Copied!)</Text> : <Text dimColor>
+            {urlCopied ? <Text color="success">（已复制！）</Text> : <Text dimColor>
                 <KeyboardShortcutHint shortcut="c" action="copy" parens />
               </Text>}
           </Box>

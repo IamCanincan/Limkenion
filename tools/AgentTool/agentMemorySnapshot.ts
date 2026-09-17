@@ -25,8 +25,8 @@ const syncedMetaSchema = lazySchema(() =>
 type SyncedMeta = z.infer<ReturnType<typeof syncedMetaSchema>>
 
 /**
- * Returns the path to the snapshot directory for an agent in the current project.
- * e.g., <cwd>/.limkenion/agent-memory-snapshots/<agentType>/
+ * 返回当前项目中代理的快照目录路径。
+ * 例如，<cwd>/.limkenion/agent-memory-snapshots/<agentType>/
  */
 export function getSnapshotDirForAgent(agentType: string): string {
   return join(getCwd(), '.limkenion', SNAPSHOT_BASE, agentType)
@@ -72,7 +72,7 @@ async function copySnapshotToLocal(
       await writeFile(join(localMemDir, dirent.name), content)
     }
   } catch (e) {
-    logForDebugging(`Failed to copy snapshot to local agent memory: ${e}`)
+    logForDebugging(`将快照复制到本地代理记忆失败：${e}`)
   }
 }
 
@@ -88,12 +88,12 @@ async function saveSyncedMeta(
   try {
     await writeFile(syncedPath, jsonStringify(meta))
   } catch (e) {
-    logForDebugging(`Failed to save snapshot sync metadata: ${e}`)
+    logForDebugging(`保存快照同步元数据失败：${e}`)
   }
 }
 
 /**
- * Check if a snapshot exists and whether it's newer than what we last synced.
+ * 检查快照是否存在，以及它是否比我们上次同步的内容更新。
  */
 export async function checkAgentMemorySnapshot(
   agentType: string,
@@ -118,7 +118,7 @@ export async function checkAgentMemorySnapshot(
     const dirents = await readdir(localMemDir, { withFileTypes: true })
     hasLocalMemory = dirents.some(d => d.isFile() && d.name.endsWith('.md'))
   } catch {
-    // Directory doesn't exist
+    // 目录不存在
   }
 
   if (!hasLocalMemory) {
@@ -144,7 +144,7 @@ export async function checkAgentMemorySnapshot(
 }
 
 /**
- * Initialize local agent memory from a snapshot (first-time setup).
+ * 从快照初始化本地代理记忆（首次设置）。
  */
 export async function initializeFromSnapshot(
   agentType: string,
@@ -152,14 +152,14 @@ export async function initializeFromSnapshot(
   snapshotTimestamp: string,
 ): Promise<void> {
   logForDebugging(
-    `Initializing agent memory for ${agentType} from project snapshot`,
+    `正在从项目快照初始化 ${agentType} 的代理记忆`,
   )
   await copySnapshotToLocal(agentType, scope)
   await saveSyncedMeta(agentType, scope, snapshotTimestamp)
 }
 
 /**
- * Replace local agent memory with the snapshot.
+ * 用快照替换本地代理记忆。
  */
 export async function replaceFromSnapshot(
   agentType: string,
@@ -167,9 +167,9 @@ export async function replaceFromSnapshot(
   snapshotTimestamp: string,
 ): Promise<void> {
   logForDebugging(
-    `Replacing agent memory for ${agentType} with project snapshot`,
+    `正在用项目快照替换 ${agentType} 的代理记忆`,
   )
-  // Remove existing .md files before copying to avoid orphans
+  // 复制前移除现有的 .md 文件，以避免产生孤儿文件
   const localMemDir = getAgentMemoryDir(agentType, scope)
   try {
     const existing = await readdir(localMemDir, { withFileTypes: true })
@@ -179,14 +179,14 @@ export async function replaceFromSnapshot(
       }
     }
   } catch {
-    // Directory may not exist yet
+    // 目录可能尚不存在
   }
   await copySnapshotToLocal(agentType, scope)
   await saveSyncedMeta(agentType, scope, snapshotTimestamp)
 }
 
 /**
- * Mark the current snapshot as synced without changing local memory.
+ * 将当前快照标记为已同步，而不改动本地记忆。
  */
 export async function markSnapshotSynced(
   agentType: string,

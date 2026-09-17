@@ -23,13 +23,13 @@ export const inputSchema = lazySchema(() =>
     query: z
       .string()
       .describe(
-        'Query to find deferred tools. Use "select:<tool_name>" for direct selection, or keywords to search.',
+        '查找延迟工具的查询。使用 "select:<工具名>" 进行直接选择，或使用关键词搜索。',
       ),
     max_results: z
       .number()
       .optional()
       .default(5)
-      .describe('Maximum number of results to return (default: 5)'),
+      .describe('返回的最大结果数（默认：5）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -343,7 +343,7 @@ export const ToolSearchTool = buildTool({
       matches: string[],
       queryType: 'select' | 'keyword',
     ): void {
-      logEvent('内部代号_tool_search_outcome', {
+      logEvent('limkenion_tool_search_outcome', {
         query:
           query as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         queryType:

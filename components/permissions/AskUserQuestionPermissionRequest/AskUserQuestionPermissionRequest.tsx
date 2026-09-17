@@ -266,7 +266,7 @@ function AskUserQuestionPermissionRequestBody(t0) {
   if ($[25] !== isInPlanMode || $[26] !== metadataSource || $[27] !== onDone || $[28] !== onReject || $[29] !== questions.length || $[30] !== toolUseConfirm) {
     t12 = () => {
       if (metadataSource) {
-        logEvent("内部代号_ask_user_question_rejected", {
+        logEvent("limkenion_ask_user_question_rejected", {
           source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           questionCount: questions.length,
           isInPlanMode,
@@ -294,18 +294,18 @@ function AskUserQuestionPermissionRequestBody(t0) {
       const questionsWithAnswers = questions.map(q_1 => {
         const answer = answers[q_1.question];
         if (answer) {
-          return `- "${q_1.question}"\n  Answer: ${answer}`;
+          return `- "${q_1.question}"\n  回答：${answer}`;
         }
-        return `- "${q_1.question}"\n  (No answer provided)`;
+        return `- "${q_1.question}"\n  (未提供回答)`;
       }).join("\n");
-      const feedback = `The user wants to clarify these questions.
-    This means they may have additional information, context or questions for you.
-    Take their response into account and then reformulate the questions if appropriate.
-    Start by asking them what they would like to clarify.
+      const feedback = `用户想要澄清这些问题。
+    这可能意味着他们有一些额外的信息、背景或问题要向你提出。
+    请考虑他们的回应，并在适当时重新表述这些问题。
+    首先询问他们想要澄清什么。
 
-    Questions asked:\n${questionsWithAnswers}`;
+    已提出的问题：\n${questionsWithAnswers}`;
       if (metadataSource) {
-        logEvent("内部代号_ask_user_question_respond_to_limkenion", {
+        logEvent("limkenion_ask_user_question_respond_to_limkenion", {
           source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           questionCount: questions.length,
           isInPlanMode,
@@ -334,16 +334,16 @@ function AskUserQuestionPermissionRequestBody(t0) {
       const questionsWithAnswers_0 = questions.map(q_2 => {
         const answer_0 = answers[q_2.question];
         if (answer_0) {
-          return `- "${q_2.question}"\n  Answer: ${answer_0}`;
+          return `- "${q_2.question}"\n  回答：${answer_0}`;
         }
-        return `- "${q_2.question}"\n  (No answer provided)`;
+        return `- "${q_2.question}"\n  (未提供回答)`;
       }).join("\n");
-      const feedback_0 = `The user has indicated they have provided enough answers for the plan interview.
-Stop asking clarifying questions and proceed to finish the plan with the information you have.
+      const feedback_0 = `用户已表示他们为规划访谈提供了足够的回答。
+请停止提出澄清问题，并利用你已有的信息继续完成计划。
 
-Questions asked and answers provided:\n${questionsWithAnswers_0}`;
+已提出的问题及提供的回答：\n${questionsWithAnswers_0}`;
       if (metadataSource) {
-        logEvent("内部代号_ask_user_question_finish_plan_interview", {
+        logEvent("limkenion_ask_user_question_finish_plan_interview", {
           source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           questionCount: questions.length,
           isInPlanMode,
@@ -370,7 +370,7 @@ Questions asked and answers provided:\n${questionsWithAnswers_0}`;
   if ($[48] !== allImageAttachments || $[49] !== isInPlanMode || $[50] !== metadataSource || $[51] !== onDone || $[52] !== questionStates || $[53] !== questions || $[54] !== toolUseConfirm) {
     t15 = async answersToSubmit => {
       if (metadataSource) {
-        logEvent("内部代号_ask_user_question_accepted", {
+        logEvent("limkenion_ask_user_question_accepted", {
           source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           questionCount: questions.length,
           answerCount: Object.keys(answersToSubmit).length,
@@ -429,7 +429,7 @@ Questions asked and answers provided:\n${questionsWithAnswers_0}`;
       } else {
         if (textInput) {
           const questionImages = Object.values(pastedContentsByQuestion[questionText_1] ?? {}).filter(_temp5);
-          answer_2 = questionImages.length > 0 ? `${textInput} (Image attached)` : textInput;
+          answer_2 = questionImages.length > 0 ? `${textInput} (已附加图片)` : textInput;
         } else {
           if (label === "__other__") {
             const questionImages_0 = Object.values(pastedContentsByQuestion[questionText_1] ?? {}).filter(_temp6);

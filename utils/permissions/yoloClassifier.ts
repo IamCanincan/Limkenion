@@ -63,15 +63,15 @@ const EXTERNAL_PERMISSIONS_TEMPLATE: string = feature('TRANSCRIPT_CLASSIFIER')
   : ''
 
 const LIMKENION_PERMISSIONS_TEMPLATE: string =
-  feature('TRANSCRIPT_CLASSIFIER') && process.env.USER_TYPE === 'ant'
+  feature('TRANSCRIPT_CLASSIFIER') && false
     ? txtRequire(require('./yolo-classifier-prompts/permissions_limkenion.txt'))
     : ''
 /* eslint-enable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 
 function isUsingExternalPermissions(): boolean {
-  if (process.env.USER_TYPE !== 'ant') return true
+  if (true) return true
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_auto_mode_config',
+    'limkenion_auto_mode_config',
     {} as AutoModeConfig,
   )
   return config?.forceExternalPermissions === true
@@ -156,7 +156,7 @@ async function maybeDumpAutoMode(
   timestamp: number,
   suffix?: string,
 ): Promise<void> {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (true) return
   if (!isEnvTruthy(process.env.LIMKENION_DUMP_AUTO_MODE)) return
   const base = suffix ? `${timestamp}.${suffix}` : `${timestamp}`
   try {
@@ -402,7 +402,7 @@ function toCompactBlock(
       logForDebugging(
         `toAutoClassifierInput failed for ${block.name}: ${errorMessage(e)}`,
       )
-      logEvent('内部代号_auto_mode_malformed_tool_input', {
+      logEvent('limkenion_auto_mode_malformed_tool_input', {
         toolName:
           block.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
@@ -669,7 +669,7 @@ function replaceOutputFormatWithXml(systemPrompt: string): string {
  *
  * For most models: send { type: 'disabled' } via sideQuery's `thinking: false`.
  *
- * Models with alwaysOnThinking (declared in 内部代号_ant_model_override) default
+ * Models with alwaysOnThinking (declared in limkenion_ant_model_override) default
  * to adaptive thinking server-side and reject `disabled` with a 400. For those:
  * don't pass `thinking: false`, instead pad max_tokens so adaptive thinking
  * (observed 0–1114 tokens replaying go/ccshare/shawnm-20260310-202833) doesn't
@@ -683,12 +683,7 @@ function replaceOutputFormatWithXml(systemPrompt: string): string {
 function getClassifierThinkingConfig(
   model: string,
 ): [false | undefined, number] {
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    resolveAntModel(model)?.alwaysOnThinking
-  ) {
-    return [undefined, 2048]
-  }
+  
   return [false, 0]
 }
 
@@ -1332,12 +1327,9 @@ type AutoModeConfig = {
  * then the main loop model.
  */
 function getClassifierModel(): string {
-  if (process.env.USER_TYPE === 'ant') {
-    const envModel = process.env.LIMKENION_AUTO_MODE_MODEL
-    if (envModel) return envModel
-  }
+  
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_auto_mode_config',
+    'limkenion_auto_mode_config',
     {} as AutoModeConfig,
   )
   if (config?.model) {
@@ -1355,14 +1347,9 @@ function resolveTwoStageClassifier():
   | 'fast'
   | 'thinking'
   | undefined {
-  if (process.env.USER_TYPE === 'ant') {
-    const env = process.env.LIMKENION_TWO_STAGE_CLASSIFIER
-    if (env === 'fast' || env === 'thinking') return env
-    if (isEnvTruthy(env)) return true
-    if (isEnvDefinedFalsy(env)) return false
-  }
+  
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_auto_mode_config',
+    'limkenion_auto_mode_config',
     {} as AutoModeConfig,
   )
   return config?.twoStageClassifier
@@ -1377,13 +1364,9 @@ function isTwoStageClassifierEnabled(): boolean {
 }
 
 function isJsonlTranscriptEnabled(): boolean {
-  if (process.env.USER_TYPE === 'ant') {
-    const env = process.env.LIMKENION_JSONL_TRANSCRIPT
-    if (isEnvTruthy(env)) return true
-    if (isEnvDefinedFalsy(env)) return false
-  }
+  
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_auto_mode_config',
+    'limkenion_auto_mode_config',
     {} as AutoModeConfig,
   )
   return config?.jsonlTranscript === true
@@ -1418,7 +1401,7 @@ type AutoModeOutcome =
   | 'transcript_too_long'
 
 /**
- * Telemetry helper for 内部代号_auto_mode_outcome. All string fields are
+ * Telemetry helper for limkenion_auto_mode_outcome. All string fields are
  * enum-like values (outcome, model name, classifier type, failure kind) —
  * never code or file paths, so the AnalyticsMetadata casts are safe.
  */
@@ -1437,7 +1420,7 @@ function logAutoModeOutcome(
   },
 ): void {
   const { classifierType, failureKind, ...rest } = extra ?? {}
-  logEvent('内部代号_auto_mode_outcome', {
+  logEvent('limkenion_auto_mode_outcome', {
     outcome:
       outcome as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     classifierModel:

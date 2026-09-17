@@ -11,8 +11,8 @@ type PlanApprovalRequestProps = {
 };
 
 /**
- * Renders a plan approval request with a planMode-colored border,
- * showing the plan content and instructions for approving/rejecting.
+ * 渲染一个带有 planMode 颜色边框的方案审批请求，
+ * 展示方案内容以及批准/拒绝的操作说明。
  */
 export function PlanApprovalRequestDisplay(t0) {
   const $ = _c(10);
@@ -21,7 +21,7 @@ export function PlanApprovalRequestDisplay(t0) {
   } = t0;
   let t1;
   if ($[0] !== request.from) {
-    t1 = <Box marginBottom={1}><Text color="planMode" bold={true}>Plan Approval Request from {request.from}</Text></Box>;
+    t1 = <Box marginBottom={1}><Text color="planMode" bold={true}>来自 {request.from} 的方案审批请求</Text></Box>;
     $[0] = request.from;
     $[1] = t1;
   } else {
@@ -37,7 +37,7 @@ export function PlanApprovalRequestDisplay(t0) {
   }
   let t3;
   if ($[4] !== request.planFilePath) {
-    t3 = <Text dimColor={true}>Plan file: {request.planFilePath}</Text>;
+    t3 = <Text dimColor={true}>方案文件：{request.planFilePath}</Text>;
     $[4] = request.planFilePath;
     $[5] = t3;
   } else {
@@ -61,7 +61,7 @@ type PlanApprovalResponseProps = {
 };
 
 /**
- * Renders a plan approval response with a success (green) or error (red) border.
+ * 渲染一个带有成功（绿）或错误（红）边框的方案审批响应。
  */
 export function PlanApprovalResponseDisplay(t0) {
   const $ = _c(13);
@@ -72,7 +72,7 @@ export function PlanApprovalResponseDisplay(t0) {
   if (response.approved) {
     let t1;
     if ($[0] !== senderName) {
-      t1 = <Box><Text color="success" bold={true}>✓ Plan Approved by {senderName}</Text></Box>;
+      t1 = <Box><Text color="success" bold={true}>✓ {senderName} 已批准方案</Text></Box>;
       $[0] = senderName;
       $[1] = t1;
     } else {
@@ -80,7 +80,7 @@ export function PlanApprovalResponseDisplay(t0) {
     }
     let t2;
     if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-      t2 = <Box marginTop={1}><Text>You can now proceed with implementation. Your plan mode restrictions have been lifted.</Text></Box>;
+      t2 = <Box marginTop={1}><Text>现在你可以继续进行实现。你的 plan mode 限制已解除。</Text></Box>;
       $[2] = t2;
     } else {
       t2 = $[2];
@@ -97,7 +97,7 @@ export function PlanApprovalResponseDisplay(t0) {
   }
   let t1;
   if ($[5] !== senderName) {
-    t1 = <Box><Text color="error" bold={true}>✗ Plan Rejected by {senderName}</Text></Box>;
+    t1 = <Box><Text color="error" bold={true}>✗ 方案被 {senderName} 拒绝</Text></Box>;
     $[5] = senderName;
     $[6] = t1;
   } else {
@@ -105,7 +105,7 @@ export function PlanApprovalResponseDisplay(t0) {
   }
   let t2;
   if ($[7] !== response.feedback) {
-    t2 = response.feedback && <Box marginTop={1} borderStyle="dashed" borderColor="subtle" borderLeft={false} borderRight={false} paddingX={1}><Text>Feedback: {response.feedback}</Text></Box>;
+    t2 = response.feedback && <Box marginTop={1} borderStyle="dashed" borderColor="subtle" borderLeft={false} borderRight={false} paddingX={1}><Text>反馈：{response.feedback}</Text></Box>;
     $[7] = response.feedback;
     $[8] = t2;
   } else {
@@ -113,7 +113,7 @@ export function PlanApprovalResponseDisplay(t0) {
   }
   let t3;
   if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-    t3 = <Box marginTop={1}><Text dimColor={true}>Please revise your plan based on the feedback and call ExitPlanMode again.</Text></Box>;
+    t3 = <Box marginTop={1}><Text dimColor={true}>请根据反馈修改你的方案，并再次调用 ExitPlanMode。</Text></Box>;
     $[9] = t3;
   } else {
     t3 = $[9];
@@ -131,8 +131,8 @@ export function PlanApprovalResponseDisplay(t0) {
 }
 
 /**
- * Try to parse and render a plan approval message from raw content.
- * Returns the rendered component if it's a plan approval message, null otherwise.
+ * 尝试从原始内容解析并渲染方案审批消息。
+ * 如果是方案审批消息则返回渲染后的组件，否则返回 null。
  */
 export function tryRenderPlanApprovalMessage(content: string, senderName: string): React.ReactNode | null {
   const request = isPlanApprovalRequest(content);
@@ -147,45 +147,45 @@ export function tryRenderPlanApprovalMessage(content: string, senderName: string
 }
 
 /**
- * Get a brief summary text for a plan approval message.
- * Used in places like the inbox queue where we want a short description.
- * Returns null if the content is not a plan approval message.
+ * 获取方案审批消息的简短摘要文本。
+ * 用于诸如收件箱队列等需要简短描述的场景。
+ * 如果内容不是方案审批消息则返回 null。
  */
 function getPlanApprovalSummary(content: string): string | null {
   const request = isPlanApprovalRequest(content);
   if (request) {
-    return `[Plan Approval Request from ${request.from}]`;
+    return `[来自 ${request.from} 的方案审批请求]`;
   }
   const response = isPlanApprovalResponse(content);
   if (response) {
     if (response.approved) {
-      return '[Plan Approved] You can now proceed with implementation';
+      return '[方案已批准] 你现在可以进行实现';
     } else {
-      return `[Plan Rejected] ${response.feedback || 'Please revise your plan'}`;
+      return `[方案被拒绝] ${response.feedback || '请修改你的方案'}`;
     }
   }
   return null;
 }
 
 /**
- * Get a brief summary text for an idle notification.
+ * 获取空闲通知的简短摘要文本。
  */
 function getIdleNotificationSummary(msg: IdleNotificationMessage): string {
-  const parts: string[] = ['Agent idle'];
+  const parts: string[] = ['Agent 处于空闲'];
   if (msg.completedTaskId) {
     const status = msg.completedStatus || 'completed';
-    parts.push(`Task ${msg.completedTaskId} ${status}`);
+    parts.push(`任务 ${msg.completedTaskId} ${status}`);
   }
   if (msg.summary) {
-    parts.push(`Last DM: ${msg.summary}`);
+    parts.push(`最后一条消息：${msg.summary}`);
   }
   return parts.join(' · ');
 }
 
 /**
- * Format teammate message content for display.
- * If it's a structured message (plan approval, shutdown, or idle), returns a formatted summary.
- * Otherwise returns the original content.
+ * 格式化队友消息内容以用于展示。
+ * 如果是结构化消息（方案审批、关闭或空闲），返回格式化摘要。
+ * 否则返回原始内容。
  */
 export function formatTeammateMessageContent(content: string): string {
   const planSummary = getPlanApprovalSummary(content);
@@ -205,7 +205,7 @@ export function formatTeammateMessageContent(content: string): string {
     return taskAssignmentSummary;
   }
 
-  // Check for teammate_terminated message
+  // 检查 teammate_terminated 消息
   try {
     const parsed = jsonParse(content) as {
       type?: string;
@@ -215,7 +215,7 @@ export function formatTeammateMessageContent(content: string): string {
       return parsed.message;
     }
   } catch {
-    // Not JSON
+    // 不是 JSON
   }
   return content;
 }

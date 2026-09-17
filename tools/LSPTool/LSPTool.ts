@@ -53,8 +53,8 @@ import {
 const MAX_LSP_FILE_SIZE_BYTES = 10_000_000
 
 /**
- * Tool-compatible input schema (regular ZodObject instead of discriminated union)
- * We validate against the discriminated union in validateInput for better error messages
+ * 兼容工具输入 schema（普通 ZodObject，而非判别联合体）
+ * 我们在 validateInput 中针对判别联合体做校验，以获得更好的报错信息
  */
 const inputSchema = lazySchema(() =>
   z.strictObject({
@@ -70,18 +70,18 @@ const inputSchema = lazySchema(() =>
         'incomingCalls',
         'outgoingCalls',
       ])
-      .describe('The LSP operation to perform'),
-    filePath: z.string().describe('The absolute or relative path to the file'),
+      .describe('要执行的 LSP 操作'),
+    filePath: z.string().describe('文件的绝对或相对路径'),
     line: z
       .number()
       .int()
       .positive()
-      .describe('The line number (1-based, as shown in editors)'),
+      .describe('行号（从 1 开始，与编辑器中显示一致）'),
     character: z
       .number()
       .int()
       .positive()
-      .describe('The character offset (1-based, as shown in editors)'),
+      .describe('字符偏移量（从 1 开始，与编辑器中显示一致）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -100,23 +100,23 @@ const outputSchema = lazySchema(() =>
         'incomingCalls',
         'outgoingCalls',
       ])
-      .describe('The LSP operation that was performed'),
-    result: z.string().describe('The formatted result of the LSP operation'),
+      .describe('已执行的 LSP 操作'),
+    result: z.string().describe('LSP 操作格式化后的结果'),
     filePath: z
       .string()
-      .describe('The file path the operation was performed on'),
+      .describe('执行操作所针对的文件路径'),
     resultCount: z
       .number()
       .int()
       .nonnegative()
       .optional()
-      .describe('Number of results (definitions, references, symbols)'),
+      .describe('结果数量（定义、引用、符号）'),
     fileCount: z
       .number()
       .int()
       .nonnegative()
       .optional()
-      .describe('Number of files containing results'),
+      .describe('包含结果的文件数量'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -153,21 +153,21 @@ export const LSPTool = buildTool({
     return expandPath(filePath)
   },
   async validateInput(input: Input): Promise<ValidationResult> {
-    // First validate against the discriminated union for better type safety
+    // 先针对判别联合体做校验，以获得更好的类型安全
     const parseResult = lspToolInputSchema().safeParse(input)
     if (!parseResult.success) {
       return {
         result: false,
-        message: `Invalid input: ${parseResult.error.message}`,
+        message: `无效输入：${parseResult.error.message}`,
         errorCode: 3,
       }
     }
 
-    // Validate file exists and is a regular file
+    // 校验文件存在且为常规文件
     const fs = getFsImplementation()
     const absolutePath = expandPath(input.filePath)
 
-    // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+    // 安全：跳过 UNC 路径的文件系统操作，以防 NTLM 凭据泄露。
     if (absolutePath.startsWith('\\\\') || absolutePath.startsWith('//')) {
       return { result: true }
     }
@@ -179,20 +179,20 @@ export const LSPTool = buildTool({
       if (isENOENT(error)) {
         return {
           result: false,
-          message: `File does not exist: ${input.filePath}`,
+          message: `文件不存在：${input.filePath}`,
           errorCode: 1,
         }
       }
       const err = toError(error)
-      // Log filesystem access errors for tracking
+      // 记录文件系统访问错误，用于排查
       logError(
         new Error(
-          `Failed to access file stats for LSP operation on ${input.filePath}: ${err.message}`,
+          `无法获取 ${input.filePath} 的文件状态以执行 LSP 操作：${err.message}`,
         ),
       )
       return {
         result: false,
-        message: `Cannot access file: ${input.filePath}. ${err.message}`,
+        message: `无法访问文件：${input.filePath}。${err.message}`,
         errorCode: 4,
       }
     }
@@ -200,7 +200,7 @@ export const LSPTool = buildTool({
     if (!stats.isFile()) {
       return {
         result: false,
-        message: `Path is not a file: ${input.filePath}`,
+        message: `路径不是文件：${input.filePath}`,
         errorCode: 2,
       }
     }
@@ -225,25 +225,25 @@ export const LSPTool = buildTool({
     const absolutePath = expandPath(input.filePath)
     const cwd = getCwd()
 
-    // Wait for initialization if it's still pending
-    // This prevents returning "no server available" before init completes
+    // 等待初始化完成（如果仍在进行中）
+    // 这可以避免在初始化完成前返回"无可用服务器"
     const status = getInitializationStatus()
     if (status.status === 'pending') {
       await waitForInitialization()
     }
 
-    // Get the LSP server manager
+    // 获取 LSP 服务器管理器
     const manager = getLspServerManager()
     if (!manager) {
-      // Log this system-level failure for tracking
+      // 记录此系统级失败，用于跟踪
       logError(
-        new Error('LSP server manager not initialized when tool was called'),
+        new Error('工具被调用时 LSP 服务器管理器尚未初始化'),
       )
 
       const output: Output = {
         operation: input.operation,
         result:
-          'LSP server manager not initialized. This may indicate a startup issue.',
+          'LSP 服务器管理器尚未初始化。这可能表明存在启动问题。',
         filePath: input.filePath,
       }
       return {
@@ -251,13 +251,13 @@ export const LSPTool = buildTool({
       }
     }
 
-    // Map operation to LSP method and prepare params
+    // 将操作映射到 LSP 方法并准备参数
     const { method, params } = getMethodAndParams(input, absolutePath)
 
     try {
-      // Ensure file is open in LSP server before making requests
-      // Most LSP servers require textDocument/didOpen before operations
-      // Only read the file if it's not already open to avoid unnecessary I/O
+      // 确保在发起请求前文件已在 LSP 服务器中打开
+      // 大多数 LSP 服务器在操作前要求 textDocument/didOpen
+      // 仅在文件尚未打开时读取，避免不必要的 I/O
       if (!manager.isFileOpen(absolutePath)) {
         const handle = await open(absolutePath, 'r')
         try {
@@ -265,7 +265,7 @@ export const LSPTool = buildTool({
           if (stats.size > MAX_LSP_FILE_SIZE_BYTES) {
             const output: Output = {
               operation: input.operation,
-              result: `File too large for LSP analysis (${Math.ceil(stats.size / 1_000_000)}MB exceeds 10MB limit)`,
+              result: `文件过大，无法进行 LSP 分析（${Math.ceil(stats.size / 1_000_000)}MB 超过 10MB 限制）`,
               filePath: input.filePath,
             }
             return { data: output }
@@ -277,18 +277,18 @@ export const LSPTool = buildTool({
         }
       }
 
-      // Send request to LSP server
+      // 向 LSP 服务器发送请求
       let result = await manager.sendRequest(absolutePath, method, params)
 
       if (result === undefined) {
-        // Log for diagnostic purposes - helps track usage patterns and potential bugs
+        // 用于诊断目的记录——有助于追踪使用模式和潜在问题
         logForDebugging(
-          `No LSP server available for file type ${path.extname(absolutePath)} for operation ${input.operation} on file ${input.filePath}`,
+          `文件类型 ${path.extname(absolutePath)} 在文件 ${input.filePath} 上执行操作 ${input.operation} 时没有可用的 LSP 服务器`,
         )
 
         const output: Output = {
           operation: input.operation,
-          result: `No LSP server available for file type: ${path.extname(absolutePath)}`,
+          result: `文件类型${path.extname(absolutePath)} 没有可用的 LSP 服务器`,
           filePath: input.filePath,
         }
         return {
@@ -296,9 +296,9 @@ export const LSPTool = buildTool({
         }
       }
 
-      // For incomingCalls and outgoingCalls, we need a two-step process:
-      // 1. First get CallHierarchyItem(s) from prepareCallHierarchy
-      // 2. Then request the actual calls using that item
+      // 对于传入/传出调用，我们需要两步流程：
+      // 1. 首先从 prepareCallHierarchy 获取 CallHierarchyItem
+      // 2. 然后使用该 item 请求实际的调用
       if (
         input.operation === 'incomingCalls' ||
         input.operation === 'outgoingCalls'
@@ -307,7 +307,7 @@ export const LSPTool = buildTool({
         if (!callItems || callItems.length === 0) {
           const output: Output = {
             operation: input.operation,
-            result: 'No call hierarchy item found at this position',
+            result: '在此位置未找到调用层级项',
             filePath: input.filePath,
             resultCount: 0,
             fileCount: 0,
@@ -315,7 +315,7 @@ export const LSPTool = buildTool({
           return { data: output }
         }
 
-        // Use the first call hierarchy item to request calls
+        // 使用第一个调用层级项来请求调用
         const callMethod =
           input.operation === 'incomingCalls'
             ? 'callHierarchy/incomingCalls'
@@ -327,13 +327,13 @@ export const LSPTool = buildTool({
 
         if (result === undefined) {
           logForDebugging(
-            `LSP server returned undefined for ${callMethod} on ${input.filePath}`,
+            `LSP 服务器在 ${input.filePath} 上为 ${callMethod} 返回了 undefined`,
           )
-          // Continue to formatter which will handle empty/null gracefully
+          // 继续交由 formatter 处理，它会优雅地处理空值/未定义值
         }
       }
 
-      // Filter out gitignored files from location-based results
+      // 从基于位置的结果中过滤掉被 gitignore 的文件
       if (
         result &&
         Array.isArray(result) &&
@@ -343,7 +343,7 @@ export const LSPTool = buildTool({
           input.operation === 'workspaceSymbol')
       ) {
         if (input.operation === 'workspaceSymbol') {
-          // SymbolInformation has location.uri — filter by extracting locations
+          // SymbolInformation 有 location.uri —— 通过提取 locations 进行过滤
           const symbols = result as SymbolInformation[]
           const locations = symbols
             .filter(s => s?.location?.uri)
@@ -357,7 +357,7 @@ export const LSPTool = buildTool({
             s => !s?.location?.uri || filteredUris.has(s.location.uri),
           )
         } else {
-          // Location[] or (Location | LocationLink)[]
+          // Location[] 或 (Location | LocationLink)[]
           const locations = (result as (Location | LocationLink)[]).map(
             toLocation,
           )
@@ -373,7 +373,7 @@ export const LSPTool = buildTool({
         }
       }
 
-      // Format the result based on operation type
+      // 根据操作类型格式化结果
       const { formatted, resultCount, fileCount } = formatResult(
         input.operation,
         result,
@@ -395,16 +395,16 @@ export const LSPTool = buildTool({
       const err = toError(error)
       const errorMessage = err.message
 
-      // Log error for tracking
+      // 记录错误用于跟踪
       logError(
         new Error(
-          `LSP tool request failed for ${input.operation} on ${input.filePath}: ${errorMessage}`,
+          `LSP 工具在 ${input.filePath} 上执行 ${input.operation} 失败：${errorMessage}`,
         ),
       )
 
       const output: Output = {
         operation: input.operation,
-        result: `Error performing ${input.operation}: ${errorMessage}`,
+        result: `执行 ${input.operation} 出错：${errorMessage}`,
         filePath: input.filePath,
       }
       return {
@@ -422,14 +422,14 @@ export const LSPTool = buildTool({
 } satisfies ToolDef<InputSchema, Output>)
 
 /**
- * Maps LSPTool operation to LSP method and params
+ * 将 LSPTool 操作映射到 LSP 方法及参数
  */
 function getMethodAndParams(
   input: Input,
   absolutePath: string,
 ): { method: string; params: unknown } {
   const uri = pathToFileURL(absolutePath).href
-  // Convert from 1-based (user-friendly) to 0-based (LSP protocol)
+  // 从基于 1 的（用户友好）转换为基于 0 的（LSP 协议）
   const position = {
     line: input.line - 1,
     character: input.character - 1,
@@ -472,7 +472,7 @@ function getMethodAndParams(
       return {
         method: 'workspace/symbol',
         params: {
-          query: '', // Empty query returns all symbols
+          query: '', // 空查询返回所有符号
         },
       }
     case 'goToImplementation':
@@ -492,8 +492,8 @@ function getMethodAndParams(
         },
       }
     case 'incomingCalls':
-      // For incoming/outgoing calls, we first need to prepare the call hierarchy
-      // The LSP server will return CallHierarchyItem(s) that we pass to the calls request
+      // 对于传入/传出调用，我们首先需要准备调用层级
+      // LSP 服务器将返回 CallHierarchyItem，我们将其传给调用请求
       return {
         method: 'textDocument/prepareCallHierarchy',
         params: {
@@ -513,7 +513,7 @@ function getMethodAndParams(
 }
 
 /**
- * Counts the total number of symbols including nested children
+ * 统计符号总数，包括嵌套子符号
  */
 function countSymbols(symbols: DocumentSymbol[]): number {
   let count = symbols.length
@@ -526,32 +526,32 @@ function countSymbols(symbols: DocumentSymbol[]): number {
 }
 
 /**
- * Counts unique files from an array of locations
+ * 统计位置数组中的唯一文件数量
  */
 function countUniqueFiles(locations: Location[]): number {
   return new Set(locations.map(loc => loc.uri)).size
 }
 
 /**
- * Extracts a file path from a file:// URI, decoding percent-encoded characters.
+ * 从 file:// URI 中提取文件路径，并解码百分号编码的字符。
  */
 function uriToFilePath(uri: string): string {
   let filePath = uri.replace(/^file:\/\//, '')
-  // On Windows, file:///C:/path becomes /C:/path — strip the leading slash
+  // 在 Windows 上，file:///C:/path 会变成 /C:/path —— 去掉开头的斜杠
   if (/^\/[A-Za-z]:/.test(filePath)) {
     filePath = filePath.slice(1)
   }
   try {
     filePath = decodeURIComponent(filePath)
   } catch {
-    // Use un-decoded path if malformed
+    // 格式错误时使用未解码的路径
   }
   return filePath
 }
 
 /**
- * Filters out locations whose file paths are gitignored.
- * Uses `git check-ignore` with batched path arguments for efficiency.
+ * 过滤掉文件路径被 gitignore 的位置。
+ * 使用 `git check-ignore` 并批量传入路径参数以提高效率。
  */
 async function filterGitIgnoredLocations<T extends Location>(
   locations: T[],
@@ -561,7 +561,7 @@ async function filterGitIgnoredLocations<T extends Location>(
     return locations
   }
 
-  // Collect unique file paths from URIs
+  // 从 URI 中收集唯一的文件路径
   const uriToPath = new Map<string, string>()
   for (const loc of locations) {
     if (loc.uri && !uriToPath.has(loc.uri)) {
@@ -574,8 +574,8 @@ async function filterGitIgnoredLocations<T extends Location>(
     return locations
   }
 
-  // Batch check paths with git check-ignore
-  // Exit code 0 = at least one path is ignored, 1 = none ignored, 128 = not a git repo
+  // 使用 git check-ignore 批量检查路径
+  // 退出码 0 = 至少一个路径被忽略，1 = 未被忽略，128 = 不是 git 仓库
   const ignoredPaths = new Set<string>()
   const BATCH_SIZE = 50
   for (let i = 0; i < uniquePaths.length; i += BATCH_SIZE) {
@@ -611,14 +611,14 @@ async function filterGitIgnoredLocations<T extends Location>(
 }
 
 /**
- * Checks if item is LocationLink (has targetUri) vs Location (has uri)
+ * 检查条目是 LocationLink（含有 targetUri）还是 Location（含有 uri）
  */
 function isLocationLink(item: Location | LocationLink): item is LocationLink {
   return 'targetUri' in item
 }
 
 /**
- * Converts LocationLink to Location format for uniform handling
+ * 将 LocationLink 转换为 Location 格式，以便统一处理
  */
 function toLocation(item: Location | LocationLink): Location {
   if (isLocationLink(item)) {
@@ -631,7 +631,7 @@ function toLocation(item: Location | LocationLink): Location {
 }
 
 /**
- * Formats LSP result based on operation type and extracts summary counts
+ * 根据操作类型格式化 LSP 结果，并提取汇总计数
  */
 function formatResult(
   operation: Input['operation'],
@@ -640,23 +640,23 @@ function formatResult(
 ): { formatted: string; resultCount: number; fileCount: number } {
   switch (operation) {
     case 'goToDefinition': {
-      // Handle both Location and LocationLink formats
+      // 同时处理 Location 和 LocationLink 格式
       const rawResults = Array.isArray(result)
         ? result
         : result
           ? [result as Location | LocationLink]
           : []
 
-      // Convert LocationLinks to Locations for uniform handling
+      // 将 LocationLink 转换为 Location 以便统一处理
       const locations = rawResults.map(toLocation)
 
-      // Log and filter out locations with undefined uris
+      // 记录并过滤掉 uri 未定义的位置
       const invalidLocations = locations.filter(loc => !loc || !loc.uri)
       if (invalidLocations.length > 0) {
         logError(
           new Error(
-            `LSP server returned ${invalidLocations.length} location(s) with undefined URI for goToDefinition on ${cwd}. ` +
-              `This indicates malformed data from the LSP server.`,
+            `LSP 服务器在 ${cwd} 上执行 goToDefinition 时返回了 ${invalidLocations.length} 个 uri 未定义的位置。` +
+              `这表明 LSP 服务器返回了格式错误的数据。`,
           ),
         )
       }
@@ -679,13 +679,13 @@ function formatResult(
     case 'findReferences': {
       const locations = (result as Location[]) || []
 
-      // Log and filter out locations with undefined uris
+      // 记录并过滤掉 uri 未定义的位置
       const invalidLocations = locations.filter(loc => !loc || !loc.uri)
       if (invalidLocations.length > 0) {
         logError(
           new Error(
-            `LSP server returned ${invalidLocations.length} location(s) with undefined URI for findReferences on ${cwd}. ` +
-              `This indicates malformed data from the LSP server.`,
+            `LSP 服务器在 ${cwd} 上执行 findReferences 时返回了 ${invalidLocations.length} 个 uri 未定义的位置。` +
+              `这表明 LSP 服务器返回了格式错误的数据。`,
           ),
         )
       }
@@ -705,12 +705,12 @@ function formatResult(
       }
     }
     case 'documentSymbol': {
-      // LSP allows documentSymbol to return either DocumentSymbol[] or SymbolInformation[]
+      // LSP 允许 documentSymbol 返回 DocumentSymbol[] 或 SymbolInformation[]
       const symbols = (result as (DocumentSymbol | SymbolInformation)[]) || []
-      // Detect format: DocumentSymbol has 'range', SymbolInformation has 'location'
+      // 检测格式：DocumentSymbol 有 'range'，SymbolInformation 有 'location'
       const isDocumentSymbol =
         symbols.length > 0 && symbols[0] && 'range' in symbols[0]
-      // Count symbols - DocumentSymbol can have nested children, SymbolInformation is flat
+      // 统计符号数量——DocumentSymbol 可含嵌套子符号，SymbolInformation 是平铺的
       const count = isDocumentSymbol
         ? countSymbols(symbols as DocumentSymbol[])
         : symbols.length
@@ -726,15 +726,15 @@ function formatResult(
     case 'workspaceSymbol': {
       const symbols = (result as SymbolInformation[]) || []
 
-      // Log and filter out symbols with undefined location.uri
+      // 记录并过滤掉 location.uri 未定义的符号
       const invalidSymbols = symbols.filter(
         sym => !sym || !sym.location || !sym.location.uri,
       )
       if (invalidSymbols.length > 0) {
         logError(
           new Error(
-            `LSP server returned ${invalidSymbols.length} symbol(s) with undefined location URI for workspaceSymbol on ${cwd}. ` +
-              `This indicates malformed data from the LSP server.`,
+            `LSP 服务器在 ${cwd} 上执行 workspaceSymbol 时返回了 ${invalidSymbols.length} 个 location URI 未定义的符号。` +
+              `这表明 LSP 服务器返回了格式错误的数据。`,
           ),
         )
       }
@@ -753,30 +753,30 @@ function formatResult(
       }
     }
     case 'goToImplementation': {
-      // Handle both Location and LocationLink formats (same as goToDefinition)
+      // 同时处理 Location 和 LocationLink 格式（与 goToDefinition 相同）
       const rawResults = Array.isArray(result)
         ? result
         : result
           ? [result as Location | LocationLink]
           : []
 
-      // Convert LocationLinks to Locations for uniform handling
+      // 将 LocationLink 转换为 Location 以便统一处理
       const locations = rawResults.map(toLocation)
 
-      // Log and filter out locations with undefined uris
+      // 记录并过滤掉 uri 未定义的位置
       const invalidLocations = locations.filter(loc => !loc || !loc.uri)
       if (invalidLocations.length > 0) {
         logError(
           new Error(
-            `LSP server returned ${invalidLocations.length} location(s) with undefined URI for goToImplementation on ${cwd}. ` +
-              `This indicates malformed data from the LSP server.`,
+            `LSP 服务器在 ${cwd} 上执行 goToImplementation 时返回了 ${invalidLocations.length} 个 uri 未定义的位置。` +
+              `这表明 LSP 服务器返回了格式错误的数据。`,
           ),
         )
       }
 
       const validLocations = locations.filter(loc => loc && loc.uri)
       return {
-        // Reuse goToDefinition formatter since the result format is identical
+        // 复用 goToDefinition 的格式化函数，因为结果格式相同
         formatted: formatGoToDefinitionResult(
           result as
             | Location
@@ -829,8 +829,8 @@ function formatResult(
 }
 
 /**
- * Counts unique files from CallHierarchyItem array
- * Filters out items with undefined URIs
+ * 统计 CallHierarchyItem 数组中的唯一文件数量
+ * 过滤掉 uri 未定义的条目
  */
 function countUniqueFilesFromCallItems(items: CallHierarchyItem[]): number {
   const validUris = items.map(item => item.uri).filter(uri => uri)
@@ -838,8 +838,8 @@ function countUniqueFilesFromCallItems(items: CallHierarchyItem[]): number {
 }
 
 /**
- * Counts unique files from CallHierarchyIncomingCall array
- * Filters out calls with undefined URIs
+ * 统计 CallHierarchyIncomingCall 数组中的唯一文件数量
+ * 过滤掉 uri 未定义的调用
  */
 function countUniqueFilesFromIncomingCalls(
   calls: CallHierarchyIncomingCall[],
@@ -849,8 +849,8 @@ function countUniqueFilesFromIncomingCalls(
 }
 
 /**
- * Counts unique files from CallHierarchyOutgoingCall array
- * Filters out calls with undefined URIs
+ * 统计 CallHierarchyOutgoingCall 数组中的唯一文件数量
+ * 过滤掉 uri 未定义的调用
  */
 function countUniqueFilesFromOutgoingCalls(
   calls: CallHierarchyOutgoingCall[],

@@ -247,7 +247,7 @@ type State = {
   // Read at shutdown to send cache eviction hints to inference.
   lastMainRequestId: string | undefined
   // Timestamp (Date.now()) of the last successful API call completion.
-  // Used to compute timeSinceLastApiCallMs in 内部代号_api_success for
+  // Used to compute timeSinceLastApiCallMs in limkenion_api_success for
   // correlating cache misses with idle time (cache TTL is ~5min).
   lastApiCompletionTimestamp: number | null
   // Set to true after compaction (auto or manual /compact). Consumed by
@@ -388,11 +388,7 @@ function getInitialState(): State {
     mainThreadAgentType: undefined,
     // Remote mode
     isRemoteMode: false,
-    ...(process.env.USER_TYPE === 'ant'
-      ? {
-          replBridgeActive: false,
-        }
-      : {}),
+    ...(({})),
     // Direct connect server URL
     directConnectServerUrl: undefined,
     // System prompt section cache state
@@ -1567,7 +1563,7 @@ const MAX_SLOW_OPERATIONS = 10
 const SLOW_OPERATION_TTL_MS = 10000
 
 export function addSlowOperation(operation: string, durationMs: number): void {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (true) return
   // Skip tracking for editor sessions (user editing a prompt file in $EDITOR)
   // These are intentionally slow since the user is drafting text
   if (operation.includes('exec') && operation.includes('limkenion-prompt-')) {

@@ -702,9 +702,7 @@ export const SettingsSchema = lazySchema(() =>
         ),
       effortLevel: z
         .enum(
-          process.env.USER_TYPE === 'ant'
-            ? ['low', 'medium', 'high', 'max']
-            : ['low', 'medium', 'high'],
+          ['low', 'medium', 'high'],
         )
         .optional()
         .catch(undefined)
@@ -828,16 +826,7 @@ export const SettingsSchema = lazySchema(() =>
           'Custom directory for plan files, relative to project root. ' +
             'If not set, defaults to ~/.limkenion/plans/',
         ),
-      ...(process.env.USER_TYPE === 'ant'
-        ? {
-            classifierPermissionsEnabled: z
-              .boolean()
-              .optional()
-              .describe(
-                'Enable AI-based classification for Bash(prompt:...) permission rules',
-              ),
-          }
-        : {}),
+      ...(({})),
       ...(feature('PROACTIVE') || feature('KAIROS')
         ? {
             minSleepDurationMs: z
@@ -989,12 +978,7 @@ export const SettingsSchema = lazySchema(() =>
                   .array(z.string())
                   .optional()
                   .describe('Rules for the auto mode classifier deny section'),
-                ...(process.env.USER_TYPE === 'ant'
-                  ? {
-                      // Back-compat alias for ant users; external users use soft_deny
-                      deny: z.array(z.string()).optional(),
-                    }
-                  : {}),
+                ...(({})),
                 environment: z
                   .array(z.string())
                   .optional()

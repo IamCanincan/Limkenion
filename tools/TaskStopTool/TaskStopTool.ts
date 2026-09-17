@@ -12,24 +12,24 @@ const inputSchema = lazySchema(() =>
     task_id: z
       .string()
       .optional()
-      .describe('The ID of the background task to stop'),
-    // shell_id is accepted for backward compatibility with the deprecated KillShell tool
-    shell_id: z.string().optional().describe('Deprecated: use task_id instead'),
+      .describe('要停止的后台任务的 ID'),
+    // 为兼容已弃用的 KillShell 工具而保留 shell_id
+    shell_id: z.string().optional().describe('已弃用：请改用 task_id'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    message: z.string().describe('Status message about the operation'),
-    task_id: z.string().describe('The ID of the task that was stopped'),
-    task_type: z.string().describe('The type of the task that was stopped'),
-    // Optional: tool outputs are persisted to transcripts and replayed on --resume
-    // without re-validation, so sessions from before this field was added lack it.
+    message: z.string().describe('该操作的状态消息'),
+    task_id: z.string().describe('被停止的任务的 ID'),
+    task_type: z.string().describe('被停止的任务的类型'),
+    // 说明：工具输出会持久化到记录中，并在 --resume 时重新播放而不重新验证，
+    // 因此在此字段加入之前的会话缺少该字段。
     command: z
       .string()
       .optional()
-      .describe('The command or description of the stopped task'),
+      .describe('被停止任务的命令或描述'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -43,7 +43,7 @@ export const TaskStopTool = buildTool({
   // with existing transcripts and SDK users
   aliases: ['KillShell'],
   maxResultSizeChars: 100_000,
-  userFacingName: () => (process.env.USER_TYPE === 'ant' ? '' : 'Stop Task'),
+  userFacingName: () => ('Stop Task'),
   get inputSchema(): InputSchema {
     return inputSchema()
   },

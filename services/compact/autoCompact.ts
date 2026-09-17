@@ -193,7 +193,7 @@ export async function shouldAutoCompact(
   // trySessionMemoryCompaction in the query loop — the /compact call site
   // still tries session memory first. Revisit if reactive-only graduates.
   if (feature('REACTIVE_COMPACT')) {
-    if (getFeatureValue_CACHED_MAY_BE_STALE('内部代号_cobalt_raccoon', false)) {
+    if (getFeatureValue_CACHED_MAY_BE_STALE('limkenion_cobalt_raccoon', false)) {
       return false
     }
   }
@@ -297,7 +297,7 @@ export async function autoCompactIfNeeded(
     runPostCompactCleanup(querySource)
     // Reset cache read baseline so the post-compact drop isn't flagged as a
     // break. compactConversation does this internally; SM-compact doesn't.
-    // BQ 2026-03-01: missing this made 20% of 内部代号_prompt_cache_break events
+    // BQ 2026-03-01: missing this made 20% of limkenion_prompt_cache_break events
     // false positives (systemPromptChanged=true, timeSinceLastAssistantMsg=-1).
     if (feature('PROMPT_CACHE_BREAK_DETECTION')) {
       notifyCompaction(querySource ?? 'compact', toolUseContext.agentId)

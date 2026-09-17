@@ -65,7 +65,7 @@ export async function checkAndRestoreITerm2Backup(): Promise<RestoreResult> {
     return { status: 'restored' }
   } catch (restoreError) {
     logError(
-      new Error(`Failed to restore iTerm2 settings with: ${restoreError}`),
+      new Error(`恢复 iTerm2 设置失败：${restoreError}`),
     )
     markITerm2SetupComplete()
     return { status: 'failed', backupPath }

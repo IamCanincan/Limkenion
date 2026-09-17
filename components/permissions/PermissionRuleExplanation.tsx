@@ -15,7 +15,7 @@ export type PermissionRuleExplanationProps = {
 type DecisionReasonStrings = {
   reasonString: string;
   configString?: string;
-  /** When set, reasonString is plain text rendered with this theme color instead of <Ansi>. */
+  /** 当设置此项时，reasonString 将以该主题颜色渲染为纯文本，而不是使用 <Ansi>。 */
   themeColor?: keyof Theme;
 };
 function stringsForDecisionReason(reason: PermissionDecisionReason | undefined, toolType: 'tool' | 'command' | 'edit' | 'read'): DecisionReasonStrings | null {
@@ -25,29 +25,29 @@ function stringsForDecisionReason(reason: PermissionDecisionReason | undefined, 
   if ((feature('BASH_CLASSIFIER') || feature('TRANSCRIPT_CLASSIFIER')) && reason.type === 'classifier') {
     if (reason.classifier === 'auto-mode') {
       return {
-        reasonString: `Auto mode classifier requires confirmation for this ${toolType}.\n${reason.reason}`,
+        reasonString: `自动模式分类器要求对该 ${toolType} 进行确认。\n${reason.reason}`,
         configString: undefined,
         themeColor: 'error'
       };
     }
     return {
-      reasonString: `Classifier ${chalk.bold(reason.classifier)} requires confirmation for this ${toolType}.\n${reason.reason}`,
+      reasonString: `分类器 ${chalk.bold(reason.classifier)} 要求对该 ${toolType} 进行确认。\n${reason.reason}`,
       configString: undefined
     };
   }
   switch (reason.type) {
     case 'rule':
       return {
-        reasonString: `Permission rule ${chalk.bold(permissionRuleValueToString(reason.rule.ruleValue))} requires confirmation for this ${toolType}.`,
-        configString: reason.rule.source === 'policySettings' ? undefined : '/permissions to update rules'
+        reasonString: `权限规则 ${chalk.bold(permissionRuleValueToString(reason.rule.ruleValue))} 要求对该 ${toolType} 进行确认。`,
+        configString: reason.rule.source === 'policySettings' ? undefined : '/permissions 更新规则'
       };
     case 'hook':
       {
         const hookReasonString = reason.reason ? `:\n${reason.reason}` : '.';
         const sourceLabel = reason.hookSource ? ` ${chalk.dim(`[${reason.hookSource}]`)}` : '';
         return {
-          reasonString: `Hook ${chalk.bold(reason.hookName)} requires confirmation for this ${toolType}${hookReasonString}${sourceLabel}`,
-          configString: '/hooks to update'
+          reasonString: `Hook ${chalk.bold(reason.hookName)} 要求对该 ${toolType} 进行确认${hookReasonString}${sourceLabel}`,
+          configString: '/hooks 更新'
         };
       }
     case 'safetyCheck':
@@ -59,7 +59,7 @@ function stringsForDecisionReason(reason: PermissionDecisionReason | undefined, 
     case 'workingDir':
       return {
         reasonString: reason.reason,
-        configString: '/permissions to update rules'
+        configString: '/permissions 更新规则'
       };
     default:
       return null;

@@ -31,14 +31,13 @@ import { SedEditPermissionRequest } from '../SedEditPermissionRequest/SedEditPer
 import { useShellPermissionFeedback } from '../useShellPermissionFeedback.js';
 import { logUnaryPermissionEvent } from '../utils.js';
 import { bashToolUseOptions } from './bashToolUseOptions.js';
-const CHECKING_TEXT = 'Attempting to auto-approve\u2026';
+const CHECKING_TEXT = '正在尝试自动批准\u2026';
 
-// Isolates the 20fps shimmer clock from BashPermissionRequestInner. Before this
-// extraction, useShimmerAnimation lived inside the 535-line Inner body, so every
-// 50ms clock tick re-rendered the entire dialog (PermissionDialog + Select +
-// all children) for the ~1-3 seconds the classifier typically takes. Inner also
-// has a Compiler bailout (see below), so nothing was auto-memoized — the full
-// JSX tree was reconstructed 20-60 times per classifier check.
+// 将 20fps 的 shimmer 时钟与 BashPermissionRequestInner 隔离。在此之前，
+// useShimmerAnimation 位于 535 行的 Internal 组件体内，因此每 50ms 的
+// 时钟节拍都会重新渲染整个对话框（PermissionDialog + Select + 所有子组件），
+// 持续约分类器通常所需的 1-3 秒。Inner 还具有 Compiler bailout（见下文），
+// 因此没有任何内容被自动记忆化——每次分类器检查都会重建整个 JSX 树，共 20-60 次。
 function ClassifierCheckingSubtitle() {
   const $ = _c(6);
   const [ref, glimmerIndex] = useShimmerAnimation("requesting", CHECKING_TEXT, false);
@@ -132,7 +131,7 @@ export function BashPermissionRequest(props) {
   return t1;
 }
 
-// Inner component that uses hooks - only called for non-MCP CLI commands
+// 使用 hooks 的内部组件——仅针对非 MCP CLI 命令调用
 function BashPermissionRequestInner({
   toolUseConfirm,
   toolUseContext,
@@ -175,11 +174,11 @@ function BashPermissionRequestInner({
   });
   const [showPermissionDebug, setShowPermissionDebug] = useState(false);
   const [classifierDescription, setClassifierDescription] = useState(description || '');
-  // Track whether the initial description (from prop or async generation) was empty.
-  // Once we receive a non-empty description, this stays false.
+  // 记录初始描述（来自属性或异步生成）是否为空。
+  // 一旦收到非空描述，此值将保持为 false。
   const [initialClassifierDescriptionEmpty, setInitialClassifierDescriptionEmpty] = useState(!description?.trim());
 
-  // Asynchronously generate a generic description for the classifier
+  // 为分类器异步生成通用描述
   useEffect(() => {
     if (!isClassifierPermissionsEnabled()) return;
     const abortController = new AbortController();
@@ -188,39 +187,36 @@ function BashPermissionRequestInner({
         setClassifierDescription(generic);
         setInitialClassifierDescriptionEmpty(false);
       }
-    }).catch(() => {}); // Keep original on error
+    }).catch(() => {}); // 出错时保留原始描述
     return () => abortController.abort();
   }, [command, description]);
 
-  // GH#11380: For compound commands (cd src && git status && npm test), the
-  // backend already computed correct per-subcommand suggestions via tree-sitter
-  // split + per-subcommand permission checks. decisionReason.type ===
-  // 'subcommandResults' marks this path. The sync prefix heuristics below
-  // (getSimpleCommandPrefix/getFirstWordPrefix) operate on the FULL compound
-  // string and pick the first two words — producing dead rules like
-  // `Bash(cd src:*)` or `Bash(./script.sh && npm test)` that never match again.
-  // Users accumulate 150+ of these in settings.local.json.
+  // GH#11380：对于复合命令（cd src && git status && npm test），后端已通过
+  // tree-sitter 拆分 + 逐子命令权限检查计算出正确的逐子命令建议。
+  // decisionReason.type === 'subcommandResults' 标记此路径。下面的同步前缀
+  // 启发式（getSimpleCommandPrefix/getFirstWordPrefix）针对整个复合字符串操作，
+  // 并选取前两个词——从而产生诸如 `Bash(cd src:*)` 或 `Bash(./script.sh && npm test)`
+  // 这样永远不会再次匹配的死规则。用户会在 settings.local.json 中积累 150 多条这样的规则。
   //
-  // When compound with exactly one Bash rule (e.g. `cd src && npm test` where
-  // cd is read-only → only npm test needs approval), seed the editable input
-  // from the backend rule. When compound with 2+ rules, editablePrefix stays
-  // undefined so bashToolUseOptions falls through to yes-apply-suggestions,
-  // which saves all per-subcommand rules atomically.
+  // 当复合命令恰好只有一条 Bash 规则（例如 `cd src && npm test`，其中 cd 是
+  // 只读的 → 仅 npm test 需要批准）时，从后端规则中植入可编辑输入。
+  // 当复合命令有 2 条或更多规则时，editablePrefix 保持 undefined，以便
+  // bashToolUseOptions 回退到 yes-apply-suggestions，这样会原子地保存所有
+  // 逐子命令规则。
   const isCompound = toolUseConfirm.permissionResult.decisionReason?.type === 'subcommandResults';
 
-  // Editable prefix — initialize synchronously with the best prefix we can
-  // extract without tree-sitter, then refine via tree-sitter for compound
-  // commands. The sync path matters because TREE_SITTER_BASH is gated
-  // ant-only: in external builds the async refinement below always resolves
-  // to [] and this initial value is what the user sees.
+  // 可编辑前缀——先同步地用我们能提取的最佳前缀初始化，
+  // 然后针对复合命令通过 tree-sitter 细化。同步路径很重要，因为
+  // TREE_SITTER_BASH 仅针对 ant 版本启用：在外部构建中，下面的异步
+  // 细化总是解析为 []，这个初始值就是用户看到的内容。
   //
-  // Lazy initializer: this runs regex + split on every render if left in
-  // the render body; it's only needed for initial state.
+  // 惰性初始化器：如果留在渲染体内，每次渲染都会运行正则 + 拆分；
+  // 它仅用于初始状态。
   const [editablePrefix, setEditablePrefix] = useState<string | undefined>(() => {
     if (isCompound) {
-      // Backend suggestion is the source of truth for compound commands.
-      // Single rule → seed the editable input so the user can refine it.
-      // Multiple/zero rules → undefined → yes-apply-suggestions handles it.
+      // 对于复合命令，后端建议是唯一可信来源。
+      // 单条规则 → 填充可编辑输入，以便用户可以细化它。
+      // 多条/零条规则 → undefined → 由 yes-apply-suggestions 处理。
       const backendBashRules = extractRules('suggestions' in toolUseConfirm.permissionResult ? toolUseConfirm.permissionResult.suggestions : undefined).filter(r => r.toolName === BashTool.name && r.ruleContent);
       return backendBashRules.length === 1 ? backendBashRules[0]!.ruleContent : undefined;
     }
@@ -236,8 +232,8 @@ function BashPermissionRequestInner({
     setEditablePrefix(value);
   }, []);
   useEffect(() => {
-    // Skip async refinement for compound commands — the backend already ran
-    // the full per-subcommand analysis and its suggestion is correct.
+    // 跳过复合命令的异步细化——后端已经运行了完整的逐子命令分析，
+    // 并且其建议是正确的。
     if (isCompound) return;
     let cancelled = false;
     getCompoundCommandPrefixesStatic(command, subcmd => BashTool.isReadOnly({
@@ -247,31 +243,30 @@ function BashPermissionRequestInner({
       if (prefixes.length > 0) {
         setEditablePrefix(`${prefixes[0]}:*`);
       }
-    }).catch(() => {}); // Keep sync prefix on tree-sitter failure
+    }).catch(() => {}); // 在 tree-sitter 失败时保留同步前缀
     return () => {
       cancelled = true;
     };
   }, [command, isCompound]);
 
-  // Track whether classifier check was ever in progress (persists after completion).
-  // classifierCheckInProgress is set once at queue-push time (interactiveHandler)
-  // and only ever transitions true→false, so capturing the mount-time value is
-  // sufficient — no latch/ref needed. The feature() ternary keeps the property
-  // read out of external builds (forbidden-string check).
+  // 跟踪分类器检查是否曾进行过（完成后仍然保留）。
+  // classifierCheckInProgress 在入队时（interactiveHandler）一次性设置，
+  // 并且只会从 true→false 转变，因此捕获挂载时的值就足够了——无需
+  // latch/ref。feature() 三元表达式让该属性读取保持在外部构建之外
+  // （用于 forbidden-string 检查）。
   const [classifierWasChecking] = useState(feature('BASH_CLASSIFIER') ? !!toolUseConfirm.classifierCheckInProgress : false);
 
-  // These derive solely from the tool input (fixed for the dialog lifetime).
-  // The shimmer clock used to live in this component and re-render it at 20fps
-  // while the classifier ran (see ClassifierCheckingSubtitle above for the
-  // extraction). React Compiler can't auto-memoize imported functions (can't
-  // prove side-effect freedom), so this useMemo still guards against any
-  // re-render source (e.g. Inner state updates). Same pattern as PR#20730.
+  // 这些仅由工具输入派生（对于对话框生命周期而言是固定的）。
+  // shimmer 时钟以前位于此组件内，并在分类器运行时以 20fps 的速度重新渲染它
+  //（参见上面的 ClassifierCheckingSubtitle 了解该提取）。React Compiler 无法自动
+  // 记忆化导入的函数（无法证明无副作用），因此这个 useMemo 仍然防范任何
+  // 重新渲染来源（例如 Inner 状态更新）。与 PR#20730 相同模式。
   const {
     destructiveWarning: destructiveWarning_0,
     sandboxingEnabled: sandboxingEnabled_0,
     isSandboxed: isSandboxed_0
   } = useMemo(() => {
-    const destructiveWarning = getFeatureValue_CACHED_MAY_BE_STALE('内部代号_destructive_command_warning', false) ? getDestructiveCommandWarning(command) : null;
+    const destructiveWarning = getFeatureValue_CACHED_MAY_BE_STALE('limkenion_destructive_command_warning', false) ? getDestructiveCommandWarning(command) : null;
     const sandboxingEnabled = SandboxManager.isSandboxingEnabled();
     const isSandboxed = sandboxingEnabled && shouldUseSandbox(toolUseConfirm.input);
     return {
@@ -301,7 +296,7 @@ function BashPermissionRequestInner({
     onEditablePrefixChange
   }), [toolUseConfirm, classifierDescription, initialClassifierDescriptionEmpty, existingAllowDescriptions, yesInputMode, noInputMode, editablePrefix, onEditablePrefixChange]);
 
-  // Toggle permission debug info with keybinding
+  // 通过快捷键切换权限调试信息
   const handleToggleDebug = useCallback(() => {
     setShowPermissionDebug(prev => !prev);
   }, []);
@@ -309,7 +304,7 @@ function BashPermissionRequestInner({
     context: 'Confirmation'
   });
 
-  // Allow Esc to dismiss the checkmark after auto-approval
+  // 允许按 Esc 在自动批准后关闭对勾标记
   const handleDismissCheckmark = useCallback(() => {
     toolUseConfirm.onDismissCheckmark?.();
   }, [toolUseConfirm]);
@@ -318,7 +313,7 @@ function BashPermissionRequestInner({
     isActive: feature('BASH_CLASSIFIER') ? !!toolUseConfirm.classifierAutoApproved : false
   });
   function onSelect(value_0: string) {
-    // Map options to numeric values for analytics (strings not allowed in logEvent)
+    // 为分析将选项映射为数值（logEvent 中不允许使用字符串）
     let optionIndex: Record<string, number> = {
       yes: 1,
       'yes-apply-suggestions': 2,
@@ -334,7 +329,7 @@ function BashPermissionRequestInner({
         no: 4
       };
     }
-    logEvent('内部代号_permission_request_option_selected', {
+    logEvent('limkenion_permission_request_option_selected', {
       option_index: optionIndex[value_0],
       explainer_visible: explainerState.visible
     });
@@ -384,8 +379,8 @@ function BashPermissionRequestInner({
         {
           const trimmedFeedback_0 = acceptFeedback.trim();
           logUnaryPermissionEvent('tool_use_single', toolUseConfirm, 'accept');
-          // Log accept submission with feedback context
-          logEvent('内部代号_accept_submitted', {
+          // 记录带反馈上下文的接受提交
+          logEvent('limkenion_accept_submitted', {
             toolName: toolNameForAnalytics,
             isMcp: toolUseConfirm.tool.isMcp ?? false,
             has_instructions: !!trimmedFeedback_0,
@@ -399,7 +394,7 @@ function BashPermissionRequestInner({
       case 'yes-apply-suggestions':
         {
           logUnaryPermissionEvent('tool_use_single', toolUseConfirm, 'accept');
-          // Extract suggestions if present (works for both 'ask' and 'passthrough' behaviors)
+          // 如果存在则提取建议（对 'ask' 和 'passthrough' 行为均有效）
           const permissionUpdates_0 = 'suggestions' in toolUseConfirm.permissionResult ? toolUseConfirm.permissionResult.suggestions || [] : [];
           toolUseConfirm.onAllow(toolUseConfirm.input, permissionUpdates_0);
           onDone();
@@ -409,8 +404,8 @@ function BashPermissionRequestInner({
         {
           const trimmedFeedback = rejectFeedback.trim();
 
-          // Log reject submission with feedback context
-          logEvent('内部代号_reject_submitted', {
+          // 记录带反馈上下文的拒绝提交
+          logEvent('limkenion_reject_submitted', {
             toolName: toolNameForAnalytics,
             isMcp: toolUseConfirm.tool.isMcp ?? false,
             has_instructions: !!trimmedFeedback,
@@ -418,21 +413,21 @@ function BashPermissionRequestInner({
             entered_feedback_mode: noFeedbackModeEntered
           });
 
-          // Process rejection (with or without feedback)
+          // 处理拒绝（带或不带反馈）
           handleReject(trimmedFeedback || undefined);
           break;
         }
     }
   }
   const classifierSubtitle = feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved ? <Text>
-        <Text color="success">{figures.tick} Auto-approved</Text>
+        <Text color="success">{figures.tick} 已自动批准</Text>
         {toolUseConfirm.classifierMatchedRule && <Text dimColor>
-            {' \u00b7 matched "'}
+            {' \u00b7 匹配 "'}
             {toolUseConfirm.classifierMatchedRule}
             {'"'}
           </Text>}
-      </Text> : toolUseConfirm.classifierCheckInProgress ? <ClassifierCheckingSubtitle /> : classifierWasChecking ? <Text dimColor>Requires manual approval</Text> : undefined : undefined;
-  return <PermissionDialog workerBadge={workerBadge} title={sandboxingEnabled_0 && !isSandboxed_0 ? 'Bash command (unsandboxed)' : 'Bash command'} subtitle={classifierSubtitle}>
+      </Text> : toolUseConfirm.classifierCheckInProgress ? <ClassifierCheckingSubtitle /> : classifierWasChecking ? <Text dimColor>需要手动批准</Text> : undefined : undefined;
+  return <PermissionDialog workerBadge={workerBadge} title={sandboxingEnabled_0 && !isSandboxed_0 ? 'Bash 命令（非沙箱）' : 'Bash 命令'} subtitle={classifierSubtitle}>
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text dimColor={explainerState.visible}>
           {BashTool.renderToolUseMessage({
@@ -441,7 +436,7 @@ function BashPermissionRequestInner({
         }, {
           theme,
           verbose: true
-        } // always show the full command
+        } // 始终显示完整命令
         )}
         </Text>
         {!explainerState.visible && <Text dimColor>{toolUseConfirm.description}</Text>}
@@ -450,7 +445,7 @@ function BashPermissionRequestInner({
       {showPermissionDebug ? <>
           <PermissionDecisionDebugInfo permissionResult={toolUseConfirm.permissionResult} toolName="Bash" />
           {toolUseContext.options.debug && <Box justifyContent="flex-end" marginTop={1}>
-              <Text dimColor>Ctrl-D to hide debug info</Text>
+              <Text dimColor>Ctrl-D 以隐藏调试信息</Text>
             </Box>}
         </> : <>
           <Box flexDirection="column">
@@ -461,7 +456,7 @@ function BashPermissionRequestInner({
                 </Text>
               </Box>}
             <Text dimColor={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved : false}>
-              Do you want to proceed?
+              是否继续？
             </Text>
             <Select options={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved ? options.map(o => ({
           ...o,
@@ -470,11 +465,11 @@ function BashPermissionRequestInner({
           </Box>
           <Box justifyContent="space-between" marginTop={1}>
             <Text dimColor>
-              Esc to cancel
-              {(focusedOption === 'yes' && !yesInputMode || focusedOption === 'no' && !noInputMode) && ' · Tab to amend'}
-              {explainerState.enabled && ` · ctrl+e to ${explainerState.visible ? 'hide' : 'explain'}`}
+              Esc 以取消
+              {(focusedOption === 'yes' && !yesInputMode || focusedOption === 'no' && !noInputMode) && ' · Tab 以修改'}
+              {explainerState.enabled && ` · ctrl+e 以${explainerState.visible ? '隐藏' : '解释'}`}
             </Text>
-            {toolUseContext.options.debug && <Text dimColor>Ctrl+d to show debug info</Text>}
+            {toolUseContext.options.debug && <Text dimColor>Ctrl+d 以显示调试信息</Text>}
           </Box>
         </>}
     </PermissionDialog>;

@@ -64,17 +64,17 @@ function normalizeAndTruncateToWidth(text: string, maxWidth: number): string {
   return truncateToWidth(normalized, maxWidth);
 }
 
-// Width of prefixes that TreeSelect will add
-const PARENT_PREFIX_WIDTH = 2; // '▼ ' or '▶ '
+// 各种前缀，由 TreeSelect 添加
+const PARENT_PREFIX_WIDTH = 2; // '▼ ' 或 '▶ '
 const CHILD_PREFIX_WIDTH = 4; // '  ▸ '
 
-// Deep search constants
+// 深度搜索常量
 const DEEP_SEARCH_MAX_MESSAGES = 2000;
 const DEEP_SEARCH_CROP_SIZE = 1000;
-const DEEP_SEARCH_MAX_TEXT_LENGTH = 50000; // Cap searchable text per session
+const DEEP_SEARCH_MAX_TEXT_LENGTH = 50000; // 每个会话可搜索文本的上限
 const FUSE_THRESHOLD = 0.3;
-const DATE_TIE_THRESHOLD_MS = 60 * 1000; // 1 minute - use relevance as tie-breaker within this window
-const SNIPPET_CONTEXT_CHARS = 50; // Characters to show before/after match
+const DATE_TIE_THRESHOLD_MS = 60 * 1000; // 1 分钟内以相关性作为平局裁决
+const SNIPPET_CONTEXT_CHARS = 50; // 匹配前后各显示多少字符
 
 type Snippet = {
   before: string;
@@ -89,10 +89,10 @@ function formatSnippet({
   return chalk.dim(before) + highlightColor(match) + chalk.dim(after);
 }
 function extractSnippet(text: string, query: string, contextChars: number): Snippet | null {
-  // Find exact query occurrence (case-insensitive).
-  // Note: Fuse does fuzzy matching, so this may miss some fuzzy matches.
-  // This is acceptable for now - in the future we could use Fuse's includeMatches
-  // option and work with the match indices directly.
+  // 精确查找查询的首次出现位置（忽略大小写）。
+  // 注意：Fuse 会进行模糊匹配，因此这可能会漏掉部分模糊匹配。
+  // 目前这样做是可接受的——未来可利用 Fuse 的 includeMatches
+  // 选项直接处理匹配索引。
   const matchIndex = text.toLowerCase().indexOf(query.toLowerCase());
   if (matchIndex === -1) return null;
   const matchEnd = matchIndex + query.length;
@@ -237,13 +237,13 @@ export function LogSelector(t0) {
   if ($[8] === Symbol.for("react.memo_cache_sentinel")) {
     t10 = () => {
       setViewMode("list");
-      logEvent("内部代号_session_search_toggled", {
+      logEvent("limkenion_session_search_toggled", {
         enabled: false
       });
     };
     t11 = () => {
       setViewMode("list");
-      logEvent("内部代号_session_search_toggled", {
+      logEvent("limkenion_session_search_toggled", {
         enabled: false
       });
     };
@@ -333,7 +333,7 @@ export function LogSelector(t0) {
   const hasTags = uniqueTags.length > 0;
   let t21;
   if ($[21] !== hasTags || $[22] !== uniqueTags) {
-    t21 = hasTags ? ["All", ...uniqueTags] : [];
+    t21 = hasTags ? ["全部", ...uniqueTags] : [];
     $[21] = hasTags;
     $[22] = uniqueTags;
     $[23] = t21;
@@ -669,7 +669,7 @@ export function LogSelector(t0) {
       if ($[79] !== highlightColor || $[80] !== maxLabelWidth || $[81] !== showAllProjects || $[82] !== snippets) {
         t32 = (log_9, index_0) => {
           const rawSummary = getLogDisplayTitle(log_9);
-          const summaryWithSidechain = rawSummary + (log_9.isSidechain ? " (sidechain)" : "");
+          const summaryWithSidechain = rawSummary + (log_9.isSidechain ? " (侧链)" : "");
           const summary = normalizeAndTruncateToWidth(summaryWithSidechain, maxLabelWidth);
           const baseDescription = formatLogMetadata(log_9);
           const projectSuffix = showAllProjects && log_9.projectPath ? ` · ${log_9.projectPath}` : "";
@@ -722,9 +722,9 @@ export function LogSelector(t0) {
       const isExpanded = expandedGroupSessionIds.has(sessionId_0);
       const isChildNode = sessionLogs.indexOf(focusedLog) > 0;
       if (isChildNode) {
-        return "\u2190 to collapse";
+        return "\u2190 折叠";
       }
-      return isExpanded ? "\u2190 to collapse" : "\u2192 to expand";
+      return isExpanded ? "\u2190 折叠" : "\u2192 展开";
     };
     $[84] = displayedLogs;
     $[85] = expandedGroupSessionIds;
@@ -764,7 +764,7 @@ export function LogSelector(t0) {
   if ($[92] === Symbol.for("react.memo_cache_sentinel")) {
     t33 = () => {
       setViewMode("list");
-      logEvent("内部代号_session_search_toggled", {
+      logEvent("limkenion_session_search_toggled", {
         enabled: false
       });
     };
@@ -777,7 +777,7 @@ export function LogSelector(t0) {
   if ($[93] === Symbol.for("react.memo_cache_sentinel")) {
     t34 = () => {
       setViewMode("search");
-      logEvent("内部代号_session_search_toggled", {
+      logEvent("limkenion_session_search_toggled", {
         enabled: true
       });
     };
@@ -798,7 +798,7 @@ export function LogSelector(t0) {
       setAgenticSearchState({
         status: "searching"
       });
-      logEvent("内部代号_agentic_search_started", {
+      logEvent("limkenion_agentic_search_started", {
         query_length: searchQuery.length
       });
       ;
@@ -812,7 +812,7 @@ export function LogSelector(t0) {
           results: results_0,
           query: searchQuery
         });
-        logEvent("内部代号_agentic_search_completed", {
+        logEvent("limkenion_agentic_search_completed", {
           query_length: searchQuery.length,
           results_count: results_0.length
         });
@@ -823,9 +823,9 @@ export function LogSelector(t0) {
         }
         setAgenticSearchState({
           status: "error",
-          message: error instanceof Error ? error.message : "Search failed"
+          message: error instanceof Error ? error.message : "搜索失败"
         });
-        logEvent("内部代号_agentic_search_error", {
+        logEvent("limkenion_agentic_search_error", {
           query_length: searchQuery.length
         });
       }
@@ -970,7 +970,7 @@ export function LogSelector(t0) {
       setAgenticSearchState({
         status: "idle"
       });
-      logEvent("内部代号_agentic_search_cancelled", {});
+      logEvent("limkenion_agentic_search_cancelled", {});
     };
     $[120] = t44;
   } else {
@@ -1083,7 +1083,7 @@ export function LogSelector(t0) {
               const current = prev < tagTabs.length ? prev : 0;
               const newIndex = (current + tagTabs.length + offset) % tagTabs.length;
               const newTab = tagTabs[newIndex];
-              logEvent("内部代号_session_tag_filter_changed", {
+              logEvent("limkenion_session_tag_filter_changed", {
                 is_all: newTab === "All",
                 tag_count: uniqueTags.length
               });
@@ -1095,46 +1095,46 @@ export function LogSelector(t0) {
           const lowerInput = input.toLowerCase();
           if (lowerInput === "a" && key.ctrl && onToggleAllProjects) {
             onToggleAllProjects();
-            logEvent("内部代号_session_all_projects_toggled", {
+            logEvent("limkenion_session_all_projects_toggled", {
               enabled: !showAllProjects
             });
           } else {
             if (lowerInput === "b" && key.ctrl) {
               const newEnabled = !branchFilterEnabled;
               setBranchFilterEnabled(newEnabled);
-              logEvent("内部代号_session_branch_filter_toggled", {
+              logEvent("limkenion_session_branch_filter_toggled", {
                 enabled: newEnabled
               });
             } else {
               if (lowerInput === "w" && key.ctrl && hasMultipleWorktrees) {
                 const newValue = !showAllWorktrees;
                 setShowAllWorktrees(newValue);
-                logEvent("内部代号_session_worktree_filter_toggled", {
+                logEvent("limkenion_session_worktree_filter_toggled", {
                   enabled: newValue
                 });
               } else {
                 if (lowerInput === "/" && keyIsNotCtrlOrMeta) {
                   setViewMode("search");
-                  logEvent("内部代号_session_search_toggled", {
+                  logEvent("limkenion_session_search_toggled", {
                     enabled: true
                   });
                 } else {
                   if (lowerInput === "r" && key.ctrl && focusedLog) {
                     setViewMode("rename");
                     setRenameValue("");
-                    logEvent("内部代号_session_rename_started", {});
+                    logEvent("limkenion_session_rename_started", {});
                   } else {
                     if (lowerInput === "v" && key.ctrl && focusedLog) {
                       setPreviewLog(focusedLog);
                       setViewMode("preview");
-                      logEvent("内部代号_session_preview_opened", {
+                      logEvent("limkenion_session_preview_opened", {
                         messageCount: focusedLog.messageCount
                       });
                     } else {
                       if (focusedLog && keyIsNotCtrlOrMeta && input.length > 0 && !/^\s+$/.test(input)) {
                         setViewMode("search");
                         setSearchQuery(input);
-                        logEvent("内部代号_session_search_toggled", {
+                        logEvent("limkenion_session_search_toggled", {
                           enabled: true
                         });
                       }
@@ -1184,7 +1184,7 @@ export function LogSelector(t0) {
       filterIndicators.push(currentBranch);
     }
     if (hasMultipleWorktrees && !showAllWorktrees) {
-      filterIndicators.push("current worktree");
+      filterIndicators.push("当前工作副本");
     }
     $[149] = branchFilterEnabled;
     $[150] = currentBranch;
@@ -1263,7 +1263,7 @@ export function LogSelector(t0) {
   }
   let t60;
   if ($[166] !== columns || $[167] !== displayedLogs.length || $[168] !== effectiveTagIndex || $[169] !== focusedIndex || $[170] !== hasTags || $[171] !== showAllProjects || $[172] !== tagTabs || $[173] !== viewMode || $[174] !== visibleCount) {
-    t60 = hasTags ? <TagTabs tabs={tagTabs} selectedIndex={effectiveTagIndex} availableWidth={columns} showAllProjects={showAllProjects} /> : <Box flexShrink={0}><Text bold={true} color="suggestion">Resume Session{viewMode === "list" && displayedLogs.length > visibleCount && <Text dimColor={true}>{" "}({focusedIndex} of {displayedLogs.length})</Text>}</Text></Box>;
+    t60 = hasTags ? <TagTabs tabs={tagTabs} selectedIndex={effectiveTagIndex} availableWidth={columns} showAllProjects={showAllProjects} /> : <Box flexShrink={0}><Text bold={true} color="suggestion">继续会话{viewMode === "list" && displayedLogs.length > visibleCount && <Text dimColor={true}>{" "}({focusedIndex} of {displayedLogs.length})</Text>}</Text></Box>;
     $[166] = columns;
     $[167] = displayedLogs.length;
     $[168] = effectiveTagIndex;
@@ -1307,7 +1307,7 @@ export function LogSelector(t0) {
   }
   let t65;
   if ($[185] !== agenticSearchState.status) {
-    t65 = agenticSearchState.status === "searching" && <Box paddingLeft={1} flexShrink={0}><Spinner /><Text> Searching…</Text></Box>;
+    t65 = agenticSearchState.status === "searching" && <Box paddingLeft={1} flexShrink={0}><Spinner /><Text> 搜索中…</Text></Box>;
     $[185] = agenticSearchState.status;
     $[186] = t65;
   } else {
@@ -1315,7 +1315,7 @@ export function LogSelector(t0) {
   }
   let t66;
   if ($[187] !== agenticSearchState.results || $[188] !== agenticSearchState.status) {
-    t66 = agenticSearchState.status === "results" && agenticSearchState.results.length > 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>Limkenion found these results:</Text></Box>;
+    t66 = agenticSearchState.status === "results" && agenticSearchState.results.length > 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>Limkenion 找到了以下结果：</Text></Box>;
     $[187] = agenticSearchState.results;
     $[188] = agenticSearchState.status;
     $[189] = t66;
@@ -1324,7 +1324,7 @@ export function LogSelector(t0) {
   }
   let t67;
   if ($[190] !== agenticSearchState.results || $[191] !== agenticSearchState.status || $[192] !== filteredLogs) {
-    t67 = agenticSearchState.status === "results" && agenticSearchState.results.length === 0 && filteredLogs.length === 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>No matching sessions found.</Text></Box>;
+    t67 = agenticSearchState.status === "results" && agenticSearchState.results.length === 0 && filteredLogs.length === 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>未找到匹配的会话。</Text></Box>;
     $[190] = agenticSearchState.results;
     $[191] = agenticSearchState.status;
     $[192] = filteredLogs;
@@ -1334,7 +1334,7 @@ export function LogSelector(t0) {
   }
   let t68;
   if ($[194] !== agenticSearchState.status || $[195] !== filteredLogs) {
-    t68 = agenticSearchState.status === "error" && filteredLogs.length === 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>No matching sessions found.</Text></Box>;
+    t68 = agenticSearchState.status === "error" && filteredLogs.length === 0 && <Box paddingLeft={1} marginBottom={1} flexShrink={0}><Text dimColor={true} italic={true}>未找到匹配的会话。</Text></Box>;
     $[194] = agenticSearchState.status;
     $[195] = filteredLogs;
     $[196] = t68;
@@ -1343,7 +1343,7 @@ export function LogSelector(t0) {
   }
   let t69;
   if ($[197] !== agenticSearchState.status || $[198] !== isAgenticSearchOptionFocused || $[199] !== onAgenticSearch || $[200] !== searchQuery) {
-    t69 = Boolean(searchQuery.trim()) && onAgenticSearch && false && agenticSearchState.status !== "searching" && agenticSearchState.status !== "results" && agenticSearchState.status !== "error" && <Box flexShrink={0} flexDirection="column"><Box flexDirection="row" gap={1}><Text color={isAgenticSearchOptionFocused ? "suggestion" : undefined}>{isAgenticSearchOptionFocused ? figures.pointer : " "}</Text><Text color={isAgenticSearchOptionFocused ? "suggestion" : undefined} bold={isAgenticSearchOptionFocused}>Search deeply using Limkenion →</Text></Box><Box height={1} /></Box>;
+    t69 = Boolean(searchQuery.trim()) && onAgenticSearch && false && agenticSearchState.status !== "searching" && agenticSearchState.status !== "results" && agenticSearchState.status !== "error" && <Box flexShrink={0} flexDirection="column"><Box flexDirection="row" gap={1}><Text color={isAgenticSearchOptionFocused ? "suggestion" : undefined}>{isAgenticSearchOptionFocused ? figures.pointer : " "}</Text><Text color={isAgenticSearchOptionFocused ? "suggestion" : undefined} bold={isAgenticSearchOptionFocused}>使用 Limkenion 深度搜索 →</Text></Box><Box height={1} /></Box>;
     $[197] = agenticSearchState.status;
     $[198] = isAgenticSearchOptionFocused;
     $[199] = onAgenticSearch;
@@ -1354,7 +1354,7 @@ export function LogSelector(t0) {
   }
   let t70;
   if ($[202] !== agenticSearchState.status || $[203] !== branchFilterEnabled || $[204] !== columns || $[205] !== displayedLogs || $[206] !== expandedGroupSessionIds || $[207] !== flatOptions || $[208] !== focusedLog || $[209] !== focusedNode?.id || $[210] !== handleFlatOptionsSelectFocus || $[211] !== handleRenameSubmit || $[212] !== handleTreeSelectFocus || $[213] !== isAgenticSearchOptionFocused || $[214] !== onCancel || $[215] !== onSelect || $[216] !== renameCursorOffset || $[217] !== renameValue || $[218] !== treeNodes || $[219] !== viewMode || $[220] !== visibleCount) {
-    t70 = agenticSearchState.status === "searching" ? null : viewMode === "rename" && focusedLog ? <Box paddingLeft={2} flexDirection="column"><Text bold={true}>Rename session:</Text><Box paddingTop={1}><TextInput value={renameValue} onChange={setRenameValue} onSubmit={handleRenameSubmit} placeholder={getLogDisplayTitle(focusedLog, "Enter new session name")} columns={columns} cursorOffset={renameCursorOffset} onChangeCursorOffset={setRenameCursorOffset} showCursor={true} /></Box></Box> : isResumeWithRenameEnabled ? <TreeSelect nodes={treeNodes} onSelect={node_0 => {
+    t70 = agenticSearchState.status === "searching" ? null : viewMode === "rename" && focusedLog ? <Box paddingLeft={2} flexDirection="column"><Text bold={true}>重命名会话：</Text><Box paddingTop={1}><TextInput value={renameValue} onChange={setRenameValue} onSubmit={handleRenameSubmit} placeholder={getLogDisplayTitle(focusedLog, "输入新的会话名称")} columns={columns} cursorOffset={renameCursorOffset} onChangeCursorOffset={setRenameCursorOffset} showCursor={true} /></Box></Box> : isResumeWithRenameEnabled ? <TreeSelect nodes={treeNodes} onSelect={node_0 => {
       onSelect(node_0.value.log);
     }} onFocus={handleTreeSelectFocus} onCancel={onCancel} focusNodeId={focusedNode?.id} visibleOptionCount={visibleCount} layout="expanded" isDisabled={viewMode === "search" || isAgenticSearchOptionFocused} hideIndexes={false} isNodeExpanded={nodeId => {
       if (viewMode === "search" || branchFilterEnabled) {
@@ -1366,7 +1366,7 @@ export function LogSelector(t0) {
       const sessionId_3 = typeof nodeId_0 === "string" && nodeId_0.startsWith("group:") ? nodeId_0.substring(6) : null;
       if (sessionId_3) {
         setExpandedGroupSessionIds(prev_0 => new Set(prev_0).add(sessionId_3));
-        logEvent("内部代号_session_group_expanded", {});
+        logEvent("limkenion_session_group_expanded", {});
       }
     }} onCollapse={nodeId_1 => {
       const sessionId_4 = typeof nodeId_1 === "string" && nodeId_1.startsWith("group:") ? nodeId_1.substring(6) : null;
@@ -1409,7 +1409,7 @@ export function LogSelector(t0) {
   }
   let t71;
   if ($[222] !== agenticSearchState.status || $[223] !== currentBranch || $[224] !== exitState.keyName || $[225] !== exitState.pending || $[226] !== getExpandCollapseHint || $[227] !== hasMultipleWorktrees || $[228] !== isAgenticSearchOptionFocused || $[229] !== isSearching || $[230] !== onToggleAllProjects || $[231] !== showAllProjects || $[232] !== showAllWorktrees || $[233] !== viewMode) {
-    t71 = <Box paddingLeft={2}>{exitState.pending ? <Text dimColor={true}>Press {exitState.keyName} again to exit</Text> : viewMode === "rename" ? <Text dimColor={true}><Byline><KeyboardShortcutHint shortcut="Enter" action="save" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" /></Byline></Text> : agenticSearchState.status === "searching" ? <Text dimColor={true}><Byline><Text>Searching with Limkenion…</Text><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" /></Byline></Text> : isAgenticSearchOptionFocused ? <Text dimColor={true}><Byline><KeyboardShortcutHint shortcut="Enter" action="search" /><KeyboardShortcutHint shortcut={"\u2193"} action="skip" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" /></Byline></Text> : viewMode === "search" ? <Text dimColor={true}><Byline><Text>{isSearching && false ? "Searching\u2026" : "Type to Search"}</Text><KeyboardShortcutHint shortcut="Enter" action="select" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="clear" /></Byline></Text> : <Text dimColor={true}><Byline>{onToggleAllProjects && <KeyboardShortcutHint shortcut="Ctrl+A" action={`show ${showAllProjects ? "current dir" : "all projects"}`} />}{currentBranch && <KeyboardShortcutHint shortcut="Ctrl+B" action="toggle branch" />}{hasMultipleWorktrees && <KeyboardShortcutHint shortcut="Ctrl+W" action={`show ${showAllWorktrees ? "current worktree" : "all worktrees"}`} />}<KeyboardShortcutHint shortcut="Ctrl+V" action="preview" /><KeyboardShortcutHint shortcut="Ctrl+R" action="rename" /><Text>Type to search</Text><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />{getExpandCollapseHint() && <Text>{getExpandCollapseHint()}</Text>}</Byline></Text>}</Box>;
+    t71 = <Box paddingLeft={2}>{exitState.pending ? <Text dimColor={true}>再次按 {exitState.keyName} 退出</Text> : viewMode === "rename" ? <Text dimColor={true}><Byline><KeyboardShortcutHint shortcut="Enter" action="保存" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" /></Byline></Text> : agenticSearchState.status === "searching" ? <Text dimColor={true}><Byline><Text>正在使用 Limkenion 搜索…</Text><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" /></Byline></Text> : isAgenticSearchOptionFocused ? <Text dimColor={true}><Byline><KeyboardShortcutHint shortcut="Enter" action="搜索" /><KeyboardShortcutHint shortcut={"\u2193"} action="跳过" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" /></Byline></Text> : viewMode === "search" ? <Text dimColor={true}><Byline><Text>{isSearching && false ? "搜索中…" : "输入以搜索"}</Text><KeyboardShortcutHint shortcut="Enter" action="选择" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="清除" /></Byline></Text> : <Text dimColor={true}><Byline>{onToggleAllProjects && <KeyboardShortcutHint shortcut="Ctrl+A" action={`显示${showAllProjects ? "当前目录" : "所有项目"}`} />}{currentBranch && <KeyboardShortcutHint shortcut="Ctrl+B" action="切换分支" />}{hasMultipleWorktrees && <KeyboardShortcutHint shortcut="Ctrl+W" action={`显示${showAllWorktrees ? "当前工作副本" : "所有工作副本"}`} />}<KeyboardShortcutHint shortcut="Ctrl+V" action="预览" /><KeyboardShortcutHint shortcut="Ctrl+R" action="重命名" /><Text>输入以搜索</Text><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />{getExpandCollapseHint() && <Text>{getExpandCollapseHint()}</Text>}</Byline></Text>}</Box>;
     $[222] = agenticSearchState.status;
     $[223] = currentBranch;
     $[224] = exitState.keyName;
@@ -1448,8 +1448,8 @@ export function LogSelector(t0) {
 }
 
 /**
- * Extracts searchable text content from a message.
- * Handles both string content and structured content blocks.
+ * 从消息中提取可搜索的文本内容。
+ * 同时处理字符串内容与结构化内容块。
  */
 function _temp7(r_0) {
   return r_0.log;
@@ -1505,34 +1505,34 @@ function _temp(log) {
   return [log, buildSearchableText(log)];
 }
 function extractSearchableText(message: SerializedMessage): string {
-  // Only extract from user and assistant messages that have content
+  // 仅从包含内容的用户和助手消息中提取
   if (message.type !== 'user' && message.type !== 'assistant') {
     return '';
   }
   const content = 'message' in message ? message.message?.content : undefined;
   if (!content) return '';
 
-  // Handle string content (simple messages)
+  // 处理字符串内容（简单消息）
   if (typeof content === 'string') {
     return content;
   }
 
-  // Handle array of content blocks
+  // 处理内容块数组
   if (Array.isArray(content)) {
     return content.map(block => {
       if (typeof block === 'string') return block;
       if ('text' in block && typeof block.text === 'string') return block.text;
       return '';
-      // we don't return thinking blocks and tool names here;
-      // they're not useful for search, as they can add noise to the fuzzy matching
+      // 这里不返回 thinking 块和工具名称；
+      // 它们对搜索无用，还会给模糊匹配增加干扰
     }).filter(Boolean).join(' ');
   }
   return '';
 }
 
 /**
- * Builds searchable text for a log including messages, titles, summaries, and metadata.
- * Crops long transcripts to first/last N messages for performance.
+ * 为日志构建可搜索文本，包含消息、标题、摘要和元数据。
+ * 为提升性能，会将过长的记录裁剪为首尾各 N 条消息。
  */
 function buildSearchableText(log: LogOption): string {
   const searchableMessages = log.messages.length <= DEEP_SEARCH_MAX_MESSAGES ? log.messages : [...log.messages.slice(0, DEEP_SEARCH_CROP_SIZE), ...log.messages.slice(-DEEP_SEARCH_CROP_SIZE)];
@@ -1555,13 +1555,13 @@ function groupLogsBySessionId(filteredLogs: LogOption[]): Map<string, LogOption[
     }
   }
 
-  // Sort logs within each group by modified date (newest first)
+  // 按修改日期对每个组内的日志排序（最新在前）
   groups.forEach(logs => logs.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()));
   return groups;
 }
 
 /**
- * Get unique tags from a list of logs, sorted alphabetically
+ * 从日志列表获取唯一标签，按字母顺序排序
  */
 function getUniqueTags(logs: LogOption[]): string[] {
   const tags = new Set<string>();

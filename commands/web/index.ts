@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const web = {
   type: 'local-jsx',
   name: 'web',
-  description: 'Start the Limkenion web UI server and open it in your browser',
+  description: '启动 Limkenion Web UI 服务器并在浏览器中打开',
   load: () => import('./web.js'),
 } satisfies Command
 

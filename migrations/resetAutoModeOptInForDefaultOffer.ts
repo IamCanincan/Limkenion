@@ -15,7 +15,7 @@ import {
  * Guard lives in GlobalConfig (~/.limkenion.json), not settings.json, so it
  * survives settings resets and doesn't re-arm itself.
  *
- * Only runs when 内部代号_auto_mode_config.enabled === 'enabled'. For 'opt-in'
+ * Only runs when limkenion_auto_mode_config.enabled === 'enabled'. For 'opt-in'
  * users, clearing skipAutoPermissionPrompt would remove auto from the carousel
  * (permissionSetup.ts:988) — the dialog would become unreachable and the
  * migration would defeat itself. In practice the ~40 target ants are all
@@ -37,7 +37,7 @@ export function resetAutoModeOptInForDefaultOffer(): void {
         updateSettingsForSource('userSettings', {
           skipAutoPermissionPrompt: undefined,
         })
-        logEvent('内部代号_migrate_reset_auto_opt_in_for_default_offer', {})
+        logEvent('limkenion_migrate_reset_auto_opt_in_for_default_offer', {})
       }
 
       saveGlobalConfig(c => {

@@ -25,12 +25,12 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    pattern: z.string().describe('The glob pattern to match files against'),
+    pattern: z.string().describe('用于匹配文件的 glob 模式'),
     path: z
       .string()
       .optional()
       .describe(
-        'The directory to search in. If not specified, the current working directory will be used. IMPORTANT: Omit this field to use the default directory. DO NOT enter "undefined" or "null" - simply omit it for the default behavior. Must be a valid directory path if provided.',
+        '要搜索的目录。若未指定，将使用当前工作目录。重要：省略此字段以使用默认目录。不要输入 "undefined" 或 "null"——直接省略即可使用默认行为。若提供则必须是有效的目录路径。',
       ),
   }),
 )
@@ -40,14 +40,14 @@ const outputSchema = lazySchema(() =>
   z.object({
     durationMs: z
       .number()
-      .describe('Time taken to execute the search in milliseconds'),
-    numFiles: z.number().describe('Total number of files found'),
+      .describe('执行搜索所用时间（毫秒）'),
+    numFiles: z.number().describe('找到的文件总数'),
     filenames: z
       .array(z.string())
-      .describe('Array of file paths that match the pattern'),
+      .describe('匹配该模式的文件路径数组'),
     truncated: z
       .boolean()
-      .describe('Whether results were truncated (limited to 100 files)'),
+      .describe('结果是否被截断（限制为 100 个文件）'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>

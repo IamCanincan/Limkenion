@@ -1,5 +1,5 @@
-// These constants are in a separate file to avoid circular dependency issues.
-// Do NOT add imports to this file - it must remain dependency-free.
+// 这些常量放在独立文件中以避免循环依赖问题。
+// 请勿给本文件添加 import——它必须保持零依赖。
 
 export const NOTIFICATION_CHANNELS = [
   'auto',
@@ -11,11 +11,11 @@ export const NOTIFICATION_CHANNELS = [
   'notifications_disabled',
 ] as const
 
-// Valid editor modes (excludes deprecated 'emacs' which is auto-migrated to 'normal')
+// 有效的编辑器模式（排除已废弃的 'emacs'，它会自动迁移到 'normal'）
 export const EDITOR_MODES = ['normal', 'vim'] as const
 
-// Valid teammate modes for spawning
-// 'tmux' = traditional tmux-based teammates
-// 'in-process' = in-process teammates running in same process
-// 'auto' = automatically choose based on context (default)
+// 可用的队友模式（用于生成）
+// 'tmux' = 基于 tmux 的传统队友
+// 'in-process' = 在同一进程中运行的程序内队友
+// 'auto' = 根据上下文自动选择（默认）
 export const TEAMMATE_MODES = ['auto', 'tmux', 'in-process'] as const

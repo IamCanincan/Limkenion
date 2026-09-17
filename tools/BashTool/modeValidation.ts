@@ -30,11 +30,11 @@ function validateCommandForMode(
   if (!baseCmd) {
     return {
       behavior: 'passthrough',
-      message: 'Base command not found',
+      message: '未找到基础命令',
     }
   }
 
-  // In Accept Edits mode, auto-allow filesystem operations
+  // 在“接受编辑”模式下，自动允许文件系统操作
   if (
     toolPermissionContext.mode === 'acceptEdits' &&
     isFilesystemCommand(baseCmd)
@@ -51,60 +51,60 @@ function validateCommandForMode(
 
   return {
     behavior: 'passthrough',
-    message: `No mode-specific handling for '${baseCmd}' in ${toolPermissionContext.mode} mode`,
+    message: `在 ${toolPermissionContext.mode} 模式下，'${baseCmd}' 无模式相关的特殊处理`,
   }
 }
 
 /**
- * Checks if commands should be handled differently based on the current permission mode
+ * 根据当前权限模式检查命令是否应以不同方式处理。
  *
- * This is the main entry point for mode-based permission logic.
- * Currently handles Accept Edits mode for filesystem commands,
- * but designed to be extended for other modes.
+ * 这是基于模式的权限逻辑的主入口。
+ * 目前处理“接受编辑”模式下的文件系统命令，
+ * 但设计为可扩展到其他模式。
  *
- * @param input - The bash command input
- * @param toolPermissionContext - Context containing mode and permissions
+ * @param input - bash 命令输入
+ * @param toolPermissionContext - 包含模式与权限的上下文
  * @returns
- * - 'allow' if the current mode permits auto-approval
- * - 'ask' if the command needs approval in current mode
- * - 'passthrough' if no mode-specific handling applies
+ * - 'allow' 如果当前模式允许自动批准
+ * - 'ask' 如果命令在当前模式下需要批准
+ * - 'passthrough' 如果没有适用的模式相关处理
  */
 export function checkPermissionMode(
   input: z.infer<typeof BashTool.inputSchema>,
   toolPermissionContext: ToolPermissionContext,
 ): PermissionResult {
-  // Skip if in bypass mode (handled elsewhere)
+  // 如果处于绕过权限模式则跳过（在其他地方处理）
   if (toolPermissionContext.mode === 'bypassPermissions') {
     return {
       behavior: 'passthrough',
-      message: 'Bypass mode is handled in main permission flow',
+      message: '绕过权限模式在主权限流程中处理',
     }
   }
 
-  // Skip if in dontAsk mode (handled in main permission flow)
+  // 如果处于 dontAsk 模式则跳过（在主权限流程中处理）
   if (toolPermissionContext.mode === 'dontAsk') {
     return {
       behavior: 'passthrough',
-      message: 'DontAsk mode is handled in main permission flow',
+      message: 'dontAsk 模式在主权限流程中处理',
     }
   }
 
   const commands = splitCommand_DEPRECATED(input.command)
 
-  // Check each subcommand
+  // 依次检查每个子命令
   for (const cmd of commands) {
     const result = validateCommandForMode(cmd, toolPermissionContext)
 
-    // If any command triggers mode-specific behavior, return that result
+    // 若有任一命令触发了模式相关行为，则返回该结果
     if (result.behavior !== 'passthrough') {
       return result
     }
   }
 
-  // No mode-specific handling needed
+  // 没有需要模式相关的处理
   return {
     behavior: 'passthrough',
-    message: 'No mode-specific validation required',
+    message: '无需模式相关的校验',
   }
 }
 

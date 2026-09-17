@@ -17,48 +17,48 @@ import { errorMessage } from '../../utils/errors.js'
 import { plural } from '../../utils/stringUtils.js'
 
 /**
- * Formats a URI by converting it to a relative path if possible.
- * Handles URI decoding and gracefully falls back to un-decoded path if malformed.
- * Only uses relative paths when shorter and not starting with ../../
+ * 将 URI 格式化为相对路径（如果可能）。
+ * 处理 URI 解码，并在 URI 格式异常时优雅地回退到未解码的路径。
+ * 仅在相对路径更短且不以 ../../ 开头时使用相对路径。
  */
 function formatUri(uri: string | undefined, cwd?: string): string {
-  // Handle undefined/null URIs - this indicates malformed LSP data
+  // 处理 undefined/null URI - 表示 LSP 数据格式异常
   if (!uri) {
-    // NOTE: This should ideally be caught earlier with proper error logging
-    // This is a defensive backstop in the formatting layer
+    // 注意: 本应在更早处通过适当的错误日志捕获
+    // 这里是格式化层的防御性兜底
     logForDebugging(
-      'formatUri called with undefined URI - indicates malformed LSP server response',
+      'formatUri 被调用时 URI 为 undefined - 表示 LSP 服务器响应格式异常',
       { level: 'warn' },
     )
-    return '<unknown location>'
+    return '<未知位置>'
   }
 
-  // Remove file:// protocol if present
-  // On Windows, file:///C:/path becomes /C:/path after replacing file://
-  // We need to strip the leading slash for Windows drive-letter paths
+  // 若存在 file:// 协议前缀则移除。
+  // 在 Windows 上，file:///C:/path 在替换掉 file:// 后变成 /C:/path。
+  // 对于 Windows 盘符路径，需要去掉开头的斜杠。
   let filePath = uri.replace(/^file:\/\//, '')
   if (/^\/[A-Za-z]:/.test(filePath)) {
     filePath = filePath.slice(1)
   }
 
-  // Decode URI encoding - handle malformed URIs gracefully
+  // 解码 URI 编码 - 优雅地处理格式异常的 URI
   try {
     filePath = decodeURIComponent(filePath)
   } catch (error) {
-    // Log for debugging but continue with un-decoded path
+    // 记录日志用于调试，但使用未解码的路径继续执行
     const errorMsg = errorMessage(error)
     logForDebugging(
-      `Failed to decode LSP URI '${uri}': ${errorMsg}. Using un-decoded path: ${filePath}`,
+      `解码 LSP URI '${uri}' 失败: ${errorMsg}。改用未解码的路径: ${filePath}`,
       { level: 'warn' },
     )
-    // filePath already contains the un-decoded path, which is still usable
+    // filePath 已包含未解码的路径，仍然可用
   }
 
-  // Convert to relative path if cwd is provided
+  // 若提供了 cwd，则转换为相对路径
   if (cwd) {
-    // Normalize separators to forward slashes for consistent display output
+    // 统一分隔符为正斜杠，保证显示输出一致
     const relativePath = relative(cwd, filePath).replaceAll('\\', '/')
-    // Only use relative path if it's shorter and doesn't start with ../..
+    // 仅当相对路径更短且不以 ../ 开头时使用相对路径
     if (
       relativePath.length < filePath.length &&
       !relativePath.startsWith('../../')
@@ -67,13 +67,13 @@ function formatUri(uri: string | undefined, cwd?: string): string {
     }
   }
 
-  // Normalize separators to forward slashes for consistent display output
+  // 统一分隔符为正斜杠，保证显示输出一致
   return filePath.replaceAll('\\', '/')
 }
 
 /**
- * Groups items by their file URI.
- * Generic helper that works with both Location[] and SymbolInformation[]
+ * 按文件 URI 对结果进行分组。
+ * 支持 Location[] 和 SymbolInformation[] 的通用辅助函数。
  */
 function groupByFile<T extends { uri: string } | { location: { uri: string } }>(
   items: T[],
@@ -94,17 +94,17 @@ function groupByFile<T extends { uri: string } | { location: { uri: string } }>(
 }
 
 /**
- * Formats a Location with file path and line/character position
+ * 格式化 Location，包含文件路径和行/字符位置
  */
 function formatLocation(location: Location, cwd?: string): string {
   const filePath = formatUri(location.uri, cwd)
-  const line = location.range.start.line + 1 // Convert to 1-based
-  const character = location.range.start.character + 1 // Convert to 1-based
+  const line = location.range.start.line + 1 // 转换为 1 起始
+  const character = location.range.start.character + 1 // 转换为 1 起始
   return `${filePath}:${line}:${character}`
 }
 
 /**
- * Converts LocationLink to Location format for consistent handling
+ * 将 LocationLink 转换为 Location 格式以便统一处理
  */
 function locationLinkToLocation(link: LocationLink): Location {
   return {
@@ -114,35 +114,35 @@ function locationLinkToLocation(link: LocationLink): Location {
 }
 
 /**
- * Checks if an object is a LocationLink (has targetUri) vs Location (has uri)
+ * 判断对象是否为 LocationLink（含 targetUri），而非 Location（含 uri）
  */
 function isLocationLink(item: Location | LocationLink): item is LocationLink {
   return 'targetUri' in item
 }
 
 /**
- * Formats goToDefinition result
- * Can return Location, LocationLink, or arrays of either
+ * 格式化 goToDefinition 的结果
+ * 可能是 Location、LocationLink，或两者之一的数组
  */
 export function formatGoToDefinitionResult(
   result: Location | Location[] | LocationLink | LocationLink[] | null,
   cwd?: string,
 ): string {
   if (!result) {
-    return 'No definition found. This may occur if the cursor is not on a symbol, or if the definition is in an external library not indexed by the LSP server.'
+    return '未找到定义。这可能是由于光标不在某个符号上，或定义位于 LSP 服务器未索引的外部库中。'
   }
 
   if (Array.isArray(result)) {
-    // Convert LocationLinks to Locations for uniform handling
+    // 将 LocationLinks 转为 Locations 以便统一处理
     const locations: Location[] = result.map(item =>
       isLocationLink(item) ? locationLinkToLocation(item) : item,
     )
 
-    // Log and filter out any locations with undefined uris
+    // 记录并过滤掉 uri 为 undefined 的位置
     const invalidLocations = locations.filter(loc => !loc || !loc.uri)
     if (invalidLocations.length > 0) {
       logForDebugging(
-        `formatGoToDefinitionResult: Filtering out ${invalidLocations.length} invalid location(s) - this should have been caught earlier`,
+        `formatGoToDefinitionResult: 过滤掉 ${invalidLocations.length} 个无效位置 - 这本应在更早处捕获`,
         { level: 'warn' },
       )
     }
@@ -150,40 +150,40 @@ export function formatGoToDefinitionResult(
     const validLocations = locations.filter(loc => loc && loc.uri)
 
     if (validLocations.length === 0) {
-      return 'No definition found. This may occur if the cursor is not on a symbol, or if the definition is in an external library not indexed by the LSP server.'
+      return '未找到定义。这可能是由于光标不在某个符号上，或定义位于 LSP 服务器未索引的外部库中。'
     }
     if (validLocations.length === 1) {
-      return `Defined in ${formatLocation(validLocations[0]!, cwd)}`
+      return `定义于 ${formatLocation(validLocations[0]!, cwd)}`
     }
     const locationList = validLocations
       .map(loc => `  ${formatLocation(loc, cwd)}`)
       .join('\n')
-    return `Found ${validLocations.length} definitions:\n${locationList}`
+    return `找到 ${validLocations.length} 个定义:\n${locationList}`
   }
 
-  // Single result - convert LocationLink if needed
+  // 单个结果 - 必要时转换 LocationLink
   const location = isLocationLink(result)
     ? locationLinkToLocation(result)
     : result
-  return `Defined in ${formatLocation(location, cwd)}`
+  return `定义于 ${formatLocation(location, cwd)}`
 }
 
 /**
- * Formats findReferences result
+ * 格式化 findReferences 的结果
  */
 export function formatFindReferencesResult(
   result: Location[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No references found. This may occur if the symbol has no usages, or if the LSP server has not fully indexed the workspace.'
+    return '未找到引用。这可能是由于该符号没有任何用法，或 LSP 服务器尚未完全索引工作区。'
   }
 
-  // Log and filter out any locations with undefined uris
+  // 记录并过滤掉 uri 为 undefined 的位置
   const invalidLocations = result.filter(loc => !loc || !loc.uri)
   if (invalidLocations.length > 0) {
     logForDebugging(
-      `formatFindReferencesResult: Filtering out ${invalidLocations.length} invalid location(s) - this should have been caught earlier`,
+      `formatFindReferencesResult: 过滤掉 ${invalidLocations.length} 个无效位置 - 这本应在更早处捕获`,
       { level: 'warn' },
     )
   }
@@ -191,18 +191,18 @@ export function formatFindReferencesResult(
   const validLocations = result.filter(loc => loc && loc.uri)
 
   if (validLocations.length === 0) {
-    return 'No references found. This may occur if the symbol has no usages, or if the LSP server has not fully indexed the workspace.'
+    return '未找到引用。这可能是由于该符号没有任何用法，或 LSP 服务器尚未完全索引工作区。'
   }
 
   if (validLocations.length === 1) {
-    return `Found 1 reference:\n  ${formatLocation(validLocations[0]!, cwd)}`
+    return `找到 1 个引用:\n  ${formatLocation(validLocations[0]!, cwd)}`
   }
 
-  // Group references by file
+  // 按文件对引用进行分组
   const byFile = groupByFile(validLocations, cwd)
 
   const lines: string[] = [
-    `Found ${validLocations.length} references across ${byFile.size} files:`,
+    `在 ${byFile.size} 个文件中找到 ${validLocations.length} 个引用:`,
   ]
 
   for (const [filePath, locations] of byFile) {
@@ -210,7 +210,7 @@ export function formatFindReferencesResult(
     for (const loc of locations) {
       const line = loc.range.start.line + 1
       const character = loc.range.start.character + 1
-      lines.push(`  Line ${line}:${character}`)
+      lines.push(`  行 ${line}:${character}`)
     }
   }
 
@@ -218,7 +218,7 @@ export function formatFindReferencesResult(
 }
 
 /**
- * Extracts text content from MarkupContent or MarkedString
+ * 从 MarkupContent 或 MarkedString 中提取文本内容
  */
 function extractMarkupText(
   contents: MarkupContent | MarkedString | MarkedString[],
@@ -243,16 +243,16 @@ function extractMarkupText(
     return contents.value
   }
 
-  // MarkedString object
+  // MarkedString 对象
   return contents.value
 }
 
 /**
- * Formats hover result
+ * 格式化 hover 的结果
  */
 export function formatHoverResult(result: Hover | null, _cwd?: string): string {
   if (!result) {
-    return 'No hover information available. This may occur if the cursor is not on a symbol, or if the LSP server has not fully indexed the file.'
+    return '没有可用的悬停信息。这可能是由于光标不在某个符号上，或 LSP 服务器尚未完全索引该文件。'
   }
 
   const content = extractMarkupText(result.contents)
@@ -260,49 +260,49 @@ export function formatHoverResult(result: Hover | null, _cwd?: string): string {
   if (result.range) {
     const line = result.range.start.line + 1
     const character = result.range.start.character + 1
-    return `Hover info at ${line}:${character}:\n\n${content}`
+    return `位置 ${line}:${character} 的悬停信息:\n\n${content}`
   }
 
   return content
 }
 
 /**
- * Maps SymbolKind enum to readable string
+ * 将 SymbolKind 枚举映射为可读字符串
  */
 function symbolKindToString(kind: SymbolKind): string {
   const kinds: Record<SymbolKind, string> = {
-    [1]: 'File',
-    [2]: 'Module',
-    [3]: 'Namespace',
-    [4]: 'Package',
-    [5]: 'Class',
-    [6]: 'Method',
-    [7]: 'Property',
-    [8]: 'Field',
-    [9]: 'Constructor',
-    [10]: 'Enum',
-    [11]: 'Interface',
-    [12]: 'Function',
-    [13]: 'Variable',
-    [14]: 'Constant',
-    [15]: 'String',
-    [16]: 'Number',
-    [17]: 'Boolean',
-    [18]: 'Array',
-    [19]: 'Object',
-    [20]: 'Key',
-    [21]: 'Null',
-    [22]: 'EnumMember',
-    [23]: 'Struct',
-    [24]: 'Event',
-    [25]: 'Operator',
-    [26]: 'TypeParameter',
+    [1]: '文件',
+    [2]: '模块',
+    [3]: '命名空间',
+    [4]: '包',
+    [5]: '类',
+    [6]: '方法',
+    [7]: '属性',
+    [8]: '字段',
+    [9]: '构造函数',
+    [10]: '枚举',
+    [11]: '接口',
+    [12]: '函数',
+    [13]: '变量',
+    [14]: '常量',
+    [15]: '字符串',
+    [16]: '数字',
+    [17]: '布尔',
+    [18]: '数组',
+    [19]: '对象',
+    [20]: '键',
+    [21]: '空值',
+    [22]: '枚举成员',
+    [23]: '结构体',
+    [24]: '事件',
+    [25]: '运算符',
+    [26]: '类型参数',
   }
-  return kinds[kind] || 'Unknown'
+  return kinds[kind] || '未知'
 }
 
 /**
- * Formats a single DocumentSymbol with indentation
+ * 格式化单个 DocumentSymbol，带缩进
  */
 function formatDocumentSymbolNode(
   symbol: DocumentSymbol,
@@ -318,11 +318,11 @@ function formatDocumentSymbolNode(
   }
 
   const symbolLine = symbol.range.start.line + 1
-  line += ` - Line ${symbolLine}`
+  line += ` - 行 ${symbolLine}`
 
   lines.push(line)
 
-  // Recursively format children
+  // 递归格式化子节点
   if (symbol.children && symbol.children.length > 0) {
     for (const child of symbol.children) {
       lines.push(...formatDocumentSymbolNode(child, indent + 1))
@@ -333,30 +333,30 @@ function formatDocumentSymbolNode(
 }
 
 /**
- * Formats documentSymbol result (hierarchical outline)
- * Handles both DocumentSymbol[] (hierarchical, with range) and SymbolInformation[] (flat, with location.range)
- * per LSP spec which allows textDocument/documentSymbol to return either format
+ * 格式化 documentSymbol 的结果（层级大纲）
+ * 同时处理 DocumentSymbol[]（层级结构，含 range）和 SymbolInformation[]（扁平结构，含 location.range），
+ * 因为 LSP 规范允许 textDocument/documentSymbol 返回其中任一种格式
  */
 export function formatDocumentSymbolResult(
   result: DocumentSymbol[] | SymbolInformation[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No symbols found in document. This may occur if the file is empty, not supported by the LSP server, or if the server has not fully indexed the file.'
+    return '文档中未找到符号。这可能是由于文件为空、LSP 服务器不支持该文件，或服务器尚未完全索引该文件。'
   }
 
-  // Detect format: DocumentSymbol has 'range' directly, SymbolInformation has 'location.range'
-  // Check the first valid element to determine format
+  // 检测格式: DocumentSymbol 直接包含 'range'，SymbolInformation 包含 'location.range'
+  // 检查第一个有效元素以确定格式
   const firstSymbol = result[0]
   const isSymbolInformation = firstSymbol && 'location' in firstSymbol
 
   if (isSymbolInformation) {
-    // Delegate to workspace symbol formatter which handles SymbolInformation[]
+    // 交给工作区符号格式化函数处理，它支持 SymbolInformation[]
     return formatWorkspaceSymbolResult(result as SymbolInformation[], cwd)
   }
 
-  // Handle DocumentSymbol[] format (hierarchical)
-  const lines: string[] = ['Document symbols:']
+  // 处理 DocumentSymbol[] 格式（层级结构）
+  const lines: string[] = ['文档符号:']
 
   for (const symbol of result as DocumentSymbol[]) {
     lines.push(...formatDocumentSymbolNode(symbol))
@@ -366,23 +366,23 @@ export function formatDocumentSymbolResult(
 }
 
 /**
- * Formats workspaceSymbol result (flat list of symbols)
+ * 格式化 workspaceSymbol 的结果（扁平的符号列表）
  */
 export function formatWorkspaceSymbolResult(
   result: SymbolInformation[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No symbols found in workspace. This may occur if the workspace is empty, or if the LSP server has not finished indexing the project.'
+    return '工作区中未找到符号。这可能是由于工作区为空，或 LSP 服务器尚未完成对项目的索引。'
   }
 
-  // Log and filter out any symbols with undefined location.uri
+  // 记录并过滤掉 location.uri 为 undefined 的符号
   const invalidSymbols = result.filter(
     sym => !sym || !sym.location || !sym.location.uri,
   )
   if (invalidSymbols.length > 0) {
     logForDebugging(
-      `formatWorkspaceSymbolResult: Filtering out ${invalidSymbols.length} invalid symbol(s) - this should have been caught earlier`,
+      `formatWorkspaceSymbolResult: 过滤掉 ${invalidSymbols.length} 个无效符号 - 这本应在更早处捕获`,
       { level: 'warn' },
     )
   }
@@ -392,14 +392,14 @@ export function formatWorkspaceSymbolResult(
   )
 
   if (validSymbols.length === 0) {
-    return 'No symbols found in workspace. This may occur if the workspace is empty, or if the LSP server has not finished indexing the project.'
+    return '工作区中未找到符号。这可能是由于工作区为空，或 LSP 服务器尚未完成对项目的索引。'
   }
 
   const lines: string[] = [
-    `Found ${validSymbols.length} ${plural(validSymbols.length, 'symbol')} in workspace:`,
+    `在工作区中找到 ${validSymbols.length} 个${plural(validSymbols.length, '符号')}:`,
   ]
 
-  // Group by file
+  // 按文件分组
   const byFile = groupByFile(validSymbols, cwd)
 
   for (const [filePath, symbols] of byFile) {
@@ -407,11 +407,11 @@ export function formatWorkspaceSymbolResult(
     for (const symbol of symbols) {
       const kind = symbolKindToString(symbol.kind)
       const line = symbol.location.range.start.line + 1
-      let symbolLine = `  ${symbol.name} (${kind}) - Line ${line}`
+      let symbolLine = `  ${symbol.name} (${kind}) - 行 ${line}`
 
-      // Add container name if available
+      // 若存在所属容器名称则附加
       if (symbol.containerName) {
-        symbolLine += ` in ${symbol.containerName}`
+        symbolLine += ` 位于 ${symbol.containerName} 中`
       }
 
       lines.push(symbolLine)
@@ -422,20 +422,20 @@ export function formatWorkspaceSymbolResult(
 }
 
 /**
- * Formats a CallHierarchyItem with its location
- * Validates URI before formatting to handle malformed LSP data
+ * 格式化单个 CallHierarchyItem 及其位置。
+ * 在格式化前校验 URI，以处理格式异常的 LSP 数据。
  */
 function formatCallHierarchyItem(
   item: CallHierarchyItem,
   cwd?: string,
 ): string {
-  // Validate URI - handle undefined/null gracefully
+  // 校验 URI - 优雅地处理 undefined/null
   if (!item.uri) {
     logForDebugging(
-      'formatCallHierarchyItem: CallHierarchyItem has undefined URI',
+      'formatCallHierarchyItem: CallHierarchyItem 的 URI 为 undefined',
       { level: 'warn' },
     )
-    return `${item.name} (${symbolKindToString(item.kind)}) - <unknown location>`
+    return `${item.name} (${symbolKindToString(item.kind)}) - <未知位置>`
   }
 
   const filePath = formatUri(item.uri, cwd)
@@ -449,22 +449,22 @@ function formatCallHierarchyItem(
 }
 
 /**
- * Formats prepareCallHierarchy result
- * Returns the call hierarchy item(s) at the given position
+ * 格式化 prepareCallHierarchy 的结果
+ * 返回指定位置的调用层级项
  */
 export function formatPrepareCallHierarchyResult(
   result: CallHierarchyItem[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No call hierarchy item found at this position'
+    return '此位置未找到调用层级项'
   }
 
   if (result.length === 1) {
-    return `Call hierarchy item: ${formatCallHierarchyItem(result[0]!, cwd)}`
+    return `调用层级项: ${formatCallHierarchyItem(result[0]!, cwd)}`
   }
 
-  const lines = [`Found ${result.length} call hierarchy items:`]
+  const lines = [`找到 ${result.length} 个调用层级项:`]
   for (const item of result) {
     lines.push(`  ${formatCallHierarchyItem(item, cwd)}`)
   }
@@ -472,27 +472,27 @@ export function formatPrepareCallHierarchyResult(
 }
 
 /**
- * Formats incomingCalls result
- * Shows all functions/methods that call the target
+ * 格式化 incomingCalls 的结果
+ * 展示所有调用该目标的函数/方法
  */
 export function formatIncomingCallsResult(
   result: CallHierarchyIncomingCall[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No incoming calls found (nothing calls this function)'
+    return '未找到传入调用（没有内容调用此函数）'
   }
 
   const lines = [
-    `Found ${result.length} incoming ${plural(result.length, 'call')}:`,
+    `找到 ${result.length} 个传入${plural(result.length, '调用')}:`,
   ]
 
-  // Group by file
+  // 按文件分组
   const byFile = new Map<string, CallHierarchyIncomingCall[]>()
   for (const call of result) {
     if (!call.from) {
       logForDebugging(
-        'formatIncomingCallsResult: CallHierarchyIncomingCall has undefined from field',
+        'formatIncomingCallsResult: CallHierarchyIncomingCall 的 from 字段为 undefined',
         { level: 'warn' },
       )
       continue
@@ -510,18 +510,18 @@ export function formatIncomingCallsResult(
     lines.push(`\n${filePath}:`)
     for (const call of calls) {
       if (!call.from) {
-        continue // Already logged above
+        continue // 上面已记录日志
       }
       const kind = symbolKindToString(call.from.kind)
       const line = call.from.range.start.line + 1
-      let callLine = `  ${call.from.name} (${kind}) - Line ${line}`
+      let callLine = `  ${call.from.name} (${kind}) - 行 ${line}`
 
-      // Show call sites within the caller
+      // 展示调用方内部的调用位置
       if (call.fromRanges && call.fromRanges.length > 0) {
         const callSites = call.fromRanges
           .map(r => `${r.start.line + 1}:${r.start.character + 1}`)
           .join(', ')
-        callLine += ` [calls at: ${callSites}]`
+        callLine += ` [调用位置: ${callSites}]`
       }
 
       lines.push(callLine)
@@ -532,27 +532,27 @@ export function formatIncomingCallsResult(
 }
 
 /**
- * Formats outgoingCalls result
- * Shows all functions/methods called by the target
+ * 格式化 outgoingCalls 的结果
+ * 展示目标调用的所有函数/方法
  */
 export function formatOutgoingCallsResult(
   result: CallHierarchyOutgoingCall[] | null,
   cwd?: string,
 ): string {
   if (!result || result.length === 0) {
-    return 'No outgoing calls found (this function calls nothing)'
+    return '未找到传出调用（此函数未调用任何内容）'
   }
 
   const lines = [
-    `Found ${result.length} outgoing ${plural(result.length, 'call')}:`,
+    `找到 ${result.length} 个传出${plural(result.length, '调用')}:`,
   ]
 
-  // Group by file
+  // 按文件分组
   const byFile = new Map<string, CallHierarchyOutgoingCall[]>()
   for (const call of result) {
     if (!call.to) {
       logForDebugging(
-        'formatOutgoingCallsResult: CallHierarchyOutgoingCall has undefined to field',
+        'formatOutgoingCallsResult: CallHierarchyOutgoingCall 的 to 字段为 undefined',
         { level: 'warn' },
       )
       continue
@@ -570,18 +570,18 @@ export function formatOutgoingCallsResult(
     lines.push(`\n${filePath}:`)
     for (const call of calls) {
       if (!call.to) {
-        continue // Already logged above
+        continue // 上面已记录日志
       }
       const kind = symbolKindToString(call.to.kind)
       const line = call.to.range.start.line + 1
-      let callLine = `  ${call.to.name} (${kind}) - Line ${line}`
+      let callLine = `  ${call.to.name} (${kind}) - 行 ${line}`
 
-      // Show call sites within the current function
+      // 展示当前函数内部的调用位置
       if (call.fromRanges && call.fromRanges.length > 0) {
         const callSites = call.fromRanges
           .map(r => `${r.start.line + 1}:${r.start.character + 1}`)
           .join(', ')
-        callLine += ` [called from: ${callSites}]`
+        callLine += ` [来自调用: ${callSites}]`
       }
 
       lines.push(callLine)

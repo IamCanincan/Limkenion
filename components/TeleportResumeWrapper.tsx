@@ -40,7 +40,7 @@ export function TeleportResumeWrapper(t0) {
   let t3;
   if ($[0] !== source) {
     t2 = () => {
-      logEvent("内部代号_teleport_started", {
+      logEvent("limkenion_teleport_started", {
         source: source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
     };
@@ -79,7 +79,7 @@ export function TeleportResumeWrapper(t0) {
   let t5;
   if ($[8] !== onCancel) {
     t5 = () => {
-      logEvent("内部代号_teleport_cancelled", {});
+      logEvent("limkenion_teleport_cancelled", {});
       onCancel();
     };
     $[8] = onCancel;
@@ -104,14 +104,14 @@ export function TeleportResumeWrapper(t0) {
   if (isResuming && selectedSession) {
     let t8;
     if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-      t8 = <Box flexDirection="row"><Spinner /><Text bold={true}>Resuming session…</Text></Box>;
+      t8 = <Box flexDirection="row"><Spinner /><Text bold={true}>正在恢复会话…</Text></Box>;
       $[12] = t8;
     } else {
       t8 = $[12];
     }
     let t9;
     if ($[13] !== selectedSession.title) {
-      t9 = <Box flexDirection="column" padding={1}>{t8}<Text dimColor={true}>Loading "{selectedSession.title}"…</Text></Box>;
+      t9 = <Box flexDirection="column" padding={1}>{t8}<Text dimColor={true}>正在加载 "{selectedSession.title}"…</Text></Box>;
       $[13] = selectedSession.title;
       $[14] = t9;
     } else {
@@ -122,7 +122,7 @@ export function TeleportResumeWrapper(t0) {
   if (error && !onError) {
     let t8;
     if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
-      t8 = <Text bold={true} color="error">Failed to resume session</Text>;
+      t8 = <Text bold={true} color="error">无法恢复会话</Text>;
       $[15] = t8;
     } else {
       t8 = $[15];
@@ -137,7 +137,7 @@ export function TeleportResumeWrapper(t0) {
     }
     let t10;
     if ($[18] === Symbol.for("react.memo_cache_sentinel")) {
-      t10 = <Box marginTop={1}><Text dimColor={true}>Press <Text bold={true}>Esc</Text> to cancel</Text></Box>;
+      t10 = <Box marginTop={1}><Text dimColor={true}>按 <Text bold={true}>Esc</Text> 取消</Text></Box>;
       $[18] = t10;
     } else {
       t10 = $[18];

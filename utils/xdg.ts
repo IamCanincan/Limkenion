@@ -1,8 +1,7 @@
 /**
- * XDG Base Directory utilities for Limkenion CLI Native Installer
+ * 用于 Limkenion CLI 原生安装器的 XDG 基础目录工具
  *
- * Implements the XDG Base Directory specification for organizing
- * native installer components across appropriate system directories.
+ * 实现 XDG Base Directory 规范，将原生安装器组件组织到合适的系统目录中。
  *
  * @see https://specifications.freedesktop.org/basedir-spec/latest/
  */
@@ -25,9 +24,9 @@ function resolveOptions(options?: XDGOptions): { env: EnvLike; home: string } {
 }
 
 /**
- * Get XDG state home directory
- * Default: ~/.local/state
- * @param options Optional env and homedir overrides for testing
+ * 获取 XDG state home 目录
+ * 默认：~/.local/state
+ * @param options 用于测试的可选 env 和 homedir 覆盖
  */
 export function getXDGStateHome(options?: XDGOptions): string {
   const { env, home } = resolveOptions(options)
@@ -35,9 +34,9 @@ export function getXDGStateHome(options?: XDGOptions): string {
 }
 
 /**
- * Get XDG cache home directory
- * Default: ~/.cache
- * @param options Optional env and homedir overrides for testing
+ * 获取 XDG cache home 目录
+ * 默认：~/.cache
+ * @param options 用于测试的可选 env 和 homedir 覆盖
  */
 export function getXDGCacheHome(options?: XDGOptions): string {
   const { env, home } = resolveOptions(options)
@@ -45,9 +44,9 @@ export function getXDGCacheHome(options?: XDGOptions): string {
 }
 
 /**
- * Get XDG data home directory
- * Default: ~/.local/share
- * @param options Optional env and homedir overrides for testing
+ * 获取 XDG data home 目录
+ * 默认：~/.local/share
+ * @param options 用于测试的可选 env 和 homedir 覆盖
  */
 export function getXDGDataHome(options?: XDGOptions): string {
   const { env, home } = resolveOptions(options)
@@ -55,9 +54,9 @@ export function getXDGDataHome(options?: XDGOptions): string {
 }
 
 /**
- * Get user bin directory (not technically XDG but follows the convention)
- * Default: ~/.local/bin
- * @param options Optional homedir override for testing
+ * 获取用户 bin 目录（严格说不是 XDG，但遵循相同约定）
+ * 默认：~/.local/bin
+ * @param options 用于测试的可选 homedir 覆盖
  */
 export function getUserBinDir(options?: XDGOptions): string {
   const { home } = resolveOptions(options)

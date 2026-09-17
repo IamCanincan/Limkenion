@@ -1,13 +1,13 @@
 /**
- * Tracks commands recently denied by the auto mode classifier.
- * Populated from useCanUseTool.ts, read from RecentDenialsTab.tsx in /permissions.
+ * 跟踪最近被自动模式分类器拒绝的命令。
+ * 由 useCanUseTool.ts 填充，由 /permissions 中的 RecentDenialsTab.tsx 读取。
  */
 
 import { feature } from 'bun:bundle'
 
 export type AutoModeDenial = {
   toolName: string
-  /** Human-readable description of the denied command (e.g. bash command string) */
+  /** 被拒绝命令的人类可读描述（例如 bash 命令字符串） */
   display: string
   reason: string
   timestamp: number

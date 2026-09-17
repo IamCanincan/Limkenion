@@ -69,7 +69,7 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           result.message?.type === 'attachment' &&
           result.message.attachment.type === 'hook_cancelled'
         ) {
-          logEvent('内部代号_post_tool_hooks_cancelled', {
+          logEvent('limkenion_post_tool_hooks_cancelled', {
             toolName: sanitizeToolNameForAnalytics(tool.name),
 
             queryChainId: toolUseContext.queryTracking
@@ -151,7 +151,7 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
         }
       } catch (error) {
         const postToolDurationMs = Date.now() - postToolStartTime
-        logEvent('内部代号_post_tool_hook_error', {
+        logEvent('limkenion_post_tool_hook_error', {
           messageID:
             messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -225,7 +225,7 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           result.message?.type === 'attachment' &&
           result.message.attachment.type === 'hook_cancelled'
         ) {
-          logEvent('内部代号_post_tool_failure_hooks_cancelled', {
+          logEvent('limkenion_post_tool_failure_hooks_cancelled', {
             toolName: sanitizeToolNameForAnalytics(tool.name),
             queryChainId: toolUseContext.queryTracking
               ?.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -280,7 +280,7 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
         }
       } catch (hookError) {
         const postToolDurationMs = Date.now() - postToolStartTime
-        logEvent('内部代号_post_tool_failure_hook_error', {
+        logEvent('limkenion_post_tool_failure_hook_error', {
           messageID:
             messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -580,7 +580,7 @@ export async function* runPreToolUseHooks(
 
         // Check if we were aborted during hook execution
         if (toolUseContext.abortController.signal.aborted) {
-          logEvent('内部代号_pre_tool_hooks_cancelled', {
+          logEvent('limkenion_pre_tool_hooks_cancelled', {
             toolName: sanitizeToolNameForAnalytics(tool.name),
 
             queryChainId: toolUseContext.queryTracking
@@ -604,7 +604,7 @@ export async function* runPreToolUseHooks(
       } catch (error) {
         logError(error)
         const durationMs = Date.now() - hookStartTime
-        logEvent('内部代号_pre_tool_hook_error', {
+        logEvent('limkenion_pre_tool_hook_error', {
           messageID:
             messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           toolName: sanitizeToolNameForAnalytics(tool.name),

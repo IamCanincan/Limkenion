@@ -158,7 +158,7 @@ function Install({
         }
 
         // Log success event
-        logEvent('内部代号_limkenion_install_command', {
+        logEvent('limkenion_limkenion_install_command', {
           has_version: result.latestVersion ? 1 : 0,
           forced: force ? 1 : 0
         });
@@ -279,7 +279,7 @@ function Install({
 export const install = {
   type: 'local-jsx' as const,
   name: 'install',
-  description: 'Install Limkenion native build',
+  description: '安装 Limkenion 原生构建',
   argumentHint: '[options]',
   async call(onDone: (result: string, options?: {
     display?: CommandResultDisplay;

@@ -27,19 +27,19 @@ type LRUMemoizedFunction<Args extends unknown[], Result> = {
 }
 
 /**
- * Creates a memoized function that returns cached values while refreshing in parallel.
- * This implements a write-through cache pattern:
- * - If cache is fresh, return immediately
- * - If cache is stale, return the stale value but refresh it in the background
- * - If no cache exists, block and compute the value
+ * 创建一个返回缓存值并并行刷新的记忆化函数。
+ * 实现写穿缓存模式：
+ * - 若缓存是新的，立即返回
+ * - 若缓存过期，返回过期值但在后台刷新
+ * - 若无缓存，阻塞并计算值
  *
- * @param f The function to memoize
- * @param cacheLifetimeMs The lifetime of cached values in milliseconds
- * @returns A memoized version of the function
+ * @param f 要记忆化的函数
+ * @param cacheLifetimeMs 缓存值的存活时间（毫秒）
+ * @returns 该函数的记忆化版本
  */
 export function memoizeWithTTL<Args extends unknown[], Result>(
   f: (...args: Args) => Result,
-  cacheLifetimeMs: number = 5 * 60 * 1000, // Default 5 minutes
+  cacheLifetimeMs: number = 5 * 60 * 1000, // 默认 5 分钟
 ): MemoizedFunction<Args, Result> {
   const cache = new Map<string, CacheEntry<Result>>()
 
@@ -48,7 +48,7 @@ export function memoizeWithTTL<Args extends unknown[], Result>(
     const cached = cache.get(key)
     const now = Date.now()
 
-    // Populate cache
+    // 填充缓存
     if (!cached) {
       const value = f(...args)
       cache.set(key, {
@@ -59,20 +59,19 @@ export function memoizeWithTTL<Args extends unknown[], Result>(
       return value
     }
 
-    // If we have a stale cache entry and it's not already refreshing
+    // 若有过期缓存且尚未在刷新
     if (
       cached &&
       now - cached.timestamp > cacheLifetimeMs &&
       !cached.refreshing
     ) {
-      // Mark as refreshing to prevent multiple parallel refreshes
+      // 标记为刷新，防止出现多个并行刷新
       cached.refreshing = true
 
-      // Schedule async refresh (non-blocking). Both .then and .catch are
-      // identity-guarded: a concurrent cache.clear() + cold-miss stores a
-      // newer entry while this microtask is queued. .then overwriting with
-      // the stale refresh's result is worse than .catch deleting (persists
-      // wrong data for full TTL vs. self-correcting on next call).
+      // 安排异步刷新（非阻塞）。.then 和 .catch 都有身份守卫：
+      // 当此微任务排队时，并发的 cache.clear() + 冷未命中会存下更新的
+      // 条目。.then 用过期刷新的结果覆盖，比 .catch 删除更糟（会用
+      // 错误数据持续整个 TTL，而不是在下一次调用时自我修正）。
       Promise.resolve()
         .then(() => {
           const newValue = f(...args)
@@ -91,14 +90,14 @@ export function memoizeWithTTL<Args extends unknown[], Result>(
           }
         })
 
-      // Return the stale value immediately
+      // 立即返回过期值
       return cached.value
     }
 
     return cache.get(key)!.value
   }
 
-  // Add cache clear method
+  // 添加缓存清理方法
   memoized.cache = {
     clear: () => cache.clear(),
   }
@@ -107,28 +106,27 @@ export function memoizeWithTTL<Args extends unknown[], Result>(
 }
 
 /**
- * Creates a memoized async function that returns cached values while refreshing in parallel.
- * This implements a write-through cache pattern for async functions:
- * - If cache is fresh, return immediately
- * - If cache is stale, return the stale value but refresh it in the background
- * - If no cache exists, block and compute the value
+ * 创建一个返回缓存值并并行刷新的记忆化异步函数。
+ * 为异步函数实现写穿缓存模式：
+ * - 若缓存是新的，立即返回
+ * - 若缓存过期，返回过期值但在后台刷新
+ * - 若无缓存，阻塞并计算值
  *
- * @param f The async function to memoize
- * @param cacheLifetimeMs The lifetime of cached values in milliseconds
- * @returns A memoized version of the async function
+ * @param f 要记忆化的异步函数
+ * @param cacheLifetimeMs 缓存值的存活时间（毫秒）
+ * @returns 该异步函数的记忆化版本
  */
 export function memoizeWithTTLAsync<Args extends unknown[], Result>(
   f: (...args: Args) => Promise<Result>,
-  cacheLifetimeMs: number = 5 * 60 * 1000, // Default 5 minutes
+  cacheLifetimeMs: number = 5 * 60 * 1000, // 默认 5 分钟
 ): ((...args: Args) => Promise<Result>) & { cache: { clear: () => void } } {
   const cache = new Map<string, CacheEntry<Result>>()
-  // In-flight cold-miss dedup. The old memoizeWithTTL (sync) accidentally
-  // provided this: it stored the Promise synchronously before the first
-  // await, so concurrent callers shared one f() invocation. This async
-  // variant awaits before cache.set, so concurrent cold-miss callers would
-  // each invoke f() independently without this map. For
-  // refreshAndGetAwsCredentials that means N concurrent `aws sso login`
-  // spawns. Same pattern as pending401Handlers in auth.ts:1171.
+  // 进行中冷未命中的去重。旧的 memoizeWithTTL（同步）意外地
+  // 提供了这一功能：它在首个 await 前同步地存放 Promise，因此并发的
+  // 调用方共享一次 f() 调用。这个异步变体在 cache.set 前等待，
+  // 因此并发的冷未命中调用方如果没有这个 map 就会各自独立地调用 f()。
+  // 对 refreshAndGetAwsCredentials 而言，这意味着 N 个并发的 `aws sso login`
+  // 派生。与 auth.ts:1171 的 pending401Handlers 是同一模式。
   const inFlight = new Map<string, Promise<Result>>()
 
   const memoized = async (...args: Args): Promise<Result> => {
@@ -136,7 +134,7 @@ export function memoizeWithTTLAsync<Args extends unknown[], Result>(
     const cached = cache.get(key)
     const now = Date.now()
 
-    // Populate cache - if this throws, nothing gets cached
+    // 填充缓存——若此操作抛出，则不会缓存任何内容
     if (!cached) {
       const pending = inFlight.get(key)
       if (pending) return pending
@@ -144,9 +142,9 @@ export function memoizeWithTTLAsync<Args extends unknown[], Result>(
       inFlight.set(key, promise)
       try {
         const result = await promise
-        // Identity-guard: cache.clear() during the await should discard this
-        // result (clear intent is to invalidate). If we're still in-flight,
-        // store it. clear() wipes inFlight too, so this check catches that.
+        // 身份守卫：await 期间的 cache.clear() 应丢弃此结果
+        // （clear 的意图就是失效）。若我们仍在进行中，
+        // 就存储它。clear() 也会清空 inFlight，因此此检查能捕获该情况。
         if (inFlight.get(key) === promise) {
           cache.set(key, {
             value: result,
@@ -162,21 +160,20 @@ export function memoizeWithTTLAsync<Args extends unknown[], Result>(
       }
     }
 
-    // If we have a stale cache entry and it's not already refreshing
+    // 若有过期缓存且尚未在刷新
     if (
       cached &&
       now - cached.timestamp > cacheLifetimeMs &&
       !cached.refreshing
     ) {
-      // Mark as refreshing to prevent multiple parallel refreshes
+      // 标记为刷新，防止出现多个并行刷新
       cached.refreshing = true
 
-      // Schedule async refresh (non-blocking). Both .then and .catch are
-      // identity-guarded against a concurrent cache.clear() + cold-miss
-      // storing a newer entry while this refresh is in flight. .then
-      // overwriting with the stale refresh's result is worse than .catch
-      // deleting - wrong data persists for full TTL (e.g. credentials from
-      // the old awsAuthRefresh command after a settings change).
+      // 安排异步刷新（非阻塞）。.then 和 .catch 都对与并发的
+      // cache.clear() + 冷未命中（可能在此刷新进行中时存下更新的条目）
+      // 做身份守卫。.then 用过期刷新的结果覆盖，比 .catch
+      // 删除更糟——错误数据会持续整个 TTL（例如设置更改后的
+      // 旧 awsAuthRefresh 命令产生的凭据）。
       const staleEntry = cached
       f(...args)
         .then(newValue => {
@@ -195,18 +192,18 @@ export function memoizeWithTTLAsync<Args extends unknown[], Result>(
           }
         })
 
-      // Return the stale value immediately
+      // 立即返回过期值
       return cached.value
     }
 
     return cache.get(key)!.value
   }
 
-  // Add cache clear method. Also clear inFlight: clear() during a cold-miss
-  // await should not let the stale in-flight promise be returned to the next
-  // caller (defeats the purpose of clear). The try/finally above
-  // identity-guards inFlight.delete so the stale promise doesn't delete a
-  // fresh one if clear+cold-miss happens before the finally fires.
+  // 添加缓存清理方法。同时清空 inFlight：冷未命中 await 期间的 clear()
+  // 不应让过期的进行中 promise 被返回给下一位调用方（那会使 clear 的
+  // 目的落空）。上面的 try/finally 对 inFlight.delete 做身份守卫，
+  // 使得若 finally 触发前发生 clear+ 冷未命中，过期的 promise 不会
+  // 删除一个全新的 promise。
   memoized.cache = {
     clear: () => {
       cache.clear()
@@ -220,16 +217,16 @@ export function memoizeWithTTLAsync<Args extends unknown[], Result>(
 }
 
 /**
- * Creates a memoized function with LRU (Least Recently Used) eviction policy.
- * This prevents unbounded memory growth by evicting the least recently used entries
- * when the cache reaches its maximum size.
+ * 创建一个带 LRU（最近最少使用）淘汰策略的记忆化函数。
+ * 当缓存达到最大体积时，通过淘汰最近最少使用的条目来防止无界的
+ * 内存增长。
  *
- * Note: Cache size for memoized message processing functions
- * Chosen to prevent unbounded memory growth (was 300MB+ with lodash memoize)
- * while maintaining good cache hit rates for typical conversations.
+ * 注意：记忆化消息处理函数的缓存大小
+ * 选出来自防止无界内存增长（使用 lodash memoize 时曾达 300MB+），
+ * 同时为典型对话保持良好的缓存命中率。
  *
- * @param f The function to memoize
- * @returns A memoized version of the function with cache management methods
+ * @param f 要记忆化的函数
+ * @returns 带缓存管理方法的记忆化版本
  */
 export function memoizeWithLRU<
   Args extends unknown[],
@@ -255,12 +252,12 @@ export function memoizeWithLRU<
     return result
   }
 
-  // Add cache management methods
+  // 添加缓存管理方法
   memoized.cache = {
     clear: () => cache.clear(),
     size: () => cache.size,
     delete: (key: string) => cache.delete(key),
-    // peek() avoids updating recency — we only want to observe, not promote
+    // peek() 避免更新最近使用状态——我们只想观察，不想提升
     get: (key: string) => cache.peek(key),
     has: (key: string) => cache.has(key),
   }

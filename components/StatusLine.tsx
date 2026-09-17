@@ -261,7 +261,7 @@ function StatusLineInner({
   useEffect(() => {
     const statusLine = settings?.statusLine;
     if (statusLine) {
-      logEvent('内部代号_status_line_mount', {
+      logEvent('limkenion_status_line_mount', {
         command_length: statusLine.command.length,
         padding: statusLine.padding
       });
@@ -273,11 +273,11 @@ function StatusLineInner({
       }
       // executeStatusLineCommand (hooks.ts) returns undefined when trust is
       // blocked — statusLineText stays undefined forever, user sees nothing,
-      // and 内部代号_status_line_mount above fires anyway so telemetry looks fine.
+      // and limkenion_status_line_mount above fires anyway so telemetry looks fine.
       if (!checkHasTrustDialogAccepted()) {
         addNotification({
           key: 'statusline-trust-blocked',
-          text: 'statusline skipped · restart to fix',
+          text: '状态行已跳过 · 重启以修复',
           color: 'warning',
           priority: 'low'
         });

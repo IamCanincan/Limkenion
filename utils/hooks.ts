@@ -2020,7 +2020,7 @@ async function* executeHooks({
   if (userHooks.length > 0) {
     const pluginHookCounts = getPluginHookCounts(userHooks)
     const hookTypeCounts = getHookTypeCounts(userHooks)
-    logEvent(`内部代号_run_hook`, {
+    logEvent(`limkenion_run_hook`, {
       hookName:
         hookName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       numCommands: userHooks.length,
@@ -2053,7 +2053,7 @@ async function* executeHooks({
     const totalDurationMs = Date.now() - batchStartTime
     getStatsStore()?.observe('hook_duration_ms', totalDurationMs)
     addToTurnHookDuration(totalDurationMs)
-    logEvent(`内部代号_repl_hook_finished`, {
+    logEvent(`limkenion_repl_hook_finished`, {
       hookName:
         hookName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       numCommands: matchingHooks.length,
@@ -2932,7 +2932,7 @@ async function* executeHooks({
   getStatsStore()?.observe('hook_duration_ms', totalDurationMs)
   addToTurnHookDuration(totalDurationMs)
 
-  logEvent(`内部代号_repl_hook_finished`, {
+  logEvent(`limkenion_repl_hook_finished`, {
     hookName:
       hookName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     numCommands: matchingHooks.length,
@@ -3056,7 +3056,7 @@ async function executeHooksOutsideREPL({
   if (userHooks.length > 0) {
     const pluginHookCounts = getPluginHookCounts(userHooks)
     const hookTypeCounts = getHookTypeCounts(userHooks)
-    logEvent(`内部代号_run_hook`, {
+    logEvent(`limkenion_run_hook`, {
       hookName:
         hookName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       numCommands: userHooks.length,

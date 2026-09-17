@@ -4,9 +4,9 @@ import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../../services/anal
 const thinkback = {
   type: 'local-jsx',
   name: 'think-back',
-  description: 'Your 2025 Limkenion Year in Review',
+  description: '你的 2025 年 Limkenion 年度回顾',
   isEnabled: () =>
-    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_thinkback'),
+    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_thinkback'),
   load: () => import('./thinkback.js'),
 } satisfies Command
 

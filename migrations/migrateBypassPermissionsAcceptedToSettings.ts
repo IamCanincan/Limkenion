@@ -25,7 +25,7 @@ export function migrateBypassPermissionsAcceptedToSettings(): void {
       })
     }
 
-    logEvent('内部代号_migrate_bypass_permissions_accepted', {})
+    logEvent('limkenion_migrate_bypass_permissions_accepted', {})
 
     saveGlobalConfig(current => {
       if (!('bypassPermissionsModeAccepted' in current)) return current

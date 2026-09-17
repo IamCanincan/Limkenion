@@ -413,7 +413,7 @@ export const loadMarkdownFilesForSubdir = memoize(
       )
     }
 
-    logEvent(`内部代号_dir_search`, {
+    logEvent(`limkenion_dir_search`, {
       durationMs: Date.now() - searchStartTime,
       managedFilesFound: managedFiles.length,
       userFilesFound: userFiles.length,

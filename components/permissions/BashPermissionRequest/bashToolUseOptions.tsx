@@ -9,8 +9,8 @@ import { generateShellSuggestionsLabel } from '../shellPermissionHelpers.js';
 export type BashToolUseOption = 'yes' | 'yes-apply-suggestions' | 'yes-prefix-edited' | 'yes-classifier-reviewed' | 'no';
 
 /**
- * Check if a description already exists in the allow list.
- * Compares lowercase and trailing-whitespace-trimmed versions.
+ * 检查描述是否已存在于允许列表中。
+ * 会比较小写并去除尾部空白后的版本。
  */
 function descriptionAlreadyExists(description: string, existingDescriptions: string[]): boolean {
   const normalized = description.toLowerCase().trimEnd();
@@ -18,14 +18,14 @@ function descriptionAlreadyExists(description: string, existingDescriptions: str
 }
 
 /**
- * Strip output redirections so filenames don't show as commands in the label.
+ * 去除输出重定向，以便文件名不会以命令的形式出现在标签中。
  */
 function stripBashRedirections(command: string): string {
   const {
     commandWithoutRedirections,
     redirections
   } = extractOutputRedirections(command);
-  // Only use stripped version if there were actual redirections
+  // 只有实际存在重定向时才使用去除后的版本
   return redirections.length > 0 ? commandWithoutRedirections : command;
 }
 export function bashToolUseOptions({
@@ -48,14 +48,14 @@ export function bashToolUseOptions({
   onAcceptFeedbackChange: (value: string) => void;
   onClassifierDescriptionChange?: (value: string) => void;
   classifierDescription?: string;
-  /** Whether the initial classifier description was empty. When true, hides the option. */
+  /** 初始分类器描述是否为空。若为 true，则隐藏该选项。 */
   initialClassifierDescriptionEmpty?: boolean;
   existingAllowDescriptions?: string[];
   yesInputMode?: boolean;
   noInputMode?: boolean;
-  /** Editable prefix rule content (e.g., "npm run:*"). When set, replaces Haiku-based suggestions. */
+  /** 可编辑的前缀规则内容（例如 "npm run:*"）。设置后会替换 Haiku 生成的建议。 */
   editablePrefix?: string;
-  /** Callback when the user edits the prefix value. */
+  /** 用户编辑前缀值时的回调。 */
   onEditablePrefixChange?: (value: string) => void;
 }): OptionWithDescription<BashToolUseOption>[] {
   const options: OptionWithDescription<BashToolUseOption>[] = [];
@@ -64,7 +64,7 @@ export function bashToolUseOptions({
       type: 'input',
       label: 'Yes',
       value: 'yes',
-      placeholder: 'and tell Limkenion what to do next',
+      placeholder: '并告诉 Limkenion 下一步要做什么',
       onChange: onAcceptFeedbackChange,
       allowEmptySubmitToCancel: true
     });
@@ -75,19 +75,18 @@ export function bashToolUseOptions({
     });
   }
 
-  // Only show "always allow" options when not restricted by allowManagedPermissionRulesOnly
+  // 仅当未被 allowManagedPermissionRulesOnly 限制时才显示"始终允许"选项
   if (shouldShowAlwaysAllowOptions()) {
-    // Show an editable input for the prefix rule instead of the
-    // Haiku-generated suggestion label — but only when the suggestions
-    // don't contain non-Bash items (addDirectories, Read rules) that
-    // the editable prefix can't represent.
+    // 为前缀规则显示可编辑输入，而不是 Haiku 生成的建议标签——
+    // 但仅当建议不包含可编辑前缀无法表示的非 Bash 项目
+    //（addDirectories、Read 规则）时才这样做。
     const hasNonBashSuggestions = suggestions.some(s => s.type === 'addDirectories' || s.type === 'addRules' && s.rules?.some(r => r.toolName !== BASH_TOOL_NAME));
     if (editablePrefix !== undefined && onEditablePrefixChange && !hasNonBashSuggestions && suggestions.length > 0) {
       options.push({
         type: 'input',
-        label: 'Yes, and don\u2019t ask again for',
+        label: '是，且不再询问',
         value: 'yes-prefix-edited',
-        placeholder: 'command prefix (e.g., npm run:*)',
+        placeholder: '命令前缀（例如 npm run:*）',
         initialValue: editablePrefix,
         onChange: onEditablePrefixChange,
         allowEmptySubmitToCancel: true,
@@ -105,34 +104,20 @@ export function bashToolUseOptions({
       }
     }
 
-    // Add classifier-reviewed option if enabled, the initial description was
-    // non-empty, the description doesn't already exist in the allow list,
-    // and the decision reason is NOT a server-side classifier block
-    // (prompt-based rules don't help when the server-side classifier triggers first).
-    // Skip when the editable prefix option is already shown — they serve the
-    // same role and having two identical-looking "don't ask again" inputs is confusing.
+    // 如果启用、初始描述非空、描述尚不存在于允许列表中，
+    // 且决策原因不是服务端分类器拦截时，才添加"经分类器审核"选项
+    //（当服务端分类器先触发时，基于提示的规则没有帮助）。
+    // 当可编辑前缀选项已显示时跳过——它们起相同作用，
+    // 有两个外观相同的"不再询问"输入会令人困惑。
     const editablePrefixShown = options.some(o => o.value === 'yes-prefix-edited');
-    if ("external" === 'ant' && !editablePrefixShown && isClassifierPermissionsEnabled() && onClassifierDescriptionChange && !initialClassifierDescriptionEmpty && !descriptionAlreadyExists(classifierDescription ?? '', existingAllowDescriptions) && decisionReason?.type !== 'classifier') {
-      options.push({
-        type: 'input',
-        label: 'Yes, and don\u2019t ask again for',
-        value: 'yes-classifier-reviewed',
-        placeholder: 'describe what to allow...',
-        initialValue: classifierDescription ?? '',
-        onChange: onClassifierDescriptionChange,
-        allowEmptySubmitToCancel: true,
-        showLabelWithValue: true,
-        labelValueSeparator: ': ',
-        resetCursorOnUpdate: true
-      });
-    }
+    
   }
   if (noInputMode) {
     options.push({
       type: 'input',
       label: 'No',
       value: 'no',
-      placeholder: 'and tell Limkenion what to do differently',
+      placeholder: '并告诉 Limkenion 应该怎样做不同',
       onChange: onRejectFeedbackChange,
       allowEmptySubmitToCancel: true
     });

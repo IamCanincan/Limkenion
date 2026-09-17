@@ -1,170 +1,168 @@
 import { isPlanModeInterviewPhaseEnabled } from '../../utils/planModeV2.js'
 import { ASK_USER_QUESTION_TOOL_NAME } from '../AskUserQuestionTool/prompt.js'
 
-const WHAT_HAPPENS_SECTION = `## What Happens in Plan Mode
+const WHAT_HAPPENS_SECTION = `## 计划模式中会发生什么
 
-In plan mode, you'll:
-1. Thoroughly explore the codebase using Glob, Grep, and Read tools
-2. Understand existing patterns and architecture
-3. Design an implementation approach
-4. Present your plan to the user for approval
-5. Use ${ASK_USER_QUESTION_TOOL_NAME} if you need to clarify approaches
-6. Exit plan mode with ExitPlanMode when ready to implement
+在计划模式中，你将：
+1. 使用 Glob、Grep 和 Read 工具彻底探索代码库
+2. 理解现有模式与架构
+3. 设计实现方案
+4. 把你的计划呈现给用户审批
+5. 如需澄清方案，使用 ${ASK_USER_QUESTION_TOOL_NAME}
+6. 准备好实现时，用 ExitPlanMode 退出计划模式
 
 `
 
 function getEnterPlanModeToolPromptExternal(): string {
-  // When interview phase is enabled, omit the "What Happens" section —
-  // detailed workflow instructions arrive via the plan_mode attachment (messages.ts).
+  // 当访谈阶段启用时，省略“会发生什么”段——
+  // 详细的工作流指令会经由 plan_mode 附件（messages.ts）送达。
   const whatHappens = isPlanModeInterviewPhaseEnabled()
     ? ''
     : WHAT_HAPPENS_SECTION
 
-  return `Use this tool proactively when you're about to start a non-trivial implementation task. Getting user sign-off on your approach before writing code prevents wasted effort and ensures alignment. This tool transitions you into plan mode where you can explore the codebase and design an implementation approach for user approval.
+  return `当你要开始一项非平凡的实现任务时，请主动使用此工具。在写代码之前先获得用户对你方案的认可，可以避免白费功夫并确保方向一致。此工具会让你进入计划模式，在那里你可以探索代码库，并为用户审批设计实现方案。
 
-## When to Use This Tool
+## 何时使用此工具
 
-**Prefer using EnterPlanMode** for implementation tasks unless they're simple. Use it when ANY of these conditions apply:
+**对于实现任务，除非很简单，否则优先使用 EnterPlanMode**。当满足以下任一条件时使用：
 
-1. **New Feature Implementation**: Adding meaningful new functionality
-   - Example: "Add a logout button" - where should it go? What should happen on click?
-   - Example: "Add form validation" - what rules? What error messages?
+1. **新功能实现**：添加有意义的新功能
+   - 示例：“添加一个退出按钮”——它应该放在哪里？点击时应该发生什么？
+   - 示例：“添加表单校验”——什么规则？什么错误消息？
 
-2. **Multiple Valid Approaches**: The task can be solved in several different ways
-   - Example: "Add caching to the API" - could use Redis, in-memory, file-based, etc.
-   - Example: "Improve performance" - many optimization strategies possible
+2. **多种可行方案**：该任务可以多种不同方式解决
+   - 示例：“为 API 添加缓存”——可以用 Redis、内存、基于文件等
+   - 示例：“提升性能”——有很多可用的优化策略
 
-3. **Code Modifications**: Changes that affect existing behavior or structure
-   - Example: "Update the login flow" - what exactly should change?
-   - Example: "Refactor this component" - what's the target architecture?
+3. **代码修改**：影响现有行为或结构的更改
+   - 示例：“更新登录流程”——具体应该改什么？
+   - 示例：“重构这个组件”——目标架构是什么？
 
-4. **Architectural Decisions**: The task requires choosing between patterns or technologies
-   - Example: "Add real-time updates" - WebSockets vs SSE vs polling
-   - Example: "Implement state management" - Redux vs Context vs custom solution
+4. **架构决策**：任务需要在模式或技术之间做选择
+   - 示例：“添加实时更新”——WebSockets 对比 SSE 对比 轮询
+   - 示例：“实现状态管理”——Redux 对比 Context 对比 自定义方案
 
-5. **Multi-File Changes**: The task will likely touch more than 2-3 files
-   - Example: "Refactor the authentication system"
-   - Example: "Add a new API endpoint with tests"
+5. **多文件更改**：任务很可能涉及 2-3 个以上文件
+   - 示例：“重构认证系统”
+   - 示例：“添加带测试的新 API 端点”
 
-6. **Unclear Requirements**: You need to explore before understanding the full scope
-   - Example: "Make the app faster" - need to profile and identify bottlenecks
-   - Example: "Fix the bug in checkout" - need to investigate root cause
+6. **需求不明确**：在理解完整范围之前你需要先探索
+   - 示例：“让应用更快”——需要性能分析并定位瓶颈
+   - 示例：“修复结账中的缺陷”——需要调查根本原因
 
-7. **User Preferences Matter**: The implementation could reasonably go multiple ways
-   - If you would use ${ASK_USER_QUESTION_TOOL_NAME} to clarify the approach, use EnterPlanMode instead
-   - Plan mode lets you explore first, then present options with context
+7. **用户偏好很重要**：实现可能合理地有多种走向
+   - 如果你会用 ${ASK_USER_QUESTION_TOOL_NAME} 澄清方案，请改用 EnterPlanMode
+   - 计划模式允许你先探索，再带着上下文呈现选项
 
-## When NOT to Use This Tool
+## 何时不使用此工具
 
-Only skip EnterPlanMode for simple tasks:
-- Single-line or few-line fixes (typos, obvious bugs, small tweaks)
-- Adding a single function with clear requirements
-- Tasks where the user has given very specific, detailed instructions
-- Pure research/exploration tasks (use the Agent tool with explore agent instead)
+仅对简单任务跳过 EnterPlanMode：
+- 单行或少数几行的修复（拼写错误、明显的缺陷、小调整）
+- 添加单个有明确需求说明的函数
+- 用户已给出非常具体、详细的指令的任务
+- 纯研究/探索任务（改用带 explore agent 的 Agent 工具）
 
-${whatHappens}## Examples
+${whatHappens}## 示例
 
-### GOOD - Use EnterPlanMode:
-User: "Add user authentication to the app"
-- Requires architectural decisions (session vs JWT, where to store tokens, middleware structure)
+### 应该——使用 EnterPlanMode：
+用户：“为应用添加用户认证”
+- 需要架构决策（会话对比 JWT、token 存储位置、中间件结构）
 
-User: "Optimize the database queries"
-- Multiple approaches possible, need to profile first, significant impact
+用户：“优化数据库查询”
+- 有多种可能方案，需要先做性能分析，影响重大
 
-User: "Implement dark mode"
-- Architectural decision on theme system, affects many components
+用户：“实现深色模式”
+- 对主题系统做架构决策，影响很多组件
 
-User: "Add a delete button to the user profile"
-- Seems simple but involves: where to place it, confirmation dialog, API call, error handling, state updates
+用户：“为用户资料添加删除按钮”
+- 看似简单，但涉及：放在哪里、确认对话框、API 调用、错误处理、状态更新
 
-User: "Update the error handling in the API"
-- Affects multiple files, user should approve the approach
+用户：“更新 API 中的错误处理”
+- 影响多个文件，用户应批准该方案
 
-### BAD - Don't use EnterPlanMode:
-User: "Fix the typo in the README"
-- Straightforward, no planning needed
+### 不应该——不要使用 EnterPlanMode：
+用户：“修复 README 里的拼写错误”
+- 很直接，无需规划
 
-User: "Add a console.log to debug this function"
-- Simple, obvious implementation
+用户：“添加一个 console.log 来调试这个函数”
+- 简单、显而易见的实现
 
-User: "What files handle routing?"
-- Research task, not implementation planning
+用户：“哪些文件处理路由？”
+- 研究任务，不是实现规划
 
-## Important Notes
+## 重要说明
 
-- This tool REQUIRES user approval - they must consent to entering plan mode
-- If unsure whether to use it, err on the side of planning - it's better to get alignment upfront than to redo work
-- Users appreciate being consulted before significant changes are made to their codebase
+- 此工具需要用户批准——他们必须同意进入计划模式
+- 若拿不准是否使用，宁可先规划——提前对齐比返工更好
+- 在对其代码库做出重大更改之前，用户很乐意被先咨询
 `
 }
 
 function getEnterPlanModeToolPromptAnt(): string {
-  // When interview phase is enabled, omit the "What Happens" section —
-  // detailed workflow instructions arrive via the plan_mode attachment (messages.ts).
+  // 当访谈阶段启用时，省略“会发生什么”段——
+  // 详细的工作流指令会经由 plan_mode 附件（messages.ts）送达。
   const whatHappens = isPlanModeInterviewPhaseEnabled()
     ? ''
     : WHAT_HAPPENS_SECTION
 
-  return `Use this tool when a task has genuine ambiguity about the right approach and getting user input before coding would prevent significant rework. This tool transitions you into plan mode where you can explore the codebase and design an implementation approach for user approval.
+  return `当任务在正确方案上存在真正歧义，且事先获取用户输入可避免大量返工时，使用此工具。此工具会让你进入计划模式，在那里你可以探索代码库，并为用户审批设计实现方案。
 
-## When to Use This Tool
+## 何时使用此工具
 
-Plan mode is valuable when the implementation approach is genuinely unclear. Use it when:
+当实现方案真正不明确时，计划模式很有价值。在以下情况使用：
 
-1. **Significant Architectural Ambiguity**: Multiple reasonable approaches exist and the choice meaningfully affects the codebase
-   - Example: "Add caching to the API" - Redis vs in-memory vs file-based
-   - Example: "Add real-time updates" - WebSockets vs SSE vs polling
+1. **重大架构歧义**：存在多种合理方案，且选择会显著影响代码库
+   - 示例：“为 API 添加缓存”——Redis 对比 内存 对比 基于文件
+   - 示例：“添加实时更新”——WebSockets 对比 SSE 对比 轮询
 
-2. **Unclear Requirements**: You need to explore and clarify before you can make progress
-   - Example: "Make the app faster" - need to profile and identify bottlenecks
-   - Example: "Refactor this module" - need to understand what the target architecture should be
+2. **需求不明确**：你需要先探索和澄清才能取得进展
+   - 示例：“让应用更快”——需要性能分析并定位瓶颈
+   - 示例：“重构这个模块”——需要理解目标架构应该是什么
 
-3. **High-Impact Restructuring**: The task will significantly restructure existing code and getting buy-in first reduces risk
-   - Example: "Redesign the authentication system"
-   - Example: "Migrate from one state management approach to another"
+3. **高影响重构**：任务将显著重构现有代码，先获得支持可降低风险
+   - 示例：“重新设计认证系统”
+   - 示例：“从一种状态管理方案迁移到另一种”
 
-## When NOT to Use This Tool
+## 何时不使用此工具
 
-Skip plan mode when you can reasonably infer the right approach:
-- The task is straightforward even if it touches multiple files
-- The user's request is specific enough that the implementation path is clear
-- You're adding a feature with an obvious implementation pattern (e.g., adding a button, a new endpoint following existing conventions)
-- Bug fixes where the fix is clear once you understand the bug
-- Research/exploration tasks (use the Agent tool instead)
-- The user says something like "can we work on X" or "let's do X" — just get started
+当你能合理推断出正确方案时跳过计划模式：
+- 任务虽然涉及多个文件但很直接
+- 用户请求足够具体，实现路径已清晰
+- 你在添加带有明显实现模式的功能（例如添加一个按钮、按既有约定添加新端点）
+- 缺陷修复，并且一旦理解缺陷就清楚了怎么修复
+- 研究/探索任务（改用 Agent 工具）
+- 用户说类似“我们能做 X 吗”或“我们来弄 X”的话——直接开始就行
 
-When in doubt, prefer starting work and using ${ASK_USER_QUESTION_TOOL_NAME} for specific questions over entering a full planning phase.
+拿不准时，优先直接开始工作，并用 ${ASK_USER_QUESTION_TOOL_NAME} 就具体问题提问，而不是进入完整的规划阶段。
 
-${whatHappens}## Examples
+${whatHappens}## 示例
 
-### GOOD - Use EnterPlanMode:
-User: "Add user authentication to the app"
-- Genuinely ambiguous: session vs JWT, where to store tokens, middleware structure
+### 应该——使用 EnterPlanMode：
+用户：“为应用添加用户认证”
+- 真正有歧义：会话对比 JWT、token 存储位置、中间件结构
 
-User: "Redesign the data pipeline"
-- Major restructuring where the wrong approach wastes significant effort
+用户：“重新设计数据管道”
+- 重大重构，错误方案会浪费大量精力
 
-### BAD - Don't use EnterPlanMode:
-User: "Add a delete button to the user profile"
-- Implementation path is clear; just do it
+### 不应该——不要使用 EnterPlanMode：
+用户：“为用户资料添加删除按钮”
+- 实现路径明确；直接做就行
 
-User: "Can we work on the search feature?"
-- User wants to get started, not plan
+用户：“我们能做搜索功能吗？”
+- 用户想开始干活，不是要计划
 
-User: "Update the error handling in the API"
-- Start working; ask specific questions if needed
+用户：“更新 API 中的错误处理”
+- 开始在干；如有需要再问具体问题
 
-User: "Fix the typo in the README"
-- Straightforward, no planning needed
+用户：“修复 README 里的拼写错误”
+- 很直接，无需规划
 
-## Important Notes
+## 重要说明
 
-- This tool REQUIRES user approval - they must consent to entering plan mode
+- 此工具需要用户批准——他们必须同意进入计划模式
 `
 }
 
 export function getEnterPlanModeToolPrompt(): string {
-  return process.env.USER_TYPE === 'ant'
-    ? getEnterPlanModeToolPromptAnt()
-    : getEnterPlanModeToolPromptExternal()
+  return getEnterPlanModeToolPromptExternal()
 }

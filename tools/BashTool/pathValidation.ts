@@ -63,9 +63,8 @@ export type PathCommand =
   | 'md5sum'
 
 /**
- * Checks if an rm/rmdir command targets dangerous paths that should always
- * require explicit user approval, even if allowlist rules exist.
- * This prevents catastrophic data loss from commands like `rm -rf /`.
+ * 检查 rm/rmdir 命令是否指向危险路径，这类路径即使存在允许列表规则，
+ * 也始终需要用户明确批准。此检查可防止 `rm -rf /` 之类的命令造成灾难性数据丢失。
  */
 function checkDangerousRemovalPaths(
   command: 'rm' | 'rmdir',
@@ -89,21 +88,21 @@ function checkDangerousRemovalPaths(
     if (isDangerousRemovalPath(absolutePath)) {
       return {
         behavior: 'ask',
-        message: `Dangerous ${command} operation detected: '${absolutePath}'\n\nThis command would remove a critical system directory. This requires explicit approval and cannot be auto-allowed by permission rules.`,
+        message: `检测到危险${command}操作：'${absolutePath}'\n\n该命令将删除关键系统目录。这需要明确批准，且无法通过权限规则自动放行。`,
         decisionReason: {
           type: 'other',
-          reason: `Dangerous ${command} operation on critical path: ${absolutePath}`,
+          reason: `关键路径上执行危险${command}操作：${absolutePath}`,
         },
-        // Don't provide suggestions - we don't want to encourage saving dangerous commands
+        // 不提供建议——我们不想鼓励保存危险命令
         suggestions: [],
       }
     }
   }
 
-  // No dangerous paths found
+  // 未发现危险路径
   return {
     behavior: 'passthrough',
-    message: `No dangerous removals detected for ${command} command`,
+    message: `未在 ${command} 命令中检测到危险删除`,
   }
 }
 
@@ -511,42 +510,42 @@ export const PATH_EXTRACTORS: Record<
 const SUPPORTED_PATH_COMMANDS = Object.keys(PATH_EXTRACTORS) as PathCommand[]
 
 const ACTION_VERBS: Record<PathCommand, string> = {
-  cd: 'change directories to',
-  ls: 'list files in',
-  find: 'search files in',
-  mkdir: 'create directories in',
-  touch: 'create or modify files in',
-  rm: 'remove files from',
-  rmdir: 'remove directories from',
-  mv: 'move files to/from',
-  cp: 'copy files to/from',
-  cat: 'concatenate files from',
-  head: 'read the beginning of files from',
-  tail: 'read the end of files from',
-  sort: 'sort contents of files from',
-  uniq: 'filter duplicate lines from files in',
-  wc: 'count lines/words/bytes in files from',
-  cut: 'extract columns from files in',
-  paste: 'merge files from',
-  column: 'format files from',
-  tr: 'transform text from files in',
-  file: 'examine file types in',
-  stat: 'read file stats from',
-  diff: 'compare files from',
-  awk: 'process text from files in',
-  strings: 'extract strings from files in',
-  hexdump: 'display hex dump of files from',
-  od: 'display octal dump of files from',
-  base64: 'encode/decode files from',
-  nl: 'number lines in files from',
-  grep: 'search for patterns in files from',
-  rg: 'search for patterns in files from',
-  sed: 'edit files in',
-  git: 'access files with git from',
-  jq: 'process JSON from files in',
-  sha256sum: 'compute SHA-256 checksums for files in',
-  sha1sum: 'compute SHA-1 checksums for files in',
-  md5sum: 'compute MD5 checksums for files in',
+  cd: '切换目录到',
+  ls: '列出文件于',
+  find: '在……中搜索文件',
+  mkdir: '在……中创建目录',
+  touch: '在……中创建或修改文件',
+  rm: '从……中删除文件',
+  rmdir: '从……中删除目录',
+  mv: '向/从……移动文件',
+  cp: '向/从……复制文件',
+  cat: '从……拼接文件',
+  head: '从……读取文件开头',
+  tail: '从……读取文件末尾',
+  sort: '对……中的文件内容排序',
+  uniq: '过滤……中重复行',
+  wc: '统计……中文件的行/词/字节数',
+  cut: '从……中提取列',
+  paste: '合并……中的文件',
+  column: '格式化……中的文件',
+  tr: '转换……中文件的文本',
+  file: '检查……中的文件类型',
+  stat: '读取……中文件的统计信息',
+  diff: '比较……中的文件',
+  awk: '处理……中文件的文本',
+  strings: '提取……中文件的字符串',
+  hexdump: '显示……中文件的十六进制转储',
+  od: '显示……中文件的八进制转储',
+  base64: '对……中的文件进行编码/解码',
+  nl: '给……中的文件行编号',
+  grep: '在……中搜索模式',
+  rg: '在……中搜索模式',
+  sed: '在……中编辑文件',
+  git: '通过 git 访问……中的文件',
+  jq: '处理……中文件的 JSON',
+  sha256sum: '计算……中文件的 SHA-256 校验和',
+  sha1sum: '计算……中文件的 SHA-1 校验和',
+  md5sum: '计算……中文件的 MD5 校验和',
 }
 
 export const COMMAND_OPERATION_TYPE: Record<PathCommand, FileOperationType> = {
@@ -619,10 +618,10 @@ function validateCommandPaths(
   if (validator && !validator(args)) {
     return {
       behavior: 'ask',
-      message: `${command} with flags requires manual approval to ensure path safety. For security, Limkenion cannot automatically validate ${command} commands that use flags, as some flags like --target-directory=PATH can bypass path validation.`,
+      message: `${command} 带标志的命令需要手动批准以确保路径安全。出于安全考虑，Limkenion 无法自动校验使用标志的 ${command} 命令，因为某些标志（如 --target-directory=PATH）可能绕过路径校验。`,
       decisionReason: {
         type: 'other',
-        reason: `${command} command with flags requires manual approval`,
+        reason: `${command} 带标志的命令需要手动批准`,
       },
     }
   }
@@ -645,11 +644,11 @@ function validateCommandPaths(
   if (compoundCommandHasCd && operationType !== 'read') {
     return {
       behavior: 'ask',
-      message: `Commands that change directories and perform write operations require explicit approval to ensure paths are evaluated correctly. For security, Limkenion cannot automatically determine the final working directory when 'cd' is used in compound commands.`,
+      message: `先切换目录再执行写操作的命令需要明确批准，以确保路径被正确求值。出于安全考虑，当复合命令中使用 'cd' 时，Limkenion 无法自动确定最终工作目录。`,
       decisionReason: {
         type: 'other',
         reason:
-          'Compound command contains cd with write operation - manual approval required to prevent path resolution bypass',
+          '复合命令含 cd 与写操作——需要手动批准以防路径解析被绕过',
       },
     }
   }
@@ -674,7 +673,7 @@ function validateCommandPaths(
         decisionReason?.type === 'other' ||
         decisionReason?.type === 'safetyCheck'
           ? decisionReason.reason
-          : `${command} in '${resolvedPath}' was blocked. For security, Limkenion may only ${ACTION_VERBS[command]} the allowed working directories for this session: ${dirListStr}.`
+          : `${command} 在 '${resolvedPath}' 中被阻止。出于安全考虑，Limkenion 在本次会话中只能${ACTION_VERBS[command]}允许的工作目录：${dirListStr}。`
 
       if (decisionReason?.type === 'rule') {
         return {
@@ -696,7 +695,7 @@ function validateCommandPaths(
   // All paths are valid - return passthrough
   return {
     behavior: 'passthrough',
-    message: `Path validation passed for ${command} command`,
+    message: `${command} 命令路径校验通过`,
   }
 }
 
@@ -849,7 +848,7 @@ function validateSinglePathCommand(
   if (extractedArgs.length === 0) {
     return {
       behavior: 'passthrough',
-      message: 'Empty command - no paths to validate',
+      message: '空命令——无路径可校验',
     }
   }
 
@@ -858,7 +857,7 @@ function validateSinglePathCommand(
   if (!baseCmd || !SUPPORTED_PATH_COMMANDS.includes(baseCmd as PathCommand)) {
     return {
       behavior: 'passthrough',
-      message: `Command '${baseCmd}' is not a path-restricted command`,
+      message: `命令 '${baseCmd}' 不是受路径限制的命令`,
     }
   }
 
@@ -895,14 +894,14 @@ function validateSinglePathCommandArgv(
   if (argv.length === 0) {
     return {
       behavior: 'passthrough',
-      message: 'Empty command - no paths to validate',
+      message: '空命令——无路径可校验',
     }
   }
   const [baseCmd, ...args] = argv
   if (!baseCmd || !SUPPORTED_PATH_COMMANDS.includes(baseCmd as PathCommand)) {
     return {
       behavior: 'passthrough',
-      message: `Command '${baseCmd}' is not a path-restricted command`,
+      message: `命令 '${baseCmd}' 不是受路径限制的命令`,
     }
   }
   // sed read-only override: use .text for the allowlist check since
@@ -935,11 +934,11 @@ function validateOutputRedirections(
   if (compoundCommandHasCd && redirections.length > 0) {
     return {
       behavior: 'ask',
-      message: `Commands that change directories and write via output redirection require explicit approval to ensure paths are evaluated correctly. For security, Limkenion cannot automatically determine the final working directory when 'cd' is used in compound commands.`,
+      message: `先切换目录再通过输出重定向写入的命令需要明确批准，以确保路径被正确求值。出于安全考虑，当复合命令中使用 'cd' 时，Limkenion 无法自动确定最终工作目录。`,
       decisionReason: {
         type: 'other',
         reason:
-          'Compound command contains cd with output redirection - manual approval required to prevent path resolution bypass',
+          '复合命令含 cd 与输出重定向——需要手动批准以防路径解析被绕过',
       },
     }
   }
@@ -968,8 +967,8 @@ function validateOutputRedirections(
         decisionReason?.type === 'safetyCheck'
           ? decisionReason.reason
           : decisionReason?.type === 'rule'
-            ? `Output redirection to '${resolvedPath}' was blocked by a deny rule.`
-            : `Output redirection to '${resolvedPath}' was blocked. For security, Limkenion may only write to files in the allowed working directories for this session: ${dirListStr}.`
+            ? `对 '${resolvedPath}' 的输出重定向被拒绝规则阻止。`
+            : `对 '${resolvedPath}' 的输出重定向被阻止。出于安全考虑，Limkenion 在本次会话中只能写入允许的工作目录中的文件：${dirListStr}。`
 
       // If denied by a deny rule, return 'deny' behavior
       if (decisionReason?.type === 'rule') {
@@ -998,7 +997,7 @@ function validateOutputRedirections(
 
   return {
     behavior: 'passthrough',
-    message: 'No unsafe redirections found',
+    message: '未发现不安全的输出重定向',
   }
 }
 
@@ -1029,10 +1028,10 @@ export function checkPathConstraints(
     return {
       behavior: 'ask',
       message:
-        'Process substitution (>(...) or <(...)) can execute arbitrary commands and requires manual approval',
+        '进程替换（>(...) 或 <(...)）可执行任意命令，需要手动批准',
       decisionReason: {
         type: 'other',
-        reason: 'Process substitution requires manual approval',
+        reason: '进程替换需要手动批准',
       },
     }
   }
@@ -1052,10 +1051,10 @@ export function checkPathConstraints(
   if (hasDangerousRedirection) {
     return {
       behavior: 'ask',
-      message: 'Shell expansion syntax in paths requires manual approval',
+      message: '路径中的 shell 展开语法需要手动批准',
       decisionReason: {
         type: 'other',
-        reason: 'Shell expansion syntax in paths requires manual approval',
+        reason: '路径中的 shell 展开语法需要手动批准',
       },
     }
   }
@@ -1104,7 +1103,7 @@ export function checkPathConstraints(
   // Always return passthrough to let other permission checks handle the command
   return {
     behavior: 'passthrough',
-    message: 'All path commands validated successfully',
+    message: '所有路径命令均校验成功',
   }
 }
 

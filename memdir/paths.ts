@@ -67,12 +67,12 @@ export function isAutoMemoryEnabled(): boolean {
  * directly in an `if` condition.
  */
 export function isExtractModeActive(): boolean {
-  if (!getFeatureValue_CACHED_MAY_BE_STALE('内部代号_passport_quail', false)) {
+  if (!getFeatureValue_CACHED_MAY_BE_STALE('limkenion_passport_quail', false)) {
     return false
   }
   return (
     !getIsNonInteractiveSession() ||
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_slate_thimble', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_slate_thimble', false)
   )
 }
 

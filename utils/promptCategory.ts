@@ -6,19 +6,19 @@ import {
 import { getSettings_DEPRECATED } from './settings/settings.js'
 
 /**
- * Determines the prompt category for agent usage.
- * Used for analytics to track different agent patterns.
+ * 确定智能体用途的提示类别。
+ * 用于分析以跟踪不同的智能体模式。
  *
- * @param agentType - The type/name of the agent
- * @param isBuiltInAgent - Whether this is a built-in agent or custom
- * @returns The agent prompt category string
+ * @param agentType - 智能体的类型/名称
+ * @param isBuiltInAgent - 是否为内置智能体或自定义智能体
+ * @returns 智能体提示类别字符串
  */
 export function getQuerySourceForAgent(
   agentType: string | undefined,
   isBuiltInAgent: boolean,
 ): QuerySource {
   if (isBuiltInAgent) {
-    // TODO: avoid this cast
+    // TODO: 避免此强制转换
     return agentType
       ? (`agent:builtin:${agentType}` as QuerySource)
       : 'agent:default'
@@ -28,10 +28,10 @@ export function getQuerySourceForAgent(
 }
 
 /**
- * Determines the prompt category based on output style settings.
- * Used for analytics to track different output style usage.
+ * 根据输出样式设置确定提示类别。
+ * 用于分析以跟踪不同的输出样式用法。
  *
- * @returns The prompt category string or undefined for default
+ * @returns 提示类别字符串；默认时返回 undefined
  */
 export function getQuerySourceForREPL(): QuerySource {
   const settings = getSettings_DEPRECATED()
@@ -41,7 +41,7 @@ export function getQuerySourceForREPL(): QuerySource {
     return 'repl_main_thread'
   }
 
-  // All styles in OUTPUT_STYLE_CONFIG are built-in
+  // OUTPUT_STYLE_CONFIG 中的所有样式都是内置的
   const isBuiltIn = style in OUTPUT_STYLE_CONFIG
   return isBuiltIn
     ? (`repl_main_thread:outputStyle:${style}` as QuerySource)

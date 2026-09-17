@@ -5,8 +5,8 @@ const HINT_DISPLAY_DURATION_MS = 5000
 let hasShownThisSession = false
 
 /**
- * Hook to manage the /fast hint display next to the fast icon.
- * Shows the hint for 5 seconds once per session.
+ * 管理快速图标旁 /fast 提示显示的 Hook。
+ * 每次会话显示一次提示，持续 5 秒。
  */
 export function useShowFastIconHint(showFastIcon: boolean): boolean {
   const [showHint, setShowHint] = useState(false)

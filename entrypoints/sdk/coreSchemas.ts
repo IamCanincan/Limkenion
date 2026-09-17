@@ -1,17 +1,17 @@
 /**
- * SDK Core Schemas - Zod schemas for serializable SDK data types.
+ * SDK 核心架构 - 可序列化 SDK 数据类型对应的 Zod 架构。
  *
- * These schemas are the single source of truth for SDK data types.
- * TypeScript types are generated from these schemas and committed for IDE support.
+ * 这些架构是 SDK 数据类型的唯一事实来源。
+ * TypeScript 类型由这些架构生成并提交，以支持 IDE 提示。
  *
- * @see scripts/generate-sdk-types.ts for type generation
+ * @see scripts/generate-sdk-types.ts 类型生成相关
  */
 
 import { z } from 'zod/v4'
 import { lazySchema } from '../../utils/lazySchema.js'
 
 // ============================================================================
-// Usage & Model Types
+// 使用量与模型类型
 // ============================================================================
 
 export const ModelUsageSchema = lazySchema(() =>
@@ -28,7 +28,7 @@ export const ModelUsageSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Output Format Types
+// 输出格式类型
 // ============================================================================
 
 export const OutputFormatTypeSchema = lazySchema(() => z.literal('json_schema'))
@@ -51,7 +51,7 @@ export const OutputFormatSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Config Types
+// 配置类型
 // ============================================================================
 
 export const ApiKeySourceSchema = lazySchema(() =>
@@ -59,7 +59,7 @@ export const ApiKeySourceSchema = lazySchema(() =>
 )
 
 export const ConfigScopeSchema = lazySchema(() =>
-  z.enum(['local', 'user', 'project']).describe('Config scope for settings.'),
+  z.enum(['local', 'user', 'project']).describe('设置的作用域。'),
 )
 
 export const SdkBetaSchema = lazySchema(() =>
@@ -71,7 +71,7 @@ export const ThinkingAdaptiveSchema = lazySchema(() =>
     .object({
       type: z.literal('adaptive'),
     })
-    .describe('Limkenion decides when and how much to think (Opus 4.6+).'),
+    .describe('Limkenion 自行决定是否思考以及思考的深度（Opus 4.6+）。'),
 )
 
 export const ThinkingEnabledSchema = lazySchema(() =>
@@ -80,7 +80,7 @@ export const ThinkingEnabledSchema = lazySchema(() =>
       type: z.literal('enabled'),
       budgetTokens: z.number().optional(),
     })
-    .describe('Fixed thinking token budget (older models)'),
+    .describe('固定思考 token 预算（旧模型）'),
 )
 
 export const ThinkingDisabledSchema = lazySchema(() =>
@@ -88,7 +88,7 @@ export const ThinkingDisabledSchema = lazySchema(() =>
     .object({
       type: z.literal('disabled'),
     })
-    .describe('No extended thinking'),
+    .describe('不进行扩展思考'),
 )
 
 export const ThinkingConfigSchema = lazySchema(() =>
@@ -99,17 +99,17 @@ export const ThinkingConfigSchema = lazySchema(() =>
       ThinkingDisabledSchema(),
     ])
     .describe(
-      "Controls Limkenion's thinking/reasoning behavior. When set, takes precedence over the deprecated maxThinkingTokens.",
+      '控制 Limkenion 的思考/推理行为。设置后，将优先于已废弃的 maxThinkingTokens。',
     ),
 )
 
 // ============================================================================
-// MCP Server Config Types (serializable only)
+// MCP 服务器配置类型（仅可序列化）
 // ============================================================================
 
 export const McpStdioServerConfigSchema = lazySchema(() =>
   z.object({
-    type: z.literal('stdio').optional(), // Optional for backwards compatibility
+    type: z.literal('stdio').optional(), // 可选，用于向后兼容
     command: z.string(),
     args: z.array(z.string()).optional(),
     env: z.record(z.string(), z.string()).optional(),
@@ -156,7 +156,7 @@ export const McpLimkenionAIProxyServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Broader config type for status responses (includes limkenionai-proxy which is output-only)
+// 状态响应使用的更宽泛的配置类型（包含仅作输出的 limkenionai-proxy）
 export const McpServerStatusConfigSchema = lazySchema(() =>
   z.union([
     McpServerConfigForProcessTransportSchema(),
@@ -167,29 +167,29 @@ export const McpServerStatusConfigSchema = lazySchema(() =>
 export const McpServerStatusSchema = lazySchema(() =>
   z
     .object({
-      name: z.string().describe('Server name as configured'),
+      name: z.string().describe('配置的服务器名称'),
       status: z
         .enum(['connected', 'failed', 'needs-auth', 'pending', 'disabled'])
-        .describe('Current connection status'),
+        .describe('当前连接状态'),
       serverInfo: z
         .object({
           name: z.string(),
           version: z.string(),
         })
         .optional()
-        .describe('Server information (available when connected)'),
+        .describe('服务器信息（连接后可用）'),
       error: z
         .string()
         .optional()
-        .describe("Error message (available when status is 'failed')"),
+        .describe("错误信息（当状态为 'failed' 时可用）"),
       config: McpServerStatusConfigSchema()
         .optional()
-        .describe('Server configuration (includes URL for HTTP/SSE servers)'),
+        .describe('服务器配置（包含 HTTP/SSE 服务器的 URL）'),
       scope: z
         .string()
         .optional()
         .describe(
-          'Configuration scope (e.g., project, user, local, limkenionai, managed)',
+          '配置作用域（例如：project、user、local、limkenionai、managed）',
         ),
       tools: z
         .array(
@@ -206,37 +206,37 @@ export const McpServerStatusSchema = lazySchema(() =>
           }),
         )
         .optional()
-        .describe('Tools provided by this server (available when connected)'),
+        .describe('此服务器提供的工具（连接后可用）'),
       capabilities: z
         .object({
           experimental: z.record(z.string(), z.unknown()).optional(),
         })
         .optional()
         .describe(
-          "@internal Server capabilities (available when connected). experimental['limkenion/channel'] is only present if the server's plugin is on the approved channels allowlist — use its presence to decide whether to show an Enable-channel prompt.",
+          "@internal 服务器能力（连接后可用）。experimental['limkenion/channel'] 仅当服务器的插件在已获准的渠道白名单中时才会存在——可依据其是否存在来决定是否显示启用渠道的提示。",
         ),
     })
-    .describe('Status information for an MCP server connection.'),
+    .describe('MCP 服务器连接的状态信息。'),
 )
 
 export const McpSetServersResultSchema = lazySchema(() =>
   z
     .object({
-      added: z.array(z.string()).describe('Names of servers that were added'),
+      added: z.array(z.string()).describe('已添加的服务器名称'),
       removed: z
         .array(z.string())
-        .describe('Names of servers that were removed'),
+        .describe('已移除的服务器名称'),
       errors: z
         .record(z.string(), z.string())
         .describe(
-          'Map of server names to error messages for servers that failed to connect',
+          '连接失败的服务器名称到错误信息的映射',
         ),
     })
-    .describe('Result of a setMcpServers operation.'),
+    .describe('setMcpServers 操作的结果。'),
 )
 
 // ============================================================================
-// Permission Types
+// 权限类型
 // ============================================================================
 
 export const PermissionUpdateDestinationSchema = lazySchema(() =>
@@ -302,13 +302,11 @@ export const PermissionDecisionClassificationSchema = lazySchema(() =>
   z
     .enum(['user_temporary', 'user_permanent', 'user_reject'])
     .describe(
-      'Classification of this permission decision for telemetry. SDK hosts ' +
-        'that prompt users (desktop apps, IDEs) should set this to reflect ' +
-        'what actually happened: user_temporary for allow-once, user_permanent ' +
-        'for always-allow (both the click and later cache hits), user_reject ' +
-        'for deny. If unset, the CLI infers conservatively (temporary for ' +
-        'allow, reject for deny). The vocabulary matches tool_decision OTel ' +
-        'events (monitoring-usage docs).',
+      '此权限决策用于遥测的分类。提示用户的 SDK 宿主（桌面应用、IDE）' +
+        '应按实际发生的情况设置此值：user_temporary 表示仅本次允许，user_permanent ' +
+        '表示始终允许（包括点击与后续缓存命中），user_reject ' +
+        '表示拒绝。若未设置，CLI 会保守推断（允许时为 temporary，拒绝时为 reject）。' +
+        '该词汇与 tool_decision OTel 事件（monitoring-usage 文档）一致。',
     ),
 )
 
@@ -316,7 +314,7 @@ export const PermissionResultSchema = lazySchema(() =>
   z.union([
     z.object({
       behavior: z.literal('allow'),
-      // Optional - may not be provided if hook sets permission without input modification
+      // 可选——若钩子在未修改输入的情况下设置权限，则可能不提供
       updatedInput: z.record(z.string(), z.unknown()).optional(),
       updatedPermissions: z.array(PermissionUpdateSchema()).optional(),
       toolUseID: z.string().optional(),
@@ -338,18 +336,18 @@ export const PermissionModeSchema = lazySchema(() =>
   z
     .enum(['default', 'acceptEdits', 'bypassPermissions', 'plan', 'dontAsk'])
     .describe(
-      'Permission mode for controlling how tool executions are handled. ' +
-        "'default' - Standard behavior, prompts for dangerous operations. " +
-        "'acceptEdits' - Auto-accept file edit operations. " +
-        "'bypassPermissions' - Bypass all permission checks (requires allowDangerouslySkipPermissions). " +
-        "'plan' - Planning mode, no actual tool execution. " +
-        "'dontAsk' - Don't prompt for permissions, deny if not pre-approved.",
+      '用于控制如何处理工具执行的权限模式。' +
+        "'default' - 标准行为，对危险操作进行提示。 " +
+        "'acceptEdits' - 自动接受文件编辑操作。 " +
+        "'bypassPermissions' - 绕过所有权限检查（需要 allowDangerouslySkipPermissions）。 " +
+        "'plan' - 规划模式，不实际执行工具。 " +
+        "'dontAsk' - 不提示权限，若未预先批准则拒绝。",
     ),
 )
 
 
 // ============================================================================
-// Hook Types
+// 钩子类型
 // ============================================================================
 
 export const HOOK_EVENTS = [
@@ -394,23 +392,23 @@ export const BaseHookInputSchema = lazySchema(() =>
       .string()
       .optional()
       .describe(
-        'Subagent identifier. Present only when the hook fires from within a subagent ' +
-          '(e.g., a tool called by an AgentTool worker). Absent for the main thread, ' +
-          'even in --agent sessions. Use this field (not agent_type) to distinguish ' +
-          'subagent calls from main-thread calls.',
+        '子代理标识符。仅当钩子在子代理内部触发时才存在' +
+          '（例如，由 AgentTool worker 调用的工具）。在主线程中不存在，' +
+          '即使在 --agent 会话中亦然。请使用此字段（而非 agent_type）来区分' +
+          '子代理调用与主线程调用。',
       ),
     agent_type: z
       .string()
       .optional()
       .describe(
-        'Agent type name (e.g., "general-purpose", "code-reviewer"). Present when the ' +
-          'hook fires from within a subagent (alongside agent_id), or on the main thread ' +
-          'of a session started with --agent (without agent_id).',
+        '代理类型名称（例如 "general-purpose"、"code-reviewer"）。当' +
+          '钩子在子代理内部触发时存在（伴随 agent_id），或在以 --agent ' +
+          '启动的会话主线程中存在（不带 agent_id）。',
       ),
   }),
 )
 
-// Use .and() instead of .extend() to preserve BaseHookInput & {...} in generated types
+// 使用 .and() 而非 .extend()，以在生成类型中保留 BaseHookInput 与 {...} 的交集
 export const PreToolUseHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
@@ -519,8 +517,8 @@ export const StopHookInputSchema = lazySchema(() =>
         .string()
         .optional()
         .describe(
-          'Text content of the last assistant message before stopping. ' +
-            'Avoids the need to read and parse the transcript file.',
+          '停止前最后一条助手消息的文本内容。' +
+            '避免需要读取并解析转录文件。',
         ),
     }),
   ),
@@ -559,8 +557,8 @@ export const SubagentStopHookInputSchema = lazySchema(() =>
         .string()
         .optional()
         .describe(
-          'Text content of the last assistant message before stopping. ' +
-            'Avoids the need to read and parse the transcript file.',
+          '停止前最后一条助手消息的文本内容。' +
+            '避免需要读取并解析转录文件。',
         ),
     }),
   ),
@@ -583,7 +581,7 @@ export const PostCompactHookInputSchema = lazySchema(() =>
       trigger: z.enum(['manual', 'auto']),
       compact_summary: z
         .string()
-        .describe('The conversation summary produced by compaction'),
+        .describe('压缩产生的对话摘要'),
     }),
   ),
 )
@@ -638,7 +636,7 @@ export const ElicitationHookInputSchema = lazySchema(() =>
       }),
     )
     .describe(
-      'Hook input for the Elicitation event. Fired when an MCP server requests user input. Hooks can auto-respond (accept/decline) instead of showing the dialog.',
+      'Elicitation 事件的钩子输入。当 MCP 服务器请求用户输入时触发。钩子可以自动响应（接受/拒绝），而无需显示对话框。',
     ),
 )
 
@@ -655,7 +653,7 @@ export const ElicitationResultHookInputSchema = lazySchema(() =>
       }),
     )
     .describe(
-      'Hook input for the ElicitationResult event. Fired after the user responds to an MCP elicitation. Hooks can observe or override the response before it is sent to the server.',
+      'ElicitationResult 事件的钩子输入。在用户响应 MCP 询问后触发。钩子可以在响应发送到服务器之前观察或覆盖该响应。',
     ),
 )
 
@@ -942,7 +940,7 @@ export const ElicitationHookSpecificOutputSchema = lazySchema(() =>
       content: z.record(z.string(), z.unknown()).optional(),
     })
     .describe(
-      'Hook-specific output for the Elicitation event. Return this to programmatically accept or decline an MCP elicitation request.',
+      'Elicitation 事件的钩子专属输出。返回此值可通过编程方式接受或拒绝 MCP 询问请求。',
     ),
 )
 
@@ -954,7 +952,7 @@ export const ElicitationResultHookSpecificOutputSchema = lazySchema(() =>
       content: z.record(z.string(), z.unknown()).optional(),
     })
     .describe(
-      'Hook-specific output for the ElicitationResult event. Return this to override the action or content before the response is sent to the MCP server.',
+      'ElicitationResult 事件的钩子专属输出。返回此值可在响应发送到 MCP 服务器之前覆盖动作或内容。',
     ),
 )
 
@@ -965,7 +963,7 @@ export const WorktreeCreateHookSpecificOutputSchema = lazySchema(() =>
       worktreePath: z.string(),
     })
     .describe(
-      'Hook-specific output for the WorktreeCreate event. Provides the absolute path to the created worktree directory. Command hooks print the path on stdout instead.',
+      'WorktreeCreate 事件的钩子专属输出。提供所创建 worktree 目录的绝对路径。命令钩子则改为在 stdout 上打印该路径。',
     ),
 )
 
@@ -977,12 +975,12 @@ export const PromptRequestOptionSchema = lazySchema(() =>
   z.object({
     key: z
       .string()
-      .describe('Unique key for this option, returned in the response'),
-    label: z.string().describe('Display text for this option'),
+      .describe('此选项的唯一键，将在响应中返回'),
+    label: z.string().describe('此选项的显示文本'),
     description: z
       .string()
       .optional()
-      .describe('Optional description shown below the label'),
+      .describe('显示在标签下方的可选描述'),
   }),
 )
 
@@ -991,12 +989,12 @@ export const PromptRequestSchema = lazySchema(() =>
     prompt: z
       .string()
       .describe(
-        'Request ID. Presence of this key marks the line as a prompt request.',
+        '请求 ID。此键的存在表示该行是一个提示请求。',
       ),
-    message: z.string().describe('The prompt message to display to the user'),
+    message: z.string().describe('要显示给用户的提示消息'),
     options: z
       .array(PromptRequestOptionSchema())
-      .describe('Available options for the user to choose from'),
+      .describe('用户可以选择的可用选项'),
   }),
 )
 
@@ -1004,78 +1002,78 @@ export const PromptResponseSchema = lazySchema(() =>
   z.object({
     prompt_response: z
       .string()
-      .describe('The request ID from the corresponding prompt request'),
-    selected: z.string().describe('The key of the selected option'),
+      .describe('来自对应提示请求的请求 ID'),
+    selected: z.string().describe('所选选项的键'),
   }),
 )
 
 // ============================================================================
-// Skill/Command Types
+// 技能/命令类型
 // ============================================================================
 
 export const SlashCommandSchema = lazySchema(() =>
   z
     .object({
-      name: z.string().describe('Skill name (without the leading slash)'),
-      description: z.string().describe('Description of what the skill does'),
+      name: z.string().describe('技能名称（不含开头的斜杠）'),
+      description: z.string().describe('技能功能的描述'),
       argumentHint: z
         .string()
-        .describe('Hint for skill arguments (e.g., "<file>")'),
+        .describe('技能参数的提示（例如 "<file>"）'),
     })
     .describe(
-      'Information about an available skill (invoked via /command syntax).',
+      '关于可用技能的信息（通过 /command 语法调用）。',
     ),
 )
 
 export const AgentInfoSchema = lazySchema(() =>
   z
     .object({
-      name: z.string().describe('Agent type identifier (e.g., "Explore")'),
-      description: z.string().describe('Description of when to use this agent'),
+      name: z.string().describe('代理类型标识符（例如 "Explore"）'),
+      description: z.string().describe('何时使用此代理的描述'),
       model: z
         .string()
         .optional()
         .describe(
-          "Model alias this agent uses. If omitted, inherits the parent's model",
+          '此代理使用的模型别名。如果省略，则继承父级的模型',
         ),
     })
     .describe(
-      'Information about an available subagent that can be invoked via the Task tool.',
+      '关于可通过 Task 工具调用的可用子代理的信息。',
     ),
 )
 
 export const ModelInfoSchema = lazySchema(() =>
   z
     .object({
-      value: z.string().describe('Model identifier to use in API calls'),
-      displayName: z.string().describe('Human-readable display name'),
+      value: z.string().describe('API 调用中使用的模型标识符'),
+      displayName: z.string().describe('人类可读的显示名称'),
       description: z
         .string()
-        .describe("Description of the model's capabilities"),
+        .describe('模型能力的描述'),
       supportsEffort: z
         .boolean()
         .optional()
-        .describe('Whether this model supports effort levels'),
+        .describe('此模型是否支持 effort 等级'),
       supportedEffortLevels: z
         .array(z.enum(['low', 'medium', 'high', 'max']))
         .optional()
-        .describe('Available effort levels for this model'),
+        .describe('此模型可用的 effort 等级'),
       supportsAdaptiveThinking: z
         .boolean()
         .optional()
         .describe(
-          'Whether this model supports adaptive thinking (Limkenion decides when and how much to think)',
+          '此模型是否支持自适应思考（由 Limkenion 决定是否思考以及思考深度）',
         ),
       supportsFastMode: z
         .boolean()
         .optional()
-        .describe('Whether this model supports fast mode'),
+        .describe('此模型是否支持快速模式'),
       supportsAutoMode: z
         .boolean()
         .optional()
-        .describe('Whether this model supports auto mode'),
+        .describe('此模型是否支持自动模式'),
     })
-    .describe('Information about an available model.'),
+    .describe('关于可用模型的信息。'),
 )
 
 export const AccountInfoSchema = lazySchema(() =>
@@ -1090,14 +1088,14 @@ export const AccountInfoSchema = lazySchema(() =>
         .enum(['firstParty', 'bedrock', 'vertex', 'foundry'])
         .optional()
         .describe(
-          'Active API backend. Limkenion OAuth login only applies when "firstParty"; for 3P providers the other fields are absent and auth is external (AWS creds, gcloud ADC, etc.).',
+          '活动的 API 后端。Limkenion OAuth 登录仅适用于 "firstParty"；对于第三方提供方，其他字段不存在，认证为外部方式（AWS 凭据、gcloud ADC 等）。',
         ),
     })
-    .describe("Information about the logged in user's account."),
+    .describe('关于已登录用户账户的信息。'),
 )
 
 // ============================================================================
-// Agent Definition Types
+// 代理定义类型
 // ============================================================================
 
 export const AgentMcpServerSpecSchema = lazySchema(() =>
@@ -1112,38 +1110,38 @@ export const AgentDefinitionSchema = lazySchema(() =>
     .object({
       description: z
         .string()
-        .describe('Natural language description of when to use this agent'),
+        .describe('何时使用此代理的自然语言描述'),
       tools: z
         .array(z.string())
         .optional()
         .describe(
-          'Array of allowed tool names. If omitted, inherits all tools from parent',
+          '允许的工具名称数组。如果省略，则继承父级的所有工具',
         ),
       disallowedTools: z
         .array(z.string())
         .optional()
-        .describe('Array of tool names to explicitly disallow for this agent'),
-      prompt: z.string().describe("The agent's system prompt"),
+        .describe('要对此代理显式禁用的工具名称数组'),
+      prompt: z.string().describe('此代理的系统提示'),
       model: z
         .string()
         .optional()
         .describe(
-          "Model alias (e.g. 'sonnet', 'opus', 'haiku') or full model ID (e.g. 'limkenion-opus-4-5'). If omitted or 'inherit', uses the main model",
+          "模型别名（例如 'sonnet'、'opus'、'haiku'）或完整模型 ID（例如 'limkenion-opus-4-5'）。如果省略或为 'inherit'，则使用主模型",
         ),
       mcpServers: z.array(AgentMcpServerSpecSchema()).optional(),
       criticalSystemReminder_EXPERIMENTAL: z
         .string()
         .optional()
-        .describe('Experimental: Critical reminder added to system prompt'),
+        .describe('实验性：添加到系统提示中的关键提醒'),
       skills: z
         .array(z.string())
         .optional()
-        .describe('Array of skill names to preload into the agent context'),
+        .describe('要预加载到代理上下文中的技能名称数组'),
       initialPrompt: z
         .string()
         .optional()
         .describe(
-          'Auto-submitted as the first user turn when this agent is the main thread agent. Slash commands are processed. Prepended to any user-provided prompt.',
+          '当此代理作为主线程代理时，会自动作为首个用户回合提交。会处理斜杠命令。会前置到用户提供的任何提示之前。',
         ),
       maxTurns: z
         .number()
@@ -1151,49 +1149,49 @@ export const AgentDefinitionSchema = lazySchema(() =>
         .positive()
         .optional()
         .describe(
-          'Maximum number of agentic turns (API round-trips) before stopping',
+          '停止前最大的代理回合数（API 往返）',
         ),
       background: z
         .boolean()
         .optional()
         .describe(
-          'Run this agent as a background task (non-blocking, fire-and-forget) when invoked',
+          '调用时将此代理作为后台任务运行（非阻塞、即发即忘）',
         ),
       memory: z
         .enum(['user', 'project', 'local'])
         .optional()
         .describe(
-          "Scope for auto-loading agent memory files. 'user' - ~/.limkenion/agent-memory/<agentType>/, 'project' - .limkenion/agent-memory/<agentType>/, 'local' - .limkenion/agent-memory-local/<agentType>/",
+          "自动加载代理记忆文件的作用域。'user' - ~/.limkenion/agent-memory/<agentType>/，'project' - .limkenion/agent-memory/<agentType>/，'local' - .limkenion/agent-memory-local/<agentType>/",
         ),
       effort: z
         .union([z.enum(['low', 'medium', 'high', 'max']), z.number().int()])
         .optional()
         .describe(
-          'Reasoning effort level for this agent. Either a named level or an integer',
+          '此代理的推理 effort 等级。可以是命名的等级或整数',
         ),
       permissionMode: PermissionModeSchema()
         .optional()
         .describe(
-          'Permission mode controlling how tool executions are handled',
+          '控制如何处理工具执行的权限模式',
         ),
     })
     .describe(
-      'Definition for a custom subagent that can be invoked via the Agent tool.',
+      '可通过 Agent 工具调用的自定义子代理的定义。',
     ),
 )
 
 // ============================================================================
-// Settings Types
+// 设置类型
 // ============================================================================
 
 export const SettingSourceSchema = lazySchema(() =>
   z
     .enum(['user', 'project', 'local'])
     .describe(
-      'Source for loading filesystem-based settings. ' +
-        "'user' - Global user settings (~/.limkenion/settings.json). " +
-        "'project' - Project settings (.limkenion/settings.json). " +
-        "'local' - Local settings (.limkenion/settings.local.json).",
+      '加载基于文件系统的设置的数据来源。' +
+        "从 'user' 加载全局用户设置（~/.limkenion/settings.json）。 " +
+        "从 'project' 加载项目设置（.limkenion/settings.json）。 " +
+        "从 'local' 加载本地设置（.limkenion/settings.local.json）。",
     ),
 )
 
@@ -1202,16 +1200,16 @@ export const SdkPluginConfigSchema = lazySchema(() =>
     .object({
       type: z
         .literal('local')
-        .describe("Plugin type. Currently only 'local' is supported"),
+        .describe("插件类型。目前仅支持 'local'"),
       path: z
         .string()
-        .describe('Absolute or relative path to the plugin directory'),
+        .describe('插件目录的绝对或相对路径'),
     })
-    .describe('Configuration for loading a plugin.'),
+    .describe('用于加载插件的配置。'),
 )
 
 // ============================================================================
-// Rewind Types
+// 回退类型
 // ============================================================================
 
 export const RewindFilesResultSchema = lazySchema(() =>
@@ -1223,34 +1221,34 @@ export const RewindFilesResultSchema = lazySchema(() =>
       insertions: z.number().optional(),
       deletions: z.number().optional(),
     })
-    .describe('Result of a rewindFiles operation.'),
+    .describe('rewindFiles 操作的结果。'),
 )
 
 // ============================================================================
-// External Type Placeholders
+// 外部类型占位符
 // ============================================================================
 //
-// These schemas use z.unknown() as placeholders for external types.
-// The generation script uses TypeOverrideMap to output the correct TS type references.
-// This allows us to define SDK message types in Zod while maintaining proper typing.
+// 这些架构使用 z.unknown() 作为外部类型的占位符。
+// 生成脚本使用 TypeOverrideMap 输出正确的 TS 类型引用。
+// 这使我们能够在 Zod 中定义 SDK 消息类型，同时保持正确的类型。
 
-/** Placeholder for APIUserMessage from @limkenion-ai/sdk */
+/** APIUserMessage（来自 @limkenion-ai/sdk）的占位符 */
 export const APIUserMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for APIAssistantMessage from @limkenion-ai/sdk */
+/** APIAssistantMessage（来自 @limkenion-ai/sdk）的占位符 */
 export const APIAssistantMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for RawMessageStreamEvent from @limkenion-ai/sdk */
+/** RawMessageStreamEvent（来自 @limkenion-ai/sdk）的占位符 */
 export const RawMessageStreamEventPlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for UUID from crypto */
+/** UUID（来自 crypto）的占位符 */
 export const UUIDPlaceholder = lazySchema(() => z.string())
 
-/** Placeholder for NonNullableUsage (mapped type over Usage) */
+/** NonNullableUsage（对 Usage 的映射类型）的占位符 */
 export const NonNullableUsagePlaceholder = lazySchema(() => z.unknown())
 
 // ============================================================================
-// SDK Message Types
+// SDK 消息类型
 // ============================================================================
 
 export const SDKAssistantMessageErrorSchema = lazySchema(() =>
@@ -1269,7 +1267,7 @@ export const SDKStatusSchema = lazySchema(() =>
   z.union([z.literal('compacting'), z.null()]),
 )
 
-// SDKUserMessage content without uuid/session_id
+// 不含 uuid/session_id 的 SDKUserMessage 内容
 const SDKUserMessageContentSchema = lazySchema(() =>
   z.object({
     type: z.literal('user'),
@@ -1282,7 +1280,7 @@ const SDKUserMessageContentSchema = lazySchema(() =>
       .string()
       .optional()
       .describe(
-        'ISO timestamp when the message was created on the originating process. Older emitters omit it; consumers should fall back to receive time.',
+        '消息在发起进程上创建时的 ISO 时间戳。较旧的发射器可能省略它；消费方应回退到接收时间。',
       ),
   }),
 )
@@ -1341,7 +1339,7 @@ export const SDKRateLimitInfoSchema = lazySchema(() =>
       isUsingOverage: z.boolean().optional(),
       surpassedThreshold: z.number().optional(),
     })
-    .describe('Rate limit information for limkenion.ai subscription users.'),
+    .describe('limkenion.ai 订阅用户的速率限制信息。'),
 )
 
 export const SDKAssistantMessageSchema = lazySchema(() =>
@@ -1363,7 +1361,7 @@ export const SDKRateLimitEventSchema = lazySchema(() =>
       uuid: UUIDPlaceholder(),
       session_id: z.string(),
     })
-    .describe('Rate limit event emitted when rate limit info changes.'),
+    .describe('速率限制信息变化时发出的速率限制事件。'),
 )
 
 export const SDKStreamlinedTextMessageSchema = lazySchema(() =>
@@ -1372,12 +1370,12 @@ export const SDKStreamlinedTextMessageSchema = lazySchema(() =>
       type: z.literal('streamlined_text'),
       text: z
         .string()
-        .describe('Text content preserved from the assistant message'),
+        .describe('从助手消息中保留的文本内容'),
       session_id: z.string(),
       uuid: UUIDPlaceholder(),
     })
     .describe(
-      '@internal Streamlined text message - replaces SDKAssistantMessage in streamlined output. Text content preserved, thinking and tool_use blocks removed.',
+      '@internal 精简文本消息——在精简输出中替代 SDKAssistantMessage。保留文本内容，移除思考块和 tool_use 块。',
     ),
 )
 
@@ -1387,12 +1385,12 @@ export const SDKStreamlinedToolUseSummaryMessageSchema = lazySchema(() =>
       type: z.literal('streamlined_tool_use_summary'),
       tool_summary: z
         .string()
-        .describe('Summary of tool calls (e.g., "Read 2 files, wrote 1 file")'),
+        .describe('工具调用摘要（例如 "读取 2 个文件，写入 1 个文件"）'),
       session_id: z.string(),
       uuid: UUIDPlaceholder(),
     })
     .describe(
-      '@internal Streamlined tool use summary - replaces tool_use blocks in streamlined output with a cumulative summary string.',
+      '@internal 精简后的工具使用摘要——在精简输出中用累计摘要字符串替代 tool_use 块。',
     ),
 )
 
@@ -1483,7 +1481,7 @@ export const SDKSystemMessageSchema = lazySchema(() =>
           .string()
           .optional()
           .describe(
-            '@internal Plugin source identifier in "name\\@marketplace" format. Sentinels: "name\\@inline" for --plugin-dir, "name\\@builtin" for built-in plugins.',
+            '@internal 采用 "name\\@marketplace" 格式的插件来源标识符。哨兵值："name\\@inline" 表示 --plugin-dir，"name\\@builtin" 表示内置插件。',
           ),
       }),
     ),
@@ -1518,11 +1516,9 @@ export const SDKCompactBoundaryMessageSchema = lazySchema(() =>
         })
         .optional()
         .describe(
-          'Relink info for messagesToKeep. Loaders splice the preserved ' +
-            'segment at anchor_uuid (summary for suffix-preserving, ' +
-            'boundary for prefix-preserving partial compact) so resume ' +
-            'includes preserved content. Unset when compaction summarizes ' +
-            'everything (no messagesToKeep).',
+          'messagesToKeep 的重新关联信息。加载器会在 anchor_uuid 处拼接保留的' +
+            '片段（后缀保留时为 summary，前缀保留的部分压缩时为 boundary），' +
+            '使得恢复时包含保留的内容。当压缩对一切进行摘要（无 messagesToKeep）时未设置。',
         ),
     }),
     uuid: UUIDPlaceholder(),
@@ -1565,7 +1561,7 @@ export const SDKPostTurnSummaryMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      '@internal Background post-turn summary emitted after each assistant turn. summarizes_uuid points to the assistant message this summarizes.',
+      '@internal 在每个助手回合后发出的后台回合后摘要。summarizes_uuid 指向此摘要所概括的助手消息。',
     ),
 )
 
@@ -1583,7 +1579,7 @@ export const SDKAPIRetryMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      'Emitted when an API request fails with a retryable error and will be retried after a delay. error_status is null for connection errors (e.g. timeouts) that had no HTTP response.',
+      '当 API 请求因可重试的错误而失败并将在延迟后重试时发出。对于没有 HTTP 响应的连接错误（如超时），error_status 为 null。',
     ),
 )
 
@@ -1597,7 +1593,7 @@ export const SDKLocalCommandOutputMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      'Output from a local slash command (e.g. /voice, /cost). Displayed as assistant-style text in the transcript.',
+      '来自本地斜杠命令（例如 /voice、/cost）的输出。在转录中以助手样式文本显示。',
     ),
 )
 
@@ -1724,7 +1720,7 @@ export const SDKTaskStartedMessageSchema = lazySchema(() =>
       .string()
       .optional()
       .describe(
-        "meta.name from the workflow script (e.g. 'spec'). Only set when task_type is 'local_workflow'.",
+        "来自工作流脚本的 meta.name（例如 'spec'）。仅当 task_type 为 'local_workflow' 时设置。",
       ),
     prompt: z.string().optional(),
     uuid: UUIDPlaceholder(),
@@ -1742,7 +1738,7 @@ export const SDKSessionStateChangedMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      "Mirrors notifySessionStateChanged. 'idle' fires after heldBackResult flushes and the bg-agent do-while exits — authoritative turn-over signal.",
+      '镜像 notifySessionStateChanged。在 heldBackResult 刷新且后台代理的 do-while 退出后触发 "idle"——权威的回合交接信号。',
     ),
 )
 
@@ -1787,7 +1783,7 @@ export const SDKElicitationCompleteMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      'Emitted when an MCP server confirms that a URL-mode elicitation is complete.',
+      '当 MCP 服务器确认 URL 模式的询问完成时发出。',
     ),
 )
 
@@ -1801,54 +1797,54 @@ export const SDKPromptSuggestionMessageSchema = lazySchema(() =>
       session_id: z.string(),
     })
     .describe(
-      'Predicted next user prompt, emitted after each turn when promptSuggestions is enabled.',
+      '预测的下一个用户提示，在启用 promptSuggestions 时于每个回合后发出。',
     ),
 )
 
 // ============================================================================
-// Session Listing Types
+// 会话列表类型
 // ============================================================================
 
 export const SDKSessionInfoSchema = lazySchema(() =>
   z
     .object({
-      sessionId: z.string().describe('Unique session identifier (UUID).'),
+      sessionId: z.string().describe('唯一会话标识符（UUID）。'),
       summary: z
         .string()
         .describe(
-          'Display title for the session: custom title, auto-generated summary, or first prompt.',
+          '会话的显示标题：自定义标题、自动生成的摘要或首个提示。',
         ),
       lastModified: z
         .number()
-        .describe('Last modified time in milliseconds since epoch.'),
+        .describe('自纪元以来的最后修改时间（毫秒）。'),
       fileSize: z
         .number()
         .optional()
         .describe(
-          'File size in bytes. Only populated for local JSONL storage.',
+          '文件大小（字节）。仅本地 JSONL 存储时填充。',
         ),
       customTitle: z
         .string()
         .optional()
-        .describe('User-set session title via /rename.'),
+        .describe('通过 /rename 设置的会话标题。'),
       firstPrompt: z
         .string()
         .optional()
-        .describe('First meaningful user prompt in the session.'),
+        .describe('会话中首个有意义的用户提示。'),
       gitBranch: z
         .string()
         .optional()
-        .describe('Git branch at the end of the session.'),
-      cwd: z.string().optional().describe('Working directory for the session.'),
-      tag: z.string().optional().describe('User-set session tag.'),
+        .describe('会话结束时的 Git 分支。'),
+      cwd: z.string().optional().describe('会话的工作目录。'),
+      tag: z.string().optional().describe('用户设置的会话标签。'),
       createdAt: z
         .number()
         .optional()
         .describe(
-          "Creation time in milliseconds since epoch, extracted from the first entry's timestamp.",
+          '自纪元以来的创建时间（毫秒），取自第一条记录的时间戳。',
         ),
     })
-    .describe('Session metadata returned by listSessions and getSessionInfo.'),
+    .describe('由 listSessions 和 getSessionInfo 返回的会话元数据。'),
 )
 
 export const SDKMessageSchema = lazySchema(() =>
@@ -1884,6 +1880,6 @@ export const FastModeStateSchema = lazySchema(() =>
   z
     .enum(['off', 'cooldown', 'on'])
     .describe(
-      'Fast mode state: off, in cooldown after rate limit, or actively enabled.',
+      '快速模式状态：关闭、速率限制后冷却中，或已启用。',
     ),
 )

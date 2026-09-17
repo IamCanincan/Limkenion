@@ -32,21 +32,21 @@ type SwarmBannerInfo = {
 } | null
 
 /**
- * Hook that returns banner information for swarm, standalone agent, or --agent CLI context.
- * - Leader (not in tmux): Returns "tmux -L ... attach" command with cyan background
- * - Leader (in tmux / in-process): Falls through to standalone-agent check — shows
- *   /rename name + /color background if set, else null
- * - Teammate: Returns "teammate@team" format with their assigned color background
- * - Viewing a background agent (CoordinatorTaskPanel): Returns agent name with its color
- * - Standalone agent: Returns agent name with their color background (no @team)
- * - --agent CLI flag: Returns "@agentName" with cyan background
+ * 返回 swarm、独立代理或 --agent CLI 上下文横幅信息的 Hook。
+ * - 领导者（不在 tmux 中）：返回 "tmux -L ... attach" 命令，青色背景
+ * - 领导者（在 tmux / 进程内）：走到独立代理检查——若已设置则显示
+ *   /rename 名称 + /color 背景，否则为 null
+ * - 队友：返回 "teammate@team" 格式，使用其分配的颜色背景
+ * - 查看后台代理（CoordinatorTaskPanel）：返回带其颜色的代理名
+ * - 独立代理：返回带其颜色背景的代理名（不含 @team）
+ * - --agent CLI 参数：返回 "@agentName"，青色背景
  */
 export function useSwarmBanner(): SwarmBannerInfo {
   const teamContext = useAppState(s => s.teamContext)
   const standaloneAgentContext = useAppState(s => s.standaloneAgentContext)
   const agent = useAppState(s => s.agent)
-  // Subscribe so the banner updates on enter/exit teammate view even though
-  // getActiveAgentForInput reads it from store.getState().
+  // 订阅以便在进入/退出队友视图时横幅更新，
+  // 尽管 getActiveAgentForInput 从 store.getState() 读取。
   useAppState(s => s.viewingAgentTaskId)
   const store = useAppStateStore()
   const [insideTmux, setInsideTmux] = React.useState<boolean | null>(null)
@@ -57,8 +57,8 @@ export function useSwarmBanner(): SwarmBannerInfo {
 
   const state = store.getState()
 
-  // Teammate process: show @agentName with assigned color.
-  // In-process teammates run headless — their banner shows in the leader UI instead.
+  // 队友进程：以分配的颜色显示 @agentName。
+  // 进程内队友无头运行——其横幅显示在领导者 UI 中。
   if (isTeammate() && !isInProcessTeammate()) {
     const agentName = getAgentName()
     if (agentName && getTeamName()) {
@@ -71,8 +71,8 @@ export function useSwarmBanner(): SwarmBannerInfo {
     }
   }
 
-  // Leader with spawned teammates: tmux-attach hint when external, else show
-  // the viewed teammate's name when inside tmux / native panes / in-process.
+  // 已生成队友的领导者：外部时显示 tmux-attach 提示，
+  // 在 tmux / 原生窗格 / 进程内时显示被查看队友的名字。
   const hasTeammates =
     teamContext?.teamName &&
     teamContext.teammates &&
@@ -85,7 +85,7 @@ export function useSwarmBanner(): SwarmBannerInfo {
 
     if (insideTmux === false && !inProcessMode && !nativePanes) {
       return {
-        text: `View teammates: \`tmux -L ${getSwarmSocketName()} a\``,
+        text: `查看队友: \`tmux -L ${getSwarmSocketName()} a\``,
         bgColor: viewedColor,
       }
     }
@@ -98,13 +98,13 @@ export function useSwarmBanner(): SwarmBannerInfo {
         bgColor: viewedColor,
       }
     }
-    // insideTmux === null: still loading — fall through.
-    // Not viewing a teammate: fall through so /rename and /color are honored.
+    // insideTmux === null：仍在加载中——继续向下。
+    // 未在查看队友：继续向下，以便 /rename 和 /color 生效。
   }
 
-  // Viewing a background agent (CoordinatorTaskPanel): local_agent tasks aren't
-  // InProcessTeammates, so getViewedTeammateTask misses them. Reverse-lookup the
-  // name from agentNameRegistry the same way CoordinatorAgentStatus does.
+  // 查看后台代理（CoordinatorTaskPanel）：local_agent 任务不是
+  // InProcessTeammates，因此 getViewedTeammateTask 会遗漏它们。
+  // 与 CoordinatorAgentStatus 相同，从 agentNameRegistry 反向查找名称。
   const active = getActiveAgentForInput(state)
   if (active.type === 'named_agent') {
     const task = active.task
@@ -121,7 +121,7 @@ export function useSwarmBanner(): SwarmBannerInfo {
     }
   }
 
-  // Standalone agent (/rename, /color): name and/or custom color, no @team.
+  // 独立代理（/rename、/color）：名称和/或自定义颜色，不含 @team。
   const standaloneName = getStandaloneAgentName(state)
   const standaloneColor = standaloneAgentContext?.color
   if (standaloneName || standaloneColor) {
@@ -131,7 +131,7 @@ export function useSwarmBanner(): SwarmBannerInfo {
     }
   }
 
-  // --agent CLI flag (when not handled above).
+  // --agent CLI 参数（在未由上面处理时）。
   if (agent) {
     const agentDef = state.agentDefinitions.activeAgents.find(
       a => a.agentType === agent,

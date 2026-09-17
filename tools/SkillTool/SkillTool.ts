@@ -149,7 +149,7 @@ async function executeForkedSkill(
     : undefined
   const queryDepth = context.queryTracking?.depth ?? 0
   const parentAgentId = getAgentContext()?.agentId
-  logEvent('内部代号_skill_tool_invocation', {
+  logEvent('limkenion_skill_tool_invocation', {
     command_name:
       forkedSanitizedName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     // _PROTO_skill_name routes to the privileged skill_name BQ column
@@ -168,20 +168,7 @@ async function executeForkedSkill(
         parentAgentId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     }),
     ...wasDiscoveredField,
-    ...(process.env.USER_TYPE === 'ant' && {
-      skill_name:
-        commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      skill_source:
-        command.source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      ...(command.loadedFrom && {
-        skill_loaded_from:
-          command.loadedFrom as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      }),
-      ...(command.kind && {
-        skill_kind:
-          command.kind as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      }),
-    }),
+    
     ...(command.pluginInfo && {
       // _PROTO_* routes to PII-tagged plugin_name/marketplace_name BQ columns
       // (unredacted, all users); plugin_name/plugin_repository stay in
@@ -292,34 +279,34 @@ export const inputSchema = lazySchema(() =>
   z.object({
     skill: z
       .string()
-      .describe('The skill name. E.g., "commit", "review-pr", or "pdf"'),
-    args: z.string().optional().describe('Optional arguments for the skill'),
+      .describe('技能名称。例如 "commit"、"review-pr" 或 "pdf"'),
+    args: z.string().optional().describe('该技能的可选参数'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 export const outputSchema = lazySchema(() => {
-  // Output schema for inline skills (default)
+  // 内联技能（默认）的输出 schema
   const inlineOutputSchema = z.object({
-    success: z.boolean().describe('Whether the skill is valid'),
-    commandName: z.string().describe('The name of the skill'),
+    success: z.boolean().describe('技能是否有效'),
+    commandName: z.string().describe('技能的名称'),
     allowedTools: z
       .array(z.string())
       .optional()
-      .describe('Tools allowed by this skill'),
-    model: z.string().optional().describe('Model override if specified'),
-    status: z.literal('inline').optional().describe('Execution status'),
+      .describe('此技能允许使用的工具'),
+    model: z.string().optional().describe('若指定则为模型覆盖'),
+    status: z.literal('inline').optional().describe('执行状态'),
   })
 
-  // Output schema for forked skills
+  // fork 技能的输出 schema
   const forkedOutputSchema = z.object({
-    success: z.boolean().describe('Whether the skill completed successfully'),
-    commandName: z.string().describe('The name of the skill'),
-    status: z.literal('forked').describe('Execution status'),
+    success: z.boolean().describe('技能是否成功完成'),
+    commandName: z.string().describe('技能的名称'),
+    status: z.literal('forked').describe('执行状态'),
     agentId: z
       .string()
-      .describe('The ID of the sub-agent that executed the skill'),
-    result: z.string().describe('The result from the forked skill execution'),
+      .describe('执行该技能的子代理的 ID'),
+    result: z.string().describe('fork 技能执行的结果'),
   })
 
   return z.union([inlineOutputSchema, forkedOutputSchema])
@@ -365,7 +352,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     // Remove leading slash if present (for compatibility)
     const hasLeadingSlash = trimmed.startsWith('/')
     if (hasLeadingSlash) {
-      logEvent('内部代号_skill_tool_slash_prefix', {})
+      logEvent('limkenion_skill_tool_slash_prefix', {})
     }
     const normalizedCommandName = hasLeadingSlash
       ? trimmed.substring(1)
@@ -376,7 +363,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     // skills are not in the local command registry.
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
-      process.env.USER_TYPE === 'ant'
+      false
     ) {
       const slug = remoteSkillModules!.stripCanonicalPrefix(
         normalizedCommandName,
@@ -491,7 +478,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     // The skill content itself is canonical/curated, not user-authored.
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
-      process.env.USER_TYPE === 'ant'
+      false
     ) {
       const slug = remoteSkillModules!.stripCanonicalPrefix(commandName)
       if (slug !== null) {
@@ -604,7 +591,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     // (no !command substitution, no $ARGUMENTS interpolation) is needed.
     if (
       feature('EXPERIMENTAL_SKILL_SEARCH') &&
-      process.env.USER_TYPE === 'ant'
+      false
     ) {
       const slug = remoteSkillModules!.stripCanonicalPrefix(commandName)
       if (slug !== null) {
@@ -672,7 +659,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
         : undefined
     const queryDepth = context.queryTracking?.depth ?? 0
     const parentAgentId = getAgentContext()?.agentId
-    logEvent('内部代号_skill_tool_invocation', {
+    logEvent('limkenion_skill_tool_invocation', {
       command_name:
         sanitizedCommandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       // _PROTO_skill_name routes to the privileged skill_name BQ column
@@ -691,22 +678,7 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
           parentAgentId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       }),
       ...wasDiscoveredField,
-      ...(process.env.USER_TYPE === 'ant' && {
-        skill_name:
-          commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        ...(command?.type === 'prompt' && {
-          skill_source:
-            command.source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        }),
-        ...(command?.loadedFrom && {
-          skill_loaded_from:
-            command.loadedFrom as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        }),
-        ...(command?.kind && {
-          skill_kind:
-            command.kind as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        }),
-      }),
+      
       ...(command?.type === 'prompt' &&
         command.pluginInfo && {
           _PROTO_plugin_name: command.pluginInfo.pluginManifest
@@ -1026,7 +998,7 @@ async function executeRemoteSkill(
   // remote from local invocations without joining on skill name prefixes.
   const queryDepth = context.queryTracking?.depth ?? 0
   const parentAgentId = getAgentContext()?.agentId
-  logEvent('内部代号_skill_tool_invocation', {
+  logEvent('limkenion_skill_tool_invocation', {
     command_name:
       'remote_skill' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     // _PROTO_skill_name routes to the privileged skill_name BQ column
@@ -1048,12 +1020,7 @@ async function executeRemoteSkill(
     is_remote: true,
     remote_cache_hit: cacheHit,
     remote_load_latency_ms: latencyMs,
-    ...(process.env.USER_TYPE === 'ant' && {
-      skill_name:
-        commandName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      remote_slug:
-        slug as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    }),
+    
   })
 
   recordSkillUsage(commandName)

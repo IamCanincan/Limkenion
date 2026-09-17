@@ -1,24 +1,23 @@
 /**
- * Agent context for analytics attribution using AsyncLocalStorage.
+ * 用于分析归属的 agent 上下文，基于 AsyncLocalStorage。
  *
- * This module provides a way to track agent identity across async operations
- * without parameter drilling. Supports two agent types:
+ * 本模块提供一种在异步操作之间追踪 agent 身份的方法，无需逐层传参。
+ * 支持两种 agent 类型：
  *
- * 1. Subagents (Agent tool): Run in-process for quick, delegated tasks.
- *    Context: SubagentContext with agentType: 'subagent'
+ * 1. 子 agent（Agent 工具）：进程内运行，用于快速的委派任务。
+ *    上下文：agentType: 'subagent' 的 SubagentContext
  *
- * 2. In-process teammates: Part of a swarm with team coordination.
- *    Context: TeammateAgentContext with agentType: 'teammate'
+ * 2. 进程内队友：属于带有团队协调的 swarm。
+ *    上下文：agentType: 'teammate' 的 TeammateAgentContext
  *
- * For swarm teammates in separate processes (tmux/iTerm2), use environment
- * variables instead: LIMKENION_AGENT_ID, LIMKENION_PARENT_SESSION_ID
+ * 对于独立进程（tmux/iTerm2）中的 swarm 队友，改用环境变量：
+ * LIMKENION_AGENT_ID、LIMKENION_PARENT_SESSION_ID
  *
- * WHY AsyncLocalStorage (not AppState):
- * When agents are backgrounded (ctrl+b), multiple agents can run concurrently
- * in the same process. AppState is a single shared state that would be
- * overwritten, causing Agent A's events to incorrectly use Agent B's context.
- * AsyncLocalStorage isolates each async execution chain, so concurrent agents
- * don't interfere with each other.
+ * 为什么用 AsyncLocalStorage（而非 AppState）：
+ * 当 agents 被置为后台（ctrl+b）时，同一进程内可并发运行多个 agents。
+ * AppState 是单一共享状态，会被覆盖，导致 agent A 的事件错误地用到
+ * agent B 的上下文。AsyncLocalStorage 隔离每个异步执行链，使并发的
+ * agents 互不干扰。
  */
 
 import { AsyncLocalStorage } from 'async_hooks'
@@ -26,91 +25,91 @@ import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 
 import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
 
 /**
- * Context for subagents (Agent tool agents).
- * Subagents run in-process for quick, delegated tasks.
+ * 子 agent（Agent 工具 agents）的上下文。
+ * 子 agents 在进程内运行，用于快速的委派任务。
  */
 export type SubagentContext = {
-  /** The subagent's UUID (from createAgentId()) */
+  /** 子 agent 的 UUID（来自 createAgentId()） */
   agentId: string
-  /** The team lead's session ID (from LIMKENION_PARENT_SESSION_ID env var), undefined for main REPL subagents */
+  /** 团队负责人的会话 ID（来自 LIMKENION_PARENT_SESSION_ID 环境变量），
+   *  主 REPL 的子 agent 为 undefined */
   parentSessionId?: string
-  /** Agent type - 'subagent' for Agent tool agents */
+  /** agent 类型——Agent 工具 agents 为 'subagent' */
   agentType: 'subagent'
-  /** The subagent's type name (e.g., "Explore", "Bash", "code-reviewer") */
+  /** 子 agent 的类型名（例如 "Explore"、"Bash"、"code-reviewer"） */
   subagentName?: string
-  /** Whether this is a built-in agent (vs user-defined custom agent) */
+  /** 是否内建 agent（vs 用户自定义的 agent） */
   isBuiltIn?: boolean
-  /** The request_id in the invoking agent that spawned or resumed this agent.
-   *  For nested subagents this is the immediate invoker, not the root —
-   *  session_id already bundles the whole tree. Updated on each resume. */
+  /** 派生出或恢复此 agent 的调用方的 request_id。
+   *  对嵌套子 agent 而言这是直接调用方而非根——
+   *  session_id 已经打包了整棵树。每次恢复时更新。 */
   invokingRequestId?: string
-  /** Whether this invocation is the initial spawn or a subsequent resume
-   *  via SendMessage. Undefined when invokingRequestId is absent. */
+  /** 该次调用是最初派生还是通过 SendMessage 的后续恢复。
+   *  invokingRequestId 不存在时为 undefined。 */
   invocationKind?: 'spawn' | 'resume'
-  /** Mutable flag: has this invocation's edge been emitted to telemetry yet?
-   *  Reset to false on each spawn/resume; flipped true by
-   *  consumeInvokingRequestId() on the first terminal API event. */
+  /** 可变标志：此次调用的边是否已发给遥测？
+   *  每次派生/恢复时重置为 false；在首个终端 API 事件上由
+   *  consumeInvokingRequestId() 翻转为 true。 */
   invocationEmitted?: boolean
 }
 
 /**
- * Context for in-process teammates.
- * Teammates are part of a swarm and have team coordination.
+ * 进程内队友的上下文。
+ * 队友属于 swarm，具有团队协调。
  */
 export type TeammateAgentContext = {
-  /** Full agent ID, e.g., "researcher@my-team" */
+  /** 完整 agent ID，例如 "researcher@my-team" */
   agentId: string
-  /** Display name, e.g., "researcher" */
+  /** 显示名，例如 "researcher" */
   agentName: string
-  /** Team name this teammate belongs to */
+  /** 该队友所属的团队名 */
   teamName: string
-  /** UI color assigned to this teammate */
+  /** 分配给该队友的 UI 颜色 */
   agentColor?: string
-  /** Whether teammate must enter plan mode before implementing */
+  /** 队友实现前是否必须进入计划模式 */
   planModeRequired: boolean
-  /** The team lead's session ID for transcript correlation */
+  /** 用于 transcript 关联的团队负责人会话 ID */
   parentSessionId: string
-  /** Whether this agent is the team lead */
+  /** 该 agent 是否为团队负责人 */
   isTeamLead: boolean
-  /** Agent type - 'teammate' for swarm teammates */
+  /** agent 类型——swarm 队友为 'teammate' */
   agentType: 'teammate'
-  /** The request_id in the invoking agent that spawned or resumed this
-   *  teammate. Undefined for teammates started outside a tool call
-   *  (e.g. session start). Updated on each resume. */
+  /** 派生出或恢复此队友的调用方的 request_id。在工具调用之外启动的
+   *  队友（例如会话启动）为 undefined。每次恢复时更新。 */
   invokingRequestId?: string
-  /** See SubagentContext.invocationKind. */
+  /** 参见 SubagentContext.invocationKind。 */
   invocationKind?: 'spawn' | 'resume'
-  /** Mutable flag: see SubagentContext.invocationEmitted. */
+  /** 可变标志：参见 SubagentContext.invocationEmitted。 */
   invocationEmitted?: boolean
 }
 
 /**
- * Discriminated union for agent context.
- * Use agentType to distinguish between subagent and teammate contexts.
+ * agent 上下文的判别联合。
+ * 使用 agentType 区分子 agent 与队友上下文。
  */
 export type AgentContext = SubagentContext | TeammateAgentContext
 
 const agentContextStorage = new AsyncLocalStorage<AgentContext>()
 
 /**
- * Get the current agent context, if any.
- * Returns undefined if not running within an agent context (subagent or teammate).
- * Use type guards isSubagentContext() or isTeammateAgentContext() to narrow the type.
+ * 获取当前 agent 上下文（如果有）。
+ * 若未运行在（子 agent 或队友的）agent 上下文内则返回 undefined。
+ * 使用类型守卫 isSubagentContext() 或 isTeammateAgentContext() 收窄类型。
  */
 export function getAgentContext(): AgentContext | undefined {
   return agentContextStorage.getStore()
 }
 
 /**
- * Run an async function with the given agent context.
- * All async operations within the function will have access to this context.
+ * 在给定 agent 上下文中运行异步函数。
+ * 函数内的所有异步操作都能访问此上下文。
  */
 export function runWithAgentContext<T>(context: AgentContext, fn: () => T): T {
   return agentContextStorage.run(context, fn)
 }
 
 /**
- * Type guard to check if context is a SubagentContext.
+ * 判断上下文是否为 SubagentContext 的类型守卫。
  */
 export function isSubagentContext(
   context: AgentContext | undefined,
@@ -119,7 +118,7 @@ export function isSubagentContext(
 }
 
 /**
- * Type guard to check if context is a TeammateAgentContext.
+ * 判断上下文是否为 TeammateAgentContext 的类型守卫。
  */
 export function isTeammateAgentContext(
   context: AgentContext | undefined,
@@ -131,12 +130,12 @@ export function isTeammateAgentContext(
 }
 
 /**
- * Get the subagent name suitable for analytics logging.
- * Returns the agent type name for built-in agents, "user-defined" for custom agents,
- * or undefined if not running within a subagent context.
+ * 获取适合分析日志的子 agent 名称。
+ * 内建 agents 返回 agent 类型名，自定义 agents 返回 "user-defined"，
+ * 若未运行在子 agent 上下文内则返回 undefined。
  *
- * Safe for analytics metadata: built-in agent names are code constants,
- * and custom agents are always mapped to the literal "user-defined".
+ * 对分析元数据安全：内建 agent 名称是代码常量，
+ * 自定义 agents 总是被映射为字面量 "user-defined"。
  */
 export function getSubagentLogName():
   | AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -151,14 +150,13 @@ export function getSubagentLogName():
 }
 
 /**
- * Get the invoking request_id for the current agent context — once per
- * invocation. Returns the id on the first call after a spawn/resume, then
- * undefined until the next boundary. Also undefined on the main thread or
- * when the spawn path had no request_id.
+ * 每次调用一次地获取当前 agent 上下文的调用方 request_id。在
+ * 某次派生/恢复之后首次调用返回该 id，随后直到下一个边界才返回
+ * undefined。主线程上或派生路径没有 request_id 时也是 undefined。
  *
- * Sparse edge semantics: invokingRequestId appears on exactly one
- * 内部代号_api_success/error per invocation, so a non-NULL value downstream
- * marks a spawn/resume boundary.
+ * 稀疏边的语义：invokingRequestId 在每次调用恰好一条
+ * limkenion_api_success/error 上出现，因此下游的非 NULL 值
+ * 标志着一个派生/恢复边界。
  */
 export function consumeInvokingRequestId():
   | {

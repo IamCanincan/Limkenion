@@ -9,7 +9,7 @@ export const call: LocalCommandCall = async () => {
   const config = getGlobalConfig()
   let currentMode = config.editorMode || 'normal'
 
-  // Handle backward compatibility - treat 'emacs' as 'normal'
+  // 处理向后兼容——将 'emacs' 视为 'normal'
   if (currentMode === 'emacs') {
     currentMode = 'normal'
   }
@@ -21,7 +21,7 @@ export const call: LocalCommandCall = async () => {
     editorMode: newMode,
   }))
 
-  logEvent('内部代号_editor_mode_changed', {
+  logEvent('limkenion_editor_mode_changed', {
     mode: newMode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     source:
       'command' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -29,10 +29,10 @@ export const call: LocalCommandCall = async () => {
 
   return {
     type: 'text',
-    value: `Editor mode set to ${newMode}. ${
+    value: `编辑器模式已设置为 ${newMode}。${
       newMode === 'vim'
-        ? 'Use Escape key to toggle between INSERT and NORMAL modes.'
-        : 'Using standard (readline) keyboard bindings.'
+        ? '使用 Escape 键在 INSERT 与 NORMAL 模式之间切换。'
+        : '使用标准（readline）键盘绑定。'
     }`,
   }
 }

@@ -107,12 +107,12 @@ export function migrateEnableAllProjectMcpServersToSettings(): void {
     }
 
     // Log the migration event
-    logEvent('内部代号_migrate_mcp_approval_fields_success', {
+    logEvent('limkenion_migrate_mcp_approval_fields_success', {
       migratedCount: fieldsToRemove.length,
     })
   } catch (e: unknown) {
     // Log migration failure but don't throw to avoid breaking startup
     logError(e)
-    logEvent('内部代号_migrate_mcp_approval_fields_error', {})
+    logEvent('limkenion_migrate_mcp_approval_fields_error', {})
   }
 }

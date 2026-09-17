@@ -1,14 +1,13 @@
 /**
- * Parse a CLI flag value early, before Commander.js processes arguments.
- * Supports both space-separated (--flag value) and equals-separated (--flag=value) syntax.
+ * 在 Commander.js 处理参数之前提前解析 CLI 标志值。
+ * 同时支持空格分隔（--flag value）和等号分隔（--flag=value）语法。
  *
- * This function is intended for flags that must be parsed before init() runs,
- * such as --settings which affects configuration loading. For normal flag parsing,
- * rely on Commander.js which handles this automatically.
+ * 此函数用于必须在 init() 之前解析的标志，例如影响配置加载的 --settings。
+ * 对于常规标志解析，请依赖会自动处理的 Commander.js。
  *
- * @param flagName The flag name including dashes (e.g., '--settings')
- * @param argv Optional argv array to parse (defaults to process.argv)
- * @returns The value if found, undefined otherwise
+ * @param flagName 含连字符的标志名（例如 '--settings'）
+ * @param argv 可选的要解析的 argv 数组（默认为 process.argv）
+ * @returns 找到时返回值，否则返回 undefined
  */
 export function eagerParseCliFlag(
   flagName: string,
@@ -16,11 +15,11 @@ export function eagerParseCliFlag(
 ): string | undefined {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
-    // Handle --flag=value syntax
+    // 处理 --flag=value 语法
     if (arg?.startsWith(`${flagName}=`)) {
       return arg.slice(flagName.length + 1)
     }
-    // Handle --flag value syntax
+    // 处理 --flag value 语法
     if (arg === flagName && i + 1 < argv.length) {
       return argv[i + 1]
     }
@@ -29,22 +28,20 @@ export function eagerParseCliFlag(
 }
 
 /**
- * Handle the standard Unix `--` separator convention in CLI arguments.
+ * 处理 CLI 参数中的标准 Unix `--` 分隔符约定。
  *
- * When using Commander.js with `.passThroughOptions()`, the `--` separator
- * is passed through as a positional argument rather than being consumed.
- * This means when a user runs:
+ * 当使用带 `.passThroughOptions()` 的 Commander.js 时，`--` 分隔符会作为
+ * 位置参数透传，而不会被消耗。这意味着当用户运行：
  *   `cmd --opt value name -- subcmd --flag arg`
  *
- * Commander parses it as:
- *   positional1 = "name", positional2 = "--", rest = ["subcmd", "--flag", "arg"]
+ * Commander 会把它解析为：
+ *   positional1 = "name"，positional2 = "--"，rest = ["subcmd", "--flag", "arg"]
  *
- * This function corrects the parsing by extracting the actual command from
- * the rest array when the positional is `--`.
+ * 此函数通过当位置参数为 `--` 时从 rest 数组提取实际命令来纠正该解析。
  *
- * @param commandOrValue - The parsed positional that may be "--"
- * @param args - The remaining arguments array
- * @returns Object with corrected command and args
+ * @param commandOrValue - 可能是 "--" 的已解析位置参数
+ * @param args - 剩余的参数数组
+ * @returns 带修正后的命令和参数的对象
  */
 export function extractArgsAfterDoubleDash(
   commandOrValue: string,

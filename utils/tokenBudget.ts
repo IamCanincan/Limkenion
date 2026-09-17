@@ -1,9 +1,8 @@
-// Shorthand (+500k) anchored to start/end to avoid false positives in natural language.
-// Verbose (use/spend 2M tokens) matches anywhere.
+// 简短写法（+500k）锚定到开头/结尾，避免在自然语言中误报。
+// 详细写法（use/spend 2M tokens）在任意位置匹配。
 const SHORTHAND_START_RE = /^\s*\+(\d+(?:\.\d+)?)\s*(k|m|b)\b/i
-// Lookbehind (?<=\s) is avoided — it defeats YARR JIT in JSC, and the
-// interpreter scans O(n) even with the $ anchor. Capture the whitespace
-// instead; callers offset match.index by 1 where position matters.
+// 避免使用后视 (?<=\s)——它会削弱 JSC 中的 YARR JIT，且即使有 $ 锚点，
+// 解释器也要 O(n) 扫描。改为捕获空白；调用方在位置重要时把 match.index 偏移 1。
 const SHORTHAND_END_RE = /\s\+(\d+(?:\.\d+)?)\s*(k|m|b)\s*[.!?]?\s*$/i
 const VERBOSE_RE = /\b(?:use|spend)\s+(\d+(?:\.\d+)?)\s*(k|m|b)\s*tokens?\b/i
 const VERBOSE_RE_G = new RegExp(VERBOSE_RE.source, 'gi')
@@ -45,8 +44,8 @@ export function findTokenBudgetPositions(
   }
   const endMatch = text.match(SHORTHAND_END_RE)
   if (endMatch) {
-    // Avoid double-counting when input is just "+500k"
-    const endStart = endMatch.index! + 1 // +1: regex includes leading \s
+    // 当输入仅仅是 "+500k" 时避免重复计数
+    const endStart = endMatch.index! + 1 // +1：正则包含前导 \s
     const alreadyCovered = positions.some(
       p => endStart >= p.start && endStart < p.end,
     )
@@ -69,5 +68,5 @@ export function getBudgetContinuationMessage(
   budget: number,
 ): string {
   const fmt = (n: number): string => new Intl.NumberFormat('en-US').format(n)
-  return `Stopped at ${pct}% of token target (${fmt(turnTokens)} / ${fmt(budget)}). Keep working \u2014 do not summarize.`
+  return `停在 token 目标的 ${pct}% 处（${fmt(turnTokens)} / ${fmt(budget)}）。请继续工作 \u2014 不要总结。`
 }

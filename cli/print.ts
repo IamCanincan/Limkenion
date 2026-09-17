@@ -487,16 +487,7 @@ export async function runHeadless(
     setSDKStatus?: (status: SDKStatus) => void
   },
 ): Promise<void> {
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.LIMKENION_EXIT_AFTER_FIRST_RENDER)
-  ) {
-    process.stderr.write(
-      `\nStartup time: ${Math.round(process.uptime() * 1000)}ms\n`,
-    )
-    // eslint-disable-next-line custom-rules/no-process-exit
-    process.exit(0)
-  }
+  
 
   // Fire user settings download now so it overlaps with the MCP/tool setup
   // below. Managed settings already started in main.tsx preAction; this gives
@@ -561,20 +552,20 @@ export async function runHeadless(
   void initializeGrowthBook()
 
   if (options.resumeSessionAt && !options.resume) {
-    process.stderr.write(`Error: --resume-session-at requires --resume\n`)
+    process.stderr.write(`错误：--resume-session-at 需要 --resume\n`)
     gracefulShutdownSync(1)
     return
   }
 
   if (options.rewindFiles && !options.resume) {
-    process.stderr.write(`Error: --rewind-files requires --resume\n`)
+    process.stderr.write(`错误：--rewind-files 需要 --resume\n`)
     gracefulShutdownSync(1)
     return
   }
 
   if (options.rewindFiles && inputPrompt) {
     process.stderr.write(
-      `Error: --rewind-files is a standalone operation and cannot be used with a prompt\n`,
+      `错误：--rewind-files 是独立操作，不能与提示词同时使用\n`,
     )
     gracefulShutdownSync(1)
     return
@@ -598,15 +589,15 @@ export async function runHeadless(
   if (sandboxUnavailableReason) {
     if (SandboxManager.isSandboxRequired()) {
       process.stderr.write(
-        `\nError: sandbox required but unavailable: ${sandboxUnavailableReason}\n` +
-          `  sandbox.failIfUnavailable is set — refusing to start without a working sandbox.\n\n`,
+        `\n错误：需要沙箱但不可用：${sandboxUnavailableReason}\n` +
+          `  sandbox.failIfUnavailable 已设置——没有可用的沙箱则拒绝启动。\n\n`,
       )
       gracefulShutdownSync(1)
       return
     }
     process.stderr.write(
-      `\n⚠ Sandbox disabled: ${sandboxUnavailableReason}\n` +
-        `  Commands will run WITHOUT sandboxing. Network and filesystem restrictions will NOT be enforced.\n\n`,
+      `\n⚠ 沙箱已禁用：${sandboxUnavailableReason}\n` +
+        `  命令将在无沙箱状态下运行。网络与文件系统限制将不再生效。\n\n`,
     )
   } else if (SandboxManager.isSandboxingEnabled()) {
     // Initialize sandbox with a callback that forwards network permission
@@ -615,7 +606,7 @@ export async function runHeadless(
     try {
       await SandboxManager.initialize(structuredIO.createSandboxAskCallback())
     } catch (err) {
-      process.stderr.write(`\n❌ Sandbox Error: ${errorMessage(err)}\n`)
+      process.stderr.write(`\n❌ 沙箱错误：${errorMessage(err)}\n`)
       gracefulShutdownSync(1, 'other')
       return
     }
@@ -739,7 +730,7 @@ export async function runHeadless(
 
     if (!targetMessage || targetMessage.type !== 'user') {
       process.stderr.write(
-        `Error: --rewind-files requires a user message UUID, but ${options.rewindFiles} is not a user message in this session\n`,
+        `错误：--rewind-files 需要一条用户消息 UUID，但 ${options.rewindFiles} 不是本次会话中的用户消息\n`,
       )
       gracefulShutdownSync(1)
       return
@@ -753,14 +744,14 @@ export async function runHeadless(
       false,
     )
     if (!result.canRewind) {
-      process.stderr.write(`Error: ${result.error || 'Unexpected error'}\n`)
+      process.stderr.write(`错误：${result.error || '意外错误'}\n`)
       gracefulShutdownSync(1)
       return
     }
 
     // Rewind complete - exit successfully
     process.stdout.write(
-      `Files rewound to state at message ${options.rewindFiles}\n`,
+      `文件已回滚到消息 ${options.rewindFiles} 时的状态\n`,
     )
     gracefulShutdownSync(0)
     return
@@ -774,7 +765,7 @@ export async function runHeadless(
 
   if (!inputPrompt && !hasValidResumeSessionId && !isUsingSdkUrl) {
     process.stderr.write(
-      `Error: Input must be provided either through stdin or as a prompt argument when using --print\n`,
+      `错误：使用 --print 时必须通过 stdin 或提示词参数提供输入\n`,
     )
     gracefulShutdownSync(1)
     return
@@ -782,7 +773,7 @@ export async function runHeadless(
 
   if (options.outputFormat === 'stream-json' && !options.verbose) {
     process.stderr.write(
-      'Error: When using --print, --output-format=stream-json requires --verbose\n',
+      '错误：使用 --print 时，--output-format=stream-json 需要 --verbose\n',
     )
     gracefulShutdownSync(1)
     return
@@ -937,17 +928,17 @@ export async function runHeadless(
           )
           break
         case 'error_during_execution':
-          writeToStdout(`Execution error`)
+          writeToStdout(`执行出错`)
           break
         case 'error_max_turns':
-          writeToStdout(`Error: Reached max turns (${options.maxTurns})`)
+          writeToStdout(`错误：已达到最大轮数 (${options.maxTurns})`)
           break
         case 'error_max_budget_usd':
-          writeToStdout(`Error: Exceeded USD budget (${options.maxBudgetUsd})`)
+          writeToStdout(`错误：已超出美元预算 (${options.maxBudgetUsd})`)
           break
         case 'error_max_structured_output_retries':
           writeToStdout(
-            `Error: Failed to provide valid structured output after maximum retries`,
+            `错误：重试达到上限后仍未能提供有效的结构化输出`,
           )
       }
   }
@@ -959,7 +950,7 @@ export async function runHeadless(
   // already flushed above, so this adds no user-visible latency — it just
   // delays process exit so gracefulShutdownSync's 5s failsafe doesn't kill
   // the forked agent mid-flight. Gated by isExtractModeActive so the
-  // 内部代号_slate_thimble flag controls non-interactive extraction end-to-end.
+  // limkenion_slate_thimble flag controls non-interactive extraction end-to-end.
   if (feature('EXTRACT_MEMORIES') && isExtractModeActive()) {
     await extractMemoriesModule!.drainPendingExtraction()
   }
@@ -1283,7 +1274,7 @@ function runHeadlessStreaming(
 
             const mode = request.params.mode === 'url' ? 'url' : 'form'
 
-            logEvent('内部代号_mcp_elicitation_shown', {
+            logEvent('limkenion_mcp_elicitation_shown', {
               mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             })
 
@@ -1298,7 +1289,7 @@ function runHeadlessStreaming(
                 serverName,
                 `Elicitation resolved by hook: ${jsonStringify(hookResponse)}`,
               )
-              logEvent('内部代号_mcp_elicitation_response', {
+              logEvent('limkenion_mcp_elicitation_response', {
                 mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 action:
                   hookResponse.action as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -1341,7 +1332,7 @@ function runHeadlessStreaming(
               elicitationId,
             )
 
-            logEvent('内部代号_mcp_elicitation_response', {
+            logEvent('limkenion_mcp_elicitation_response', {
               mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               action:
                 result.action as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -1862,7 +1853,7 @@ function runHeadlessStreaming(
               `LIMKENION_SYNC_PLUGIN_INSTALL: plugin installation timed out after ${timeoutMs}ms`,
             ),
           )
-          logEvent('内部代号_sync_plugin_install_timeout', {
+          logEvent('limkenion_sync_plugin_install_timeout', {
             timeout_ms: timeoutMs,
           })
         }
@@ -1904,7 +1895,7 @@ function runHeadlessStreaming(
             command.mode !== 'task-notification'
           ) {
             throw new Error(
-              'only prompt commands are supported in streaming mode',
+              '流式模式下仅支持 prompt 命令',
             )
           }
 
@@ -2856,7 +2847,7 @@ function runHeadlessStreaming(
 
           if (
             message.request.agentProgressSummaries &&
-            getFeatureValue_CACHED_MAY_BE_STALE('内部代号_slate_prism', true)
+            getFeatureValue_CACHED_MAY_BE_STALE('limkenion_slate_prism', true)
           ) {
             setSdkAgentProgressSummariesEnabled(true)
           }
@@ -3101,7 +3092,7 @@ function runHeadlessStreaming(
               ?.config ??
             null
           if (!config) {
-            sendControlResponseError(message, `Server not found: ${serverName}`)
+            sendControlResponseError(message, `找不到服务器: ${serverName}`)
           } else {
             const result = await reconnectMcpServerImpl(serverName, config)
             // Update appState.mcp with the new client, tools, commands, and resources
@@ -3151,8 +3142,8 @@ function runHeadlessStreaming(
             } else {
               const errorMessage =
                 result.client.type === 'failed'
-                  ? (result.client.error ?? 'Connection failed')
-                  : `Server status: ${result.client.type}`
+                  ? (result.client.error ?? '连接失败')
+                  : `服务器状态: ${result.client.type}`
               sendControlResponseError(message, errorMessage)
             }
           }
@@ -3173,7 +3164,7 @@ function runHeadlessStreaming(
             null
 
           if (!config) {
-            sendControlResponseError(message, `Server not found: ${serverName}`)
+            sendControlResponseError(message, `找不到服务器: ${serverName}`)
           } else if (!enabled) {
             // Disabling: persist + disconnect (matches TUI toggleMcpServer behavior)
             setMcpServerEnabled(serverName, false)
@@ -3242,8 +3233,8 @@ function runHeadlessStreaming(
             } else {
               const errorMessage =
                 result.client.type === 'failed'
-                  ? (result.client.error ?? 'Connection failed')
-                  : `Server status: ${result.client.type}`
+                  ? (result.client.error ?? '连接失败')
+                  : `服务器状态: ${result.client.type}`
               sendControlResponseError(message, errorMessage)
             }
           }
@@ -3270,11 +3261,11 @@ function runHeadlessStreaming(
               ?.config ??
             null
           if (!config) {
-            sendControlResponseError(message, `Server not found: ${serverName}`)
+            sendControlResponseError(message, `找不到服务器: ${serverName}`)
           } else if (config.type !== 'sse' && config.type !== 'http') {
             sendControlResponseError(
               message,
-              `Server type "${config.type}" does not support OAuth authentication`,
+              `服务器类型 "${config.type}" 不支持 OAuth 认证`,
             )
           } else {
             try {
@@ -3433,7 +3424,7 @@ function runHeadlessStreaming(
             if (!hasCodeOrError) {
               sendControlResponseError(
                 message,
-                'Invalid callback URL: missing authorization code. Please paste the full redirect URL including the code parameter.',
+                '回调 URL 无效：缺少授权码。请粘贴包含 code 参数的完整重定向 URL。',
               )
             } else {
               oauthManualCallbackUsed.add(serverName)
@@ -3451,7 +3442,7 @@ function runHeadlessStreaming(
                     message,
                     error instanceof Error
                       ? error.message
-                      : 'OAuth authentication failed',
+                      : 'OAuth 认证失败',
                   )
                 }
               } else {
@@ -3461,7 +3452,7 @@ function runHeadlessStreaming(
           } else {
             sendControlResponseError(
               message,
-              `No active OAuth flow for server: ${serverName}`,
+              `该服务器没有进行中的 OAuth 流程: ${serverName}`,
             )
           }
         } else if (message.request.subtype === 'limkenion_authenticate') {
@@ -3479,7 +3470,7 @@ function runHeadlessStreaming(
           // is GC'd — no fd or port is held.
           limkenionOAuth?.service.cleanup()
 
-          logEvent('内部代号_oauth_flow_start', {
+          logEvent('limkenion_oauth_flow_start', {
             loginWithLimkenionAi: loginWithLimkenionAi ?? true,
           })
 
@@ -3514,7 +3505,7 @@ function runHeadlessStreaming(
               // getLimkenionAIOAuthTokens in this process is invalidated; the
               // next API call re-reads keychain/file and works. No respawn.
               await installOAuthTokens(tokens)
-              logEvent('内部代号_oauth_success', {
+              logEvent('limkenion_oauth_success', {
                 loginWithLimkenionAi: loginWithLimkenionAi ?? true,
               })
             })
@@ -3547,7 +3538,7 @@ function runHeadlessStreaming(
               urlPromise,
               flow.then(() => {
                 throw new Error(
-                  'OAuth flow completed without producing auth URLs',
+                  'OAuth 流程结束但未产生认证 URL',
                 )
               }),
             ])
@@ -3611,11 +3602,11 @@ function runHeadlessStreaming(
               ?.config ??
             null
           if (!config) {
-            sendControlResponseError(message, `Server not found: ${serverName}`)
+            sendControlResponseError(message, `找不到服务器: ${serverName}`)
           } else if (config.type !== 'sse' && config.type !== 'http') {
             sendControlResponseError(
               message,
-              `Cannot clear auth for server type "${config.type}"`,
+              `无法清除服务器类型 "${config.type}" 的认证`,
             )
           } else {
             await revokeServerTokens(serverName, config)
@@ -4011,7 +4002,7 @@ export function createCanUseToolWithPermissionPrompt(
       cleanupAbortListener()
       return {
         behavior: 'deny',
-        message: 'Permission prompt was aborted.',
+        message: '权限提示已中止。',
         decisionReason: {
           type: 'permissionPromptTool' as const,
           permissionPromptToolName: tool.name,
@@ -4043,7 +4034,7 @@ export function createCanUseToolWithPermissionPrompt(
     if (raceResult === 'aborted' || combinedSignal.aborted) {
       return {
         behavior: 'deny',
-        message: 'Permission prompt was aborted.',
+        message: '权限提示已中止。',
         decisionReason: {
           type: 'permissionPromptTool' as const,
           permissionPromptToolName: tool.name,
@@ -4065,7 +4056,7 @@ export function createCanUseToolWithPermissionPrompt(
       typeof permissionToolResultBlockParam.content[0].text !== 'string'
     ) {
       throw new Error(
-        'Permission prompt tool returned an invalid result. Expected a single text block param with type="text" and a string text value.',
+        '权限提示工具返回了无效结果。预期返回单个 text 块参数（type="text"）且 text 为字符串。',
       )
     }
     return permissionPromptToolResultToPermissionDecision(
@@ -4175,7 +4166,7 @@ async function handleInitializeRequest(
       type: 'control_response',
       response: {
         subtype: 'error',
-        error: 'Already initialized',
+        error: '已初始化',
         request_id: requestId,
         pending_permission_requests:
           structuredIO.getPendingPermissionRequests(),
@@ -4342,7 +4333,7 @@ async function handleRewindFiles(
   dryRun: boolean,
 ): Promise<RewindFilesResult> {
   if (!fileHistoryEnabled()) {
-    return { canRewind: false, error: 'File rewinding is not enabled.' }
+    return { canRewind: false, error: '文件回退功能未启用。' }
   }
   if (!fileHistoryCanRestore(appState.fileHistory, userMessageId)) {
     return {
@@ -4376,7 +4367,7 @@ async function handleRewindFiles(
   } catch (error) {
     return {
       canRewind: false,
-      error: `Failed to rewind: ${errorMessage(error)}`,
+      error: `回退失败: ${errorMessage(error)}`,
     }
   }
 
@@ -4398,7 +4389,7 @@ function handleSetPermissionMode(
           subtype: 'error',
           request_id: requestId,
           error:
-            'Cannot set permission mode to bypassPermissions because it is disabled by settings or configuration',
+            '无法将权限模式设置为 bypassPermissions，因为它已被设置或配置禁用',
         },
       })
       return toolPermissionContext
@@ -4410,7 +4401,7 @@ function handleSetPermissionMode(
           subtype: 'error',
           request_id: requestId,
           error:
-            'Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions',
+            '无法将权限模式设置为 bypassPermissions，因为会话未使用 --dangerously-skip-permissions 启动',
         },
       })
       return toolPermissionContext
@@ -4430,8 +4421,8 @@ function handleSetPermissionMode(
         subtype: 'error',
         request_id: requestId,
         error: reason
-          ? `Cannot set permission mode to auto: ${getAutoModeUnavailableNotification(reason)}`
-          : 'Cannot set permission mode to auto',
+          ? `无法将权限模式设置为 auto: ${getAutoModeUnavailableNotification(reason)}`
+          : '无法将权限模式设置为 auto',
       },
     })
     return toolPermissionContext
@@ -4474,7 +4465,7 @@ function handleSetPermissionMode(
  * goes to the consumer's canUseTool callback over stdio; there is no CLI-side
  * dialog for a remote "yes tbxkq" to resolve. If an IDE wants channel-relayed
  * tool approval, that's IDE-side plumbing against its own pending-map. (Also
- * gated separately by 内部代号_harbor_permissions — not yet shipping on
+ * gated separately by limkenion_harbor_permissions — not yet shipping on
  * interactive either.)
  */
 function handleChannelEnable(
@@ -4490,7 +4481,7 @@ function handleChannelEnable(
     })
 
   if (!(feature('KAIROS') || feature('KAIROS_CHANNELS'))) {
-    return respondError('channels feature not available in this build')
+    return respondError('此构建版本不提供 channels 功能')
   }
 
   // Only a 'connected' client has .capabilities and .client to register the
@@ -4542,7 +4533,7 @@ function handleChannelEnable(
   const pluginId =
     `${entry.name}@${entry.marketplace}` as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
   logMCPDebug(serverName, 'Channel notifications registered')
-  logEvent('内部代号_mcp_channel_enable', { plugin: pluginId })
+  logEvent('limkenion_mcp_channel_enable', { plugin: pluginId })
 
   // Identical enqueue shape to the interactive register block in
   // useManageMCPConnections. drainCommandQueue processes it between turns —
@@ -4556,7 +4547,7 @@ function handleChannelEnable(
         serverName,
         `notifications/limkenion/channel: ${content.slice(0, 80)}`,
       )
-      logEvent('内部代号_mcp_channel_message', {
+      logEvent('limkenion_mcp_channel_message', {
         content_length: content.length,
         meta_key_count: Object.keys(meta ?? {}).length,
         entry_kind:
@@ -4632,7 +4623,7 @@ function reregisterChannelHandlerAfterReconnect(
         connection.name,
         `notifications/limkenion/channel: ${content.slice(0, 80)}`,
       )
-      logEvent('内部代号_mcp_channel_message', {
+      logEvent('limkenion_mcp_channel_message', {
         content_length: content.length,
         meta_key_count: Object.keys(meta ?? {}).length,
         entry_kind:
@@ -4725,7 +4716,7 @@ async function loadInitialMessages(
   // Handle continue in print mode
   if (options.continue) {
     try {
-      logEvent('内部代号_continue_print', {})
+      logEvent('limkenion_continue_print', {})
 
       const result = await loadConversationForResume(
         undefined /* sessionId */,
@@ -4808,11 +4799,11 @@ async function loadInitialMessages(
     try {
       if (!isPolicyAllowed('allow_remote_sessions')) {
         throw new Error(
-          "Remote sessions are disabled by your organization's policy.",
+          "远程会话已被您所在组织的策略禁用。",
         )
       }
 
-      logEvent('内部代号_teleport_print', {})
+      logEvent('limkenion_teleport_print', {})
 
       if (typeof options.teleport !== 'string') {
         throw new Error('No session ID provided for teleport')
@@ -4846,7 +4837,7 @@ async function loadInitialMessages(
   // URLs are [ANT-ONLY]
   if (options.resume) {
     try {
-      logEvent('内部代号_resume_print', {})
+      logEvent('limkenion_resume_print', {})
 
       // In print mode - we require a valid session ID, JSONL file or URL
       const parsedSessionId = parseSessionIdentifier(
@@ -4997,8 +4988,8 @@ async function loadInitialMessages(
       logError(error)
       const errorMessage =
         error instanceof Error
-          ? `Failed to resume session: ${error.message}`
-          : 'Failed to resume session with --print mode'
+          ? `恢复会话失败: ${error.message}`
+          : '使用 --print 模式恢复会话失败'
       emitLoadError(errorMessage, options.outputFormat)
       gracefulShutdownSync(1)
       return { messages: [] }
@@ -5181,7 +5172,7 @@ export async function handleMcpSetServers(
   const policyErrors: Record<string, string> = {}
   for (const name of blocked) {
     policyErrors[name] =
-      'Blocked by enterprise policy (allowedMcpServers/deniedMcpServers)'
+      '被企业策略阻止 (allowedMcpServers/deniedMcpServers)'
   }
 
   // Separate SDK servers from process-based servers
@@ -5344,7 +5335,7 @@ export async function reconcileMcpServers(
         const serverTools = await fetchToolsForClient(client)
         newTools.push(...serverTools)
       } else if (client.type === 'failed') {
-        errors[name] = client.error || 'Connection failed'
+        errors[name] = client.error || '连接失败'
       }
 
       added.push(name)

@@ -21,7 +21,7 @@ type LogEvent = {
 }
 
 export async function logUnaryEvent(event: LogEvent): Promise<void> {
-  logEvent('内部代号_unary_event', {
+  logEvent('limkenion_unary_event', {
     event:
       event.event as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     completion_type:

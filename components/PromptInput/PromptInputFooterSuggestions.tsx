@@ -18,8 +18,8 @@ export type SuggestionType = 'command' | 'file' | 'directory' | 'agent' | 'shell
 export const OVERLAY_MAX_ITEMS = 5;
 
 /**
- * Get the icon for a suggestion based on its type
- * Icons: + for files, ◇ for MCP resources, * for agents
+ * 根据类型获取建议项的图标。
+ * 图标：+ 表示文件，◇ 表示 MCP 资源，* 表示智能体
  */
 function getIcon(itemId: string): string {
   if (itemId.startsWith('file-')) return '+';
@@ -29,7 +29,7 @@ function getIcon(itemId: string): string {
 }
 
 /**
- * Check if an item is a unified suggestion type (file, mcp-resource, or agent)
+ * 判断某一项是否属于统一的建议类型（文件、MCP 资源或智能体）
  */
 function isUnifiedSuggestion(itemId: string): boolean {
   return itemId.startsWith('file-') || itemId.startsWith('mcp-resource-') || itemId.startsWith('agent-');
@@ -204,9 +204,9 @@ type Props = {
   selectedSuggestion: number;
   maxColumnWidth?: number;
   /**
-   * When true, the suggestions are rendered inside a position=absolute
-   * overlay. We omit minHeight and flex-end so the y-clamp in the
-   * renderer doesn't push fewer items down into the prompt area.
+   * 为 true 时，建议会渲染在 position=absolute
+   * 的浮层内。我们会省略 minHeight 与 flex-end，
+   * 使渲染器中的 y 轴截断不会把更少的项挤入提示区。
    */
   overlay?: boolean;
 };

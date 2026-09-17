@@ -526,7 +526,7 @@ export const FileEditTool = buildTool({
 
     // 7. Log events
     if (absoluteFilePath.endsWith(`${sep}LIMKENION.md`)) {
-      logEvent('内部代号_write_limkenionmd', {})
+      logEvent('limkenion_write_limkenionmd', {})
     }
     countLinesChanged(patch)
 
@@ -536,7 +536,7 @@ export const FileEditTool = buildTool({
       filePath: absoluteFilePath,
     })
 
-    logEvent('内部代号_edit_string_lengths', {
+    logEvent('limkenion_edit_string_lengths', {
       oldStringBytes: Buffer.byteLength(old_string, 'utf8'),
       newStringBytes: Buffer.byteLength(new_string, 'utf8'),
       replaceAll: replace_all,
@@ -545,12 +545,12 @@ export const FileEditTool = buildTool({
     let gitDiff: ToolUseDiff | undefined
     if (
       isEnvTruthy(process.env.LIMKENION_REMOTE) &&
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_quartz_lantern', false)
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_quartz_lantern', false)
     ) {
       const startTime = Date.now()
       const diff = await fetchSingleFileGitDiff(absoluteFilePath)
       if (diff) gitDiff = diff
-      logEvent('内部代号_tool_use_diff_computed', {
+      logEvent('limkenion_tool_use_diff_computed', {
         isEditTool: true,
         durationMs: Date.now() - startTime,
         hasDiff: !!diff,

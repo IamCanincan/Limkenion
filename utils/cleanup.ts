@@ -518,14 +518,14 @@ export async function cleanupNpmCacheForLimkenionPackages(): Promise<void> {
     } else {
       logForDebugging(`npm cache cleanup: completed in ${durationMs}ms`)
     }
-    logEvent('内部代号_npm_cache_cleanup', {
+    logEvent('limkenion_npm_cache_cleanup', {
       success: true,
       durationMs,
       entriesRemoved: keysToRemove.length,
     })
   } catch (error) {
     logError(error as Error)
-    logEvent('内部代号_npm_cache_cleanup', {
+    logEvent('limkenion_npm_cache_cleanup', {
       success: false,
       durationMs: Date.now() - startTime,
     })
@@ -594,9 +594,7 @@ export async function cleanupOldMessageFilesInBackground(): Promise<void> {
   await cleanupOldPastes(getCutoffDate())
   const removedWorktrees = await cleanupStaleAgentWorktrees(getCutoffDate())
   if (removedWorktrees > 0) {
-    logEvent('内部代号_worktree_cleanup', { removed: removedWorktrees })
+    logEvent('limkenion_worktree_cleanup', { removed: removedWorktrees })
   }
-  if (process.env.USER_TYPE === 'ant') {
-    await cleanupNpmCacheForLimkenionPackages()
-  }
+  
 }

@@ -69,17 +69,17 @@ const inputSchema = lazySchema(() =>
       .string()
       .describe(
         feature('UDS_INBOX')
-          ? 'Recipient: teammate name, "*" for broadcast, "uds:<socket-path>" for a local peer, or "bridge:<session-id>" for a Remote Control peer (use ListPeers to discover)'
-          : 'Recipient: teammate name, or "*" for broadcast to all teammates',
+          ? '收件人：队友名称、"*" 表示广播、"uds:<socket-path>" 表示本地对等端，或 "bridge:<session-id>" 表示远程控制对等端（可用 ListPeers 发现）'
+          : '收件人：队友名称，或 "*" 表示向所有队友广播',
       ),
     summary: z
       .string()
       .optional()
       .describe(
-        'A 5-10 word summary shown as a preview in the UI (required when message is a string)',
+        '在 UI 中作为预览显示的 5-10 字摘要（当 message 为字符串时必需）',
       ),
     message: z.union([
-      z.string().describe('Plain text message content'),
+      z.string().describe('纯文本消息内容'),
       StructuredMessage(),
     ]),
   }),

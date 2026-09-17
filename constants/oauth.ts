@@ -4,14 +4,7 @@ import { isEnvTruthy } from 'src/utils/envUtils.js'
 type OauthConfigType = 'prod' | 'staging' | 'local'
 
 function getOauthConfigType(): OauthConfigType {
-  if (process.env.USER_TYPE === 'ant') {
-    if (isEnvTruthy(process.env.USE_LOCAL_OAUTH)) {
-      return 'local'
-    }
-    if (isEnvTruthy(process.env.USE_STAGING_OAUTH)) {
-      return 'staging'
-    }
-  }
+  
   return 'prod'
 }
 
@@ -116,31 +109,7 @@ export const MCP_CLIENT_METADATA_URL =
 // Staging OAuth configuration - only included in ant builds with staging flag
 // Uses literal check for dead code elimination
 const STAGING_OAUTH_CONFIG =
-  process.env.USER_TYPE === 'ant'
-    ? ({
-        BASE_API_URL: 'https://api-staging.limkenion.com',
-        CONSOLE_AUTHORIZE_URL:
-          'https://platform.staging.ant.dev/oauth/authorize',
-        LIMKENION_AI_AUTHORIZE_URL:
-          'https://limkenion-ai.staging.ant.dev/oauth/authorize',
-        LIMKENION_AI_ORIGIN: 'https://limkenion-ai.staging.ant.dev',
-        TOKEN_URL: 'https://platform.staging.ant.dev/v1/oauth/token',
-        API_KEY_URL:
-          'https://api-staging.limkenion.com/api/oauth/limkenion_cli/create_api_key',
-        ROLES_URL:
-          'https://api-staging.limkenion.com/api/oauth/limkenion_cli/roles',
-        CONSOLE_SUCCESS_URL:
-          'https://platform.staging.ant.dev/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dlimkenion',
-        LIMKENIONAI_SUCCESS_URL:
-          'https://platform.staging.ant.dev/oauth/code/success?app=limkenion',
-        MANUAL_REDIRECT_URL:
-          'https://platform.staging.ant.dev/oauth/code/callback',
-        CLIENT_ID: '22422756-60c9-4084-8eb7-27705fd5cf9a',
-        OAUTH_FILE_SUFFIX: '-staging-oauth',
-        MCP_PROXY_URL: 'https://mcp-proxy-staging.limkenion.com',
-        MCP_PROXY_PATH: '/v1/mcp/{server_id}',
-      } as const)
-    : undefined
+  undefined
 
 // Three local dev servers: :8000 api-proxy (`api dev start -g ccr`),
 // :4000 limkenion-ai frontend, :3000 Console frontend. Env vars let

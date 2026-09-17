@@ -2,32 +2,32 @@ import { c as _c } from "react/compiler-runtime";
 import React from 'react';
 import Text from '../../ink/components/Text.js';
 type Props = {
-  /** The key or chord to display (e.g., "ctrl+o", "Enter", "↑/↓") */
+  /** 要显示的按键或和弦键（例如 "ctrl+o"、"Enter"、"↑/↓"） */
   shortcut: string;
-  /** The action the key performs (e.g., "expand", "select", "navigate") */
+  /** 该按键执行的动作（例如 "expand"、"select"、"navigate"） */
   action: string;
-  /** Whether to wrap the hint in parentheses. Default: false */
+  /** 是否用括号包裹提示。默认：false */
   parens?: boolean;
-  /** Whether to render the shortcut in bold. Default: false */
+  /** 是否以粗体渲染快捷键。默认：false */
   bold?: boolean;
 };
 
 /**
- * Renders a keyboard shortcut hint like "ctrl+o to expand" or "(tab to toggle)"
+ * 渲染快捷键提示，例如 "ctrl+o to expand" 或 "(tab to toggle)"
  *
- * Wrap in <Text dimColor> for the common dim styling.
+ * 用 <Text dimColor> 包裹可获得常见的暗色样式。
  *
  * @example
- * // Simple hint wrapped in dim Text
+ * // 简单的提示，包裹在暗色 Text 中
  * <Text dimColor><KeyboardShortcutHint shortcut="esc" action="cancel" /></Text>
  *
- * // With parentheses: "(ctrl+o to expand)"
+ * // 带括号："(ctrl+o to expand)"
  * <Text dimColor><KeyboardShortcutHint shortcut="ctrl+o" action="expand" parens /></Text>
  *
- * // With bold shortcut: "Enter to confirm" (Enter is bold)
+ * // 快捷键加粗："Enter to confirm"（Enter 加粗）
  * <Text dimColor><KeyboardShortcutHint shortcut="Enter" action="confirm" bold /></Text>
  *
- * // Multiple hints with middot separator - use Byline
+ * // 用中点分隔符连接多个提示——使用 Byline
  * <Text dimColor>
  *   <Byline>
  *     <KeyboardShortcutHint shortcut="Enter" action="confirm" />
@@ -58,7 +58,7 @@ export function KeyboardShortcutHint(t0) {
   if (parens) {
     let t4;
     if ($[3] !== action || $[4] !== shortcutText) {
-      t4 = <Text>({shortcutText} to {action})</Text>;
+      t4 = <Text>({shortcutText} 用于 {action})</Text>;
       $[3] = action;
       $[4] = shortcutText;
       $[5] = t4;
@@ -69,7 +69,7 @@ export function KeyboardShortcutHint(t0) {
   }
   let t4;
   if ($[6] !== action || $[7] !== shortcutText) {
-    t4 = <Text>{shortcutText} to {action}</Text>;
+    t4 = <Text>{shortcutText} 用于 {action}</Text>;
     $[6] = action;
     $[7] = shortcutText;
     $[8] = t4;

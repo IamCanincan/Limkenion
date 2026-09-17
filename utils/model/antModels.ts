@@ -29,20 +29,20 @@ export type AntModelOverrideConfig = {
   switchCallout?: AntModelSwitchCalloutConfig
 }
 
-// @[MODEL LAUNCH]: Update 内部代号_ant_model_override with new ant-only models
+// @[MODEL LAUNCH]: Update limkenion_ant_model_override with new ant-only models
 // @[MODEL LAUNCH]: Add the codename to scripts/excluded-strings.txt to prevent it from leaking to external builds.
 export function getAntModelOverrideConfig(): AntModelOverrideConfig | null {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return null
   }
   return getFeatureValue_CACHED_MAY_BE_STALE<AntModelOverrideConfig | null>(
-    '内部代号_ant_model_override',
+    'limkenion_ant_model_override',
     null,
   )
 }
 
 export function getAntModels(): AntModel[] {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return []
   }
   return getAntModelOverrideConfig()?.antModels ?? []
@@ -51,7 +51,7 @@ export function getAntModels(): AntModel[] {
 export function resolveAntModel(
   model: string | undefined,
 ): AntModel | undefined {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return undefined
   }
   if (model === undefined) {

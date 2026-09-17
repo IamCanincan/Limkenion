@@ -88,7 +88,7 @@ export function validateImagesForAPI(messages: unknown[]): void {
         // The API limit applies to the base64 payload size
         const base64Size = block.source.data.length
         if (base64Size > API_IMAGE_MAX_BASE64_SIZE) {
-          logEvent('内部代号_image_api_validation_failed', {
+          logEvent('limkenion_image_api_validation_failed', {
             base64_size_bytes: base64Size,
             max_bytes: API_IMAGE_MAX_BASE64_SIZE,
           })

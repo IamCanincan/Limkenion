@@ -228,7 +228,7 @@ export function ExitPlanModePermissionRequest({
   const handleKeyDown = (e: KeyboardEvent): void => {
     if (e.ctrl && e.key === 'g') {
       e.preventDefault();
-      logEvent('内部代号_plan_external_editor_used', {});
+      logEvent('limkenion_plan_external_editor_used', {});
       void (async () => {
         if (isV2 && planFilePath) {
           const result = await editFileInEditor(planFilePath);
@@ -279,7 +279,7 @@ export function ExitPlanModePermissionRequest({
     // Dialog dismisses immediately so the query loop unblocks; the teleport
     // runs detached and its launch message lands via the command queue.
     if (value === 'ultraplan') {
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: 'ultraplan' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -352,7 +352,7 @@ export function ExitPlanModePermissionRequest({
       }
 
       // Log plan exit event
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         clearContext: true,
@@ -398,7 +398,7 @@ export function ExitPlanModePermissionRequest({
     // buildPermissionUpdates maps auto to 'default' via toExternalPermissionMode.
     // We set the mode directly via setAppState and sync the bootstrap state.
     if (feature('TRANSCRIPT_CLASSIFIER') && value === 'yes-resume-auto-mode' && isAutoModeGateEnabled()) {
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         clearContext: false,
@@ -436,7 +436,7 @@ export function ExitPlanModePermissionRequest({
     };
     const keepContextMode = keepContextModes[value];
     if (keepContextMode) {
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         clearContext: false,
@@ -458,7 +458,7 @@ export function ExitPlanModePermissionRequest({
     };
     const standardMode = standardModes[value];
     if (standardMode) {
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -478,7 +478,7 @@ export function ExitPlanModePermissionRequest({
         // No feedback yet - user is still on the input field
         return;
       }
-      logEvent('内部代号_plan_exit', {
+      logEvent('limkenion_plan_exit', {
         planLengthChars: currentPlan.length,
         outcome: 'no' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -519,7 +519,7 @@ export function ExitPlanModePermissionRequest({
   handleResponseRef.current = handleResponse;
   const handleCancelRef = useRef<() => void>(undefined);
   handleCancelRef.current = () => {
-    logEvent('内部代号_plan_exit', {
+    logEvent('limkenion_plan_exit', {
       planLengthChars: currentPlan.length,
       outcome: 'no' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -558,7 +558,7 @@ export function ExitPlanModePermissionRequest({
   if (isEmpty) {
     function handleEmptyPlanResponse(value: 'yes' | 'no'): void {
       if (value === 'yes') {
-        logEvent('内部代号_plan_exit', {
+        logEvent('limkenion_plan_exit', {
           planLengthChars: 0,
           outcome: 'yes-default' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -587,7 +587,7 @@ export function ExitPlanModePermissionRequest({
           destination: 'session'
         }]);
       } else {
-        logEvent('内部代号_plan_exit', {
+        logEvent('limkenion_plan_exit', {
           planLengthChars: 0,
           outcome: 'no' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),
@@ -609,7 +609,7 @@ export function ExitPlanModePermissionRequest({
             label: 'No',
             value: 'no' as const
           }]} onChange={handleEmptyPlanResponse} onCancel={() => {
-            logEvent('内部代号_plan_exit', {
+            logEvent('limkenion_plan_exit', {
               planLengthChars: 0,
               outcome: 'no' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               interviewPhaseEnabled: isPlanModeInterviewPhaseEnabled(),

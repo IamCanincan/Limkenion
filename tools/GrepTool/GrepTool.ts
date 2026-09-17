@@ -35,56 +35,56 @@ const inputSchema = lazySchema(() =>
     pattern: z
       .string()
       .describe(
-        'The regular expression pattern to search for in file contents',
+        '在文件内容中搜索的正则表达式模式',
       ),
     path: z
       .string()
       .optional()
       .describe(
-        'File or directory to search in (rg PATH). Defaults to current working directory.',
+        '要搜索的文件或目录（rg PATH）。默认为当前工作目录。',
       ),
     glob: z
       .string()
       .optional()
       .describe(
-        'Glob pattern to filter files (e.g. "*.js", "*.{ts,tsx}") - maps to rg --glob',
+        '用于过滤文件的 glob 模式（例如 "*.js"、"*.{ts,tsx}"）——映射到 rg --glob',
       ),
     output_mode: z
       .enum(['content', 'files_with_matches', 'count'])
       .optional()
       .describe(
-        'Output mode: "content" shows matching lines (supports -A/-B/-C context, -n line numbers, head_limit), "files_with_matches" shows file paths (supports head_limit), "count" shows match counts (supports head_limit). Defaults to "files_with_matches".',
+        '输出模式："content" 显示匹配行（支持 -A/-B/-C 上下文、-n 行号、head_limit），"files_with_matches" 显示文件路径（支持 head_limit），"count" 显示匹配计数（支持 head_limit）。默认为 "files_with_matches"。',
       ),
     '-B': semanticNumber(z.number().optional()).describe(
-      'Number of lines to show before each match (rg -B). Requires output_mode: "content", ignored otherwise.',
+      '每个匹配之前显示的出行数（rg -B）。需要 output_mode: "content"，否则忽略。',
     ),
     '-A': semanticNumber(z.number().optional()).describe(
-      'Number of lines to show after each match (rg -A). Requires output_mode: "content", ignored otherwise.',
+      '每个匹配之后显示的出行数（rg -A）。需要 output_mode: "content"，否则忽略。',
     ),
-    '-C': semanticNumber(z.number().optional()).describe('Alias for context.'),
+    '-C': semanticNumber(z.number().optional()).describe('上下文的别名。'),
     context: semanticNumber(z.number().optional()).describe(
-      'Number of lines to show before and after each match (rg -C). Requires output_mode: "content", ignored otherwise.',
+      '每个匹配之前和之后显示的出行数（rg -C）。需要 output_mode: "content"，否则忽略。',
     ),
     '-n': semanticBoolean(z.boolean().optional()).describe(
-      'Show line numbers in output (rg -n). Requires output_mode: "content", ignored otherwise. Defaults to true.',
+      '在输出中显示行号（rg -n）。需要 output_mode: "content"，否则忽略。默认为 true。',
     ),
     '-i': semanticBoolean(z.boolean().optional()).describe(
-      'Case insensitive search (rg -i)',
+      '不区分大小写的搜索（rg -i）',
     ),
     type: z
       .string()
       .optional()
       .describe(
-        'File type to search (rg --type). Common types: js, py, rust, go, java, etc. More efficient than include for standard file types.',
+        '要搜索的文件类型（rg --type）。常见类型：js、py、rust、go、java 等。对标准文件类型比 include 更高效。',
       ),
     head_limit: semanticNumber(z.number().optional()).describe(
-      'Limit output to first N lines/entries, equivalent to "| head -N". Works across all output modes: content (limits output lines), files_with_matches (limits file paths), count (limits count entries). Defaults to 250 when unspecified. Pass 0 for unlimited (use sparingly — large result sets waste context).',
+      '将输出限制为前 N 行/条目，等价于 "| head -N"。适用于所有输出模式：content（限制输出行）、files_with_matches（限制文件路径）、count（限制计数条目）。未指定时默认为 250。传 0 表示不限制（请谨慎使用——大型结果集会浪费上下文）。',
     ),
     offset: semanticNumber(z.number().optional()).describe(
-      'Skip first N lines/entries before applying head_limit, equivalent to "| tail -n +N | head -N". Works across all output modes. Defaults to 0.',
+      '应用 head_limit 之前跳过前 N 行/条目，等价于 "| tail -n +N | head -N"。适用于所有输出模式。默认为 0。',
     ),
     multiline: semanticBoolean(z.boolean().optional()).describe(
-      'Enable multiline mode where . matches newlines and patterns can span lines (rg -U --multiline-dotall). Default: false.',
+      '启用多行模式，其中 . 匹配换行符且模式可跨行（rg -U --multiline-dotall）。默认：false。',
     ),
   }),
 )

@@ -5,7 +5,7 @@ import { isLimkenionAISubscriber } from '../../utils/auth.js'
 export default {
   type: 'local-jsx',
   name: 'remote-env',
-  description: 'Configure the default remote environment for teleport sessions',
+  description: '配置 teleport 会话的默认远程环境',
   isEnabled: () =>
     isLimkenionAISubscriber() && isPolicyAllowed('allow_remote_sessions'),
   get isHidden() {

@@ -12,15 +12,15 @@ import { DESCRIPTION, PROMPT } from './prompt.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    todos: TodoListSchema().describe('The updated todo list'),
+    todos: TodoListSchema().describe('更新后的待办列表'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    oldTodos: TodoListSchema().describe('The todo list before the update'),
-    newTodos: TodoListSchema().describe('The todo list after the update'),
+    oldTodos: TodoListSchema().describe('更新前的待办列表'),
+    newTodos: TodoListSchema().describe('更新后的待办列表'),
     verificationNudgeNeeded: z.boolean().optional(),
   }),
 )
@@ -76,7 +76,7 @@ export const TodoWriteTool = buildTool({
     let verificationNudgeNeeded = false
     if (
       feature('VERIFICATION_AGENT') &&
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_hive_evidence', false) &&
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_hive_evidence', false) &&
       !context.agentId &&
       allDone &&
       todos.length >= 3 &&

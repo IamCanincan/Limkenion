@@ -6,7 +6,7 @@
  *
  * For external users, tracing is enabled in SDK/headless mode, or in
  * interactive mode when the org is allowlisted via the
- * 内部代号_trace_lantern GrowthBook gate.
+ * limkenion_trace_lantern GrowthBook gate.
  * For ant users, tracing is enabled in all modes.
  *
  * Visibility Rules:
@@ -73,7 +73,7 @@ const MAX_CONTENT_SIZE = 60 * 1024 // 60KB (Honeycomb limit is 64KB, staying saf
  * Check if beta detailed tracing is enabled.
  * - Requires ENABLE_BETA_TRACING_DETAILED=1 and BETA_TRACING_ENDPOINT
  * - For external users, enabled in SDK/headless mode OR when org is
- *   allowlisted via the 内部代号_trace_lantern GrowthBook gate
+ *   allowlisted via the limkenion_trace_lantern GrowthBook gate
  */
 export function isBetaTracingEnabled(): boolean {
   const baseEnabled =
@@ -87,10 +87,10 @@ export function isBetaTracingEnabled(): boolean {
   // For external users, enable in SDK/headless mode OR when org is allowlisted.
   // Gate reads from disk cache, so first run after allowlisting returns false;
   // works from second run onward (same behavior as enhanced_telemetry_beta).
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return (
       getIsNonInteractiveSession() ||
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_trace_lantern', false)
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_trace_lantern', false)
     )
   }
 
@@ -427,19 +427,7 @@ export function addBetaLLMResponseAttributes(
   }
 
   // Add thinking_output - ant-only
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    metadata.thinkingOutput !== undefined
-  ) {
-    const { content: thinkingOutput, truncated: thinkingTruncated } =
-      truncateContent(metadata.thinkingOutput)
-    endAttributes['response.thinking_output'] = thinkingOutput
-    if (thinkingTruncated) {
-      endAttributes['response.thinking_output_truncated'] = true
-      endAttributes['response.thinking_output_original_length'] =
-        metadata.thinkingOutput.length
-    }
-  }
+  
 }
 
 /**

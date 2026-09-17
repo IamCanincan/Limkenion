@@ -46,7 +46,7 @@ export function useAwaySummary(
 
   // 3P default: false
   const gbEnabled = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_sedge_lantern',
+    'limkenion_sedge_lantern',
     false,
   )
 

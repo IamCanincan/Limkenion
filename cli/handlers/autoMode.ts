@@ -81,9 +81,9 @@ export async function autoModeCritiqueHandler(options: {
 
   if (!hasCustomRules) {
     process.stdout.write(
-      'No custom auto mode rules found.\n\n' +
-        'Add rules to your settings file under autoMode.{allow, soft_deny, environment}.\n' +
-        'Run `limkenion auto-mode defaults` to see the default rules for reference.\n',
+      '未找到自定义自动模式规则。\n\n' +
+        '请在设置文件的 autoMode.{allow, soft_deny, environment} 下添加规则。\n' +
+        '可运行 `limkenion auto-mode defaults` 查看默认规则作为参考。\n',
     )
     return
   }
@@ -108,7 +108,7 @@ export async function autoModeCritiqueHandler(options: {
       defaults.environment,
     )
 
-  process.stdout.write('Analyzing your auto mode rules…\n\n')
+  process.stdout.write('正在分析你的自动模式规则…\n\n')
 
   let response
   try {
@@ -134,7 +134,7 @@ export async function autoModeCritiqueHandler(options: {
     })
   } catch (error) {
     process.stderr.write(
-      'Failed to analyze rules: ' + errorMessage(error) + '\n',
+      '规则分析失败：' + errorMessage(error) + '\n',
     )
     process.exitCode = 1
     return
@@ -144,7 +144,7 @@ export async function autoModeCritiqueHandler(options: {
   if (textBlock?.type === 'text') {
     process.stdout.write(textBlock.text + '\n')
   } else {
-    process.stdout.write('No critique was generated. Please try again.\n')
+    process.stdout.write('未生成反馈。请重试。\n')
   }
 }
 

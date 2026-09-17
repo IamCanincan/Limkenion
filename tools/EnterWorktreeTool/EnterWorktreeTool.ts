@@ -33,7 +33,7 @@ const inputSchema = lazySchema(() =>
       })
       .optional()
       .describe(
-        'Optional name for the worktree. Each "/"-separated segment may contain only letters, digits, dots, underscores, and dashes; max 64 chars total. A random name is generated if not provided.',
+        '工作树的可选名称。每个以 "/" 分隔的段只能包含字母、数字、点、下划线和短横线；总计最长 64 字符。若不提供则自动生成一个随机名称。',
       ),
   }),
 )
@@ -101,7 +101,7 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
     clearMemoryFileCaches()
     getPlansDirectory.cache.clear?.()
 
-    logEvent('内部代号_worktree_created', {
+    logEvent('limkenion_worktree_created', {
       mid_session: true,
     })
 

@@ -257,55 +257,54 @@ import {
   withRetry,
 } from './withRetry.js'
 
-// Define a type that represents valid JSON values
+// 定义表示合法 JSON 值的类型
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray
 type JsonObject = { [key: string]: JsonValue }
 type JsonArray = JsonValue[]
 
 /**
- * Assemble the extra body parameters for the API request, based on the
- * LIMKENION_EXTRA_BODY environment variable if present and on any beta
- * headers (primarily for Bedrock requests).
+ * 为 API 请求组装额外的 body 参数，依据环境变量
+ * LIMKENION_EXTRA_BODY（若存在）以及各类 beta header
+ *（主要针对 Bedrock 请求）。
  *
- * @param betaHeaders - An array of beta headers to include in the request.
- * @returns A JSON object representing the extra body parameters.
+ * @param betaHeaders - 要包含在请求中的 beta header 数组。
+ * @returns 表示额外 body 参数的 JSON 对象。
  */
 export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
-  // Parse user's extra body parameters first
+  // 先解析用户的额外 body 参数
   const extraBodyStr = process.env.LIMKENION_EXTRA_BODY
   let result: JsonObject = {}
 
   if (extraBodyStr) {
     try {
-      // Parse as JSON, which can be null, boolean, number, string, array or object
+      // 解析为 JSON，可为 null、布尔值、数字、字符串、数组或对象
       const parsed = safeParseJSON(extraBodyStr)
-      // We expect an object with key-value pairs to spread into API parameters
+      // 期望得到一个键值对对象，用于拆开到 API 参数中
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        // Shallow clone — safeParseJSON is LRU-cached and returns the same
-        // object reference for the same string. Mutating `result` below
-        // would poison the cache, causing stale values to persist.
+        // 浅拷贝——safeParseJSON 使用 LRU 缓存，对相同的字符串会返回同一个
+        // 对象引用。若下面直接修改 `result`，会污染缓存，导致旧值一直残留。
         result = { ...(parsed as JsonObject) }
       } else {
         logForDebugging(
-          `LIMKENION_EXTRA_BODY env var must be a JSON object, but was given ${extraBodyStr}`,
+          `LIMKENION_EXTRA_BODY 环境变量必须是 JSON 对象，但传入的是 ${extraBodyStr}`,
           { level: 'error' },
         )
       }
     } catch (error) {
       logForDebugging(
-        `Error parsing LIMKENION_EXTRA_BODY: ${errorMessage(error)}`,
+        `解析 LIMKENION_EXTRA_BODY 出错：${errorMessage(error)}`,
         { level: 'error' },
       )
     }
   }
 
-  // Anti-distillation: send fake_tools opt-in for 1P CLI only
+  // 反蒸馏：仅对 1P CLI 发送 fake_tools 的主动选择（opt-in）
   if (
     feature('ANTI_DISTILLATION_CC')
       ? process.env.LIMKENION_ENTRYPOINT === 'cli' &&
         shouldIncludeFirstPartyOnlyBetas() &&
         getFeatureValue_CACHED_MAY_BE_STALE(
-          '内部代号_anti_distill_fake_tool_injection',
+          'limkenion_anti_distill_fake_tool_injection',
           false,
         )
       : false
@@ -313,17 +312,17 @@ export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
     result.anti_distillation = ['fake_tools']
   }
 
-  // Handle beta headers if provided
+  // 若提供了 beta header，则进行处理
   if (betaHeaders && betaHeaders.length > 0) {
     if (result.limkenion_beta && Array.isArray(result.limkenion_beta)) {
-      // Add to existing array, avoiding duplicates
+      // 追加到已有数组中，避免重复
       const existingHeaders = result.limkenion_beta as string[]
       const newHeaders = betaHeaders.filter(
         header => !existingHeaders.includes(header),
       )
       result.limkenion_beta = [...existingHeaders, ...newHeaders]
     } else {
-      // Create new array with the beta headers
+      // 用这些 beta header 创建新数组
       result.limkenion_beta = betaHeaders
     }
   }
@@ -332,22 +331,22 @@ export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
 }
 
 export function getPromptCachingEnabled(model: string): boolean {
-  // Global disable takes precedence
+  // 全局开关优先
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) return false
 
-  // Check if we should disable for small/fast model
+  // 检查是否应针对小/快模型禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_HAIKU)) {
     const smallFastModel = getSmallFastModel()
     if (model === smallFastModel) return false
   }
 
-  // Check if we should disable for default Sonnet
+  // 检查是否应针对默认 Sonnet 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
     const defaultSonnet = getDefaultSonnetModel()
     if (model === defaultSonnet) return false
   }
 
-  // Check if we should disable for default Opus
+  // 检查是否应针对默认 Opus 禁用它
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
     const defaultOpus = getDefaultOpusModel()
     if (model === defaultOpus) return false
@@ -375,25 +374,25 @@ export function getCacheControl({
 }
 
 /**
- * Determines if 1h TTL should be used for prompt caching.
+ * 判断 prompt 缓存是否应使用 1 小时 TTL。
  *
- * Only applied when:
- * 1. User is eligible (ant or subscriber within rate limits)
- * 2. The query source matches a pattern in the GrowthBook allowlist
+ * 仅在以下情况生效：
+ * 1. 用户符合条件（在速率限制内的订阅/会员用户）
+ * 2. query source 与 GrowthBook 白名单中的某个 pattern 匹配
  *
- * GrowthBook config shape: { allowlist: string[] }
- * Patterns support trailing '*' for prefix matching.
- * Examples:
- * - { allowlist: ["repl_main_thread*", "sdk"] } — main thread + SDK only
- * - { allowlist: ["repl_main_thread*", "sdk", "agent:*"] } — also subagents
- * - { allowlist: ["*"] } — all sources
+ * GrowthBook 配置结构：{ allowlist: string[] }
+ * pattern 支持末尾 '*' 用于前缀匹配。
+ * 示例：
+ * - { allowlist: ["repl_main_thread*", "sdk"] } —— 仅主线程 + SDK
+ * - { allowlist: ["repl_main_thread*", "sdk", "agent:*"] } —— 也包括子代理
+ * - { allowlist: ["*"] } —— 所有来源
  *
- * The allowlist is cached in STATE for session stability — prevents mixed
- * TTLs when GrowthBook's disk cache updates mid-request.
+ * 白名单缓存在 STATE 中以保持会话稳定——避免 GrowthBook 的磁盘缓存
+ * 在请求中途更新时出现混合 TTL。
  */
 function should1hCacheTTL(querySource?: QuerySource): boolean {
-  // 3P Bedrock users get 1h TTL when opted in via env var — they manage their own billing
-  // No GrowthBook gating needed since 3P users don't have GrowthBook configured
+  // 通过环境变量选择（opt-in）的第三方 Bedrock 用户可获得 1h TTL——他们自行管理计费
+  // 第三方用户未配置 GrowthBook，因此无需 GrowthBook 门控
   if (
     getAPIProvider() === 'bedrock' &&
     isEnvTruthy(process.env.ENABLE_PROMPT_CACHING_1H_BEDROCK)
@@ -401,25 +400,23 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
     return true
   }
 
-  // Latch eligibility in bootstrap state for session stability — prevents
-  // mid-session overage flips from changing the cache_control TTL, which
-  // would bust the server-side prompt cache (~20K tokens per flip).
+  // 在 bootstrap 状态中锁定资格以获得会话稳定——防止会话中途的用量超限翻转
+  // 改变 cache_control 的 TTL，那样会破坏服务端 prompt 缓存（每次翻转约 2 万 token）。
   let userEligible = getPromptCache1hEligible()
   if (userEligible === null) {
     userEligible =
-      process.env.USER_TYPE === 'ant' ||
-      (isLimkenionAISubscriber() && !currentLimits.isUsingOverage)
+      ((isLimkenionAISubscriber() && !currentLimits.isUsingOverage))
     setPromptCache1hEligible(userEligible)
   }
   if (!userEligible) return false
 
-  // Cache allowlist in bootstrap state for session stability — prevents mixed
-  // TTLs when GrowthBook's disk cache updates mid-request
+  // 在 bootstrap 状态中缓存白名单以获得会话稳定——防止请求中途时
+  // GrowthBook 磁盘缓存更新导致的混合 TTL
   let allowlist = getPromptCache1hAllowlist()
   if (allowlist === null) {
     const config = getFeatureValue_CACHED_MAY_BE_STALE<{
       allowlist?: string[]
-    }>('内部代号_prompt_cache_1h_config', {})
+    }>('limkenion_prompt_cache_1h_config', {})
     allowlist = config.allowlist ?? []
     setPromptCache1hAllowlist(allowlist)
   }
@@ -435,7 +432,7 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
 }
 
 /**
- * Configure effort parameters for API request.
+ * 为 API 请求配置 effort 参数。
  *
  */
 function configureEffortParams(
@@ -452,25 +449,17 @@ function configureEffortParams(
   if (effortValue === undefined) {
     betas.push(EFFORT_BETA_HEADER)
   } else if (typeof effortValue === 'string') {
-    // Send string effort level as is
+    // 按原样发送字符串形式的 effort 级别
     outputConfig.effort = effortValue
     betas.push(EFFORT_BETA_HEADER)
-  } else if (process.env.USER_TYPE === 'ant') {
-    // Numeric effort override - ant-only (uses limkenion_internal)
-    const existingInternal =
-      (extraBodyParams.limkenion_internal as Record<string, unknown>) || {}
-    extraBodyParams.limkenion_internal = {
-      ...existingInternal,
-      effort_override: effortValue,
-    }
   }
 }
 
-// output_config.task_budget — API-side token budget awareness for the model.
-// Stainless SDK types don't yet include task_budget on BetaOutputConfig, so we
-// define the wire shape locally and cast. The API validates on receipt; see
-// api/api/schemas/messages/request/output_config.py:12-39 in the monorepo.
-// Beta: task-budgets-2026-03-13 (EAP, limkenion-strudel-eap only as of Mar 2026).
+// output_config.task_budget —— 面向模型的 API 侧 token 预算感知。
+// Stainless SDK 类型尚未在 BetaOutputConfig 上包含 task_budget，因此我们
+// 在本地定义网络传输形状并做类型转换。API 在接收时进行校验；参见
+// 单仓库中的 api/api/schemas/messages/request/output_config.py:12-39。
+// Beta：task-budgets-2026-03-13（EAP，截至 2026 年 3 月仅限 limkenion-strudel-eap）。
 type TaskBudgetParam = {
   type: 'tokens'
   total: number
@@ -511,7 +500,7 @@ export function getAPIMetadata() {
       extra = parsed as JsonObject
     } else {
       logForDebugging(
-        `LIMKENION_EXTRA_METADATA env var must be a JSON object, but was given ${extraStr}`,
+        `LIMKENION_EXTRA_METADATA 环境变量必须是 JSON 对象，但传入的是 ${extraStr}`,
         { level: 'error' },
       )
     }
@@ -521,7 +510,7 @@ export function getAPIMetadata() {
     user_id: jsonStringify({
       ...extra,
       device_id: getOrCreateUserID(),
-      // Only include OAuth account UUID when actively using OAuth authentication
+      // 仅在主动使用 OAuth 认证时包含 OAuth 账户 UUID
       account_uuid: getOauthAccountInfo()?.accountUuid ?? '',
       session_id: getSessionId(),
     }),
@@ -532,7 +521,7 @@ export async function verifyApiKey(
   apiKey: string,
   isNonInteractiveSession: boolean,
 ): Promise<boolean> {
-  // Skip API verification if running in print mode (isNonInteractiveSession)
+  // 若处于非交互会话（print 模式）则跳过 API 校验
   if (isNonInteractiveSession) {
     return true
   }
@@ -567,7 +556,7 @@ export async function verifyApiKey(
   }
 
   try {
-    // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
+    // 警告：如果你把它改成非 Haiku 模型，除非使用 getCLISyspromptPrefix，否则在 1P 中此请求会失败。
     const model = getSmallFastModel()
     const betas = getModelBetas(model)
     return await returnValue(
@@ -593,7 +582,7 @@ export async function verifyApiKey(
           })
           return true
         },
-        { maxRetries: 2, model, thinkingConfig: { type: 'disabled' } }, // Use fewer retries for API key verification
+        { maxRetries: 2, model, thinkingConfig: { type: 'disabled' } }, // 为 API key 校验使用更少的重试次数
       ),
     )
   } catch (errorFromRetry) {
@@ -602,7 +591,7 @@ export async function verifyApiKey(
       error = errorFromRetry.originalError
     }
     logError(error)
-    // Check for authentication error
+    // 检查认证错误
     if (
       error instanceof Error &&
       error.message.includes(
@@ -649,9 +638,9 @@ export function userMessageToMessageParam(
       }
     }
   }
-  // Clone array content to prevent in-place mutations (e.g., insertCacheEditsBlock's
-  // splice) from contaminating the original message. Without cloning, multiple calls
-  // to addCacheBreakpoints share the same array and each splices in duplicate cache_edits.
+  // 克隆数组内容，防止原位修改（例如 insertCacheEditsBlock 的
+  // splice）污染原始消息。若不克隆，多次调用
+  // addCacheBreakpoints 会共享同一数组，每次都会 splice 进重复的 cache_edits。
   return {
     role: 'user',
     content: Array.isArray(message.message.content)
@@ -729,10 +718,10 @@ export type Options = {
   fastMode?: boolean
   advisorModel?: string
   addNotification?: (notif: Notification) => void
-  // API-side task budget (output_config.task_budget). Distinct from the
-  // tokenBudget.ts +500k auto-continue feature — this one is sent to the API
-  // so the model can pace itself. `remaining` is computed by the caller
-  // (query.ts decrements across the agentic loop).
+  // API 侧任务预算（output_config.task_budget）。与
+  // tokenBudget.ts 的 +50 万自动续跑功能不同——此值会发送给 API，
+  // 以便模型自行调节节奏。`remaining` 由调用方计算
+  //（query.ts 在 agentic 循环中进行递减）。
   taskBudget?: { total: number; remaining?: number }
 }
 
@@ -751,8 +740,8 @@ export async function queryModelWithoutStreaming({
   signal: AbortSignal
   options: Options
 }): Promise<AssistantMessage> {
-  // Store the assistant message but continue consuming the generator to ensure
-  // logAPISuccessAndDuration gets called (which happens after all yields)
+  // 保存 assistant 消息，但仍继续消耗生成器，以确保
+  // logAPISuccessAndDuration 被调用（它发生在所有 yield 之后）
   let assistantMessage: AssistantMessage | undefined
   for await (const message of withStreamingVCR(messages, async function* () {
     yield* queryModel(
@@ -769,12 +758,12 @@ export async function queryModelWithoutStreaming({
     }
   }
   if (!assistantMessage) {
-    // If the signal was aborted, throw APIUserAbortError instead of a generic error
-    // This allows callers to handle abort scenarios gracefully
+    // 若信号已终止，则抛 APIUserAbortError 而不是通用错误
+    // 这样调用方可以优雅地处理中断场景
     if (signal.aborted) {
       throw new APIUserAbortError()
     }
-    throw new Error('No assistant message found')
+    throw new Error('未找到 assistant 消息')
   }
   return assistantMessage
 }
@@ -810,29 +799,29 @@ export async function* queryModelWithStreaming({
 }
 
 /**
- * Determines if an LSP tool should be deferred (tool appears with defer_loading: true)
- * because LSP initialization is not yet complete.
+ * 判断是否应延迟某个 LSP 工具（工具以 defer_loading: true 出现），
+ * 因为 LSP 初始化尚未完成。
  */
 function shouldDeferLspTool(tool: Tool): boolean {
   if (!('isLsp' in tool) || !tool.isLsp) {
     return false
   }
   const status = getInitializationStatus()
-  // Defer when pending or not started
+  // 当处于 pending 或 not-started 状态时延迟
   return status.status === 'pending' || status.status === 'not-started'
 }
 
 /**
- * Per-attempt timeout for non-streaming fallback requests, in milliseconds.
- * Reads API_TIMEOUT_MS when set so slow backends and the streaming path
- * share the same ceiling.
+ * 非流式回退请求的单次尝试超时，单位毫秒。
+ * 若设置了 API_TIMEOUT_MS 则读取之，使慢后端与流式路径
+ * 共享同一上限。
  *
- * Remote sessions default to 120s to stay under CCR's container idle-kill
- * (~5min) so a hung fallback to a wedged backend surfaces a clean
- * APIConnectionTimeoutError instead of stalling past SIGKILL.
+ * 远程会话默认为 120 秒，以保持在 CCR 的容器空闲回收
+ *（约 5 分钟）之内，从而对卡死后端产生的挂起回退会给出干净的
+ * APIConnectionTimeoutError，而不是在 SIGKILL 之后迟迟不返回。
  *
- * Otherwise defaults to 300s — long enough for slow backends without
- * approaching the API's 10-minute non-streaming boundary.
+ * 否则默认为 300 秒——足够长的慢后端时间，同时不会
+ * 逼近 API 的 10 分钟非流式边界。
  */
 function getNonstreamingFallbackTimeoutMs(): number {
   const override = parseInt(process.env.API_TIMEOUT_MS || '', 10)
@@ -841,9 +830,9 @@ function getNonstreamingFallbackTimeoutMs(): number {
 }
 
 /**
- * Helper generator for non-streaming API requests.
- * Encapsulates the common pattern of creating a withRetry generator,
- * iterating to yield system messages, and returning the final BetaMessage.
+ * 非流式 API 请求的辅助生成器。
+ * 封装了创建 withRetry 生成器、迭代产出系统消息、
+ * 并返回最终 BetaMessage 的通用模式。
  */
 export async function* executeNonStreamingRequest(
   clientOptions: {
@@ -864,8 +853,8 @@ export async function* executeNonStreamingRequest(
   onAttempt: (attempt: number, start: number, maxOutputTokens: number) => void,
   captureRequest: (params: BetaMessageStreamParams) => void,
   /**
-   * Request ID of the failed streaming attempt this fallback is recovering
-   * from. Emitted in 内部代号_nonstreaming_fallback_error for funnel correlation.
+   * 该回退正在从中恢复的失败流式尝试的请求 ID。
+   * 会在 limkenion_nonstreaming_fallback_error 事件中发出以用于漏斗关联。
    */
   originatingRequestId?: string | null,
 ): AsyncGenerator<SystemAPIErrorMessage, BetaMessage> {
@@ -902,14 +891,14 @@ export async function* executeNonStreamingRequest(
           },
         )
       } catch (err) {
-        // User aborts are not errors — re-throw immediately without logging
+        // 用户中断不是错误——立即重新抛出且不记录
         if (err instanceof APIUserAbortError) throw err
 
-        // Instrumentation: record when the non-streaming request errors (including
-        // timeouts). Lets us distinguish "fallback hung past container kill"
-        // (no event) from "fallback hit the bounded timeout" (this event).
+        // 观察性采集：记录非流式请求出错（包括超时）的情况。
+        // 让我们能区分「回退在容器回收后才挂起」（无事件）与
+        // 「回退命中有界超时」（此事件）。
         logForDiagnosticsNoPII('error', 'cli_nonstreaming_fallback_error')
-        logEvent('内部代号_nonstreaming_fallback_error', {
+        logEvent('limkenion_nonstreaming_fallback_error', {
           model:
             clientOptions.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           error:
@@ -947,13 +936,13 @@ export async function* executeNonStreamingRequest(
 }
 
 /**
- * Extracts the request ID from the most recent assistant message in the
- * conversation. Used to link consecutive API requests in analytics so we can
- * join them for cache-hit-rate analysis and incremental token tracking.
+ * 从会话中最新的 assistant 消息中提取请求 ID。
+ * 用于在分析中衔接连续的系统请求，以便对它们进行关联，
+ * 进行缓存命中率分析与增量 token 追踪。
  *
- * Deriving this from the message array (rather than global state) ensures each
- * query chain (main thread, subagent, teammate) tracks its own request chain
- * independently, and rollback/undo naturally updates the value.
+ * 从消息数组（而非全局状态）中推导，可确保每条查询链
+ *（主线程、子代理、队友）独立追踪自己的请求链，
+ * 且回滚/撤销操作会自然更新该值。
  */
 function getPreviousRequestIdFromMessages(
   messages: Message[],
@@ -980,8 +969,8 @@ function isToolResult(
 }
 
 /**
- * Ensures messages contain at most `limit` media items (images + documents).
- * Strips oldest media first to preserve the most recent.
+ * 确保消息最多包含 `limit` 个媒体项（图片 + 文档）。
+ * 优先移除最早的媒体以保留最新的。
  */
 export function stripExcessMediaItems(
   messages: (UserMessage | AssistantMessage)[],
@@ -1073,22 +1062,22 @@ async function* queryModel(
     return
   }
 
-  // Check cheap conditions first — the off-switch await blocks on GrowthBook
-  // init (~10ms). For non-Opus models (haiku, sonnet) this skips the await
-  // entirely. Subscribers don't hit this path at all.
+  // 先检查廉价条件——off-switch 的 await 会阻塞在 GrowthBook
+  // 初始化上（约 10ms）。对非 Opus 模型（haiku、sonnet）完全跳过该 await。
+  // 订阅用户完全不会走到此路径。
   if (
     !isLimkenionAISubscriber() &&
     isNonCustomOpusModel(options.model) &&
     (
       await getDynamicConfig_BLOCKS_ON_INIT<{ activated: boolean }>(
-        '内部代号-off-switch',
+        'limkenion-off-switch',
         {
           activated: false,
         },
       )
     ).activated
   ) {
-    logEvent('内部代号_off_switch_query', {})
+    logEvent('limkenion_off_switch_query', {})
     yield getAssistantMessageFromError(
       new Error(CUSTOM_OFF_SWITCH_MESSAGE),
       options.model,
@@ -1096,10 +1085,10 @@ async function* queryModel(
     return
   }
 
-  // Derive previous request ID from the last assistant message in this query chain.
-  // This is scoped per message array (main thread, subagent, teammate each have their own),
-  // so concurrent agents don't clobber each other's request chain tracking.
-  // Also naturally handles rollback/undo since removed messages won't be in the array.
+  // 从该查询链中的最后一条 assistant 消息推导出前一个请求 ID。
+  // 其作用域限定在每个消息数组（主线程、子代理、队友各有各的）内，
+  // 因此并发的代理不会互相覆盖对方的请求链追踪。
+  // 同时天然地处理了回滚/撤销，因为被移除的消息不会出现在数组中。
   const previousRequestId = getPreviousRequestIdFromMessages(messages)
 
   const resolvedModel =
@@ -1118,9 +1107,9 @@ async function* queryModel(
     options.querySource === 'verification_agent'
   const betas = getMergedBetas(options.model, { isAgenticQuery })
 
-  // Always send the advisor beta header when advisor is enabled, so
-  // non-agentic queries (compact, side_question, extract_memories, etc.)
-  // can parse advisor server_tool_use blocks already in the conversation history.
+  // 当 advisor 启用时总要发送 advisor beta header，以便
+  // 非 agentic 查询（compact、side_question、extract_memories 等）
+  // 能解析会话历史中已有的 advisor server_tool_use 块。
   if (isAdvisorEnabled()) {
     betas.push(ADVISOR_BETA_HEADER)
   }
@@ -1135,9 +1124,8 @@ async function* queryModel(
         normalizeModelStringForAPI(advisorExperiment.baseModel) ===
         normalizeModelStringForAPI(options.model)
       ) {
-        // Override the advisor model if the base model matches. We
-        // should only have experiment models if the user cannot
-        // configure it themselves.
+        // 若基础模型匹配，则覆盖 advisor 模型。仅在用户无法
+        // 自行配置时才应存在实验模型。
         advisorOption = advisorExperiment.advisorModel
       }
     }
@@ -1148,23 +1136,23 @@ async function* queryModel(
       )
       if (!modelSupportsAdvisor(options.model)) {
         logForDebugging(
-          `[AdvisorTool] Skipping advisor - base model ${options.model} does not support advisor`,
+          `[AdvisorTool] 跳过 advisor - 基础模型 ${options.model} 不支持 advisor`,
         )
       } else if (!isValidAdvisorModel(normalizedAdvisorModel)) {
         logForDebugging(
-          `[AdvisorTool] Skipping advisor - ${normalizedAdvisorModel} is not a valid advisor model`,
+          `[AdvisorTool] 跳过 advisor - ${normalizedAdvisorModel} 不是合法的 advisor 模型`,
         )
       } else {
         advisorModel = normalizedAdvisorModel
         logForDebugging(
-          `[AdvisorTool] Server-side tool enabled with ${advisorModel} as the advisor model`,
+          `[AdvisorTool] 服务端工具已启用，使用 ${advisorModel} 作为 advisor 模型`,
         )
       }
     }
   }
 
-  // Check if tool search is enabled (checks mode, model support, and threshold for auto mode)
-  // This is async because it may need to calculate MCP tool description sizes for TstAuto mode
+  // 检查是否启用了工具搜索（检查模式、模型支持、以及自动模式的阈值）
+  // 此操作为异步，因为它可能需要为 TstAuto 模式计算 MCP 工具描述的大小
   let useToolSearch = await isToolSearchEnabled(
     options.model,
     tools,
@@ -1173,7 +1161,7 @@ async function* queryModel(
     'query',
   )
 
-  // Precompute once — isDeferredTool does 2 GrowthBook lookups per call
+  // 只预先计算一次——isDeferredTool 每次调用会做 2 次 GrowthBook 查询
   const deferredToolNames = new Set<string>()
   if (useToolSearch) {
     for (const t of tools) {
@@ -1181,36 +1169,36 @@ async function* queryModel(
     }
   }
 
-  // Even if tool search mode is enabled, skip if there are no deferred tools
-  // AND no MCP servers are still connecting. When servers are pending, keep
-  // ToolSearch available so the model can discover tools after they connect.
+  // 即使启用了工具搜索模式，若没有延迟工具且没有
+  // 仍在连接的 MCP 服务器，也跳过。当服务器处于 pending 状态时，
+  // 保留 ToolSearch，使模型能在其连接后发现的工具。
   if (
     useToolSearch &&
     deferredToolNames.size === 0 &&
     !options.hasPendingMcpServers
   ) {
     logForDebugging(
-      'Tool search disabled: no deferred tools available to search',
+      '工具搜索已禁用：没有可搜索的延迟工具',
     )
     useToolSearch = false
   }
 
-  // Filter out ToolSearchTool if tool search is not enabled for this model
-  // ToolSearchTool returns tool_reference blocks which unsupported models can't handle
+  // 若此模型未启用工具搜索，则过滤掉 ToolSearchTool
+  // ToolSearchTool 会返回 tool_reference 块，不支持的模型无法处理它们
   let filteredTools: Tools
 
   if (useToolSearch) {
-    // Dynamic tool loading: Only include deferred tools that have been discovered
-    // via tool_reference blocks in the message history. This eliminates the need
-    // to predeclare all deferred tools upfront and removes limits on tool quantity.
+    // 动态工具加载：仅包含在消息历史中已通过 tool_reference 块
+    // 发现的延迟工具。这消除了预先声明所有延迟工具的需要，
+    // 并解除对工具数量的限制。
     const discoveredToolNames = extractDiscoveredToolNames(messages)
 
     filteredTools = tools.filter(tool => {
-      // Always include non-deferred tools
+      // 总是包含非延迟工具
       if (!deferredToolNames.has(tool.name)) return true
-      // Always include ToolSearchTool (so it can discover more tools)
+      // 总是包含 ToolSearchTool（以便它能发现更多工具）
       if (toolMatchesName(tool, TOOL_SEARCH_TOOL_NAME)) return true
-      // Only include deferred tools that have been discovered
+      // 仅包含已发现的延迟工具
       return discoveredToolNames.has(tool.name)
     })
   } else {
@@ -1219,9 +1207,9 @@ async function* queryModel(
     )
   }
 
-  // Add tool search beta header if enabled - required for defer_loading to be accepted
-  // Header differs by provider: 1P/Foundry use advanced-tool-use, Vertex/Bedrock use tool-search-tool
-  // For Bedrock, this header must go in extraBodyParams, not the betas array
+  // 若启用则添加工具搜索 beta header - 需要它才能接受 defer_loading
+  // header 因提供方而异：1P/Foundry 使用 advanced-tool-use，Vertex/Bedrock 使用 tool-search-tool
+  // 对 Bedrock 而言，此 header 必须放在 extraBodyParams 中，而非 betas 数组里
   const toolSearchHeader = useToolSearch ? getToolSearchBetaHeader() : null
   if (toolSearchHeader && getAPIProvider() !== 'bedrock') {
     if (!betas.includes(toolSearchHeader)) {
@@ -1229,10 +1217,10 @@ async function* queryModel(
     }
   }
 
-  // Determine if cached microcompact is enabled for this model.
-  // Computed once here (in async context) and captured by paramsFromContext.
-  // The beta header is also captured here to avoid a top-level import of the
-  // ant-only CACHE_EDITING_BETA_HEADER constant.
+  // 判断此模型是否启用了缓存式 microcompact。
+  // 在此处（异步上下文）计算一次，并由 paramsFromContext 捕获。
+  // beta header 也在此捕获，以避免在顶层导入
+  // 仅 ant 可用的 CACHE_EDITING_BETA_HEADER 常量。
   let cachedMCEnabled = false
   let cacheEditingBetaHeader = ''
   if (feature('CACHED_MICROCOMPACT')) {
@@ -1248,20 +1236,20 @@ async function* queryModel(
     cachedMCEnabled = featureEnabled && modelSupported
     const config = getCachedMCConfig()
     logForDebugging(
-      `Cached MC gate: enabled=${featureEnabled} modelSupported=${modelSupported} model=${options.model} supportedModels=${jsonStringify(config.supportedModels)}`,
+      `Cached MC 门控：enabled=${featureEnabled} modelSupported=${modelSupported} model=${options.model} supportedModels=${jsonStringify(config.supportedModels)}`,
     )
   }
 
   const useGlobalCacheFeature = shouldUseGlobalCacheScope()
   const willDefer = (t: Tool) =>
     useToolSearch && (deferredToolNames.has(t.name) || shouldDeferLspTool(t))
-  // MCP tools are per-user → dynamic tool section → can't globally cache.
-  // Only gate when an MCP tool will actually render (not defer_loading).
+  // MCP 工具是 per-user 的 → 动态工具段 → 无法全局缓存。
+  // 仅在 MCP 工具实际渲染时（而不是 defer_loading）才进行门控。
   const needsToolBasedCacheMarker =
     useGlobalCacheFeature &&
     filteredTools.some(t => t.isMcp === true && !willDefer(t))
 
-  // Ensure prompt_caching_scope beta header is present when global cache is enabled.
+  // 确保在启用全局缓存时存在 prompt_caching_scope beta header。
   if (
     useGlobalCacheFeature &&
     !betas.includes(PROMPT_CACHING_SCOPE_BETA_HEADER)
@@ -1269,17 +1257,17 @@ async function* queryModel(
     betas.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
   }
 
-  // Determine global cache strategy for logging
+  // 确定用于日志记录的全局缓存策略
   const globalCacheStrategy: GlobalCacheStrategy = useGlobalCacheFeature
     ? needsToolBasedCacheMarker
       ? 'none'
       : 'system_prompt'
     : 'none'
 
-  // Build tool schemas, adding defer_loading for MCP tools when tool search is enabled
-  // Note: We pass the full `tools` list (not filteredTools) to toolToAPISchema so that
-  // ToolSearchTool's prompt can list ALL available MCP tools. The filtering only affects
-  // which tools are actually sent to the API, not what the model sees in tool descriptions.
+  // 构建工具 schema，当启用工具搜索时为 MCP 工具添加 defer_loading
+  // 注意：我们向 toolToAPISchema 传入完整的 `tools` 列表（而非 filteredTools），以便
+  // ToolSearchTool 的 prompt 能列出所有可用的 MCP 工具。过滤仅影响
+  // 实际发送给 API 的哪些工具，而不影响模型在工具描述中看到的内容。
   const toolSchemas = await Promise.all(
     filteredTools.map(tool =>
       toolToAPISchema(tool, {
@@ -1298,15 +1286,15 @@ async function* queryModel(
       deferredToolNames.has(t.name),
     )
     logForDebugging(
-      `Dynamic tool loading: ${includedDeferredTools}/${deferredToolNames.size} deferred tools included`,
+      `动态工具加载：已包含 ${includedDeferredTools}/${deferredToolNames.size} 个延迟工具`,
     )
   }
 
   queryCheckpoint('query_tool_schema_build_end')
 
-  // Normalize messages before building system prompt (needed for fingerprinting)
-  // Instrumentation: Track message count before normalization
-  logEvent('内部代号_api_before_normalize', {
+  // 在构建系统 prompt 前归一化消息（指纹计算所需）
+  // 观察性采集：在归一化前跟踪消息数量
+  logEvent('limkenion_api_before_normalize', {
     preNormalizedMessageCount: messages.length,
   })
 
@@ -1314,28 +1302,28 @@ async function* queryModel(
   let messagesForAPI = normalizeMessagesForAPI(messages, filteredTools)
   queryCheckpoint('query_message_normalization_end')
 
-  // Model-specific post-processing: strip tool-search-specific fields if the
-  // selected model doesn't support tool search.
+  // 模型相关的后处理：若选定的模型不支持工具搜索，
+  // 则移除工具搜索相关的字段。
   //
-  // Why is this needed in addition to normalizeMessagesForAPI?
-  // - normalizeMessagesForAPI uses isToolSearchEnabledNoModelCheck() because it's
-  //   called from ~20 places (analytics, feedback, sharing, etc.), many of which
-  //   don't have model context. Adding model to its signature would be a large refactor.
-  // - This post-processing uses the model-aware isToolSearchEnabled() check
-  // - This handles mid-conversation model switching (e.g., Sonnet → Haiku) where
-  //   stale tool-search fields from the previous model would cause 400 errors
+  // 为何在 normalizeMessagesForAPI 之外还需要它？
+  // - normalizeMessagesForAPI 使用 isToolSearchEnabledNoModelCheck()，因为它在
+  //   约 20 处被调用（analytics、feedback、sharing 等），其中多数
+  //   没有模型上下文。在它的签名中增加 model 将是一次大重构。
+  // - 该后处理使用带模型感知的 isToolSearchEnabled() 检查
+  // - 它处理会话中途的模型切换（例如 Sonnet → Haiku），此时
+  //   前一个模型遗留的陈旧工具搜索字段会导致 400 错误
   //
-  // Note: For assistant messages, normalizeMessagesForAPI already normalized the
-  // tool inputs, so stripCallerFieldFromAssistantMessage only needs to remove the
-  // 'caller' field (not re-normalize inputs).
+  // 注意：对 assistant 消息，normalizeMessagesForAPI 已归一化
+  // 工具输入，因此 stripCallerFieldFromAssistantMessage 只需移除
+  // 'caller' 字段（不必重新归一化输入）。
   if (!useToolSearch) {
     messagesForAPI = messagesForAPI.map(msg => {
       switch (msg.type) {
         case 'user':
-          // Strip tool_reference blocks from tool_result content
+          // 从 tool_result 内容中移除 tool_reference 块
           return stripToolReferenceBlocksFromUserMessage(msg)
         case 'assistant':
-          // Strip 'caller' field from tool_use blocks
+          // 从 tool_use 块中移除 'caller' 字段
           return stripCallerFieldFromAssistantMessage(msg)
         default:
           return msg
@@ -1343,38 +1331,37 @@ async function* queryModel(
     })
   }
 
-  // Repair tool_use/tool_result pairing mismatches that can occur when resuming
-  // remote/teleport sessions. Inserts synthetic error tool_results for orphaned
-  // tool_uses and strips orphaned tool_results referencing non-existent tool_uses.
+  // 修复在恢复远程/teleport 会话时可能出现的 tool_use/tool_result 配对不匹配。
+  // 为孤立的 tool_use 插入合成的错误 tool_results，
+  // 并移除引用不存在 tool_use 的孤立 tool_results。
   messagesForAPI = ensureToolResultPairing(messagesForAPI)
 
-  // Strip advisor blocks — the API rejects them without the beta header.
+  // 移除 advisor 块——没有 beta header 时 API 会拒绝它们。
   if (!betas.includes(ADVISOR_BETA_HEADER)) {
     messagesForAPI = stripAdvisorBlocks(messagesForAPI)
   }
 
-  // Strip excess media items before making the API call.
-  // The API rejects requests with >100 media items but returns a confusing error.
-  // Rather than erroring (which is hard to recover from in Cowork/CCD), we
-  // silently drop the oldest media items to stay within the limit.
+  // 在发起 API 调用前移除多余的媒体项。
+  // 当请求包含超过 100 个媒体项时 API 会拒绝，但返回的错误令人费解。
+  // 我们选择静默丢弃最早的媒体项以保持在限制之内，
+  // 而不是报错（在 Cowork/CCD 中很难恢复）。
   messagesForAPI = stripExcessMediaItems(
     messagesForAPI,
     API_MAX_MEDIA_PER_REQUEST,
   )
 
-  // Instrumentation: Track message count after normalization
-  logEvent('内部代号_api_after_normalize', {
+  // 观察性采集：在归一化后跟踪消息数量
+  logEvent('limkenion_api_after_normalize', {
     postNormalizedMessageCount: messagesForAPI.length,
   })
 
-  // Compute fingerprint from first user message for attribution.
-  // Must run BEFORE injecting synthetic messages (e.g. deferred tool names)
-  // so the fingerprint reflects the actual user input.
+  // 从第一条用户消息计算指纹以用于归因。
+  // 必须在注入合成消息（例如延迟工具名称）之前运行，
+  // 以便指纹能反映真实的用户输入。
   const fingerprint = computeFingerprintFromMessages(messagesForAPI)
 
-  // When the delta attachment is enabled, deferred tools are announced
-  // via persisted deferred_tools_delta attachments instead of this
-  // ephemeral prepend (which busts cache whenever the pool changes).
+  // 当启用 delta 附件时，延迟工具通过持久化的 deferred_tools_delta 附件
+  // 进行声明，而不是这种临时前置串（每次工具池变化都会破坏缓存）。
   if (useToolSearch && !isDeferredToolsDeltaEnabled()) {
     const deferredToolList = tools
       .filter(t => deferredToolNames.has(t.name))
@@ -1392,17 +1379,17 @@ async function* queryModel(
     }
   }
 
-  // Chrome tool-search instructions: when the delta attachment is enabled,
-  // these are carried as a client-side block in mcp_instructions_delta
-  // (attachments.ts) instead of here. This per-request sys-prompt append
-  // busts the prompt cache when chrome connects late.
+  // Chrome 工具搜索指令：当启用 delta 附件时，
+  // 它们作为客户端块放在 mcp_instructions_delta（attachments.ts）中
+  // 而非这里。这种按请求附加到系统 prompt 的做法，
+  // 在 chrome 连接较晚时会破坏 prompt 缓存。
   const hasChromeTools = filteredTools.some(t =>
     isToolFromMcpServer(t.name, LIMKENION_IN_CHROME_MCP_SERVER_NAME),
   )
   const injectChromeHere =
     useToolSearch && hasChromeTools && !isMcpInstructionsDeltaEnabled()
 
-  // filter(Boolean) works by converting each element to a boolean - empty strings become false and are filtered out.
+  // filter(Boolean) 通过将每个元素转换为布尔值——空字符串会变为 false 并被过滤掉。
   systemPrompt = asSystemPrompt(
     [
       getAttributionHeader(fingerprint),
@@ -1416,7 +1403,7 @@ async function* queryModel(
     ].filter(Boolean),
   )
 
-  // Prepend system prompt block for easy API identification
+  // 前置系统 prompt 块，便于 API 识别
   logAPIPrefix(systemPrompt)
 
   const enablePromptCaching =
@@ -1427,14 +1414,14 @@ async function* queryModel(
   })
   const useBetas = betas.length > 0
 
-  // Build minimal context for detailed tracing (when beta tracing is enabled)
-  // Note: The actual new_context message extraction is done in sessionTracing.ts using
-  // hash-based tracking per querySource (agent) from the messagesForAPI array
+  // 构建用于详细追踪的最小上下文（当启用 beta 追踪时）
+  // 注：实际的 new_context 消息提取在 sessionTracing.ts 中完成，它使用
+  // 基于哈希的追踪，按 querySource（代理）从 messagesForAPI 数组中提取
   const extraToolSchemas = [...(options.extraToolSchemas ?? [])]
   if (advisorModel) {
-    // Server tools must be in the tools array by API contract. Appended after
-    // toolSchemas (which carries the cache_control marker) so toggling /advisor
-    // only churns the small suffix, not the cached prefix.
+    // 按 API 契约，服务器端工具必须位于 tools 数组中。追加在
+    // toolSchemas（它带有 cache_control 标记）之后，因此切换 /advisor
+    // 只会改动末尾的小块，而不会破坏已缓存的头部。
     extraToolSchemas.push({
       type: 'advisor_20260301',
       name: 'advisor',
@@ -1450,12 +1437,12 @@ async function* queryModel(
     isFastModeSupportedByModel(options.model) &&
     !!options.fastMode
 
-  // Sticky-on latches for dynamic beta headers. Each header, once first
-  // sent, keeps being sent for the rest of the session so mid-session
-  // toggles don't change the server-side cache key and bust ~50-70K tokens.
-  // Latches are cleared on /clear and /compact via clearBetaHeaderLatches().
-  // Per-call gates (isAgenticQuery, querySource===repl_main_thread) stay
-  // per-call so non-agentic queries keep their own stable header set.
+  // 动态 beta header 的粘性锁存。每个 header 一旦首次发送，
+  // 就会在会话剩余时间内持续发送，从而避免会话中途切换
+  // 改变服务端缓存键而破坏约 5-7 万 token。
+  // 锁存会在 /clear 和 /compact 时通过 clearBetaHeaderLatches() 清除。
+  // 每次调用的门控（isAgenticQuery、querySource===repl_main_thread）
+  // 保持按调用生效，使非 agentic 查询保有自己稳定的 header 集合。
 
   let afkHeaderLatched = getAfkModeHeaderLatched() === true
   if (feature('TRANSCRIPT_CLASSIFIER')) {
@@ -1489,8 +1476,8 @@ async function* queryModel(
     }
   }
 
-  // Only latch from agentic queries so a classifier call doesn't flip the
-  // main thread's context_management mid-turn.
+  // 仅从 agentic 查询触发锁存，避免分类器调用在某次回合中途
+  // 翻转主线程的 context_management。
   let thinkingClearLatched = getThinkingClearLatched() === true
   if (!thinkingClearLatched && isAgenticQuery) {
     const lastCompletion = getLastApiCompletionTimestamp()
@@ -1506,16 +1493,15 @@ async function* queryModel(
   const effort = resolveAppliedEffort(options.model, options.effortValue)
 
   if (feature('PROMPT_CACHE_BREAK_DETECTION')) {
-    // Exclude defer_loading tools from the hash -- the API strips them from the
-    // prompt, so they never affect the actual cache key. Including them creates
-    // false-positive "tool schemas changed" breaks when tools are discovered or
-    // MCP servers reconnect.
+    // 从哈希中排除 defer_loading 工具——API 会从 prompt 中移除它们，
+    // 因此它们绝不会影响实际缓存键。若包含它们，在发现工具或
+    // MCP 服务器重连时会产生「工具 schema 已更改」的误报破坏。
     const toolsForCacheDetection = allTools.filter(
       t => !('defer_loading' in t && t.defer_loading),
     )
-    // Capture everything that could affect the server-side cache key.
-    // Pass latched header values (not live state) so break detection
-    // reflects what we actually send, not what the user toggled.
+    // 捕获所有可能影响服务端缓存键的内容。
+    // 传入锁存的 header 值（而非实时状态），使破坏检测
+    // 反映我们实际发送的内容，而非用户切换的状态。
     recordPromptState({
       system,
       toolSchemas: toolsForCacheDetection,
@@ -1541,8 +1527,8 @@ async function* queryModel(
       }
     : undefined
 
-  // Capture the span so we can pass it to endLLMRequestSpan later
-  // This ensures responses are matched to the correct request when multiple requests run in parallel
+  // 捕获 span，以便稍后将其传给 endLLMRequestSpan
+  // 这确保在多个请求并行运行时，响应能与正确的请求匹配
   const llmSpan = startLLMRequestSpan(
     options.model,
     newContext,
@@ -1560,10 +1546,10 @@ async function* queryModel(
   // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins -- Response is available in Node 18+ and is used by the SDK
   let streamResponse: Response | undefined = undefined
 
-  // Release all stream resources to prevent native memory leaks.
-  // The Response object holds native TLS/socket buffers that live outside the
-  // V8 heap (observed on the Node.js/npm path; see GH #32920), so we must
-  // explicitly cancel and release it regardless of how the generator exits.
+  // 释放所有流资源以防原生内存泄漏。
+  // Response 对象持有位于 V8 堆之外的原生 TLS/socket 缓冲区
+  //（在 Node.js/npm 路径上观察到；参见 GH #32920），因此我们必须
+  // 无论生成器如何退出都显式取消并释放它。
   function releaseStreamResources(): void {
     cleanupStream(stream)
     stream = undefined
@@ -1573,20 +1559,20 @@ async function* queryModel(
     }
   }
 
-  // Consume pending cache edits ONCE before paramsFromContext is defined.
-  // paramsFromContext is called multiple times (logging, retries), so consuming
-  // inside it would cause the first call to steal edits from subsequent calls.
+  // 在定义 paramsFromContext 之前只消费一次待处理的缓存编辑。
+  // paramsFromContext 会被多次调用（日志、重试），因此在其中消费
+  // 会导致第一次调用从后续调用中抢走编辑。
   const consumedCacheEdits = cachedMCEnabled ? consumePendingCacheEdits() : null
   const consumedPinnedEdits = cachedMCEnabled ? getPinnedCacheEdits() : []
 
-  // Capture the betas sent in the last API request, including the ones that
-  // were dynamically added, so we can log and send it to telemetry.
+  // 捕获最后一次 API 请求中发送的 betas，包括动态添加的，
+  // 以便我们记录并发送到遥测。
   let lastRequestBetas: string[] | undefined
 
   const paramsFromContext = (retryContext: RetryContext) => {
     const betasParams = [...betas]
 
-    // Append 1M beta dynamically for the Sonnet 1M experiment.
+    // 为 Sonnet 1M 实验动态追加 1M beta。
     if (
       !betasParams.includes(CONTEXT_1M_BETA_HEADER) &&
       getSonnet1mExpTreatmentEnabled(retryContext.model)
@@ -1594,7 +1580,7 @@ async function* queryModel(
       betasParams.push(CONTEXT_1M_BETA_HEADER)
     }
 
-    // For Bedrock, include both model-based betas and dynamically-added tool search header
+    // 对 Bedrock，同时包含基于模型的 beta 和动态添加的工具搜索 header
     const bedrockBetas =
       getAPIProvider() === 'bedrock'
         ? [
@@ -1622,11 +1608,11 @@ async function* queryModel(
       betasParams,
     )
 
-    // Merge outputFormat into extraBodyParams.output_config alongside effort
-    // Requires structured-outputs beta header per SDK (see parse() in messages.mjs)
+    // 将 outputFormat 合并到 extraBodyParams.output_config 中，与 effort 并列
+    // 需要 structured-outputs beta header（参见 messages.mjs 中的 parse()）
     if (options.outputFormat && !('format' in outputConfig)) {
       outputConfig.format = options.outputFormat as BetaJSONOutputFormat
-      // Add beta header if not already present and provider supports it
+      // 若尚未存在且提供方支持，则添加 beta header
       if (
         modelSupportsStructuredOutputs(options.model) &&
         !betasParams.includes(STRUCTURED_OUTPUTS_BETA_HEADER)
@@ -1635,7 +1621,7 @@ async function* queryModel(
       }
     }
 
-    // Retry context gets preference because it tries to course correct if we exceed the context window limit
+    // 重试上下文优先，因为当超出上下文窗口限制时它会尝试纠正方向
     const maxOutputTokens =
       retryContext?.maxTokensOverride ||
       options.maxOutputTokensOverride ||
@@ -1646,22 +1632,22 @@ async function* queryModel(
       !isEnvTruthy(process.env.LIMKENION_DISABLE_THINKING)
     let thinking: BetaMessageStreamParams['thinking'] | undefined = undefined
 
-    // IMPORTANT: Do not change the adaptive-vs-budget thinking selection below
-    // without notifying the model launch DRI and research. This is a sensitive
-    // setting that can greatly affect model quality and bashing.
+    // 重要：未经通知模型启动 DRI 和研究团队，请勿更改下面的
+    // 自适应与预算型 thinking 选择逻辑。这是一项敏感设置，
+    // 会极大地影响模型质量和对抗测试（bashing）。
     if (hasThinking && modelSupportsThinking(options.model)) {
       if (
         !isEnvTruthy(process.env.LIMKENION_DISABLE_ADAPTIVE_THINKING) &&
         modelSupportsAdaptiveThinking(options.model)
       ) {
-        // For models that support adaptive thinking, always use adaptive
-        // thinking without a budget.
+        // 对支持自适应 thinking 的模型，总是使用自适应
+        // 思考，不带预算。
         thinking = {
           type: 'adaptive',
         } satisfies BetaMessageStreamParams['thinking']
       } else {
-        // For models that do not support adaptive thinking, use the default
-        // thinking budget unless explicitly specified.
+        // 对不支持自适应 thinking 的模型，除非显式指定，
+        // 否则使用默认思考预算。
         let thinkingBudget = getMaxThinkingTokensForModel(options.model)
         if (
           thinkingConfig.type === 'enabled' &&
@@ -1677,7 +1663,7 @@ async function* queryModel(
       }
     }
 
-    // Get API context management strategies if enabled
+    // 若启用，则获取 API 上下文管理策略
     const contextManagement = getAPIContextManagement({
       hasThinking,
       isRedactThinkingActive: betasParams.includes(REDACT_THINKING_BETA_HEADER),
@@ -1687,9 +1673,9 @@ async function* queryModel(
     const enablePromptCaching =
       options.enablePromptCaching ?? getPromptCachingEnabled(retryContext.model)
 
-    // Fast mode: header is latched session-stable (cache-safe), but
-    // `speed='fast'` stays dynamic so cooldown still suppresses the actual
-    // fast-mode request without changing the cache key.
+    // 快速模式：header 被锁存为会话稳定（缓存安全），但
+    // `speed='fast'` 保持动态，使得冷却仍能抑制实际的
+    // 快速模式请求，而不会改变缓存键。
     let speed: BetaMessageStreamParams['speed']
     const isFastModeForRetry =
       isFastModeEnabled() &&
@@ -1704,8 +1690,8 @@ async function* queryModel(
       betasParams.push(FAST_MODE_BETA_HEADER)
     }
 
-    // AFK mode beta: latched once auto mode is first activated. Still gated
-    // by isAgenticQuery per-call so classifiers/compaction don't get it.
+    // AFK 模式 beta：自动模式首次激活后被锁存。仍按调用受
+    // isAgenticQuery 门控，使分类器/压缩不会获得它。
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       if (
         afkHeaderLatched &&
@@ -1717,9 +1703,9 @@ async function* queryModel(
       }
     }
 
-    // Cache editing beta: header is latched session-stable; useCachedMC
-    // (controls cache_edits body behavior) stays live so edits stop when
-    // the feature disables but the header doesn't flip.
+    // 缓存编辑 beta：header 被锁存为会话稳定；useCachedMC
+    //（控制 cache_edits body 行为）保持实时，因此在功能禁用
+    // 时编辑会停止，但 header 不会翻转。
     const useCachedMC =
       cachedMCEnabled &&
       getAPIProvider() === 'firstParty' &&
@@ -1732,12 +1718,12 @@ async function* queryModel(
     ) {
       betasParams.push(cacheEditingBetaHeader)
       logForDebugging(
-        'Cache editing beta header enabled for cached microcompact',
+        '已为缓存式 microcompact 启用缓存编辑 beta header',
       )
     }
 
-    // Only send temperature when thinking is disabled — the API requires
-    // temperature: 1 when thinking is enabled, which is already the default.
+    // 仅当禁用 thinking 时才发送 temperature——启用 thinking 时
+    // API 要求 temperature: 1，而这已经是默认值。
     const temperature = !hasThinking
       ? (options.temperatureOverride ?? 1)
       : undefined
@@ -1776,10 +1762,10 @@ async function* queryModel(
     }
   }
 
-  // Compute log scalars synchronously so the fire-and-forget .then() closure
-  // captures only primitives instead of paramsFromContext's full closure scope
-  // (messagesForAPI, system, allTools, betas — the entire request-building
-  // context), which would otherwise be pinned until the promise resolves.
+  // 同步计算日志标量，使 fire-and-forget 的 .then() 闭包仅捕获
+  // 原始值，而非 paramsFromContext 的完整闭包作用域
+  //（messagesForAPI、system、allTools、betas——整个请求构建
+  // 上下文），否则它们会被一直持有直到 promise 解析。
   {
     const queryParams = paramsFromContext({
       model: options.model,
@@ -1818,7 +1804,7 @@ async function* queryModel(
   let maxOutputTokens = 0
   let responseHeaders: globalThis.Headers | undefined = undefined
   let research: unknown = undefined
-  let isFastModeRequest = isFastMode // Keep separate state as it may change if falling back
+  let isFastModeRequest = isFastMode // 保留独立状态，因为回退时它可能变化
   let isAdvisorInProgress = false
 
   try {
@@ -1826,7 +1812,7 @@ async function* queryModel(
     const generator = withRetry(
       () =>
         getLimkenionClient({
-          maxRetries: 0, // Disabled auto-retry in favor of manual implementation
+          maxRetries: 0, // 禁用自动重试，改用手动实现
           model: options.model,
           fetchOverride: options.fetchOverride,
           source: options.querySource,
@@ -1836,36 +1822,36 @@ async function* queryModel(
         isFastModeRequest = context.fastMode ?? false
         start = Date.now()
         attemptStartTimes.push(start)
-        // Client has been created by withRetry's getClient() call. This fires
-        // once per attempt; on retries the client is usually cached (withRetry
-        // only calls getClient() again after auth errors), so the delta from
-        // client_creation_start is meaningful on attempt 1.
+        // 客户端已由 withRetry 的 getClient() 调用创建。它在每次尝试时触发一次；
+        // 在重试时客户端通常会被缓存（withRetry 仅在认证错误后才重新调用
+        // getClient()），因此从 client_creation_start 起算的差值
+        // 在第一次尝试时才有意义。
         queryCheckpoint('query_client_creation_end')
 
         const params = paramsFromContext(context)
-        captureAPIRequest(params, options.querySource) // Capture for bug reports
+        captureAPIRequest(params, options.querySource) // 为错误报告捕获请求
 
         maxOutputTokens = params.max_tokens
 
-        // Fire immediately before the fetch is dispatched. .withResponse() below
-        // awaits until response headers arrive, so this MUST be before the await
-        // or the "Network TTFB" phase measurement is wrong.
+        // 在 fetch 派发前立即触发。下面的 .withResponse() 会等待
+        // 直到响应 header 到达，因此这必须在 await 之前，
+        // 否则「网络 TTFB」阶段的测量会出错。
         queryCheckpoint('query_api_request_sent')
         if (!options.agentId) {
           headlessProfilerCheckpoint('api_request_sent')
         }
 
-        // Generate and track client request ID so timeouts (which return no
-        // server request ID) can still be correlated with server logs.
-        // First-party only — 3P providers don't log it (inc-4029 class).
+        // 生成并追踪客户端请求 ID，使超时（不会返回服务器请求 ID）
+        // 仍能与服务器日志进行关联。
+        // 仅限第一方——第三方提供方不会记录它（inc-4029 类问题）。
         clientRequestId =
           getAPIProvider() === 'firstParty' && isFirstPartyLimkenionBaseUrl()
             ? randomUUID()
             : undefined
 
-        // Use raw stream instead of BetaMessageStream to avoid O(n²) partial JSON parsing
-        // BetaMessageStream calls partialParse() on every input_json_delta, which we don't need
-        // since we handle tool input accumulation ourselves
+        // 使用原始流而非 BetaMessageStream，以避免 O(n²) 的部分 JSON 解析
+        // BetaMessageStream 会对每个 input_json_delta 调用 partialParse()，而我们不需要它，
+        // 因为我们自行处理工具输入的累积
         // biome-ignore lint/plugin: main conversation loop handles attribution separately
         const result = await limkenion.beta.messages
           .create(
@@ -1897,14 +1883,14 @@ async function* queryModel(
     do {
       e = await generator.next()
 
-      // yield API error messages (the stream has a 'controller' property, error messages don't)
+      // 产出 API 错误消息（流具有 'controller' 属性，错误消息没有）
       if (!('controller' in e.value)) {
         yield e.value
       }
     } while (!e.done)
     stream = e.value as Stream<BetaRawMessageStreamEvent>
 
-    // reset state
+    // 重置状态
     newMessages.length = 0
     ttftMs = 0
     partialMessage = undefined
@@ -1913,12 +1899,11 @@ async function* queryModel(
     stopReason = null
     isAdvisorInProgress = false
 
-    // Streaming idle timeout watchdog: abort the stream if no chunks arrive
-    // for STREAM_IDLE_TIMEOUT_MS. Unlike the stall detection below (which only
-    // fires when the *next* chunk arrives), this uses setTimeout to actively
-    // kill hung streams. Without this, a silently dropped connection can hang
-    // the session indefinitely since the SDK's request timeout only covers the
-    // initial fetch(), not the streaming body.
+    // 流式空闲超时看门狗：若在 STREAM_IDLE_TIMEOUT_MS 内没有块到达，
+    // 则中止流。与下方停滞检测（仅在 *下* 一块到达时触发）不同，
+    // 它使用 setTimeout 主动杀死挂起的流。没有它，静默断开的连接
+    // 会让会话无限期挂起，因为 SDK 的请求超时只覆盖最初的
+    // fetch()，而不覆盖流式 body。
     const streamWatchdogEnabled = isEnvTruthy(
       process.env.LIMKENION_ENABLE_STREAM_WATCHDOG,
     )
@@ -1926,7 +1911,7 @@ async function* queryModel(
       parseInt(process.env.LIMKENION_STREAM_IDLE_TIMEOUT_MS || '', 10) || 90_000
     const STREAM_IDLE_WARNING_MS = STREAM_IDLE_TIMEOUT_MS / 2
     let streamIdleAborted = false
-    // performance.now() snapshot when watchdog fires, for measuring abort propagation delay
+    // performance.now() 快照，用于测量中止传播延迟，在看门狗触发时记录
     let streamWatchdogFiredAt: number | null = null
     let streamIdleWarningTimer: ReturnType<typeof setTimeout> | null = null
     let streamIdleTimer: ReturnType<typeof setTimeout> | null = null
@@ -1948,7 +1933,7 @@ async function* queryModel(
       streamIdleWarningTimer = setTimeout(
         warnMs => {
           logForDebugging(
-            `Streaming idle warning: no chunks received for ${warnMs / 1000}s`,
+            `流式空闲警告：${warnMs / 1000} 秒内未收到任何块`,
             { level: 'warn' },
           )
           logForDiagnosticsNoPII('warn', 'cli_streaming_idle_warning')
@@ -1960,11 +1945,11 @@ async function* queryModel(
         streamIdleAborted = true
         streamWatchdogFiredAt = performance.now()
         logForDebugging(
-          `Streaming idle timeout: no chunks received for ${STREAM_IDLE_TIMEOUT_MS / 1000}s, aborting stream`,
+          `流式空闲超时：${STREAM_IDLE_TIMEOUT_MS / 1000} 秒内未收到任何块，正在中止流`,
           { level: 'error' },
         )
         logForDiagnosticsNoPII('error', 'cli_streaming_idle_timeout')
-        logEvent('内部代号_streaming_idle_timeout', {
+        logEvent('limkenion_streaming_idle_timeout', {
           model:
             options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           request_id: (streamRequestId ??
@@ -1978,10 +1963,10 @@ async function* queryModel(
 
     startSessionActivity('api_call')
     try {
-      // stream in and accumulate state
+      // 流入并累计状态
       let isFirstChunk = true
-      let lastEventTime: number | null = null // Set after first chunk to avoid measuring TTFB as a stall
-      const STALL_THRESHOLD_MS = 30_000 // 30 seconds
+      let lastEventTime: number | null = null // 在第一个块之后设置，避免把 TTFB 当作停滞来测量
+      const STALL_THRESHOLD_MS = 30_000 // 30 秒
       let totalStallTime = 0
       let stallCount = 0
 
@@ -1989,17 +1974,17 @@ async function* queryModel(
         resetStreamIdleTimer()
         const now = Date.now()
 
-        // Detect and log streaming stalls (only after first event to avoid counting TTFB)
+        // 检测并记录流式停滞（仅在第一个事件之后，以避免把 TTFB 计算在内）
         if (lastEventTime !== null) {
           const timeSinceLastEvent = now - lastEventTime
           if (timeSinceLastEvent > STALL_THRESHOLD_MS) {
             stallCount++
             totalStallTime += timeSinceLastEvent
             logForDebugging(
-              `Streaming stall detected: ${(timeSinceLastEvent / 1000).toFixed(1)}s gap between events (stall #${stallCount})`,
+              `检测到流式停滞：事件间间隔 ${(timeSinceLastEvent / 1000).toFixed(1)} 秒（停滞 #${stallCount}）`,
               { level: 'warn' },
             )
-            logEvent('内部代号_streaming_stall', {
+            logEvent('limkenion_streaming_stall', {
               stall_duration_ms: timeSinceLastEvent,
               stall_count: stallCount,
               total_stall_time_ms: totalStallTime,
@@ -2015,7 +2000,7 @@ async function* queryModel(
         lastEventTime = now
 
         if (isFirstChunk) {
-          logForDebugging('Stream started - received first chunk')
+          logForDebugging('流已开始 - 收到第一个块')
           queryCheckpoint('query_first_chunk_received')
           if (!options.agentId) {
             headlessProfilerCheckpoint('first_chunk')
@@ -2029,15 +2014,9 @@ async function* queryModel(
             partialMessage = part.message
             ttftMs = Date.now() - start
             usage = updateUsage(usage, part.message?.usage)
-            // Capture research from message_start if available (internal only).
-            // Always overwrite with the latest value.
-            if (
-              process.env.USER_TYPE === 'ant' &&
-              'research' in (part.message as unknown as Record<string, unknown>)
-            ) {
-              research = (part.message as unknown as Record<string, unknown>)
-                .research
-            }
+            // 若可用则从 message_start 捕获 research（仅限内部）。
+            // 总是用最新值覆盖。
+            
             break
           }
           case 'content_block_start':
@@ -2056,7 +2035,7 @@ async function* queryModel(
                 if ((part.content_block.name as string) === 'advisor') {
                   isAdvisorInProgress = true
                   logForDebugging(`[AdvisorTool] Advisor tool called`)
-                  logEvent('内部代号_advisor_tool_call', {
+                  logEvent('limkenion_advisor_tool_call', {
                     model:
                       options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                     advisor_model: (advisorModel ??
@@ -2102,7 +2081,7 @@ async function* queryModel(
             const contentBlock = contentBlocks[part.index]
             const delta = part.delta as typeof part.delta | ConnectorTextDelta
             if (!contentBlock) {
-              logEvent('内部代号_streaming_error', {
+              logEvent('limkenion_streaming_error', {
                 error_type:
                   'content_block_not_found_delta' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 part_type:
@@ -2116,7 +2095,7 @@ async function* queryModel(
               delta.type === 'connector_text_delta'
             ) {
               if (contentBlock.type !== 'connector_text') {
-                logEvent('内部代号_streaming_error', {
+                logEvent('limkenion_streaming_error', {
                   error_type:
                     'content_block_type_mismatch_connector_text' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                   expected_type:
@@ -2137,7 +2116,7 @@ async function* queryModel(
                     contentBlock.type !== 'tool_use' &&
                     contentBlock.type !== 'server_tool_use'
                   ) {
-                    logEvent('内部代号_streaming_error', {
+                    logEvent('limkenion_streaming_error', {
                       error_type:
                         'content_block_type_mismatch_input_json' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       expected_type:
@@ -2148,7 +2127,7 @@ async function* queryModel(
                     throw new Error('Content block is not a input_json block')
                   }
                   if (typeof contentBlock.input !== 'string') {
-                    logEvent('内部代号_streaming_error', {
+                    logEvent('limkenion_streaming_error', {
                       error_type:
                         'content_block_input_not_string' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       input_type:
@@ -2160,7 +2139,7 @@ async function* queryModel(
                   break
                 case 'text_delta':
                   if (contentBlock.type !== 'text') {
-                    logEvent('内部代号_streaming_error', {
+                    logEvent('limkenion_streaming_error', {
                       error_type:
                         'content_block_type_mismatch_text' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       expected_type:
@@ -2181,7 +2160,7 @@ async function* queryModel(
                     break
                   }
                   if (contentBlock.type !== 'thinking') {
-                    logEvent('内部代号_streaming_error', {
+                    logEvent('limkenion_streaming_error', {
                       error_type:
                         'content_block_type_mismatch_thinking_signature' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       expected_type:
@@ -2195,7 +2174,7 @@ async function* queryModel(
                   break
                 case 'thinking_delta':
                   if (contentBlock.type !== 'thinking') {
-                    logEvent('内部代号_streaming_error', {
+                    logEvent('limkenion_streaming_error', {
                       error_type:
                         'content_block_type_mismatch_thinking_delta' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       expected_type:
@@ -2211,15 +2190,13 @@ async function* queryModel(
             }
             // Capture research from content_block_delta if available (internal only).
             // Always overwrite with the latest value.
-            if (process.env.USER_TYPE === 'ant' && 'research' in part) {
-              research = (part as { research: unknown }).research
-            }
+            
             break
           }
           case 'content_block_stop': {
             const contentBlock = contentBlocks[part.index]
             if (!contentBlock) {
-              logEvent('内部代号_streaming_error', {
+              logEvent('limkenion_streaming_error', {
                 error_type:
                   'content_block_not_found_stop' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 part_type:
@@ -2229,7 +2206,7 @@ async function* queryModel(
               throw new RangeError('Content block not found')
             }
             if (!partialMessage) {
-              logEvent('内部代号_streaming_error', {
+              logEvent('limkenion_streaming_error', {
                 error_type:
                   'partial_message_not_found' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 part_type:
@@ -2250,8 +2227,7 @@ async function* queryModel(
               type: 'assistant',
               uuid: randomUUID(),
               timestamp: new Date().toISOString(),
-              ...(process.env.USER_TYPE === 'ant' &&
-                research !== undefined && { research }),
+              
               ...(advisorModel && { advisorModel }),
             }
             newMessages.push(m)
@@ -2264,15 +2240,7 @@ async function* queryModel(
             // Always overwrite with the latest value. Also write back to
             // already-yielded messages since message_delta arrives after
             // content_block_stop.
-            if (
-              process.env.USER_TYPE === 'ant' &&
-              'research' in (part as unknown as Record<string, unknown>)
-            ) {
-              research = (part as unknown as Record<string, unknown>).research
-              for (const msg of newMessages) {
-                msg.research = research
-              }
-            }
+            
 
             // Write final usage and stop_reason back to the last yielded
             // message. Messages are created at content_block_stop from
@@ -2312,20 +2280,18 @@ async function* queryModel(
             }
 
             if (stopReason === 'max_tokens') {
-              logEvent('内部代号_max_tokens_reached', {
+              logEvent('limkenion_max_tokens_reached', {
                 max_tokens: maxOutputTokens,
               })
               yield createAssistantAPIErrorMessage({
-                content: `${API_ERROR_MESSAGE_PREFIX}: Limkenion's response exceeded the ${
-                  maxOutputTokens
-                } output token maximum. To configure this behavior, set the LIMKENION_MAX_OUTPUT_TOKENS environment variable.`,
+                content: `${API_ERROR_MESSAGE_PREFIX}: Limkenion 的回复超过了 ${maxOutputTokens} 个输出 token 的上限。要配置此行为，请设置 LIMKENION_MAX_OUTPUT_TOKENS 环境变量。`,
                 apiError: 'max_output_tokens',
                 error: 'max_output_tokens',
               })
             }
 
             if (stopReason === 'model_context_window_exceeded') {
-              logEvent('内部代号_context_window_exceeded', {
+              logEvent('limkenion_context_window_exceeded', {
                 max_tokens: maxOutputTokens,
                 output_tokens: usage.output_tokens,
               })
@@ -2333,7 +2299,7 @@ async function* queryModel(
               // perspective, both mean "response was cut off, continue from
               // where you left off."
               yield createAssistantAPIErrorMessage({
-                content: `${API_ERROR_MESSAGE_PREFIX}: The model has reached its context window limit.`,
+                content: `${API_ERROR_MESSAGE_PREFIX}: 模型已达到其上下文窗口的上限。`,
                 apiError: 'max_output_tokens',
                 error: 'max_output_tokens',
               })
@@ -2367,7 +2333,7 @@ async function* queryModel(
           'info',
           'cli_stream_loop_exited_after_watchdog_clean',
         )
-        logEvent('内部代号_stream_loop_exited_after_watchdog', {
+        logEvent('limkenion_stream_loop_exited_after_watchdog', {
           request_id: (streamRequestId ??
             'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           exit_delay_ms: exitDelayMs,
@@ -2402,7 +2368,7 @@ async function* queryModel(
             : 'Stream completed with message_start but no content blocks completed - triggering non-streaming fallback',
           { level: 'error' },
         )
-        logEvent('内部代号_stream_no_events', {
+        logEvent('limkenion_stream_no_events', {
           model:
             options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           request_id: (streamRequestId ??
@@ -2417,7 +2383,7 @@ async function* queryModel(
           `Streaming completed with ${stallCount} stall(s), total stall time: ${(totalStallTime / 1000).toFixed(1)}s`,
           { level: 'warn' },
         )
-        logEvent('内部代号_streaming_stall_summary', {
+        logEvent('limkenion_streaming_stall_summary', {
           stall_count: stallCount,
           total_stall_time_ms: totalStallTime,
           model:
@@ -2464,7 +2430,7 @@ async function* queryModel(
           'info',
           'cli_stream_loop_exited_after_watchdog_error',
         )
-        logEvent('内部代号_stream_loop_exited_after_watchdog', {
+        logEvent('limkenion_stream_loop_exited_after_watchdog', {
           request_id: (streamRequestId ??
             'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           exit_delay_ms: exitDelayMs,
@@ -2489,7 +2455,7 @@ async function* queryModel(
             `Streaming aborted by user: ${errorMessage(streamingError)}`,
           )
           if (isAdvisorInProgress) {
-            logEvent('内部代号_advisor_tool_interrupted', {
+            logEvent('limkenion_advisor_tool_interrupted', {
               model:
                 options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               advisor_model: (advisorModel ??
@@ -2517,7 +2483,7 @@ async function* queryModel(
       const disableFallback =
         isEnvTruthy(process.env.LIMKENION_DISABLE_NONSTREAMING_FALLBACK) ||
         getFeatureValue_CACHED_MAY_BE_STALE(
-          '内部代号_disable_streaming_to_non_streaming_fallback',
+          'limkenion_disable_streaming_to_non_streaming_fallback',
           false,
         )
 
@@ -2526,7 +2492,7 @@ async function* queryModel(
           `Error streaming (non-streaming fallback disabled): ${errorMessage(streamingError)}`,
           { level: 'error' },
         )
-        logEvent('内部代号_streaming_fallback_to_non_streaming', {
+        logEvent('limkenion_streaming_fallback_to_non_streaming', {
           model:
             options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           error:
@@ -2558,7 +2524,7 @@ async function* queryModel(
         options.onStreamingFallback()
       }
 
-      logEvent('内部代号_streaming_fallback_to_non_streaming', {
+      logEvent('limkenion_streaming_fallback_to_non_streaming', {
         model:
           options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         error:
@@ -2587,7 +2553,7 @@ async function* queryModel(
       // Instrumentation: proves executeNonStreamingRequest was entered (vs. the
       // fallback event firing but the call itself hanging at dispatch).
       logForDiagnosticsNoPII('info', 'cli_nonstreaming_fallback_started')
-      logEvent('内部代号_nonstreaming_fallback_started', {
+      logEvent('limkenion_nonstreaming_fallback_started', {
         request_id: (streamRequestId ??
           'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         model:
@@ -2629,10 +2595,7 @@ async function* queryModel(
         type: 'assistant',
         uuid: randomUUID(),
         timestamp: new Date().toISOString(),
-        ...(process.env.USER_TYPE === 'ant' &&
-          research !== undefined && {
-            research,
-          }),
+        
         ...(advisorModel && {
           advisorModel,
         }),
@@ -2678,7 +2641,7 @@ async function* queryModel(
         options.onStreamingFallback()
       }
 
-      logEvent('内部代号_streaming_fallback_to_non_streaming', {
+      logEvent('limkenion_streaming_fallback_to_non_streaming', {
         model:
           options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         error:
@@ -2726,8 +2689,7 @@ async function* queryModel(
           type: 'assistant',
           uuid: randomUUID(),
           timestamp: new Date().toISOString(),
-          ...(process.env.USER_TYPE === 'ant' &&
-            research !== undefined && { research }),
+          
           ...(advisorModel && { advisorModel }),
         }
         newMessages.push(m)
@@ -3117,7 +3079,7 @@ export function addCacheBreakpoints(
   pinnedEdits?: CachedMCPinnedEdits[],
   skipCacheWrite = false,
 ): MessageParam[] {
-  logEvent('内部代号_api_cache_breakpoints', {
+  logEvent('limkenion_api_cache_breakpoints', {
     totalMessageCount: messages.length,
     cachingEnabled: enablePromptCaching,
     skipCacheWrite,
@@ -3441,7 +3403,7 @@ export function adjustParamsForNonStreaming<
 
 function isMaxTokensCapEnabled(): boolean {
   // 3P default: false (not validated on Bedrock/Vertex)
-  return getFeatureValue_CACHED_MAY_BE_STALE('内部代号_otk_slot_v1', false)
+  return getFeatureValue_CACHED_MAY_BE_STALE('limkenion_otk_slot_v1', false)
 }
 
 export function getMaxOutputTokensForModel(model: string): number {

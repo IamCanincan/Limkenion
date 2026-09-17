@@ -17,18 +17,18 @@ import { DESCRIPTION, getPrompt } from './prompt.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    subject: z.string().describe('A brief title for the task'),
-    description: z.string().describe('What needs to be done'),
+    subject: z.string().describe('任务的简短标题'),
+    description: z.string().describe('需要完成什么'),
     activeForm: z
       .string()
       .optional()
       .describe(
-        'Present continuous form shown in spinner when in_progress (e.g., "Running tests")',
+        'in_progress 时在加载指示器中显示的动作进行时形式（例如"正在运行测试"）',
       ),
     metadata: z
       .record(z.string(), z.unknown())
       .optional()
-      .describe('Arbitrary metadata to attach to the task'),
+      .describe('附加到任务的任意元数据'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>

@@ -1,11 +1,11 @@
-// Git-related behaviors that depend on user settings.
+// 依赖用户设置的 Git 相关行为。
 //
-// This lives outside git.ts because git.ts is in the vscode extension's
-// dep graph and must stay free of settings.ts, which transitively pulls
-// @opentelemetry/api + undici (forbidden in vscode). It's also a cycle:
-// settings.ts → git/gitignore.ts → git.ts, so git.ts → settings.ts loops.
+// 本文件放在 git.ts 之外，因为 git.ts 位于 vscode 扩展的依赖图里，
+// 必须保持不依赖 settings.ts——后者会传递性地引入 @opentelemetry/api +
+// undici（在 vscode 中被禁止）。这也会形成循环：
+// settings.ts → git/gitignore.ts → git.ts，于是 git.ts → settings.ts 成环。
 //
-// If you're tempted to add `import settings` to git.ts — don't. Put it here.
+// 如果你想在 git.ts 里加 `import settings`——别这么做。把它放这里来。
 
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 import { getInitialSettings } from './settings/settings.js'

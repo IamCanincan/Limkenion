@@ -109,7 +109,7 @@ async function executePush(): Promise<void> {
           `team-memory-watcher: suppressing retry until next unlink or session restart (${pushSuppressedReason})`,
           { level: 'warn' },
         )
-        logEvent('内部代号_team_mem_push_suppressed', {
+        logEvent('limkenion_team_mem_push_suppressed', {
           reason:
             pushSuppressedReason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           ...(result.httpStatus && { status: result.httpStatus }),
@@ -295,7 +295,7 @@ export async function startTeamMemoryWatcher(): Promise<void> {
   // a bootstrap dead zone for fresh repos.
   await startFileWatcher(getTeamMemPath())
 
-  logEvent('内部代号_team_mem_sync_started', {
+  logEvent('limkenion_team_mem_sync_started', {
     initial_pull_success: initialPullSuccess,
     initial_files_pulled: initialFilesPulled,
     // Kept for dashboard continuity; now always true when this event fires.

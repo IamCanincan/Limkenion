@@ -31,7 +31,7 @@ export function useIdeLogging(mcpClients: MCPServerConnection[]): void {
         notification => {
           const { eventName, eventData } = notification.params
           logEvent(
-            `内部代号_ide_${eventName}`,
+            `limkenion_ide_${eventName}`,
             eventData as { [key: string]: boolean | number | undefined },
           )
         },

@@ -594,7 +594,7 @@ export async function maybeInstallIDEExtension(
     // Install/update the extension
     const installedVersion = await installIDEExtension(ideType)
     // Only track successful installations
-    logEvent('内部代号_ext_installed', {})
+    logEvent('limkenion_ext_installed', {})
 
     // Set diff tool config to auto if it has not been set already
     const globalConfig = getGlobalConfig()
@@ -608,7 +608,7 @@ export async function maybeInstallIDEExtension(
       ideType: ideType,
     }
   } catch (error) {
-    logEvent('内部代号_ext_install_error', {})
+    logEvent('limkenion_ext_install_error', {})
     // Handle installation errors
     const errorMessage = error instanceof Error ? error.message : String(error)
     logError(error as Error)
@@ -845,9 +845,7 @@ export function hasAccessToIDEExtensionDiffFeature(
 }
 
 const EXTENSION_ID =
-  process.env.USER_TYPE === 'ant'
-    ? 'limkenion.limkenion-internal'
-    : 'limkenion.limkenion'
+  'limkenion.limkenion'
 
 export async function isIDEExtensionInstalled(
   ideType: IdeType,
@@ -881,9 +879,7 @@ async function installIDEExtension(ideType: IdeType): Promise<string | null> {
     const command = await getVSCodeIDECommand(ideType)
 
     if (command) {
-      if (process.env.USER_TYPE === 'ant') {
-        return await installFromArtifactory(command)
-      }
+      
       let version = await getInstalledVSCodeExtensionVersion(command)
       // If it's not installed or the version is older than the one we have bundled,
       if (!version || lt(version, getLimkenionVersion())) {

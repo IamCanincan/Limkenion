@@ -96,7 +96,7 @@ let reinitializingPromise: Promise<unknown> | null = null
 // Listeners notified when GrowthBook feature values refresh (initial init or
 // periodic refresh). Use for systems that bake feature values into long-lived
 // objects at construction time (e.g. firstPartyEventLogger reads
-// 内部代号_1p_event_batch_config once and builds a LoggerProvider with it) and
+// limkenion_1p_event_batch_config once and builds a LoggerProvider with it) and
 // need to rebuild when config changes. Per-call readers like
 // getEventSamplingConfig / isSinkKilled don't need this — they're already
 // reactive.
@@ -170,23 +170,7 @@ let envOverridesParsed = false
 function getEnvOverrides(): Record<string, unknown> | null {
   if (!envOverridesParsed) {
     envOverridesParsed = true
-    if (process.env.USER_TYPE === 'ant') {
-      const raw = process.env.LIMKENION_INTERNAL_FC_OVERRIDES
-      if (raw) {
-        try {
-          envOverrides = JSON.parse(raw) as Record<string, unknown>
-          logForDebugging(
-            `GrowthBook: Using env var overrides for ${Object.keys(envOverrides!).length} features: ${Object.keys(envOverrides!).join(', ')}`,
-          )
-        } catch {
-          logError(
-            new Error(
-              `GrowthBook: Failed to parse LIMKENION_INTERNAL_FC_OVERRIDES: ${raw}`,
-            ),
-          )
-        }
-      }
-    }
+    
   }
   return envOverrides
 }
@@ -209,7 +193,7 @@ export function hasGrowthBookEnvOverride(feature: string): boolean {
  * until the next saveGlobalConfig() invalidates it.
  */
 function getConfigOverrides(): Record<string, unknown> | undefined {
-  if (process.env.USER_TYPE !== 'ant') return undefined
+  if (true) return undefined
   try {
     return getGlobalConfig().growthBookOverrides
   } catch {
@@ -239,14 +223,14 @@ export function getGrowthBookConfigOverrides(): Record<string, unknown> {
  * Set or clear a single config override. Pass undefined to clear.
  * Fires onGrowthBookRefresh listeners so systems that bake gate values into
  * long-lived objects (useMainLoopModel, useSkillsChange, etc.) rebuild —
- * otherwise overriding e.g. 内部代号_ant_model_override wouldn't actually
+ * otherwise overriding e.g. limkenion_ant_model_override wouldn't actually
  * change the model until the next periodic refresh.
  */
 export function setGrowthBookConfigOverride(
   feature: string,
   value: unknown,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (true) return
   try {
     saveGlobalConfig(c => {
       const current = c.growthBookOverrides ?? {}
@@ -271,7 +255,7 @@ export function setGrowthBookConfigOverride(
 }
 
 export function clearGrowthBookConfigOverrides(): void {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (true) return
   try {
     saveGlobalConfig(c => {
       if (
@@ -321,7 +305,7 @@ function logExposureForFeature(feature: string): void {
  *
  * Without this running on refresh, remoteEvalFeatureValues freezes at its
  * init-time snapshot and getDynamicConfig_BLOCKS_ON_INIT returns stale values
- * for the entire process lifetime — which broke the 内部代号_max_version_config
+ * for the entire process lifetime — which broke the limkenion_max_version_config
  * kill switch for long-running sessions.
  */
 async function processRemoteEvalPayload(
@@ -457,7 +441,7 @@ function getUserAttributes(): GrowthBookUserAttributes {
   // For ants, always try to include email from OAuth config even if LIMKENION_API_KEY is set.
   // This ensures GrowthBook targeting by email works regardless of auth method.
   let email = user.email
-  if (!email && process.env.USER_TYPE === 'ant') {
+  if (!email && false) {
     email = getGlobalConfig().oauthAccount?.emailAddress
   }
 
@@ -495,15 +479,9 @@ const getGrowthBookClient = memoize(
 
     const attributes = getUserAttributes()
     const clientKey = getGrowthBookClientKey()
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging(
-        `GrowthBook: Creating client with clientKey=${clientKey}, attributes: ${jsonStringify(attributes)}`,
-      )
-    }
+    
     const baseUrl =
-      process.env.USER_TYPE === 'ant'
-        ? process.env.LIMKENION_GB_BASE_URL || 'https://127.0.0.1/'
-        : 'https://127.0.0.1/'
+      'https://127.0.0.1/'
 
     // Skip auth if trust hasn't been established yet
     // This prevents executing apiKeyHelper commands before the trust dialog
@@ -535,13 +513,7 @@ const getGrowthBookClient = memoize(
         ? {}
         : { apiHostRequestHeaders: authHeaders.headers }),
       // Debug logging for Ants
-      ...(process.env.USER_TYPE === 'ant'
-        ? {
-            log: (msg: string, ctx: Record<string, unknown>) => {
-              logForDebugging(`GrowthBook: ${msg} ${jsonStringify(ctx)}`)
-            },
-          }
-        : {}),
+      ...(({})),
     })
     client = thisClient
 
@@ -556,19 +528,11 @@ const getGrowthBookClient = memoize(
       .then(async result => {
         // Guard: if this client was replaced by a newer one, skip processing
         if (client !== thisClient) {
-          if (process.env.USER_TYPE === 'ant') {
-            logForDebugging(
-              'GrowthBook: Skipping init callback for replaced client',
-            )
-          }
+          
           return
         }
 
-        if (process.env.USER_TYPE === 'ant') {
-          logForDebugging(
-            `GrowthBook initialized successfully, source: ${result.source}, success: ${result.success}`,
-          )
-        }
+        
 
         const hadFeatures = await processRemoteEvalPayload(thisClient)
         // Re-check: processRemoteEvalPayload yields at `await setPayload`.
@@ -590,20 +554,10 @@ const getGrowthBookClient = memoize(
         }
 
         // Log what features were loaded
-        if (process.env.USER_TYPE === 'ant') {
-          const features = thisClient.getFeatures()
-          if (features) {
-            const featureKeys = Object.keys(features)
-            logForDebugging(
-              `GrowthBook loaded ${featureKeys.length} features: ${featureKeys.slice(0, 10).join(', ')}${featureKeys.length > 10 ? '...' : ''}`,
-            )
-          }
-        }
+        
       })
       .catch(error => {
-        if (process.env.USER_TYPE === 'ant') {
-          logError(toError(error))
-        }
+        
       })
 
     // Register cleanup handlers for graceful shutdown (named refs so resetGrowthBook can remove them)
@@ -637,11 +591,7 @@ export const initializeGrowthBook = memoize(
       if (hasTrust) {
         const currentAuth = getAuthHeaders()
         if (!currentAuth.error) {
-          if (process.env.USER_TYPE === 'ant') {
-            logForDebugging(
-              'GrowthBook: Auth became available after client creation, reinitializing',
-            )
-          }
+          
           // Use resetGrowthBook to properly destroy old client and stop periodic refresh
           // This prevents double-init where old client's init promise continues running
           resetGrowthBook()
@@ -704,11 +654,7 @@ async function getFeatureValueInternal<T>(
     logExposureForFeature(feature)
   }
 
-  if (process.env.USER_TYPE === 'ant') {
-    logForDebugging(
-      `GrowthBook: getFeatureValue("${feature}") = ${jsonStringify(result)}`,
-    )
-  }
+  
   return result
 }
 
@@ -1011,9 +957,7 @@ export function resetGrowthBook(): void {
 
 // Periodic refresh interval (matches Statsig's 6-hour interval)
 const GROWTHBOOK_REFRESH_INTERVAL_MS =
-  process.env.USER_TYPE !== 'ant'
-    ? 6 * 60 * 60 * 1000 // 6 hours
-    : 20 * 60 * 1000 // 20 min (for ants)
+  6 * 60 * 60 * 1000 // 20 min (for ants)
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 let beforeExitListener: (() => void) | null = null
 
@@ -1041,11 +985,7 @@ export async function refreshGrowthBookFeatures(): Promise<void> {
     // (e.g. refreshGrowthBookAfterAuthChange ran), skip processing the
     // stale payload. Mirrors the init-callback guard above.
     if (growthBookClient !== client) {
-      if (process.env.USER_TYPE === 'ant') {
-        logForDebugging(
-          'GrowthBook: Skipping refresh processing for replaced client',
-        )
-      }
+      
       return
     }
 
@@ -1057,9 +997,7 @@ export async function refreshGrowthBookFeatures(): Promise<void> {
     // processRemoteEvalPayload (the guard above only covers refreshFeatures).
     if (growthBookClient !== client) return
 
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging('GrowthBook: Light refresh completed')
-    }
+    
 
     // Gate on hadFeatures: if the payload was empty/malformed,
     // remoteEvalFeatureValues wasn't rebuilt — skip both the no-op disk

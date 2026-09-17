@@ -10,7 +10,7 @@ const DESCRIPTION =
     : 'Verify a code change does what it should by running the app.'
 
 export function registerVerifySkill(): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 

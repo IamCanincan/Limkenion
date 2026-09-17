@@ -35,7 +35,7 @@ export type EventSamplingConfig = {
   }
 }
 
-const EVENT_SAMPLING_CONFIG_NAME = '内部代号_event_sampling_config'
+const EVENT_SAMPLING_CONFIG_NAME = 'limkenion_event_sampling_config'
 /**
  * Get the event sampling configuration from GrowthBook.
  * Uses cached value if available, updates cache in background.
@@ -84,7 +84,7 @@ export function shouldSampleEvent(eventName: string): number | null {
   return Math.random() < sampleRate ? sampleRate : 0
 }
 
-const BATCH_CONFIG_NAME = '内部代号_1p_event_batch_config'
+const BATCH_CONFIG_NAME = 'limkenion_1p_event_batch_config'
 type BatchConfig = {
   scheduledDelayMillis?: number
   maxExportBatchSize?: number
@@ -119,9 +119,7 @@ export async function shutdown1PEventLogging(): Promise<void> {
   }
   try {
     await firstPartyEventLoggerProvider.shutdown()
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging('1P event logging: final shutdown complete')
-    }
+    
   } catch {
     // Ignore shutdown errors
   }
@@ -150,7 +148,7 @@ export function is1PEventLoggingEnabled(): boolean {
  * This enriches the event with core metadata (model, session, env context, etc.)
  * at log time, similar to logEventToStatsig.
  *
- * @param eventName - Name of the event (e.g., '内部代号_api_query')
+ * @param eventName - Name of the event (e.g., 'limkenion_api_query')
  * @param metadata - Additional metadata for the event (intentionally no strings, to avoid accidentally logging code/filepaths)
  */
 async function logEventTo1PAsync(
@@ -184,11 +182,7 @@ async function logEventTo1PAsync(
     }
 
     // Debug logging when debug mode is enabled
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging(
-        `[ANT-ONLY] 1P event: ${eventName} ${jsonStringify(metadata, null, 0)}`,
-      )
-    }
+    
 
     // Emit log record
     firstPartyEventLogger.emit({
@@ -199,9 +193,7 @@ async function logEventTo1PAsync(
     if (process.env.NODE_ENV === 'development') {
       throw e
     }
-    if (process.env.USER_TYPE === 'ant') {
-      logError(e as Error)
-    }
+    
     // swallow
   }
 }
@@ -210,7 +202,7 @@ async function logEventTo1PAsync(
  * Log a 1st-party event for internal analytics.
  * Events are batched and exported to /api/event_logging/batch
  *
- * @param eventName - Name of the event (e.g., '内部代号_api_query')
+ * @param eventName - Name of the event (e.g., 'limkenion_api_query')
  * @param metadata - Additional metadata for the event (intentionally no strings, to avoid accidentally logging code/filepaths)
  */
 export function logEventTo1P(
@@ -285,11 +277,7 @@ export function logGrowthBookExperimentTo1P(
     environment: getEnvironmentForGrowthBook(),
   }
 
-  if (process.env.USER_TYPE === 'ant') {
-    logForDebugging(
-      `[ANT-ONLY] 1P GrowthBook experiment: ${data.experimentId} variation=${data.variationId}`,
-    )
-  }
+  
 
   firstPartyEventLogger.emit({
     body: 'growthbook_experiment',
@@ -314,9 +302,7 @@ export function initialize1PEventLogging(): void {
   const enabled = is1PEventLoggingEnabled()
 
   if (!enabled) {
-    if (process.env.USER_TYPE === 'ant') {
-      logForDebugging('1P event logging not enabled')
-    }
+    
     return
   }
 
@@ -415,11 +401,7 @@ export async function reinitialize1PEventLoggingIfConfigChanged(): Promise<void>
     return
   }
 
-  if (process.env.USER_TYPE === 'ant') {
-    logForDebugging(
-      `1P event logging: ${BATCH_CONFIG_NAME} changed, reinitializing`,
-    )
-  }
+  
 
   const oldProvider = firstPartyEventLoggerProvider
   const oldLogger = firstPartyEventLogger

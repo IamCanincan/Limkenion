@@ -30,57 +30,57 @@ import {
 } from '../../utils/envUtils.js'
 
 /**
- * Environment variables for different client types:
+ * 不同客户端类型所需的环境变量：
  *
- * Direct API:
- * - LIMKENION_API_KEY: Required for direct API access
+ * 直连 API：
+ * - LIMKENION_API_KEY：直连 API 必需的 API key
  *
- * AWS Bedrock:
- * - AWS credentials configured via aws-sdk defaults
- * - AWS_REGION or AWS_DEFAULT_REGION: Sets the AWS region for all models (default: us-east-1)
- * - LIMKENION_SMALL_FAST_MODEL_AWS_REGION: Optional. Override AWS region specifically for the small fast model (Haiku)
+ * AWS Bedrock：
+ * - 通过 aws-sdk 默认值配置 AWS 凭据
+ * - AWS_REGION 或 AWS_DEFAULT_REGION：设置所有模型的 AWS 区域（默认：us-east-1）
+ * - LIMKENION_SMALL_FAST_MODEL_AWS_REGION：可选。专门为小快模型（Haiku）覆盖 AWS 区域
  *
- * Foundry (Azure):
- * - LIMKENION_FOUNDRY_RESOURCE: Your Azure resource name (e.g., 'my-resource')
- *   For the full endpoint: https://{resource}.services.ai.azure.com/limkenion/v1/messages
- * - LIMKENION_FOUNDRY_BASE_URL: Optional. Alternative to resource - provide full base URL directly
- *   (e.g., 'https://my-resource.services.ai.azure.com')
+ * Foundry (Azure)：
+ * - LIMKENION_FOUNDRY_RESOURCE：你的 Azure 资源名（例如 'my-resource'）
+ *   完整端点：https://{resource}.services.ai.azure.com/limkenion/v1/messages
+ * - LIMKENION_FOUNDRY_BASE_URL：可选。资源名的替代——直接提供完整 base URL
+ *   （例如 'https://my-resource.services.ai.azure.com'）
  *
- * Authentication (one of the following):
- * - LIMKENION_FOUNDRY_API_KEY: Your Microsoft Foundry API key (if using API key auth)
- * - Azure AD authentication: If no API key is provided, uses DefaultAzureCredential
- *   which supports multiple auth methods (environment variables, managed identity,
- *   Azure CLI, etc.). See: https://docs.microsoft.com/en-us/javascript/api/@azure/identity
+ * 认证（以下任一方式）：
+ * - LIMKENION_FOUNDRY_API_KEY：你的 Microsoft Foundry API key（若使用 API key 认证）
+ * - Azure AD 认证：若未提供 API key，则使用 DefaultAzureCredential，
+ *   它支持多种认证方式（环境变量、托管身份、Azure CLI 等）。
+ *   参见：https://docs.microsoft.com/en-us/javascript/api/@azure/identity
  *
- * Vertex AI:
- * - Model-specific region variables (highest priority):
- *   - VERTEX_REGION_LIMKENION_3_5_HAIKU: Region for Limkenion 3.5 Haiku model
- *   - VERTEX_REGION_LIMKENION_HAIKU_4_5: Region for Limkenion Haiku 4.5 model
- *   - VERTEX_REGION_LIMKENION_3_5_SONNET: Region for Limkenion 3.5 Sonnet model
- *   - VERTEX_REGION_LIMKENION_3_7_SONNET: Region for Limkenion 3.7 Sonnet model
- * - CLOUD_ML_REGION: Optional. The default GCP region to use for all models
- *   If specific model region not specified above
- * - LIMKENION_VERTEX_PROJECT_ID: Required. Your GCP project ID
- * - Standard GCP credentials configured via google-auth-library
+ * Vertex AI：
+ * - 模型特定区域变量（最高优先级）：
+ *   - VERTEX_REGION_LIMKENION_3_5_HAIKU：Limkenion 3.5 Haiku 模型的区域
+ *   - VERTEX_REGION_LIMKENION_HAIKU_4_5：Limkenion Haiku 4.5 模型的区域
+ *   - VERTEX_REGION_LIMKENION_3_5_SONNET：Limkenion 3.5 Sonnet 模型的区域
+ *   - VERTEX_REGION_LIMKENION_3_7_SONNET：Limkenion 3.7 Sonnet 模型的区域
+ * - CLOUD_ML_REGION：可选。所有模型默认使用的 GCP 区域
+ *   若上面未指定特定模型区域时
+ * - LIMKENION_VERTEX_PROJECT_ID：必需。你的 GCP 项目 ID
+ * - 通过 google-auth-library 配置标准 GCP 凭据
  *
- * Priority for determining region:
- * 1. Hardcoded model-specific environment variables
- * 2. Global CLOUD_ML_REGION variable
- * 3. Default region from config
- * 4. Fallback region (us-east5)
+ * 决定区域的优先级：
+ * 1. 硬编码的模型特定环境变量
+ * 2. 全局 CLOUD_ML_REGION 变量
+ * 3. 配置中的默认区域
+ * 4. 回退区域（us-east5）
  */
 
 function createStderrLogger(): ClientOptions['logger'] {
   return {
     error: (msg, ...args) =>
-      // biome-ignore lint/suspicious/noConsole:: intentional console output -- SDK logger must use console
+      // biome-ignore lint/suspicious/noConsole:: 有意的 console 输出——SDK 记录器必须使用 console
       console.error('[Limkenion SDK ERROR]', msg, ...args),
-    // biome-ignore lint/suspicious/noConsole:: intentional console output -- SDK logger must use console
+    // biome-ignore lint/suspicious/noConsole:: 有意的 console 输出——SDK 记录器必须使用 console
     warn: (msg, ...args) => console.error('[Limkenion SDK WARN]', msg, ...args),
-    // biome-ignore lint/suspicious/noConsole:: intentional console output -- SDK logger must use console
+    // biome-ignore lint/suspicious/noConsole:: 有意的 console 输出——SDK 记录器必须使用 console
     info: (msg, ...args) => console.error('[Limkenion SDK INFO]', msg, ...args),
     debug: (msg, ...args) =>
-      // biome-ignore lint/suspicious/noConsole:: intentional console output -- SDK logger must use console
+      // biome-ignore lint/suspicious/noConsole:: 有意的 console 输出——SDK 记录器必须使用 console
       console.error('[Limkenion SDK DEBUG]', msg, ...args),
   }
 }
@@ -111,16 +111,16 @@ export async function getLimkenionClient({
     ...(remoteSessionId
       ? { 'x-limkenion-remote-session-id': remoteSessionId }
       : {}),
-    // SDK consumers can identify their app/library for backend analytics
+    // SDK 调用方可标识自己的应用/库，便于后端分析
     ...(clientApp ? { 'x-client-app': clientApp } : {}),
   }
 
-  // Log API client configuration for HFI debugging
+  // 记录 API 客户端配置，便于 HFI 调试
   logForDebugging(
-    `[API:request] Creating client, LIMKENION_CUSTOM_HEADERS present: ${!!process.env.LIMKENION_CUSTOM_HEADERS}, has Authorization header: ${!!customHeaders['Authorization']}`,
+    `[API:请求] 正在创建客户端，LIMKENION_CUSTOM_HEADERS 是否存在：${!!process.env.LIMKENION_CUSTOM_HEADERS}，是否含 Authorization 请求头：${!!customHeaders['Authorization']}`,
   )
 
-  // Add additional protection header if enabled via env var
+  // 若通过环境变量启用，则添加额外保护请求头
   const additionalProtectionEnabled = isEnvTruthy(
     process.env.LIMKENION_ADDITIONAL_PROTECTION,
   )
@@ -128,9 +128,9 @@ export async function getLimkenionClient({
     defaultHeaders['x-limkenion-additional-protection'] = 'true'
   }
 
-  logForDebugging('[API:auth] OAuth token check starting')
+  logForDebugging('[API:auth] OAuth token 检查开始')
   await checkAndRefreshOAuthTokenIfNeeded()
-  logForDebugging('[API:auth] OAuth token check complete')
+  logForDebugging('[API:auth] OAuth token 检查完成')
 
   if (!isLimkenionAISubscriber()) {
     await configureApiKeyHeaders(defaultHeaders, getIsNonInteractiveSession())
@@ -152,7 +152,7 @@ export async function getLimkenionClient({
   }
   if (isEnvTruthy(process.env.LIMKENION_USE_BEDROCK)) {
     const { LimkenionBedrock } = await import('@limkenion-ai/bedrock-sdk')
-    // Use region override for small fast model if specified
+    // 若指定，则为小快模型使用区域覆盖
     const awsRegion =
       model === getSmallFastModel() &&
       process.env.LIMKENION_SMALL_FAST_MODEL_AWS_REGION
@@ -168,16 +168,16 @@ export async function getLimkenionClient({
       ...(isDebugToStdErr() && { logger: createStderrLogger() }),
     }
 
-    // Add API key authentication if available
+    // 若可用，则添加 API key 认证
     if (process.env.AWS_BEARER_TOKEN_BEDROCK) {
       bedrockArgs.skipAuth = true
-      // Add the Bearer token for Bedrock API key authentication
+      // 为 Bedrock API key 认证添加 Bearer token
       bedrockArgs.defaultHeaders = {
         ...bedrockArgs.defaultHeaders,
         Authorization: `Bearer ${process.env.AWS_BEARER_TOKEN_BEDROCK}`,
       }
     } else if (!isEnvTruthy(process.env.LIMKENION_SKIP_BEDROCK_AUTH)) {
-      // Refresh auth and get credentials with cache clearing
+      // 刷新认证并在清空缓存的情况下获取凭据
       const cachedCredentials = await refreshAndGetAwsCredentials()
       if (cachedCredentials) {
         bedrockArgs.awsAccessKey = cachedCredentials.accessKeyId
@@ -185,20 +185,20 @@ export async function getLimkenionClient({
         bedrockArgs.awsSessionToken = cachedCredentials.sessionToken
       }
     }
-    // we have always been lying about the return type - this doesn't support batching or models
+    // 我们一直在返回类型上“撒谎”——它并不支持批处理或模型
     return new LimkenionBedrock(bedrockArgs) as unknown as Limkenion
   }
   if (isEnvTruthy(process.env.LIMKENION_USE_FOUNDRY)) {
     const { LimkenionFoundry } = await import('@limkenion-ai/foundry-sdk')
-    // Determine Azure AD token provider based on configuration
-    // SDK reads LIMKENION_FOUNDRY_API_KEY by default
+    // 根据配置决定 Azure AD token 提供器
+    // SDK 默认读取 LIMKENION_FOUNDRY_API_KEY
     let azureADTokenProvider: (() => Promise<string>) | undefined
     if (!process.env.LIMKENION_FOUNDRY_API_KEY) {
       if (isEnvTruthy(process.env.LIMKENION_SKIP_FOUNDRY_AUTH)) {
-        // Mock token provider for testing/proxy scenarios (similar to Vertex mock GoogleAuth)
+        // 用于测试/代理场景的 Mock token 提供器（类似 Vertex 的 Mock GoogleAuth）
         azureADTokenProvider = () => Promise.resolve('')
       } else {
-        // Use real Azure AD authentication with DefaultAzureCredential
+        // 使用 DefaultAzureCredential 进行真正的 Azure AD 认证
         const {
           DefaultAzureCredential: AzureCredential,
           getBearerTokenProvider,
@@ -215,12 +215,12 @@ export async function getLimkenionClient({
       ...(azureADTokenProvider && { azureADTokenProvider }),
       ...(isDebugToStdErr() && { logger: createStderrLogger() }),
     }
-    // we have always been lying about the return type - this doesn't support batching or models
+    // 我们一直在返回类型上“撒谎”——它并不支持批处理或模型
     return new LimkenionFoundry(foundryArgs) as unknown as Limkenion
   }
   if (isEnvTruthy(process.env.LIMKENION_USE_VERTEX)) {
-    // Refresh GCP credentials if gcpAuthRefresh is configured and credentials are expired
-    // This is similar to how we handle AWS credential refresh for Bedrock
+    // 若配置了 gcpAuthRefresh 且凭据已过期，则刷新 GCP 凭据
+    // 这与我们为 Bedrock 处理 AWS 凭据刷新的方式类似
     if (!isEnvTruthy(process.env.LIMKENION_SKIP_VERTEX_AUTH)) {
       await refreshGcpCredentialsIfNeeded()
     }
@@ -229,57 +229,57 @@ export async function getLimkenionClient({
       import('@limkenion-ai/vertex-sdk'),
       import('google-auth-library'),
     ])
-    // TODO: Cache either GoogleAuth instance or AuthClient to improve performance
-    // Currently we create a new GoogleAuth instance for every getLimkenionClient() call
-    // This could cause repeated authentication flows and metadata server checks
-    // However, caching needs careful handling of:
-    // - Credential refresh/expiration
-    // - Environment variable changes (GOOGLE_APPLICATION_CREDENTIALS, project vars)
-    // - Cross-request auth state management
-    // See: https://github.com/googleapis/google-auth-library-nodejs/issues/390 for caching challenges
+    // TODO：缓存 GoogleAuth 实例或 AuthClient 以提升性能
+    // 目前每次 getLimkenionClient() 调用都会创建一个新的 GoogleAuth 实例
+    // 这可能导致重复的认证流程和 metadata 服务器检查
+    // 然而，缓存需要小心处理：
+    // - 凭据刷新/过期
+    // - 环境变量变化（GOOGLE_APPLICATION_CREDENTIALS、项目变量）
+    // - 跨请求的认证状态管理
+    // 缓存挑战参见：https://github.com/googleapis/google-auth-library-nodejs/issues/390
 
-    // Prevent metadata server timeout by providing projectId as fallback
-    // google-auth-library checks project ID in this order:
-    // 1. Environment variables (GCLOUD_PROJECT, GOOGLE_CLOUD_PROJECT, etc.)
-    // 2. Credential files (service account JSON, ADC file)
-    // 3. gcloud config
-    // 4. GCE metadata server (causes 12s timeout outside GCP)
+    // 通过提供 projectId 作为回退来防止 metadata 服务器超时
+    // google-auth-library 按以下顺序检查项目 ID：
+    // 1. 环境变量（GCLOUD_PROJECT、GOOGLE_CLOUD_PROJECT 等）
+    // 2. 凭据文件（service account JSON、ADC 文件）
+    // 3. gcloud 配置
+    // 4. GCE metadata 服务器（在 GCP 之外会导致 12 秒超时）
     //
-    // We only set projectId if user hasn't configured other discovery methods
-    // to avoid interfering with their existing auth setup
+    // 只有当用户未配置其他发现方式时才设置 projectId，
+    // 以免干扰他们现有的认证配置
 
-    // Check project environment variables in same order as google-auth-library
-    // See: https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts
+    // 按与 google-auth-library 相同的顺序检查项目环境变量
+    // 参见：https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts
     const hasProjectEnvVar =
       process.env['GCLOUD_PROJECT'] ||
       process.env['GOOGLE_CLOUD_PROJECT'] ||
       process.env['gcloud_project'] ||
       process.env['google_cloud_project']
 
-    // Check for credential file paths (service account or ADC)
-    // Note: We're checking both standard and lowercase variants to be safe,
-    // though we should verify what google-auth-library actually checks
+    // 检查凭据文件路径（service account 或 ADC）
+    // 注意：为保险起见，我们同时检查标准写法和小写写法，
+    // 不过应当核实 google-auth-library 实际检查了什么
     const hasKeyFile =
       process.env['GOOGLE_APPLICATION_CREDENTIALS'] ||
       process.env['google_application_credentials']
 
     const googleAuth = isEnvTruthy(process.env.LIMKENION_SKIP_VERTEX_AUTH)
       ? ({
-          // Mock GoogleAuth for testing/proxy scenarios
+          // 用于测试/代理场景的 Mock GoogleAuth
           getClient: () => ({
             getRequestHeaders: () => ({}),
           }),
         } as unknown as GoogleAuth)
       : new GoogleAuth({
           scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-          // Only use LIMKENION_VERTEX_PROJECT_ID as last resort fallback
-          // This prevents the 12-second metadata server timeout when:
-          // - No project env vars are set AND
-          // - No credential keyfile is specified AND
-          // - ADC file exists but lacks project_id field
+          // 仅在万不得已时才回退使用 LIMKENION_VERTEX_PROJECT_ID
+          // 这在以下情况可防止 12 秒的 metadata 服务器超时：
+          // - 未设置项目环境变量 且
+          // - 未指定凭据 keyfile 且
+          // - ADC 文件存在但缺少 project_id 字段
           //
-          // Risk: If auth project != API target project, this could cause billing/audit issues
-          // Mitigation: Users can set GOOGLE_CLOUD_PROJECT to override
+          // 风险：若认证项目 != API 目标项目，可能导致计费/审计问题
+          // 缓解：用户可设置 GOOGLE_CLOUD_PROJECT 来覆盖
           ...(hasProjectEnvVar || hasKeyFile
             ? {}
             : {
@@ -293,21 +293,18 @@ export async function getLimkenionClient({
       googleAuth,
       ...(isDebugToStdErr() && { logger: createStderrLogger() }),
     }
-    // we have always been lying about the return type - this doesn't support batching or models
+    // 我们一直在返回类型上“撒谎”——它并不支持批处理或模型
     return new LimkenionVertex(vertexArgs) as unknown as Limkenion
   }
 
-  // Determine authentication method based on available tokens
+  // 根据可用的 token 决定认证方式
   const clientConfig: ConstructorParameters<typeof Limkenion>[0] = {
     apiKey: isLimkenionAISubscriber() ? null : apiKey || getLimkenionApiKey(),
     authToken: isLimkenionAISubscriber()
       ? getLimkenionAIOAuthTokens()?.accessToken
       : undefined,
-    // Set baseURL from OAuth config when using staging OAuth
-    ...(process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.USE_STAGING_OAUTH)
-      ? { baseURL: getOauthConfig().BASE_API_URL }
-      : {}),
+    // 使用 staging OAuth 时从 OAuth 配置设置 baseURL
+    ...(({})),
     ...ARGS,
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   }
@@ -333,14 +330,14 @@ function getCustomHeaders(): Record<string, string> {
 
   if (!customHeadersEnv) return customHeaders
 
-  // Split by newlines to support multiple headers
+  // 按换行拆分以支持多个请求头
   const headerStrings = customHeadersEnv.split(/\n|\r\n/)
 
   for (const headerString of headerStrings) {
     if (!headerString.trim()) continue
 
-    // Parse header in format "Name: Value" (curl style). Split on first `:`
-    // then trim — avoids regex backtracking on malformed long header lines.
+    // 解析 "Name: Value"（curl 风格）格式的请求头。在第一个 `:` 处拆分，
+    // 然后去除两端空白——避免在格式错误的超长请求头上发生正则回溯。
     const colonIdx = headerString.indexOf(':')
     if (colonIdx === -1) continue
     const name = headerString.slice(0, colonIdx).trim()
@@ -361,16 +358,16 @@ function buildFetch(
 ): ClientOptions['fetch'] {
   // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
   const inner = fetchOverride ?? globalThis.fetch
-  // Only send to the first-party API — Bedrock/Vertex/Foundry don't log it
-  // and unknown headers risk rejection by strict proxies (inc-4029 class).
+  // 仅发送到第一方 API——Bedrock/Vertex/Foundry 不记录它，
+  // 且未知请求头有被严格代理拒绝的风险（inc-4029 类）。
   const injectClientRequestId =
     getAPIProvider() === 'firstParty' && isFirstPartyLimkenionBaseUrl()
   return (input, init) => {
     // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
     const headers = new Headers(init?.headers)
-    // Generate a client-side request ID so timeouts (which return no server
-    // request ID) can still be correlated with server logs by the API team.
-    // Callers that want to track the ID themselves can pre-set the header.
+    // 生成客户端请求 ID，使超时请求（不会返回服务器请求 ID）
+    // 仍能与 API 团队记录的服务器日志关联。
+    // 想自行跟踪该 ID 的调用方可预先设置此请求头。
     if (injectClientRequestId && !headers.has(CLIENT_REQUEST_ID_HEADER)) {
       headers.set(CLIENT_REQUEST_ID_HEADER, randomUUID())
     }
@@ -379,10 +376,10 @@ function buildFetch(
       const url = input instanceof Request ? input.url : String(input)
       const id = headers.get(CLIENT_REQUEST_ID_HEADER)
       logForDebugging(
-        `[API REQUEST] ${new URL(url).pathname}${id ? ` ${CLIENT_REQUEST_ID_HEADER}=${id}` : ''} source=${source ?? 'unknown'}`,
+        `[API 请求] ${new URL(url).pathname}${id ? ` ${CLIENT_REQUEST_ID_HEADER}=${id}` : ''} source=${source ?? 'unknown'}`,
       )
     } catch {
-      // never let logging crash the fetch
+      // 绝不让日志导致 fetch 崩溃
     }
     return inner(input, { ...init, headers })
   }

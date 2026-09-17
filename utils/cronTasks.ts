@@ -1,12 +1,12 @@
-// Scheduled prompts, stored in <project>/.limkenion/scheduled_tasks.json.
+// 定时提示，存储在 <project>/.limkenion/scheduled_tasks.json。
 //
-// Tasks come in two flavors:
-//   - One-shot (recurring: false/undefined) — fire once, then auto-delete.
-//   - Recurring (recurring: true) — fire on schedule, reschedule from now,
-//     persist until explicitly deleted via CronDelete or auto-expire after
-//     a configurable limit (DEFAULT_CRON_JITTER_CONFIG.recurringMaxAgeMs).
+// 任务有两种形式：
+//   - 一次性（recurring: false/undefined）——触发一次，然后自动删除。
+//   - 循环（recurring: true）——按计划触发，从现在起重新调度，
+//     直到通过 CronDelete 显式删除，或超过可配置的限制
+//     （DEFAULT_CRON_JITTER_CONFIG.recurringMaxAgeMs）后自动过期。
 //
-// File format:
+// 文件格式：
 //   { "tasks": [{ id, cron, prompt, createdAt, recurring?, permanent? }] }
 
 import { randomUUID } from 'crypto'
@@ -29,42 +29,41 @@ import { jsonStringify } from './slowOperations.js'
 
 export type CronTask = {
   id: string
-  /** 5-field cron string (local time) — validated on write, re-validated on read. */
+  /** 5 字段 cron 字符串（本地时间）——写入时校验，读取时重新校验。 */
   cron: string
-  /** Prompt to enqueue when the task fires. */
+  /** 任务触发时入队的提示。 */
   prompt: string
-  /** Epoch ms when the task was created. Anchor for missed-task detection. */
+  /** 任务创建时的 Epoch 毫秒。用于错过任务的检测锚点。 */
   createdAt: number
   /**
-   * Epoch ms of the most recent fire. Written back by the scheduler after
-   * each recurring fire so next-fire computation survives process restarts.
-   * The scheduler anchors first-sight from `lastFiredAt ?? createdAt` — a
-   * never-fired task uses createdAt (correct for pinned crons like
-   * `30 14 27 2 *` whose next-from-now is next year); a fired-before task
-   * reconstructs the same `nextFireAt` the prior process had in memory.
-   * Never set for one-shots (they're deleted on fire).
+   * 最近一次触发的 Epoch 毫秒。调度器在每次循环触发后写回，
+   * 使下次触发计算能在进程重启后存活。
+   * 调度器用 `lastFiredAt ?? createdAt` 作为首次所见锚点——从未触发的
+   * 任务用 createdAt（这对固定 cron 如 `30 14 27 2 *` 正确，其从现在
+   * 起的下次触发在明年）；之前触发过的任务则重建先前进程在内存中的
+   * 同一个 `nextFireAt`。一次性任务从不设置（触发即删除）。
    */
   lastFiredAt?: number
-  /** When true, the task reschedules after firing instead of being deleted. */
+  /** 为 true 时，任务触发后重新调度而不是被删除。 */
   recurring?: boolean
   /**
-   * When true, the task is exempt from recurringMaxAgeMs auto-expiry.
-   * System escape hatch for assistant mode's built-in tasks (catch-up/
-   * morning-checkin/dream) — the installer's writeIfMissing() skips existing
-   * files so re-install can't recreate them. Not settable via CronCreateTool;
-   * only written directly to scheduled_tasks.json by src/assistant/install.ts.
+   * 为 true 时，任务豁免 recurringMaxAgeMs 自动过期。
+   * 系统逃生通道，用于助手模式的內建任务（catch-up/
+   * morning-checkin/dream）——安装程序的 writeIfMissing() 会跳过已存在
+   * 的文件，因此重新安装无法重建它们。无法通过 CronCreateTool 设置；
+   * 仅由 src/assistant/install.ts 直接写入 scheduled_tasks.json。
    */
   permanent?: boolean
   /**
-   * Runtime-only flag. false → session-scoped (never written to disk).
-   * File-backed tasks leave this undefined; writeCronTasks strips it so
-   * the on-disk shape stays { id, cron, prompt, createdAt, lastFiredAt?, recurring?, permanent? }.
+   * 仅运行时标志。false → 会话作用域（从不写入磁盘）。
+   * 文件后备任务保持 undefined；writeCronTasks 剥离它，使磁盘上的
+   * 形状保持 { id, cron, prompt, createdAt, lastFiredAt?, recurring?, permanent? }。
    */
   durable?: boolean
   /**
-   * Runtime-only. When set, the task was created by an in-process teammate.
-   * The scheduler routes fires to that teammate's queue instead of the main
-   * REPL's. Never written to disk (teammate crons are always session-only).
+   * 仅运行时。设置后，表示该任务由进程内队友创建。
+   * 调度器将触发路由到该队友的队列，而不是主 REPL 的。
+   * 从不写入磁盘（队友 cron 始终是会话级的）。
    */
   agentId?: string
 }
@@ -74,19 +73,17 @@ type CronFile = { tasks: CronTask[] }
 const CRON_FILE_REL = join('.limkenion', 'scheduled_tasks.json')
 
 /**
- * Path to the cron file. `dir` defaults to getProjectRoot() — pass it
- * explicitly from contexts that don't run through main.tsx (e.g. the Agent
- * SDK daemon, which has no bootstrap state).
+ * cron 文件路径。`dir` 默认取 getProjectRoot()——在不经过 main.tsx
+ * 的上下文中显式传入它（例如没有 bootstrap 状态的 Agent SDK 守护进程）。
  */
 export function getCronFilePath(dir?: string): string {
   return join(dir ?? getProjectRoot(), CRON_FILE_REL)
 }
 
 /**
- * Read and parse .limkenion/scheduled_tasks.json. Returns an empty task list if the file
- * is missing, empty, or malformed. Tasks with invalid cron strings are
- * silently dropped (logged at debug level) so a single bad entry never
- * blocks the whole file.
+ * 读取并解析 .limkenion/scheduled_tasks.json。若文件缺失、为空或格式错误
+ * 则返回空任务列表。cron 字符串无效的任务会被静默丢弃（在调试级别记录），
+ * 这样单个坏条目永远不会阻塞整个文件。
  */
 export async function readCronTasks(dir?: string): Promise<CronTask[]> {
   const fs = getFsImplementation()
@@ -114,13 +111,13 @@ export async function readCronTasks(dir?: string): Promise<CronTask[]> {
       typeof t.createdAt !== 'number'
     ) {
       logForDebugging(
-        `[ScheduledTasks] skipping malformed task: ${jsonStringify(t)}`,
+        `[ScheduledTasks] 跳过格式错误的任务：${jsonStringify(t)}`,
       )
       continue
     }
     if (!parseCronExpression(t.cron)) {
       logForDebugging(
-        `[ScheduledTasks] skipping task ${t.id} with invalid cron '${t.cron}'`,
+        `[ScheduledTasks] 跳过 cron 无效的任务 ${t.id}：'${t.cron}'`,
       )
       continue
     }
@@ -140,8 +137,8 @@ export async function readCronTasks(dir?: string): Promise<CronTask[]> {
 }
 
 /**
- * Sync check for whether the cron file has any valid tasks. Used by
- * cronScheduler.start() to decide whether to auto-enable. One file read.
+ * 同步检查 cron 文件是否有任何有效任务。由 cronScheduler.start() 用来
+ * 决定是否自动启用。只读一次文件。
  */
 export function hasCronTasksSync(dir?: string): boolean {
   let raw: string
@@ -158,9 +155,9 @@ export function hasCronTasksSync(dir?: string): boolean {
 }
 
 /**
- * Overwrite .limkenion/scheduled_tasks.json with the given tasks. Creates .limkenion/ if
- * missing. Empty task list writes an empty file (rather than deleting) so
- * the file watcher sees a change event on last-task-removed.
+ * 用给定任务覆盖 .limkenion/scheduled_tasks.json。若 .limkenion/ 缺失则创建。
+ * 空任务列表写入空文件（而非删除），使文件监视器在最后一个任务被移除时
+ * 能看到变更事件。
  */
 export async function writeCronTasks(
   tasks: CronTask[],
@@ -168,9 +165,9 @@ export async function writeCronTasks(
 ): Promise<void> {
   const root = dir ?? getProjectRoot()
   await mkdir(join(root, '.limkenion'), { recursive: true })
-  // Strip the runtime-only `durable` flag — everything on disk is durable
-  // by definition, and keeping the flag out means readCronTasks() naturally
-  // yields durable: undefined without having to set it explicitly.
+  // 剥离仅运行时的 `durable` 标志——磁盘上的一切本就默认是持久的，
+  // 不保留该标志意味着 readCronTasks() 自然而然地得出 durable: undefined，
+  // 无需显式设置。
   const body: CronFile = {
     tasks: tasks.map(({ durable: _durable, ...rest }) => rest),
   }
@@ -182,14 +179,13 @@ export async function writeCronTasks(
 }
 
 /**
- * Append a task. Returns the generated id. Caller is responsible for having
- * already validated the cron string (the tool does this via validateInput).
+ * 追加一个任务。返回生成的 id。调用方需已校验过 cron 字符串
+ * （工具通过 validateInput 处理）。
  *
- * When `durable` is false the task is held in process memory only
- * (bootstrap/state.ts) — it fires on schedule this session but is never
- * written to .limkenion/scheduled_tasks.json and dies with the process. The
- * scheduler merges session tasks into its tick loop directly, so no file
- * change event is needed.
+ * 当 `durable` 为 false 时，任务只保存在进程内存中
+ * （bootstrap/state.ts）——它会在本会话按计划触发，但从不写入
+ * .limkenion/scheduled_tasks.json，并随进程结束而消失。
+ * 调度器直接把会话任务合并进其 tick 循环，因此无需文件变更事件。
  */
 export async function addCronTask(
   cron: string,
@@ -198,8 +194,8 @@ export async function addCronTask(
   durable: boolean,
   agentId?: string,
 ): Promise<string> {
-  // Short ID — 8 hex chars is plenty for MAX_JOBS=50, avoids slice/prefix
-  // juggling between the tool layer (shows short IDs) and disk.
+  // 短 ID——8 个十六进制字符对 MAX_JOBS=50 绰绰有余，避免了
+  // 工具层（显示短 ID）与磁盘之间的 slice/prefix 转换。
   const id = randomUUID().slice(0, 8)
   const task = {
     id,
@@ -219,24 +215,22 @@ export async function addCronTask(
 }
 
 /**
- * Remove tasks by id. No-op if none match (e.g. another session raced us).
- * Used for both fire-once cleanup and explicit CronDelete.
+ * 按 id 移除任务。若无匹配则为空操作（例如另一个会话抢先了）。
+ * 既用于触发一次后的清理，也用于显式 CronDelete。
  *
- * When called with `dir` undefined (REPL path), also sweeps the in-memory
- * session store — the caller doesn't know which store an id lives in.
- * Daemon callers pass `dir` explicitly; they have no session, and the
- * `dir !== undefined` guard keeps this function from touching bootstrap
- * state on that path (tests enforce this).
+ * 当以未定义的 `dir` 调用时（REPL 路径），也会清扫内存中的会话存储——
+ * 调用方不知道一个 id 存在于哪个存储中。
+ * 守护进程调用方显式传入 `dir`；它们没有会话，`dir !== undefined`
+ * 守卫使此函数在该路径上不会触及 bootstrap 状态（测试强制执行此点）。
  */
 export async function removeCronTasks(
   ids: string[],
   dir?: string,
 ): Promise<void> {
   if (ids.length === 0) return
-  // Sweep session store first. If every id was accounted for there, we're
-  // done — skip the file read entirely. removeSessionCronTasks is a no-op
-  // (returns 0) on miss, so pre-existing durable-delete paths fall through
-  // without allocating.
+  // 先清扫会话存储。若所有 id 都在那里被找到，则完成——完全跳过文件读取。
+  // removeSessionCronTasks 在未命中时是空操作（返回 0），因此已有的
+  // 持久删除路径会在不分配的情况下继续走。
   if (dir === undefined && removeSessionCronTasks(ids) === ids.length) {
     return
   }
@@ -248,15 +242,15 @@ export async function removeCronTasks(
 }
 
 /**
- * Stamp `lastFiredAt` on the given recurring tasks and write back. Batched
- * so N fires in one scheduler tick = one read-modify-write, not N. Only
- * touches file-backed tasks — session tasks die with the process, no point
- * persisting their fire time. No-op if none of the ids match (task was
- * deleted between fire and write — e.g. user ran CronDelete mid-tick).
+ * 在给定循环任务上盖上 `lastFiredAt` 并写回。批量处理，因此一次调度器
+ * tick 中的 N 次触发 = 一次读改写，而不是 N 次。只触及文件后备任务——
+ * 会话任务随进程结束而消失，无需持久化其触发时间。若没有任何 id 匹配
+ * 则为空操作（任务在触发与写入之间被删除——例如用户在 tick 中途
+ * 运行了 CronDelete）。
  *
- * Scheduler lock means at most one process calls this; chokidar picks up
- * the write and triggers a reload which re-seeds `nextFireAt` from the
- * just-written `lastFiredAt` — idempotent (same computation, same answer).
+ * 调度器锁意味着最多一个进程调用此函数；chokidar 会拾取这次写入并触发
+ * 重载，用刚写入的 `lastFiredAt` 重新播种 `nextFireAt`——幂等
+ * （相同计算，相同结果）。
  */
 export async function markCronTasksFired(
   ids: string[],
@@ -307,40 +301,39 @@ export function nextCronRunMs(cron: string, fromMs: number): number | null {
 }
 
 /**
- * Cron scheduler tuning knobs. Sourced at runtime from the
- * `内部代号_kairos_cron_config` GrowthBook JSON config (see cronJitterConfig.ts)
- * so ops can adjust behavior fleet-wide without shipping a client build.
- * Defaults here preserve the pre-config behavior exactly.
+ * Cron 调度器调优旋钮。运行时取自
+ * `limkenion_kairos_cron_config` GrowthBook JSON 配置（见 cronJitterConfig.ts），
+ * 以便运维无需发布客户端构建即可在全局调整行为。
+ * 这里的默认值精确地保持了配置前行为。
  */
 export type CronJitterConfig = {
-  /** Recurring-task forward delay as a fraction of the interval between fires. */
+  /** 循环任务前向延迟，为两次触发之间间隔的比例。 */
   recurringFrac: number
-  /** Upper bound on recurring forward delay regardless of interval length. */
+  /** 循环前向延迟的上限，无论间隔多长。 */
   recurringCapMs: number
-  /** One-shot backward lead: maximum ms a task may fire early. */
+  /** 一次性任务的后向提前量：任务最多可提前触发的毫秒数。 */
   oneShotMaxMs: number
   /**
-   * One-shot backward lead: minimum ms a task fires early when the minute-mod
-   * gate matches. 0 = taskIds hashing near zero fire on the exact mark. Raise
-   * this to guarantee nobody lands on the wall-clock boundary.
+   * 一次性任务的后向提前量：当分钟取模门匹配时任务可提前触发的最少毫秒数。
+   * 0 = taskIds 哈希接近零的任务在精确时刻触发。提高此值可保证没人落在
+   * 墙钟边界上。
    */
   oneShotFloorMs: number
   /**
-   * Jitter fires landing on minutes where `minute % N === 0`. 30 → :00/:30
-   * (the human-rounding hotspots). 15 → :00/:15/:30/:45. 1 → every minute.
+   * 抖动触发落在满足 `minute % N === 0` 的分钟上。30 → :00/:30
+   * （人类取整的热点）。15 → :00/:15/:30/:45。1 → 每分钟。
    */
   oneShotMinuteMod: number
   /**
-   * Recurring tasks auto-expire this many ms after creation (unless marked
-   * `permanent`). Cron is the primary driver of multi-day sessions (p99
-   * uptime 61min → 53h post-#19931), and unbounded recurrence lets Tier-1
-   * heap leaks compound indefinitely. The default (7 days) covers "check
-   * my PRs every hour this week" workflows while capping worst-case
-   * session lifetime. Permanent tasks (assistant mode's catch-up/
-   * morning-checkin/dream) never age out — they can't be recreated if
-   * deleted because install.ts's writeIfMissing() skips existing files.
+   * 循环任务在创建后这么多毫秒自动过期（除非标记为 `permanent`）。
+   * Cron 是多日会话的主要驱动因素（p99 正常运行时间在 #19931 后从
+   * 61min → 53h），且无界的循环会让 Tier-1 堆泄漏无限累积。
+   * 默认值（7 天）覆盖"本周每小时检查我的 PR"这类工作流，同时限制最坏
+   * 情况的会话寿命。永久任务（助手模式的 catch-up/morning-checkin/dream）
+   * 永不老化——因安装程序 install.ts 的 writeIfMissing() 会跳过已存在文件，
+   * 它们一旦被删除就无法重建。
    *
-   * `0` = unlimited (tasks never auto-expire).
+   * `0` = 无限（任务永不过期）。
    */
   recurringMaxAgeMs: number
 }
@@ -355,9 +348,9 @@ export const DEFAULT_CRON_JITTER_CONFIG: CronJitterConfig = {
 }
 
 /**
- * taskId is an 8-hex-char UUID slice (see {@link addCronTask}) → parse as
- * u32 → [0, 1). Stable across restarts, uniformly distributed across the
- * fleet. Non-hex ids (hand-edited JSON) fall back to 0 = no jitter.
+ * taskId 是一个 8 十六进制字符的 UUID 切片（见 {@link addCronTask}）→ 解析为
+ * u32 → [0, 1)。跨重启稳定，在集群中均匀分布。非十六进制 id
+ * （手工编辑的 JSON）回退到 0 = 无抖动。
  */
 function jitterFrac(taskId: string): number {
   const frac = parseInt(taskId.slice(0, 8), 16) / 0x1_0000_0000
@@ -365,18 +358,17 @@ function jitterFrac(taskId: string): number {
 }
 
 /**
- * Same as {@link nextCronRunMs}, plus a deterministic per-task delay to
- * avoid a thundering herd when many sessions schedule the same cron string
- * (e.g. `0 * * * *` → everyone hits inference at :00).
+ * 与 {@link nextCronRunMs} 相同，另加对每个任务的确定性延迟，以避免
+ * 许多会话调度同一 cron 字符串时的惊群效应（如 `0 * * * *` → 所有人
+ * 都在 :00 命中推理）。
  *
- * The delay is proportional to the current gap between fires
- * ({@link CronJitterConfig.recurringFrac}, capped at
- * {@link CronJitterConfig.recurringCapMs}) so at defaults an hourly task
- * spreads across [:00, :06) but a per-minute task only spreads by a few
- * seconds.
+ * 延迟与当前两次触发之间的间隔成正比
+ * （{@link CronJitterConfig.recurringFrac}，被
+ * {@link CronJitterConfig.recurringCapMs} 封顶），因此在默认设置下，
+ * 每小时任务散布在 [:00, :06)，而每分钟任务只散布几秒。
  *
- * Only used for recurring tasks. One-shot tasks use
- * {@link oneShotJitteredNextCronRunMs} (backward jitter, minute-gated).
+ * 仅用于循环任务。一次性任务使用
+ * {@link oneShotJitteredNextCronRunMs}（后向抖动，分钟门控）。
  */
 export function jitteredNextCronRunMs(
   cron: string,
@@ -387,8 +379,8 @@ export function jitteredNextCronRunMs(
   const t1 = nextCronRunMs(cron, fromMs)
   if (t1 === null) return null
   const t2 = nextCronRunMs(cron, t1)
-  // No second match in the next year (e.g. pinned date) → nothing to
-  // proportion against, and near-certainly not a herd risk. Fire on t1.
+  // 明年内没有第二次匹配（如固定日期）→ 没有可比对的比例基准，也几乎
+  // 不构成惊群风险。在 t1 触发。
   if (t2 === null) return t1
   const jitter = Math.min(
     jitterFrac(taskId) * cfg.recurringFrac * (t2 - t1),
@@ -398,25 +390,23 @@ export function jitteredNextCronRunMs(
 }
 
 /**
- * Same as {@link nextCronRunMs}, minus a deterministic per-task lead time
- * when the fire time lands on a minute boundary matching
- * {@link CronJitterConfig.oneShotMinuteMod}.
+ * 与 {@link nextCronRunMs} 相同，当触发时间落在满足
+ * {@link CronJitterConfig.oneShotMinuteMod} 的分钟边界上时，减去对每个
+ * 任务的确定性提前量。
  *
- * One-shot tasks are user-pinned ("remind me at 3pm") so delaying them
- * breaks the contract — but firing slightly early is invisible and spreads
- * the inference spike from everyone picking the same round wall-clock time.
- * At defaults (mod 30, max 90 s, floor 0) only :00 and :30 get jitter,
- * because humans round to the half-hour.
+ * 一次性任务是用户固定的（"下午 3 点提醒我"），因此延迟它们会破坏约定——
+ * 但略微提前触发是隐形的，且能分散所有人选择同一整点墙钟时间的推理峰值。
+ * 在默认设置（mod 30、最大 90 秒、floor 0）下只有 :00 和 :30 会抖动，
+ * 因为人类会取整到半点。
  *
- * During an incident, ops can push `内部代号_kairos_cron_config` with e.g.
- * `{oneShotMinuteMod: 15, oneShotMaxMs: 300000, oneShotFloorMs: 30000}` to
- * spread :00/:15/:30/:45 fires across a [t-5min, t-30s] window — every task
- * gets at least 30 s of lead, so nobody lands on the exact mark.
+ * 事件期间，运维可以推送 `limkenion_kairos_cron_config`，例如
+ * `{oneShotMinuteMod: 15, oneShotMaxMs: 300000, oneShotFloorMs: 30000}`
+ * 以把 :00/:15/:30/:45 的触发分散到 [t-5min, t-30s] 窗口——每个任务
+ * 至少获得 30 秒提前量，因此没人落在精确时刻。
  *
- * Checks the computed fire time rather than the cron string so
- * `0 15 * * *`, step expressions, and `0,30 9 * * *` all get jitter
- * when they land on a matching minute. Clamped to `fromMs` so a task created
- * inside its own jitter window doesn't fire before it was created.
+ * 检查的是计算出的触发时间而非 cron 字符串，因此
+ * `0 15 * * *`、步进表达式和 `0,30 9 * * *` 落在匹配分钟上时都会抖动。
+ * 被 `fromMs` 截住，使在自身抖动窗口内创建的任务不会在创建之前触发。
  */
 export function oneShotJitteredNextCronRunMs(
   cron: string,
@@ -426,29 +416,28 @@ export function oneShotJitteredNextCronRunMs(
 ): number | null {
   const t1 = nextCronRunMs(cron, fromMs)
   if (t1 === null) return null
-  // Cron resolution is 1 minute → computed times always have :00 seconds,
-  // so a minute-field check is sufficient to identify the hot marks.
-  // getMinutes() (local), not getUTCMinutes(): cron is evaluated in local
-  // time, and "user picked a round time" means round in *their* TZ. In
-  // half-hour-offset zones (India UTC+5:30) local :00 is UTC :30 — the
-  // UTC check would jitter the wrong marks.
+  // Cron 分辨率为 1 分钟 → 计算出的时间始终有 :00 秒，
+  // 因此检查分钟字段就足以识别热点标记。
+  // 用 getMinutes()（本地），而非 getUTCMinutes()：cron 在本地时间求值，
+  // 而"用户选了整点时间"意味着在他们*自己的*时区是整点。在半时区偏移的
+  // 区域（印度 UTC+5:30），本地 :00 是 UTC :30——UTC 检查会抖动错误的
+  // 标记。
   if (new Date(t1).getMinutes() % cfg.oneShotMinuteMod !== 0) return t1
-  // floor + frac * (max - floor) → uniform over [floor, max). With floor=0
-  // this reduces to the original frac * max. With floor>0, even a taskId
-  // hashing to 0 gets `floor` ms of lead — nobody fires on the exact mark.
+  // floor + frac * (max - floor) → 在 [floor, max) 上均匀分布。当 floor=0
+  // 时这退化为原始 frac * max。当 floor>0 时，即使 taskId 哈希为 0 也会
+  // 获得 `floor` 毫秒的提前量——没人会在精确时刻触发。
   const lead =
     cfg.oneShotFloorMs +
     jitterFrac(taskId) * (cfg.oneShotMaxMs - cfg.oneShotFloorMs)
-  // t1 > fromMs is guaranteed by nextCronRunMs (strictly after), so the
-  // max() only bites when the task was created inside its own lead window.
+  // nextCronRunMs 保证 t1 > fromMs（严格之后），因此 max() 只在任务创建
+  // 于自身提前量窗口内时才起作用。
   return Math.max(t1 - lead, fromMs)
 }
 
 /**
- * A task is "missed" when its next scheduled run (computed from createdAt)
- * is in the past. Surfaced to the user at startup. Works for both one-shot
- * and recurring tasks — a recurring task whose window passed while Limkenion
- * was down is still "missed".
+ * 当任务的计划下次运行（从 createdAt 计算）在过去时，该任务即"错过"。
+ * 在启动时向用户提示。对一次性任务和循环任务都有效——当 Limkenion
+ * 关闭时窗口已过的循环任务仍然"错过"。
  */
 export function findMissedTasks(tasks: CronTask[], nowMs: number): CronTask[] {
   return tasks.filter(t => {

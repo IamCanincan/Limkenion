@@ -303,7 +303,7 @@ export const setupGracefulShutdown = memoize(() => {
       error_name: error.name,
       error_message: error.message.slice(0, 2000),
     })
-    logEvent('内部代号_uncaught_exception', {
+    logEvent('limkenion_uncaught_exception', {
       error_name:
         error.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -326,7 +326,7 @@ export const setupGracefulShutdown = memoize(() => {
           }
         : { error_message: String(reason).slice(0, 2000) }
     logForDiagnosticsNoPII('error', 'unhandled_rejection', errorInfo)
-    logEvent('内部代号_unhandled_rejection', {
+    logEvent('limkenion_unhandled_rejection', {
       error_name:
         errorName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
@@ -490,7 +490,7 @@ export async function gracefulShutdown(
   // Fires before analytics flush so the event makes it to the pipeline.
   const lastRequestId = getLastMainRequestId()
   if (lastRequestId) {
-    logEvent('内部代号_cache_eviction_hint', {
+    logEvent('limkenion_cache_eviction_hint', {
       scope:
         'session_end' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       last_request_id:

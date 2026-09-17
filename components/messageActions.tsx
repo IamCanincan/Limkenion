@@ -157,25 +157,25 @@ function action<const T extends NavigableType, const K extends string>(a: {
 }
 export const MESSAGE_ACTIONS = [action({
   key: 'enter',
-  label: s => s.expanded ? 'collapse' : 'expand',
+  label: s => s.expanded ? '折叠' : '展开',
   types: ['grouped_tool_use', 'collapsed_read_search', 'attachment', 'system'],
   stays: true,
   // Empty — `stays` handled inline by dispatch.
   run: () => {}
 }), action({
   key: 'enter',
-  label: 'edit',
+  label: '编辑',
   types: ['user'],
   run: (m, c) => void c.edit(m)
 }), action({
   key: 'c',
-  label: 'copy',
+  label: '复制',
   types: NAVIGABLE_TYPES,
   run: (m, c) => c.copy(copyTextOf(m))
 }), action({
   key: 'p',
   // `!` safe: applies() guarantees toolName ∈ PRIMARY_INPUT.
-  label: s => `copy ${PRIMARY_INPUT[s.toolName!]!.label}`,
+  label: s => `复制 ${PRIMARY_INPUT[s.toolName!]!.label}`,
   types: ['grouped_tool_use', 'assistant'],
   applies: s => s.toolName != null && s.toolName in PRIMARY_INPUT,
   run: (m, c) => {
@@ -261,7 +261,7 @@ export function useMessageActions(cursor: MessageActionsState | null, setCursor:
     return h;
   }, [setCursor, navRef]);
   const enter = useCallback(() => {
-    logEvent('内部代号_message_actions_enter', {});
+    logEvent('limkenion_message_actions_enter', {});
     navRef.current?.enterCursor();
   }, [navRef]);
   return {
@@ -355,9 +355,9 @@ export function MessageActionsBar(t0) {
   if ($[11] === Symbol.for("react.memo_cache_sentinel")) {
     t8 = <Text dimColor={true}> · </Text>;
     t9 = <Text bold={true} dimColor={false}>{figures.arrowUp}{figures.arrowDown}</Text>;
-    t10 = <Text dimColor={true}> navigate · </Text>;
+    t10 = <Text dimColor={true}> 导航 · </Text>;
     t11 = <Text bold={true} dimColor={false}>esc</Text>;
-    t12 = <Text dimColor={true}> back</Text>;
+    t12 = <Text dimColor={true}> 返回</Text>;
     $[11] = t10;
     $[12] = t11;
     $[13] = t12;

@@ -13,7 +13,7 @@ export function teamMemSavedPart(
   const count = message.teamCount ?? 0
   if (count === 0) return null
   return {
-    segment: `${count} team ${count === 1 ? 'memory' : 'memories'}`,
+    segment: `${count} 条团队记忆`,
     count,
   }
 }

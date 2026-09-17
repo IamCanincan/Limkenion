@@ -75,7 +75,7 @@ export async function assertMinVersion(): Promise<void> {
   try {
     const versionConfig = await getDynamicConfig_BLOCKS_ON_INIT<{
       minVersion: string
-    }>('内部代号_version_config', { minVersion: '0.0.0' })
+    }>('limkenion_version_config', { minVersion: '0.0.0' })
 
     if (
       versionConfig.minVersion &&
@@ -107,9 +107,7 @@ This will ensure you have access to the latest features and improvements.
  */
 export async function getMaxVersion(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
-  if (process.env.USER_TYPE === 'ant') {
-    return config.ant || undefined
-  }
+  
   return config.external || undefined
 }
 
@@ -119,16 +117,14 @@ export async function getMaxVersion(): Promise<string | undefined> {
  */
 export async function getMaxVersionMessage(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
-  if (process.env.USER_TYPE === 'ant') {
-    return config.ant_message || undefined
-  }
+  
   return config.external_message || undefined
 }
 
 async function getMaxVersionConfig(): Promise<MaxVersionConfig> {
   try {
     return await getDynamicConfig_BLOCKS_ON_INIT<MaxVersionConfig>(
-      '内部代号_max_version_config',
+      'limkenion_max_version_config',
       {},
     )
   } catch (error) {
@@ -419,7 +415,7 @@ export async function getGcsDistTags(): Promise<NpmDistTags> {
  * 3. This prevents rollback from listing versions that don't have native binaries
  */
 export async function getVersionHistory(limit: number): Promise<string[]> {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return []
   }
 
@@ -461,7 +457,7 @@ export async function installGlobalPackage(
       new AutoUpdaterError('Another process is currently installing an update'),
     )
     // Log the lock contention
-    logEvent('内部代号_auto_updater_lock_contention', {
+    logEvent('limkenion_auto_updater_lock_contention', {
       pid: process.pid,
       currentVersion:
         MACRO.VERSION as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -474,7 +470,7 @@ export async function installGlobalPackage(
     // Check if we're using npm from Windows path in WSL
     if (!env.isRunningWithBun() && env.isNpmFromWindowsPath()) {
       logError(new Error('Windows NPM detected in WSL environment'))
-      logEvent('内部代号_auto_updater_windows_npm_in_wsl', {
+      logEvent('limkenion_auto_updater_windows_npm_in_wsl', {
         currentVersion:
           MACRO.VERSION as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })

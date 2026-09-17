@@ -2,16 +2,16 @@ import { TICK_TAG } from '../../constants/xml.js'
 
 export const SLEEP_TOOL_NAME = 'Sleep'
 
-export const DESCRIPTION = 'Wait for a specified duration'
+export const DESCRIPTION = '等待指定的时长'
 
-export const SLEEP_TOOL_PROMPT = `Wait for a specified duration. The user can interrupt the sleep at any time.
+export const SLEEP_TOOL_PROMPT = `等待指定的时长。用户可随时打断本次休息。
 
-Use this when the user tells you to sleep or rest, when you have nothing to do, or when you're waiting for something.
+当用户让你休息或无事情可做、或你在等待某件事时使用。
 
-You may receive <${TICK_TAG}> prompts — these are periodic check-ins. Look for useful work to do before sleeping.
+你可能会收到 <${TICK_TAG}> 提示——这些是定期的进展询问。在休息之前，先寻找有价值的工作去做。
 
-You can call this concurrently with other tools — it won't interfere with them.
+你可以与其他工具并发调用此工具——它不会干扰它们。
 
-Prefer this over \`Bash(sleep ...)\` — it doesn't hold a shell process.
+优先使用此工具而不是 \`Bash(sleep ...)\`——它不会占用 shell 进程。
 
-Each wake-up costs an API call, but the prompt cache expires after 5 minutes of inactivity — balance accordingly.`
+每次唤醒都会消耗一次 API 调用，但提示词缓存在闲置 5 分钟后会过期——请据此权衡。`

@@ -65,17 +65,7 @@ export function getMacOSPlistPaths(): Array<{ path: string; label: string }> {
   })
 
   // Allow user-writable preferences for local MDM testing in ant builds only.
-  if (process.env.USER_TYPE === 'ant') {
-    paths.push({
-      path: join(
-        homedir(),
-        'Library',
-        'Preferences',
-        `${MACOS_PREFERENCE_DOMAIN}.plist`,
-      ),
-      label: 'user preferences (ant-only)',
-    })
-  }
+  
 
   return paths
 }

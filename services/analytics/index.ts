@@ -104,11 +104,7 @@ export function attachAnalyticsSink(newSink: AnalyticsSink): void {
     eventQueue.length = 0
 
     // Log queue size for ants to help debug analytics initialization timing
-    if (process.env.USER_TYPE === 'ant') {
-      sink.logEvent('analytics_sink_attached', {
-        queued_event_count: queuedEvents.length,
-      })
-    }
+    
 
     queueMicrotask(() => {
       for (const event of queuedEvents) {
@@ -125,7 +121,7 @@ export function attachAnalyticsSink(newSink: AnalyticsSink): void {
 /**
  * Log an event to analytics backends (synchronous)
  *
- * Events may be sampled based on the '内部代号_event_sampling_config' dynamic config.
+ * Events may be sampled based on the 'limkenion_event_sampling_config' dynamic config.
  * When sampled, the sample_rate is added to the event metadata.
  *
  * If no sink is attached, events are queued and drained when the sink attaches.
@@ -146,7 +142,7 @@ export function logEvent(
 /**
  * Log an event to analytics backends (asynchronous)
  *
- * Events may be sampled based on the '内部代号_event_sampling_config' dynamic config.
+ * Events may be sampled based on the 'limkenion_event_sampling_config' dynamic config.
  * When sampled, the sample_rate is added to the event metadata.
  *
  * If no sink is attached, events are queued and drained when the sink attaches.

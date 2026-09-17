@@ -3,7 +3,7 @@ const plugin = {
   type: 'local-jsx',
   name: 'plugin',
   aliases: ['plugins', 'marketplace'],
-  description: 'Manage Limkenion plugins',
+  description: '管理 Limkenion 插件',
   immediate: true,
   load: () => import('./plugin.js')
 } satisfies Command;

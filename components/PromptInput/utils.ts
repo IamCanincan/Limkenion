@@ -6,8 +6,8 @@ import type { Key } from '../../ink.js'
 import { getGlobalConfig } from '../../utils/config.js'
 import { env } from '../../utils/env.js'
 /**
- * Helper function to check if vim mode is currently enabled
- * @returns boolean indicating if vim mode is active
+ * 辅助函数：检查 vim 模式当前是否已启用
+ * @returns 返回布尔值，指示 vim 模式是否激活
  */
 export function isVimModeEnabled(): boolean {
   const config = getGlobalConfig()
@@ -15,26 +15,25 @@ export function isVimModeEnabled(): boolean {
 }
 
 export function getNewlineInstructions(): string {
-  // Apple Terminal on macOS uses native modifier key detection for Shift+Enter
+  // macOS 上的 Apple Terminal 使用原生修饰键检测 Shift+Enter
   if (env.terminal === 'Apple_Terminal' && process.platform === 'darwin') {
-    return 'shift + ⏎ for newline'
+    return 'shift + ⏎ 换行'
   }
 
-  // For iTerm2 and VSCode, show Shift+Enter instructions if installed
+  // 对于 iTerm2 和 VSCode，若已安装则显示 Shift+Enter 提示
   if (isShiftEnterKeyBindingInstalled()) {
-    return 'shift + ⏎ for newline'
+    return 'shift + ⏎ 换行'
   }
 
-  // Otherwise show backslash+return instructions
+  // 否则显示反斜杠+回车提示
   return hasUsedBackslashReturn()
-    ? '\\⏎ for newline'
-    : 'backslash (\\) + return (⏎) for newline'
+    ? '\\⏎ 换行'
+    : '反斜杠 (\\) + 回车 (⏎) 换行'
 }
 
 /**
- * True when the keystroke is a printable character that does not begin
- * with whitespace — i.e., a normal letter/digit/symbol the user typed.
- * Used to gate the lazy space inserted after an image pill.
+ * 当按键是可打印字符且不以空白开头时为 true——即用户输入的
+ * 普通字母/数字/符号。用于门控在图片弹丸之后插入的懒空格。
  */
 export function isNonSpacePrintable(input: string, key: Key): boolean {
   if (

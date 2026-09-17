@@ -27,7 +27,7 @@ async function _temp2() {
     return null;
   }
   saveGlobalConfig(_temp);
-  logEvent("内部代号_switch_to_subscription_notice_shown", {});
+  logEvent("limkenion_switch_to_subscription_notice_shown", {});
   return {
     key: "switch-to-subscription",
     jsx: <Text color="suggestion">Use your existing Limkenion {subscriptionType} plan with Limkenion<Text color="text" dimColor={true}>{" "}· /login to activate</Text></Text>,

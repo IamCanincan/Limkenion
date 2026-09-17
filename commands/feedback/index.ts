@@ -7,7 +7,7 @@ const feedback = {
   aliases: ['bug'],
   type: 'local-jsx',
   name: 'feedback',
-  description: `Submit feedback about Limkenion`,
+  description: `提交关于 Limkenion 的反馈`,
   argumentHint: '[report]',
   isEnabled: () =>
     !(
@@ -17,7 +17,7 @@ const feedback = {
       isEnvTruthy(process.env.DISABLE_FEEDBACK_COMMAND) ||
       isEnvTruthy(process.env.DISABLE_BUG_COMMAND) ||
       isEssentialTrafficOnly() ||
-      process.env.USER_TYPE === 'ant' ||
+      false ||
       !isPolicyAllowed('allow_product_feedback')
     ),
   load: () => import('./feedback.js'),

@@ -88,15 +88,15 @@ export type PermissionRequestProps<Input extends AnyObject = AnyObject> = {
   verbose: boolean;
   workerBadge: WorkerBadgeProps | undefined;
   /**
-   * Register JSX to render in a sticky footer below the scrollable area.
-   * Fullscreen mode only (non-fullscreen has no sticky area — terminal
-   * scrollback moves everything together). Call with null to clear.
+   * 注册要在可滚动区域下方固定页脚中渲染的 JSX。
+   * 仅全屏模式可用（非全屏没有固定区域——终端
+   * 回滚会同时移动所有内容）。传入 null 以清空。
    *
-   * Used by ExitPlanModePermissionRequest to keep response options visible
-   * while the user scrolls through a long plan. The callback is stable —
-   * JSX passed should use refs for callbacks that close over component state
-   * to avoid stale closures (React reconciles the JSX, preserving Select's
-   * internal focus/input state).
+   * 由 ExitPlanModePermissionRequest 使用，让用户滚动较长的计划时
+   * 响应选项保持可见。该回调是稳定的——
+   * 传入的 JSX 应使用 ref 来引用那些闭包捕获组件状态的回调，
+   * 以避免过期闭包（React 会调和该 JSX，保留 Select
+   * 内部的焦点/输入状态）。
    */
   setStickyFooter?: (jsx: React.ReactNode | null) => void;
 };
@@ -110,9 +110,9 @@ export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {
   permissionResult: PermissionDecision;
   permissionPromptStartTimeMs: number;
   /**
-   * Called when user interacts with the permission dialog (e.g., arrow keys, tab, typing).
-   * This prevents async auto-approval mechanisms (like the bash classifier) from
-   * dismissing the dialog while the user is actively engaging with it.
+   * 在用户与许可对话框交互时（如箭头键、Tab、输入）调用。
+   * 这可以防止异步自动批准机制（如 bash 分类器）在用户
+   * 主动操作对话框时将其关闭。
    */
   classifierCheckInProgress?: boolean;
   classifierAutoApproved?: boolean;
@@ -128,21 +128,21 @@ export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {
 function getNotificationMessage(toolUseConfirm: ToolUseConfirm): string {
   const toolName = toolUseConfirm.tool.userFacingName(toolUseConfirm.input as never);
   if (toolUseConfirm.tool === ExitPlanModeV2Tool) {
-    return 'Limkenion needs your approval for the plan';
+    return 'Limkenion 需要您批准该计划';
   }
   if (toolUseConfirm.tool === EnterPlanModeTool) {
-    return 'Limkenion wants to enter plan mode';
+    return 'Limkenion 想要进入计划模式';
   }
   if (feature('REVIEW_ARTIFACT') && toolUseConfirm.tool === ReviewArtifactTool) {
-    return 'Limkenion needs your approval for a review artifact';
+    return 'Limkenion 需要您批准审查产物';
   }
   if (!toolName || toolName.trim() === '') {
-    return 'Limkenion needs your attention';
+    return 'Limkenion 需要您的关注';
   }
-  return `Limkenion needs your permission to use ${toolName}`;
+  return `Limkenion 需要您的权限来使用 ${toolName}`;
 }
 
-// TODO: Move this to Tool.renderPermissionRequest
+// TODO：将其移到 Tool.renderPermissionRequest
 export function PermissionRequest(t0) {
   const $ = _c(18);
   const {

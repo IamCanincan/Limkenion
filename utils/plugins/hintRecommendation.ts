@@ -63,7 +63,7 @@ export type PluginHintRecommendation = {
  * later in resolvePluginHint (hook side).
  */
 export function maybeRecordPluginHint(hint: LimkenionHint): void {
-  if (!getFeatureValue_CACHED_MAY_BE_STALE('内部代号_lapis_finch', false)) return
+  if (!getFeatureValue_CACHED_MAY_BE_STALE('limkenion_lapis_finch', false)) return
   if (hasShownHintThisSession()) return
 
   const state = getGlobalConfig().limkenionHints
@@ -108,7 +108,7 @@ export async function resolvePluginHint(
 
   const pluginData = await getPluginById(pluginId)
 
-  logEvent('内部代号_plugin_hint_detected', {
+  logEvent('limkenion_plugin_hint_detected', {
     _PROTO_plugin_name: (name ??
       '') as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
     _PROTO_marketplace_name: (marketplace ??

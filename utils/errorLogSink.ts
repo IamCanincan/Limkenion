@@ -109,7 +109,7 @@ function getLogWriter(path: string): JsonlWriter {
 }
 
 function appendToLog(path: string, message: object): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 

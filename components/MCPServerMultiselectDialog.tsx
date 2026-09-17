@@ -27,7 +27,7 @@ export function MCPServerMultiselectDialog(t0) {
       const enabledServers = currentSettings.enabledMcpjsonServers || [];
       const disabledServers = currentSettings.disabledMcpjsonServers || [];
       const [approvedServers, rejectedServers] = partition(serverNames, server => selectedServers.includes(server));
-      logEvent("内部代号_mcp_multidialog_choice", {
+      logEvent("limkenion_mcp_multidialog_choice", {
         approved: approvedServers.length,
         rejected: rejectedServers.length
       });
@@ -70,7 +70,7 @@ export function MCPServerMultiselectDialog(t0) {
     t2 = $[5];
   }
   const handleEscRejectAll = t2;
-  const t3 = `${serverNames.length} new MCP servers found in .mcp.json`;
+  const t3 = `在 .mcp.json 中发现了 ${serverNames.length} 个新的 MCP 服务器`;
   let t4;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
     t4 = <MCPServerDialogCopy />;
@@ -99,7 +99,7 @@ export function MCPServerMultiselectDialog(t0) {
   }
   let t7;
   if ($[14] !== handleEscRejectAll || $[15] !== t3 || $[16] !== t6) {
-    t7 = <Dialog title={t3} subtitle="Select any you wish to enable." color="warning" onCancel={handleEscRejectAll} hideInputGuide={true}>{t4}{t6}</Dialog>;
+    t7 = <Dialog title={t3} subtitle="请选择您希望启用的项。" color="warning" onCancel={handleEscRejectAll} hideInputGuide={true}>{t4}{t6}</Dialog>;
     $[14] = handleEscRejectAll;
     $[15] = t3;
     $[16] = t6;
@@ -109,7 +109,7 @@ export function MCPServerMultiselectDialog(t0) {
   }
   let t8;
   if ($[18] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Box paddingX={1}><Text dimColor={true} italic={true}><Byline><KeyboardShortcutHint shortcut="Space" action="select" /><KeyboardShortcutHint shortcut="Enter" action="confirm" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="reject all" /></Byline></Text></Box>;
+    t8 = <Box paddingX={1}><Text dimColor={true} italic={true}><Byline><KeyboardShortcutHint shortcut="Space" action="选择" /><KeyboardShortcutHint shortcut="Enter" action="确认" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="全部拒绝" /></Byline></Text></Box>;
     $[18] = t8;
   } else {
     t8 = $[18];

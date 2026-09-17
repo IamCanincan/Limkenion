@@ -218,7 +218,7 @@ async function generateBashSuggestions(input: string, cursorOffset: number): Pro
     return suggestions;
   } catch {
     // Silent failure - don't break UX
-    logEvent('内部代号_shell_completion_failed', {});
+    logEvent('limkenion_shell_completion_failed', {});
     return [];
   }
 }

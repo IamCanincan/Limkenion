@@ -4,45 +4,45 @@ import { Box, Text } from '../../ink.js';
 import { Spinner } from '../Spinner.js';
 type LoadingStateProps = {
   /**
-   * The loading message to display next to the spinner.
+   * 显示在加载动画旁边的加载提示。
    */
   message: string;
 
   /**
-   * Display the message in bold.
+   * 以粗体显示提示。
    * @default false
    */
   bold?: boolean;
 
   /**
-   * Display the message in dimmed color.
+   * 以暗色显示提示。
    * @default false
    */
   dimColor?: boolean;
 
   /**
-   * Optional subtitle displayed below the main message.
+   * 显示在主提示下方的可选副标题。
    */
   subtitle?: string;
 };
 
 /**
- * A spinner with loading message for async operations.
+ * 用于异步操作的带加载提示的加载动画。
  *
  * @example
- * // Basic loading
- * <LoadingState message="Loading..." />
+ * // 基础加载
+ * <LoadingState message="加载中..." />
  *
  * @example
- * // Bold loading message
- * <LoadingState message="Loading sessions" bold />
+ * // 加粗的加载提示
+ * <LoadingState message="加载会话" bold />
  *
  * @example
- * // With subtitle
+ * // 带副标题
  * <LoadingState
- *   message="Loading sessions"
+ *   message="加载会话"
  *   bold
- *   subtitle="Fetching your Limkenion sessions..."
+ *   subtitle="正在获取你的 Limkenion 会话..."
  * />
  */
 export function LoadingState(t0) {

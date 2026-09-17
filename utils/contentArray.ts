@@ -1,28 +1,26 @@
 /**
- * Utility for inserting a block into a content array relative to tool_result
- * blocks. Used by the API layer to position supplementary content (e.g.,
- * cache editing directives) correctly within user messages.
+ * 用于把块插入内容数组中、使其相对于 tool_result 块定位的工具。
+ * 由 API 层用于在用户消息中正确定位补充内容（例如缓存编辑指令）。
  *
- * Placement rules:
- * - If tool_result blocks exist: insert after the last one
- * - Otherwise: insert before the last block
- * - If the inserted block would be the final element, a text continuation
- *   block is appended (some APIs require the prompt not to end with
- *   non-text content)
+ * 放置规则：
+ * - 若存在 tool_result 块：插入到最后一个之后
+ * - 否则：插入到最后一个块之前
+ * - 若插入的块会成为最后一个元素，则追加一段文本续接块（某些 API 要求
+ *   提示不以非文本内容结尾）
  */
 
 /**
- * Inserts a block into the content array after the last tool_result block.
- * Mutates the array in place.
+ * 在最后一个 tool_result 块之后把块插入内容数组。
+ * 原地修改数组。
  *
- * @param content - The content array to modify
- * @param block - The block to insert
+ * @param content - 要修改的内容数组
+ * @param block - 要插入的块
  */
 export function insertBlockAfterToolResults(
   content: unknown[],
   block: unknown,
 ): void {
-  // Find position after the last tool_result block
+  // 找到最后一个 tool_result 块之后的位置
   let lastToolResultIndex = -1
   for (let i = 0; i < content.length; i++) {
     const item = content[i]
@@ -39,12 +37,12 @@ export function insertBlockAfterToolResults(
   if (lastToolResultIndex >= 0) {
     const insertPos = lastToolResultIndex + 1
     content.splice(insertPos, 0, block)
-    // Append a text continuation if the inserted block is now last
+    // 若插入的块现在是最后一个，则追加一段文本续接
     if (insertPos === content.length - 1) {
       content.push({ type: 'text', text: '.' })
     }
   } else {
-    // No tool_result blocks — insert before the last block
+    // 没有 tool_result 块——插入到最后一个块之前
     const insertIndex = Math.max(0, content.length - 1)
     content.splice(insertIndex, 0, block)
   }

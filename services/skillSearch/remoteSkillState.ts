@@ -1,34 +1,48 @@
-// @generated stub from scan-missing-imports
-// 该文件自动生成，对应 ant-internal 的 feature() gated 模块。
-// 所有外部 build 的代码路径在 DCE 后都不会真的执行这里的代码，这只是
-// bun build resolver 的占位符。
-const __target = function noop() {}
-const __handler: ProxyHandler<any> = {
-  get(_t, prop) {
-    if (prop === '__esModule') return true
-    if (prop === 'default') return new Proxy(__target, __handler)
-    if (prop === Symbol.toPrimitive) return () => undefined
-    if (prop === Symbol.iterator) return function* () {}
-    if (prop === Symbol.asyncIterator) return async function* () {}
-    if (prop === 'then') return undefined
-    return new Proxy(__target, __handler)
-  },
-  apply() {
-    return new Proxy(__target, __handler)
-  },
-  construct() {
-    return new Proxy(__target, __handler)
-  },
+/**
+ * Remote-skill session state (no-op).
+ *
+ * Remote skill discovery/loading requires a networked backend that is not part
+ * of the local build. All state operations are safe no-ops: callers use them
+ * inside EXPERIMENTAL_SKILL_SEARCH guards, so this never runs in the default
+ * path, but if it ever does it degrades cleanly (nothing discovered, no
+ * canonical-prefix matching) instead of throwing.
+ */
+
+export interface RemoteSkillMeta {
+  slug: string
+  name: string
+  description: string
+  url: string
 }
-const stub: any = new Proxy(__target, __handler)
-export default stub
-export const __stubMissing = true
-// 兼容常见的命名导出 —— 没列在这里的也会通过 default Proxy 兜底
-export const createCachedMCState = stub
-export const isCachedMicrocompactEnabled = stub
-export const isModelSupportedForCacheEditing = stub
-export const getCachedMCConfig = stub
-export const markToolsSentToAPI = stub
-export const resetCachedMCState = stub
-export const checkProtectedNamespace = stub
-export const getCoordinatorUserContext = stub
+
+const discovered = new Map<string, RemoteSkillMeta>()
+
+/** Look up a remote skill discovered this session. Returns null if absent. */
+export function getDiscoveredRemoteSkill(slug: string): RemoteSkillMeta | null {
+  return discovered.get(slug) ?? null
+}
+
+/** Register a remotely discovered skill during a session. */
+export function addDiscoveredRemoteSkill(meta: RemoteSkillMeta): void {
+  discovered.set(meta.slug, meta)
+}
+
+/** Drop all discovered remote skills (session teardown / reset). */
+export function clearDiscoveredRemoteSkills(): void {
+  discovered.clear()
+}
+
+/**
+ * Strip a canonical remote-skill prefix from a name. Returns the slug when the
+ * name has the canonical marker, else null. No-ops to null locally (no remote
+ * naming scheme is active).
+ */
+export function stripCanonicalPrefix(name: string): string | null {
+  if (typeof name !== 'string') return null
+  return name.startsWith('_canonical_') ? name.slice('_canonical_'.length) : null
+}
+
+/** Safe no-op fallback exported for completess. */
+export function resetRemoteSkillState(): void {
+  discovered.clear()
+}

@@ -4,8 +4,8 @@ import { shouldIncludeFirstPartyOnlyBetas } from './betas.js'
 import { isEnvTruthy } from './envUtils.js'
 import { getInitialSettings } from './settings/settings.js'
 
-// The SDK does not yet have types for advisor blocks.
-// TODO(hackyon): Migrate to the real limkenion SDK types when this feature ships publicly
+// SDK 目前还没有 advisor 块的类型。
+// TODO(hackyon): 该功能公开上线后迁移到真正的 limkenion SDK 类型
 export type AdvisorServerToolUseBlock = {
   type: 'server_tool_use'
   id: string
@@ -52,7 +52,7 @@ type AdvisorConfig = {
 
 function getAdvisorConfig(): AdvisorConfig {
   return getFeatureValue_CACHED_MAY_BE_STALE<AdvisorConfig>(
-    '内部代号_sage_compass',
+    'limkenion_sage_compass',
     {},
   )
 }
@@ -61,7 +61,7 @@ export function isAdvisorEnabled(): boolean {
   if (isEnvTruthy(process.env.LIMKENION_DISABLE_ADVISOR_TOOL)) {
     return false
   }
-  // The advisor beta header is first-party only (Bedrock/Vertex 400 on it).
+  // advisor 的 beta 头仅限第一方（Bedrock/Vertex 400 启用它）。
   if (!shouldIncludeFirstPartyOnlyBetas()) {
     return false
   }
@@ -84,24 +84,24 @@ export function getExperimentAdvisorModels():
     : undefined
 }
 
-// @[MODEL LAUNCH]: Add the new model if it supports the advisor tool.
-// Checks whether the main loop model supports calling the advisor tool.
+// @[MODEL LAUNCH]: 若新模型支持 advisor 工具，请在此添加。
+// 检查主循环模型是否支持调用 advisor 工具。
 export function modelSupportsAdvisor(model: string): boolean {
   const m = model.toLowerCase()
   return (
     m.includes('opus-4-6') ||
     m.includes('sonnet-4-6') ||
-    process.env.USER_TYPE === 'ant'
+    false
   )
 }
 
-// @[MODEL LAUNCH]: Add the new model if it can serve as an advisor model.
+// @[MODEL LAUNCH]: 若新模型可作为 advisor 模型，请在此添加。
 export function isValidAdvisorModel(model: string): boolean {
   const m = model.toLowerCase()
   return (
     m.includes('opus-4-6') ||
     m.includes('sonnet-4-6') ||
-    process.env.USER_TYPE === 'ant'
+    false
   )
 }
 
@@ -127,19 +127,19 @@ export function getAdvisorUsage(
   ) as unknown as Array<BetaUsage & { model: string }>
 }
 
-export const ADVISOR_TOOL_INSTRUCTIONS = `# Advisor Tool
+export const ADVISOR_TOOL_INSTRUCTIONS = `# Advisor 工具
 
-You have access to an \`advisor\` tool backed by a stronger reviewer model. It takes NO parameters -- when you call it, your entire conversation history is automatically forwarded. The advisor sees the task, every tool call you've made, every result you've seen.
+你可以使用一个由更强审查模型驱动的 \`advisor\` 工具。它不接收任何参数——一旦调用它，你的整个对话历史会自动转发过去。advisor 能看到任务、你做过的每一次工具调用、以及你看到过的每一个结果。
 
-Call advisor BEFORE substantive work -- before writing code, before committing to an interpretation, before building on an assumption. If the task requires orientation first (finding files, reading code, seeing what's there), do that, then call advisor. Orientation is not substantive work. Writing, editing, and declaring an answer are.
+在实质工作之前调用 advisor——在写代码之前、在确定某一种解读之前、在基于某个假设继续推进之前。如果任务需要先做定位（查找文件、阅读代码、了解现状），先做这些，然后再调用 advisor。定位不属于实质工作；而编写、编辑和给出结论属于实质工作。
 
-Also call advisor:
-- When you believe the task is complete. BEFORE this call, make your deliverable durable: write the file, stage the change, save the result. The advisor call takes time; if the session ends during it, a durable result persists and an unwritten one doesn't.
-- When stuck -- errors recurring, approach not converging, results that don't fit.
-- When considering a change of approach.
+以下情况也应调用 advisor：
+- 当你认为任务已完成时。在这次调用之前，请先让你的交付成果变得持久可靠：写入文件、暂存变更、保存结果。advisor 的调用需要时间；如果会话在此期间结束，那么持久的结果仍在、未写入的结果会丢失。
+- 当你卡住时——错误反复出现、方法迟迟不收敛、结果对不上。
+- 当你考虑更换方法时。
 
-On tasks longer than a few steps, call advisor at least once before committing to an approach and once before declaring done. On short reactive tasks where the next action is dictated by tool output you just read, you don't need to keep calling -- the advisor adds most of its value on the first call, before the approach crystallizes.
+对于超过几个步骤的任务，在敲定方法前至少调用一次 advisor，在宣布完成前再调用一次。对于由刚读到的工具输出决定下一步的短响应式任务，你不需要反复调用——advisor 的大部分价值在第一调用时（方法成型之前）就已兑现。
 
-Give the advice serious weight. If you follow a step and it fails empirically, or you have primary-source evidence that contradicts a specific claim (the file says X, the code does Y), adapt. A passing self-test is not evidence the advice is wrong -- it's evidence your test doesn't check what the advice is checking.
+认真对待这些建议。如果你照做某一步却在实证上失败了，或你有与某条具体论断相矛盾的一手证据（文件上写的是 X，代码实际是 Y），那就做出调整。一次通过的自测并不能证明建议是错的——它只能说明你的测试没有覆盖 advisor 所检查的内容。
 
-If you've already retrieved data pointing one way and the advisor points another: don't silently switch. Surface the conflict in one more advisor call -- "I found X, you suggest Y, which constraint breaks the tie?" The advisor saw your evidence but may have underweighted it; a reconcile call is cheaper than committing to the wrong branch.`
+如果你已经检索到的数据指向一个方向，而 advisor 指向另一个方向：不要默默切换。在再一次 advisor 调用中把冲突摆出来——"我发现 X，你建议 Y，哪个约束条件能打破平局？" advisor 看到了你的证据，但可能低估了它的分量；一次核对调用的代价，远低于走上错误分支的代价。`

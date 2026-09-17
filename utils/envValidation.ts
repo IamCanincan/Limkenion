@@ -20,7 +20,7 @@ export function validateBoundedIntEnvVar(
     const result: EnvVarValidationResult = {
       effective: defaultValue,
       status: 'invalid',
-      message: `Invalid value "${value}" (using default: ${defaultValue})`,
+      message: `无效的值 "${value}"（使用默认值：${defaultValue}）`,
     }
     logForDebugging(`${name} ${result.message}`)
     return result
@@ -29,7 +29,7 @@ export function validateBoundedIntEnvVar(
     const result: EnvVarValidationResult = {
       effective: upperLimit,
       status: 'capped',
-      message: `Capped from ${parsed} to ${upperLimit}`,
+      message: `从 ${parsed} 封顶到 ${upperLimit}`,
     }
     logForDebugging(`${name} ${result.message}`)
     return result

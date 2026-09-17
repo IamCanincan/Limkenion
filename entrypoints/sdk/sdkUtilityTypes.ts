@@ -1,4 +1,4 @@
-// @generated stub from scan-missing-imports
+// @generated 由 scan-missing-imports 生成的占位符
 // 该文件自动生成，对应 ant-internal 的 feature() gated 模块。
 // 所有外部 build 的代码路径在 DCE 后都不会真的执行这里的代码，这只是
 // bun build resolver 的占位符。
@@ -33,5 +33,5 @@ export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
 
-// --- auto-added by scripts/fix-stub-exports.mjs ---
+// --- 由 scripts/fix-stub-exports.mjs 自动追加 ---
 export const NonNullableUsage = stub

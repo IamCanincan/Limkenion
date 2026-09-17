@@ -37,7 +37,7 @@ export function getTimeBasedMCConfig(): TimeBasedMCConfig {
   // Hoist the GB read so exposure fires on every eval path, not just when
   // the caller's other conditions (querySource, messages.length) pass.
   return getFeatureValue_CACHED_MAY_BE_STALE<TimeBasedMCConfig>(
-    '内部代号_slate_heron',
+    'limkenion_slate_heron',
     TIME_BASED_MC_CONFIG_DEFAULTS,
   )
 }

@@ -21,27 +21,27 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     message: z
       .string()
-      .describe('The message for the user. Supports markdown formatting.'),
+      .describe('给用户的消息。支持 markdown 格式。'),
     attachments: z
       .array(z.string())
       .optional()
       .describe(
-        'Optional file paths (absolute or relative to cwd) to attach. Use for photos, screenshots, diffs, logs, or any file the user should see alongside your message.',
+        '可选的附件文件路径（绝对路径或相对当前工作目录）。用于照片、截图、差异、日志，或任何你希望用户在你的消息旁看到的文件。',
       ),
     status: z
       .enum(['normal', 'proactive'])
       .describe(
-        "Use 'proactive' when you're surfacing something the user hasn't asked for and needs to see now — task completion while they're away, a blocker you hit, an unsolicited status update. Use 'normal' when replying to something the user just said.",
+        "当你主动呈现用户并未要求、但需要现在看到的内容时，请使用 'proactive'——用户不在时完成任务、你遇到的阻塞、主动的状态更新。当你在回复用户刚说的话时，使用 'normal'。",
       ),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
-// attachments MUST remain optional — resumed sessions replay pre-attachment
-// outputs verbatim and a required field would crash the UI renderer on resume.
+// attachments 必须保持可选——恢复的会话会逐字重放带附件的输出，
+// 若为必选字段则会在恢复时崩溃 UI 渲染器。
 const outputSchema = lazySchema(() =>
   z.object({
-    message: z.string().describe('The message'),
+    message: z.string().describe('消息'),
     attachments: z
       .array(
         z.object({
@@ -52,12 +52,12 @@ const outputSchema = lazySchema(() =>
         }),
       )
       .optional()
-      .describe('Resolved attachment metadata'),
+      .describe('解析后的附件元数据'),
     sentAt: z
       .string()
       .optional()
       .describe(
-        'ISO timestamp captured at tool execution on the emitting process. Optional — resumed sessions replay pre-sentAt outputs verbatim.',
+        '在发送进程执行工具时捕获的 ISO 时间戳。可选——恢复的会话会逐字重放未含 sentAt 的输出。',
       ),
   }),
 )
@@ -92,7 +92,7 @@ export function isBriefEntitled(): boolean {
     ? getKairosActive() ||
         isEnvTruthy(process.env.LIMKENION_BRIEF) ||
         getFeatureValue_CACHED_WITH_REFRESH(
-          '内部代号_kairos_brief',
+          'limkenion_kairos_brief',
           false,
           KAIROS_BRIEF_REFRESH_MS,
         )
@@ -115,7 +115,7 @@ export function isBriefEntitled(): boolean {
  * hard-codes "you MUST use SendUserMessage" (systemPrompt.md:14).
  *
  * The GB gate is re-checked here as a kill-switch AND — flipping
- * 内部代号_kairos_brief off mid-session disables the tool on the next 5-min
+ * limkenion_kairos_brief off mid-session disables the tool on the next 5-min
  * refresh even for opted-in sessions. No opt-in → always false regardless
  * of GB (this is the fix for "brief defaults on for enrolled ants").
  *
@@ -185,7 +185,7 @@ export const BriefTool = buildTool({
   renderToolResultMessage,
   async call({ message, attachments, status }, context) {
     const sentAt = new Date().toISOString()
-    logEvent('内部代号_brief_send', {
+    logEvent('limkenion_brief_send', {
       proactive: status === 'proactive',
       attachment_count: attachments?.length ?? 0,
     })

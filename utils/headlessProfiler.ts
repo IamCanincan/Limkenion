@@ -31,7 +31,7 @@ const DETAILED_PROFILING = isEnvTruthy(process.env.LIMKENION_PROFILE_STARTUP)
 const STATSIG_SAMPLE_RATE = 0.05
 // eslint-disable-next-line custom-rules/no-process-env-top-level
 const STATSIG_LOGGING_SAMPLED =
-  process.env.USER_TYPE === 'ant' || Math.random() < STATSIG_SAMPLE_RATE
+  (Math.random() < STATSIG_SAMPLE_RATE)
 
 // Enable profiling if either detailed mode OR sampled for Statsig
 const SHOULD_PROFILE = DETAILED_PROFILING || STATSIG_LOGGING_SAMPLED
@@ -164,7 +164,7 @@ export function logHeadlessProfilerTurn(): void {
   // Log to Statsig if sampled
   if (STATSIG_LOGGING_SAMPLED) {
     logEvent(
-      '内部代号_headless_latency',
+      'limkenion_headless_latency',
       metadata as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     )
   }

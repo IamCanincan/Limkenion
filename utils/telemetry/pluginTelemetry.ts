@@ -165,7 +165,7 @@ export function buildPluginTelemetryFields(
 
 /**
  * Per-invocation callers (SkillTool, processSlashCommand) pass
- * managedNames=null — the session-level 内部代号_plugin_enabled_for_session
+ * managedNames=null — the session-level limkenion_plugin_enabled_for_session
  * event carries the authoritative plugin_scope, and per-invocation rows can
  * join on plugin_id_hash to recover it. This keeps hot-path call sites free
  * of the extra settings read.
@@ -183,8 +183,8 @@ export function buildPluginCommandTelemetryFields(
 }
 
 /**
- * Emit 内部代号_plugin_enabled_for_session once per enabled plugin at session
- * start. Supplements 内部代号_skill_loaded (which still fires per-skill) — use
+ * Emit limkenion_plugin_enabled_for_session once per enabled plugin at session
+ * start. Supplements limkenion_skill_loaded (which still fires per-skill) — use
  * this for plugin-level aggregates instead of DISTINCT-on-prefix hacks.
  * A plugin with 5 skills emits 5 skill_loaded rows but 1 of these.
  */
@@ -196,7 +196,7 @@ export function logPluginsEnabledForSession(
   for (const plugin of plugins) {
     const { marketplace } = parsePluginIdentifier(plugin.repository)
 
-    logEvent('内部代号_plugin_enabled_for_session', {
+    logEvent('limkenion_plugin_enabled_for_session', {
       _PROTO_plugin_name:
         plugin.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       ...(marketplace && {
@@ -259,8 +259,8 @@ export function classifyPluginCommandError(
 }
 
 /**
- * Emit 内部代号_plugin_load_failed once per error surfaced by session-start
- * plugin loading. Pairs with 内部代号_plugin_enabled_for_session so dashboards
+ * Emit limkenion_plugin_load_failed once per error surfaced by session-start
+ * plugin loading. Pairs with limkenion_plugin_enabled_for_session so dashboards
  * can compute a load-success rate. PluginError.type is already a bounded
  * enum — use it directly as error_category.
  */
@@ -274,7 +274,7 @@ export function logPluginLoadErrors(
     // some are marketplace-level). Use the 'plugin' property if present,
     // fall back to the name parsed from err.source.
     const pluginName = 'plugin' in err && err.plugin ? err.plugin : name
-    logEvent('内部代号_plugin_load_failed', {
+    logEvent('limkenion_plugin_load_failed', {
       error_category:
         err.type as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       _PROTO_plugin_name:

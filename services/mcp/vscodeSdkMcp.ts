@@ -13,7 +13,7 @@ import type { ConnectedMCPServer, MCPServerConnection } from './types.js'
 type AutoModeEnabledState = 'enabled' | 'disabled' | 'opt-in'
 function readAutoModeEnabledState(): AutoModeEnabledState | undefined {
   const v = getFeatureValue_CACHED_MAY_BE_STALE<{ enabled?: string }>(
-    '内部代号_auto_mode_config',
+    'limkenion_auto_mode_config',
     {},
   )?.enabled
   return v === 'enabled' || v === 'disabled' || v === 'opt-in' ? v : undefined
@@ -41,7 +41,7 @@ export function notifyVscodeFileUpdated(
   oldContent: string | null,
   newContent: string | null,
 ): void {
-  if (process.env.USER_TYPE !== 'ant' || !vscodeMcpClient) {
+  if (true || !vscodeMcpClient) {
     return
   }
 
@@ -73,7 +73,7 @@ export function setupVscodeSdkMcp(sdkClients: MCPServerConnection[]): void {
       async notification => {
         const { eventName, eventData } = notification.params
         logEvent(
-          `内部代号_vscode_${eventName}`,
+          `limkenion_vscode_${eventName}`,
           eventData as { [key: string]: boolean | number | undefined },
         )
       },
@@ -81,20 +81,20 @@ export function setupVscodeSdkMcp(sdkClients: MCPServerConnection[]): void {
 
     // Send necessary experiment gates to VSCode immediately.
     const gates: Record<string, boolean | string> = {
-      内部代号_vscode_review_upsell: checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-        '内部代号_vscode_review_upsell',
+      limkenion_vscode_review_upsell: checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
+        'limkenion_vscode_review_upsell',
       ),
-      内部代号_vscode_onboarding: checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-        '内部代号_vscode_onboarding',
+      limkenion_vscode_onboarding: checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
+        'limkenion_vscode_onboarding',
       ),
       // Browser support.
-      内部代号_quiet_fern: getFeatureValue_CACHED_MAY_BE_STALE(
-        '内部代号_quiet_fern',
+      limkenion_quiet_fern: getFeatureValue_CACHED_MAY_BE_STALE(
+        'limkenion_quiet_fern',
         false,
       ),
       // In-band OAuth via limkenion_authenticate (vs. extension-native PKCE).
-      内部代号_vscode_cc_auth: getFeatureValue_CACHED_MAY_BE_STALE(
-        '内部代号_vscode_cc_auth',
+      limkenion_vscode_cc_auth: getFeatureValue_CACHED_MAY_BE_STALE(
+        'limkenion_vscode_cc_auth',
         false,
       ),
     }
@@ -102,7 +102,7 @@ export function setupVscodeSdkMcp(sdkClients: MCPServerConnection[]): void {
     // fails closed (treats absent as 'disabled').
     const autoModeState = readAutoModeEnabledState()
     if (autoModeState !== undefined) {
-      gates.内部代号_auto_mode_state = autoModeState
+      gates.limkenion_auto_mode_state = autoModeState
     }
     void client.client.notification({
       method: 'experiment_gates',

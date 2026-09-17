@@ -293,10 +293,10 @@ function isProjectDirPath(absolutePath: string): boolean {
 /**
  * Checks if the scratchpad directory feature is enabled.
  * The scratchpad is a per-session directory for Limkenion to write temporary files.
- * Controlled by the 内部代号_scratch Statsig gate.
+ * Controlled by the limkenion_scratch Statsig gate.
  */
 export function isScratchpadEnabled(): boolean {
-  return checkStatsigFeatureGate_CACHED_MAY_BE_STALE('内部代号_scratch')
+  return checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_scratch')
 }
 
 /**

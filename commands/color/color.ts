@@ -22,10 +22,10 @@ export async function call(
   context: ToolUseContext & LocalJSXCommandContext,
   args: string,
 ): Promise<null> {
-  // Teammates cannot set their own color
+  // Teammate 不能设置自己的颜色
   if (isTeammate()) {
     onDone(
-      'Cannot set color: This session is a swarm teammate. Teammate colors are assigned by the team leader.',
+      '无法设置颜色：此会话是一个 swarm teammate。Teammate 的颜色由团队负责人分配。',
       { display: 'system' },
     )
     return null
@@ -33,7 +33,7 @@ export async function call(
 
   if (!args || args.trim() === '') {
     const colorList = AGENT_COLORS.join(', ')
-    onDone(`Please provide a color. Available colors: ${colorList}, default`, {
+    onDone(`请提供一种颜色。可用颜色：${colorList}, default`, {
       display: 'system',
     })
     return null
@@ -41,13 +41,13 @@ export async function call(
 
   const colorArg = args.trim().toLowerCase()
 
-  // Handle reset to default (gray)
+  // 处理重置为默认值（gray）
   if (RESET_ALIASES.includes(colorArg as (typeof RESET_ALIASES)[number])) {
     const sessionId = getSessionId() as UUID
     const fullPath = getTranscriptPath()
 
-    // Use "default" sentinel (not empty string) so truthiness guards
-    // in sessionStorage.ts persist the reset across session restarts
+    // 使用 "default" 哨兵值（而非空字符串），以便 sessionStorage.ts 中的
+    // 真值守卫能在会话重启之间保持该重置
     await saveAgentColor(sessionId, 'default', fullPath)
 
     context.setAppState(prev => ({
@@ -59,14 +59,14 @@ export async function call(
       },
     }))
 
-    onDone('Session color reset to default', { display: 'system' })
+    onDone('会话颜色已重置为默认值', { display: 'system' })
     return null
   }
 
   if (!AGENT_COLORS.includes(colorArg as AgentColorName)) {
     const colorList = AGENT_COLORS.join(', ')
     onDone(
-      `Invalid color "${colorArg}". Available colors: ${colorList}, default`,
+      `无效的颜色 "${colorArg}"。可用颜色：${colorList}, default`,
       { display: 'system' },
     )
     return null
@@ -75,10 +75,10 @@ export async function call(
   const sessionId = getSessionId() as UUID
   const fullPath = getTranscriptPath()
 
-  // Save to transcript for persistence across sessions
+  // 保存到 transcript，以便跨会话持久化
   await saveAgentColor(sessionId, colorArg, fullPath)
 
-  // Update AppState for immediate effect
+  // 更新 AppState 以立即生效
   context.setAppState(prev => ({
     ...prev,
     standaloneAgentContext: {
@@ -88,6 +88,6 @@ export async function call(
     },
   }))
 
-  onDone(`Session color set to: ${colorArg}`, { display: 'system' })
+  onDone(`会话颜色已设置为：${colorArg}`, { display: 'system' })
   return null
 }

@@ -658,7 +658,7 @@ async function readLocalTeamMemory(maxEntries: number | null): Promise<{
       `team-memory-sync: ${keys.length} local entries exceeds server cap of ${maxEntries}; ${dropped.length} file(s) will NOT sync: ${dropped.join(', ')}. Consider consolidating or removing some team memory files.`,
       { level: 'warn' },
     )
-    logEvent('内部代号_team_mem_entries_capped', {
+    logEvent('limkenion_team_mem_entries_capped', {
       total_entries: keys.length,
       dropped_count: dropped.length,
       max_entries: maxEntries,
@@ -932,7 +932,7 @@ export async function pushTeamMemory(
       `team-memory-sync: ${skippedSecrets.length} file(s) skipped due to detected secrets: ${summary}. Remove the secret(s) to enable sync for these files.`,
       { level: 'warn' },
     )
-    logEvent('内部代号_team_mem_secret_skipped', {
+    logEvent('limkenion_team_mem_secret_skipped', {
       file_count: skippedSecrets.length,
       // Only log gitleaks rule IDs (not values, not paths — paths could
       // leak repo structure). Comma-joined for compact single-field analytics.
@@ -1202,7 +1202,7 @@ function logPull(
     status?: number
   },
 ): void {
-  logEvent('内部代号_team_mem_sync_pull', {
+  logEvent('limkenion_team_mem_sync_pull', {
     success: outcome.success,
     files_written: outcome.filesWritten ?? 0,
     not_modified: outcome.notModified ?? false,
@@ -1230,7 +1230,7 @@ function logPush(
     serverReceivedEntries?: number
   },
 ): void {
-  logEvent('内部代号_team_mem_sync_push', {
+  logEvent('limkenion_team_mem_sync_push', {
     success: outcome.success,
     files_uploaded: outcome.filesUploaded ?? 0,
     conflict: outcome.conflict ?? false,

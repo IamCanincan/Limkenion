@@ -1392,74 +1392,7 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
     )
   }
 
-  // For ants in limkenion-cli-internal, set up dev panes (watch + start)
-  const isAnt = process.env.USER_TYPE === 'ant'
-  const isLimkenionCliInternal = repoName === 'limkenion-cli-internal'
-  const shouldSetupDevPanes = isAnt && isLimkenionCliInternal && !sessionExists
-
-  if (shouldSetupDevPanes) {
-    // Create detached session with Limkenion in first pane
-    spawnSync(
-      'tmux',
-      [
-        'new-session',
-        '-d', // detached
-        '-s',
-        tmuxSessionName,
-        '-c',
-        worktreeDir,
-        '--',
-        process.execPath,
-        ...newArgs,
-      ],
-      { cwd: worktreeDir, env: tmuxEnv },
-    )
-
-    // Split horizontally and run watch
-    spawnSync(
-      'tmux',
-      ['split-window', '-h', '-t', tmuxSessionName, '-c', worktreeDir],
-      { cwd: worktreeDir },
-    )
-    spawnSync(
-      'tmux',
-      ['send-keys', '-t', tmuxSessionName, 'bun run watch', 'Enter'],
-      { cwd: worktreeDir },
-    )
-
-    // Split vertically and run start
-    spawnSync(
-      'tmux',
-      ['split-window', '-v', '-t', tmuxSessionName, '-c', worktreeDir],
-      { cwd: worktreeDir },
-    )
-    spawnSync('tmux', ['send-keys', '-t', tmuxSessionName, 'bun run start'], {
-      cwd: worktreeDir,
-    })
-
-    // Select the first pane (Limkenion)
-    spawnSync('tmux', ['select-pane', '-t', `${tmuxSessionName}:0.0`], {
-      cwd: worktreeDir,
-    })
-
-    // Attach or switch to the session
-    if (isAlreadyInTmux) {
-      // Switch to sibling session (avoid nesting)
-      spawnSync('tmux', ['switch-client', '-t', tmuxSessionName], {
-        stdio: 'inherit',
-      })
-    } else {
-      // Attach to the session
-      spawnSync(
-        'tmux',
-        [...tmuxGlobalArgs, 'attach-session', '-t', tmuxSessionName],
-        {
-          stdio: 'inherit',
-          cwd: worktreeDir,
-        },
-      )
-    }
-  } else {
+  {
     // Standard behavior: create or attach
     if (isAlreadyInTmux) {
       // Already in tmux - create detached session, then switch to it (sibling)

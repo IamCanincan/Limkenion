@@ -666,19 +666,19 @@ export function checkSedConstraints(
       return {
         behavior: 'ask',
         message:
-          'sed command requires approval (contains potentially dangerous operations)',
+          'sed 命令需要批准（可能包含潜在的危险操作）',
         decisionReason: {
           type: 'other',
           reason:
-            'sed command contains operations that require explicit approval (e.g., write commands, execute commands)',
+            'sed 命令包含需要明确批准的操作（例如写命令、执行命令）',
         },
       }
     }
   }
 
-  // No dangerous sed commands found (or no sed commands at all)
+  // 未发现危险的 sed 命令（或根本没有 sed 命令）
   return {
     behavior: 'passthrough',
-    message: 'No dangerous sed operations detected',
+    message: '未检测到危险的 sed 操作',
   }
 }

@@ -49,7 +49,7 @@ export function GlobalKeybindingHandlers({
 
   // Toggle todo list (ctrl+t) - cycles through views
   const handleToggleTodos = useCallback(() => {
-    logEvent('内部代号_toggle_todos', {
+    logEvent('limkenion_toggle_todos', {
       is_expanded: expandedView === 'tasks'
     });
     setAppState(prev => {
@@ -116,7 +116,7 @@ export function GlobalKeybindingHandlers({
       }
     }
     const isEnteringTranscript = screen !== 'transcript';
-    logEvent('内部代号_toggle_transcript', {
+    logEvent('limkenion_toggle_transcript', {
       is_entering: isEnteringTranscript,
       show_all: showAllInTranscript,
       message_count: messageCount
@@ -133,7 +133,7 @@ export function GlobalKeybindingHandlers({
 
   // Toggle showing all messages in transcript mode (ctrl+e)
   const handleToggleShowAll = useCallback(() => {
-    logEvent('内部代号_transcript_toggle_show_all', {
+    logEvent('limkenion_transcript_toggle_show_all', {
       is_expanding: !showAllInTranscript,
       message_count: messageCount
     });
@@ -142,7 +142,7 @@ export function GlobalKeybindingHandlers({
 
   // Exit transcript mode (ctrl+c or escape)
   const handleExitTranscript = useCallback(() => {
-    logEvent('内部代号_transcript_exit', {
+    logEvent('limkenion_transcript_exit', {
       show_all: showAllInTranscript,
       message_count: messageCount
     });
@@ -166,7 +166,7 @@ export function GlobalKeybindingHandlers({
       /* eslint-enable @typescript-eslint/no-require-imports */
       if (!isBriefEnabled_0() && !isBriefOnly) return;
       const next = !isBriefOnly;
-      logEvent('内部代号_brief_mode_toggled', {
+      logEvent('limkenion_brief_mode_toggled', {
         enabled: next,
         gated: false,
         source: 'keybinding' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -209,7 +209,7 @@ export function GlobalKeybindingHandlers({
   // toggle() blocks in spawnSync until the user detaches from tmux.
   const handleToggleTerminal = useCallback(() => {
     if (feature('TERMINAL_PANEL')) {
-      if (!getFeatureValue_CACHED_MAY_BE_STALE('内部代号_terminal_panel', false)) {
+      if (!getFeatureValue_CACHED_MAY_BE_STALE('limkenion_terminal_panel', false)) {
         return;
       }
       getTerminalPanel().toggle();

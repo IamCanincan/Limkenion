@@ -8,6 +8,6 @@ export async function call(
   if (context.openMessageSelector) {
     context.openMessageSelector()
   }
-  // Return a skip message to not append any messages.
+  // 返回跳过消息，以免追加任何消息。
   return { type: 'skip' }
 }

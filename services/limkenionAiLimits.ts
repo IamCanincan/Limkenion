@@ -77,11 +77,11 @@ const EARLY_WARNING_CLAIM_MAP: Record<string, RateLimitType> = {
 }
 
 const RATE_LIMIT_DISPLAY_NAMES: Record<RateLimitType, string> = {
-  five_hour: 'session limit',
-  seven_day: 'weekly limit',
-  seven_day_opus: 'Opus limit',
-  seven_day_sonnet: 'Sonnet limit',
-  overage: 'extra usage limit',
+  five_hour: '会话限额',
+  seven_day: '周限额',
+  seven_day_opus: 'Opus 限额',
+  seven_day_sonnet: 'Sonnet 限额',
+  overage: '额外用量限额',
 }
 
 export function getRateLimitDisplayName(type: RateLimitType): string {
@@ -188,7 +188,7 @@ export function emitStatusChange(limits: LimkenionAILimits) {
     (limits.resetsAt ? limits.resetsAt - Date.now() / 1000 : 0) / (60 * 60),
   )
 
-  logEvent('内部代号_limkenionai_limits_status_changed', {
+  logEvent('limkenion_limkenionai_limits_status_changed', {
     status:
       limits.status as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     unifiedRateLimitFallbackAvailable: limits.unifiedRateLimitFallbackAvailable,

@@ -1,5 +1,5 @@
-// @generated stub from scan-missing-imports
-// 该文件自动生成，对应 ant-internal 的 feature() gated 模块。
+﻿// @generated stub from scan-missing-imports
+// 该文件自动生成，对应 内部构建 的 feature() gated 模块。
 // 所有外部 build 的代码路径在 DCE 后都不会真的执行这里的代码，这只是
 // bun build resolver 的占位符。
 const __target = function noop() {}

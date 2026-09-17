@@ -1,12 +1,12 @@
 /**
- * PowerShell Common Parameters (available on all cmdlets via [CmdletBinding()]).
- * Source: about_CommonParameters (PowerShell docs) + Get-Command output.
+ * PowerShell 公共参数（所有 cmdlet 均可通过 [CmdletBinding()] 使用）。
+ * 来源：about_CommonParameters（PowerShell 文档）+ Get-Command 输出。
  *
- * Shared between pathValidation.ts (merges into per-cmdlet known-param sets)
- * and readOnlyValidation.ts (merges into safeFlags check). Split out to break
- * what would otherwise be an import cycle between those two files.
+ * pathValidation.ts（并入各 cmdlet 的已知参数集）与 readOnlyValidation.ts
+ * （并入 safeFlags 检查）之间共享。单独拆分出来是为了打破这两个文件之间
+ * 原本会形成的循环导入。
  *
- * Stored lowercase with leading dash — callers `.toLowerCase()` their input.
+ * 以带前导连字符的小写存储——调用方会对输入执行 `.toLowerCase()`。
  */
 
 export const COMMON_SWITCHES = ['-verbose', '-debug']

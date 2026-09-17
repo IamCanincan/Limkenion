@@ -3,65 +3,65 @@ import { getLimkenionConfigHomeDir } from '../../utils/envUtils.js'
 import { getFsImplementation } from '../../utils/fsOperations.js'
 
 /**
- * Get the Magic Docs update prompt template
+ * 获取 Magic Docs 的更新提示模板
  */
 function getUpdatePromptTemplate(): string {
-  return `IMPORTANT: This message and these instructions are NOT part of the actual user conversation. Do NOT include any references to "documentation updates", "magic docs", or these update instructions in the document content.
+  return `重要：这条消息和这些指令不属于真实用户对话的一部分。不要在文档内容中提及任何与“文档更新”“magic docs”或这些更新指令相关的内容。
 
-Based on the user conversation above (EXCLUDING this documentation update instruction message), update the Magic Doc file to incorporate any NEW learnings, insights, or information that would be valuable to preserve.
+基于上方用户对话（排除这条文档更新指令消息）来更新这个 Magic Doc 文件，把值得保留的**新**知识、洞见或信息纳入其中。
 
-The file {{docPath}} has already been read for you. Here are its current contents:
+文件 {{docPath}} 已为你读取。以下是它的当前内容：
 <current_doc_content>
 {{docContents}}
 </current_doc_content>
 
-Document title: {{docTitle}}
+文档标题：{{docTitle}}
 {{customInstructions}}
 
-Your ONLY task is to use the Edit tool to update the documentation file if there is substantial new information to add, then stop. You can make multiple edits (update multiple sections as needed) - make all Edit tool calls in parallel in a single message. If there's nothing substantial to add, simply respond with a brief explanation and do not call any tools.
+你的唯一任务：如果有实质性的新信息要添加，就用 Edit 工具更新这个文档文件，然后停止。你可以多次编辑（按需更新多个章节）——请在一条消息里并行发出所有 Edit 调用。如果没有任何实质性内容要添加，只需用一句话简要说明，不要调用任何工具。
 
-CRITICAL RULES FOR EDITING:
-- Preserve the Magic Doc header exactly as-is: # MAGIC DOC: {{docTitle}}
-- If there's an italicized line immediately after the header, preserve it exactly as-is
-- Keep the document CURRENT with the latest state of the codebase - this is NOT a changelog or history
-- Update information IN-PLACE to reflect the current state - do NOT append historical notes or track changes over time
-- Remove or replace outdated information rather than adding "Previously..." or "Updated to..." notes
-- Clean up or DELETE sections that are no longer relevant or don't align with the document's purpose
-- Fix obvious errors: typos, grammar mistakes, broken formatting, incorrect information, or confusing statements
-- Keep the document well organized: use clear headings, logical section order, consistent formatting, and proper nesting
+编辑的关键规则：
+- 原样保留 Magic Doc 的文档头： # MAGIC DOC: {{docTitle}}
+- 如果标题后紧跟一行斜体文字，请原样保留
+- 让文档与代码库的最新状态保持同步——这不是变更日志或历史记录
+- 就地更新信息以反映当前状态——不要追加历史注释或记录随时间的变化
+- 移除或替换过时信息，而不是添加“此前……”或“已更新至……”之类的注释
+- 清理或删除不再相关、或与文档用途不符的章节
+- 修正明显错误：错别字、语法错误、损坏的排版、错误信息或令人困惑的表述
+- 保持文档组织良好：使用清晰的标题、有逻辑的章节顺序、一致的格式与合理的嵌套
 
-DOCUMENTATION PHILOSOPHY - READ CAREFULLY:
-- BE TERSE. High signal only. No filler words or unnecessary elaboration.
-- Documentation is for OVERVIEWS, ARCHITECTURE, and ENTRY POINTS - not detailed code walkthroughs
-- Do NOT duplicate information that's already obvious from reading the source code
-- Do NOT document every function, parameter, or line number reference
-- Focus on: WHY things exist, HOW components connect, WHERE to start reading, WHAT patterns are used
-- Skip: detailed implementation steps, exhaustive API docs, play-by-play narratives
+文档哲学——请仔细阅读：
+- 要**精炼**。只保留高信噪比内容。不要废话或冗余阐述。
+- 文档服务于**总览、架构与入口点**——而不是逐行讲解代码
+- 不要重复那些读源码就能看出来的明显信息
+- 不要记录每个函数、参数或行号引用
+- 聚焦：某事物**为什么**存在、各组件**如何**连接、**从哪里**开始阅读、使用了**什么**模式
+- 跳过：详尽的实现步骤、面面俱到的 API 文档、流水账式叙事
 
-What TO document:
-- High-level architecture and system design
-- Non-obvious patterns, conventions, or gotchas
-- Key entry points and where to start reading code
-- Important design decisions and their rationale
-- Critical dependencies or integration points
-- References to related files, docs, or code (like a wiki) - help readers navigate to relevant context
+应当记录的内容：
+- 高层架构与系统设计
+- 不明显的模式、约定或坑
+- 关键入口点以及从哪里开始阅读代码
+- 重要的设计决策及其理由
+- 关键依赖或集成点
+- 指向相关文件、文档或代码的引用（类似 wiki）——帮助读者导航到相关上下文
 
-What NOT to document:
-- Anything obvious from reading the code itself
-- Exhaustive lists of files, functions, or parameters
-- Step-by-step implementation details
-- Low-level code mechanics
-- Information already in LIMKENION.md or other project docs
+不应记录的内容：
+- 任何读代码就能看出的内容
+- 面面俱到的文件、函数或参数清单
+- 一步步的实现细节
+- 底层代码机制
+- 已经写在 LIMKENION.md 或其他项目文档里的信息
 
-Use the Edit tool with file_path: {{docPath}}
+使用 file_path: {{docPath}} 的 Edit 工具。
 
-REMEMBER: Only update if there is substantial new information. The Magic Doc header (# MAGIC DOC: {{docTitle}}) must remain unchanged.`
+记住：只有存在实质性新信息时才更新。Magic Doc 的文档头（# MAGIC DOC: {{docTitle}}）必须保持不变。`
 }
 
 /**
- * Load custom Magic Docs prompt from file if it exists
- * Custom prompts can be placed at ~/.limkenion/magic-docs/prompt.md
- * Use {{variableName}} syntax for variable substitution (e.g., {{docContents}}, {{docPath}}, {{docTitle}})
+ * 如果存在，则从文件加载自定义 Magic Docs 提示
+ * 自定义提示可放在 ~/.limkenion/magic-docs/prompt.md
+ * 使用 {{variableName}} 语法进行变量替换（例如 {{docContents}}、{{docPath}}、{{docTitle}}）
  */
 async function loadMagicDocsPrompt(): Promise<string> {
   const fs = getFsImplementation()
@@ -70,21 +70,20 @@ async function loadMagicDocsPrompt(): Promise<string> {
   try {
     return await fs.readFile(promptPath, { encoding: 'utf-8' })
   } catch {
-    // Silently fall back to default if custom prompt doesn't exist or fails to load
+    // 如果自定义提示不存在或加载失败，则静默回退到默认模板
     return getUpdatePromptTemplate()
   }
 }
 
 /**
- * Substitute variables in the prompt template using {{variable}} syntax
+ * 使用 {{variable}} 语法替换提示模板中的变量
  */
 function substituteVariables(
   template: string,
   variables: Record<string, string>,
 ): string {
-  // Single-pass replacement avoids two bugs: (1) $ backreference corruption
-  // (replacer fn treats $ literally), and (2) double-substitution when user
-  // content happens to contain {{varName}} matching a later variable.
+  // 单趟替换可避免两个问题：(1) $ 反向引用被破坏（替换函数把 $ 当字面量处理），
+  // 以及 (2) 当用户内容恰好包含与后一个变量匹配的 {{varName}} 时发生二次替换。
   return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) =>
     Object.prototype.hasOwnProperty.call(variables, key)
       ? variables[key]!
@@ -93,7 +92,7 @@ function substituteVariables(
 }
 
 /**
- * Build the Magic Docs update prompt with variable substitution
+ * 构建 Magic Docs 的更新提示并进行变量替换
  */
 export async function buildMagicDocsUpdatePrompt(
   docContents: string,
@@ -103,7 +102,7 @@ export async function buildMagicDocsUpdatePrompt(
 ): Promise<string> {
   const promptTemplate = await loadMagicDocsPrompt()
 
-  // Build custom instructions section if provided
+  // 如果提供了指令，则构建自定义指令段
   const customInstructions = instructions
     ? `
 
@@ -115,7 +114,7 @@ The document author has provided specific instructions for how this file should 
 These instructions take priority over the general rules below. Make sure your updates align with these specific guidelines.`
     : ''
 
-  // Substitute variables in the prompt
+  // 替换提示中的变量
   const variables = {
     docContents,
     docPath,

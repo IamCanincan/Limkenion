@@ -17,10 +17,10 @@ import type {
   ReferrerRewardInfo,
 } from '../oauth/types.js'
 
-// Cache expiration time: 24 hours (eligibility changes only on subscription/experiment changes)
+// 缓存过期时间：24 小时（资格仅在订阅/实验变化时才变动）
 const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000
 
-// Track in-flight fetch to prevent duplicate API calls
+// 跟踪进行中的请求，避免重复 API 调用
 let fetchInProgress: Promise<ReferralEligibilityResponse | null> | null = null
 
 export async function fetchReferralEligibility(
@@ -38,7 +38,7 @@ export async function fetchReferralEligibility(
   const response = await axios.get(url, {
     headers,
     params: { campaign },
-    timeout: 5000, // 5 second timeout for background fetch
+    timeout: 5000, // 后台获取的 5 秒超时
   })
 
   return response.data
@@ -59,14 +59,14 @@ export async function fetchReferralRedemptions(
   const response = await axios.get<ReferralRedemptionsResponse>(url, {
     headers,
     params: { campaign },
-    timeout: 10000, // 10 second timeout
+    timeout: 10000, // 10 秒超时
   })
 
   return response.data
 }
 
 /**
- * Prechecks for if user can access guest passes feature
+ * 预检查用户能否使用 guest passes 功能
  */
 function shouldCheckForPasses(): boolean {
   return !!(
@@ -77,8 +77,8 @@ function shouldCheckForPasses(): boolean {
 }
 
 /**
- * Check cached passes eligibility from GlobalConfig
- * Returns current cached state and cache status
+ * 从 GlobalConfig 检查缓存的 passes 资格
+ * 返回当前缓存状态与缓存新鲜度
  */
 export function checkCachedPassesEligibility(): {
   eligible: boolean
@@ -106,7 +106,7 @@ export function checkCachedPassesEligibility(): {
   const cachedEntry = config.passesEligibilityCache?.[orgId]
 
   if (!cachedEntry) {
-    // No cached entry, needs fetch
+    // 无缓存条目，需要拉取
     return {
       eligible: false,
       needsRefresh: true,
@@ -144,8 +144,8 @@ export function formatCreditAmount(reward: ReferrerRewardInfo): string {
 }
 
 /**
- * Get cached referrer reward info from eligibility cache
- * Returns the reward info if the user is in a v1 campaign, null otherwise
+ * 从资格缓存中获取引荐人奖励信息。
+ * 若用户在 v1 活动中，则返回奖励信息，否则返回 null。
  */
 export function getCachedReferrerReward(): ReferrerRewardInfo | null {
   const orgId = getOauthAccountInfo()?.organizationUuid
@@ -156,8 +156,8 @@ export function getCachedReferrerReward(): ReferrerRewardInfo | null {
 }
 
 /**
- * Get the cached remaining passes count from eligibility cache
- * Returns the number of remaining passes, or null if not available
+ * 从资格缓存中获取剩余的 passes 数量。
+ * 返回剩余 passes 数量，若不可用则返回 null。
  */
 export function getCachedRemainingPasses(): number | null {
   const orgId = getOauthAccountInfo()?.organizationUuid
@@ -168,13 +168,13 @@ export function getCachedRemainingPasses(): number | null {
 }
 
 /**
- * Fetch passes eligibility and store in GlobalConfig
- * Returns the fetched response or null on error
+ * 拉取 passes 资格并存入 GlobalConfig。
+ * 返回拉取到的响应，出错时返回 null。
  */
 export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibilityResponse | null> {
-  // Return existing promise if fetch is already in progress
+  // 若拉取已在进行中，返回已有的 promise
   if (fetchInProgress) {
-    logForDebugging('Passes: Reusing in-flight eligibility fetch')
+    logForDebugging('Passes: 复用进行中的资格拉取')
     return fetchInProgress
   }
 
@@ -184,7 +184,7 @@ export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibil
     return null
   }
 
-  // Store the promise to share with concurrent calls
+  // 保存 promise 以与并发调用共享
   fetchInProgress = (async () => {
     try {
       const response = await fetchReferralEligibility()
@@ -203,16 +203,16 @@ export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibil
       }))
 
       logForDebugging(
-        `Passes eligibility cached for org ${orgId}: ${response.eligible}`,
+        `组织 ${orgId} 的 Passes 资格已缓存：${response.eligible}`,
       )
 
       return response
     } catch (error) {
-      logForDebugging('Failed to fetch and cache passes eligibility')
+      logForDebugging('拉取并缓存 passes 资格失败')
       logError(error as Error)
       return null
     } finally {
-      // Clear the promise when done
+      // 完成后清除 promise
       fetchInProgress = null
     }
   })()
@@ -221,12 +221,11 @@ export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibil
 }
 
 /**
- * Get cached passes eligibility data or fetch if needed
- * Main entry point for all eligibility checks
+ * 获取缓存的 passes 资格数据，若无则按需拉取。
+ * 所有资格检查的主要入口。
  *
- * This function never blocks on network - it returns cached data immediately
- * and fetches in the background if needed. On cold start (no cache), it returns
- * null and the passes command won't be available until the next session.
+ * 此函数永不在网络上阻塞——立即返回缓存数据，如需则在后台拉取。
+ * 冷启动（无缓存）时返回 null，passes 命令直到下一个会话才可用。
  */
 export async function getCachedOrFetchPassesEligibility(): Promise<ReferralEligibilityResponse | null> {
   if (!shouldCheckForPasses()) {
@@ -242,37 +241,37 @@ export async function getCachedOrFetchPassesEligibility(): Promise<ReferralEligi
   const cachedEntry = config.passesEligibilityCache?.[orgId]
   const now = Date.now()
 
-  // No cache - trigger background fetch and return null (non-blocking)
-  // The passes command won't be available this session, but will be next time
+  // 无缓存——触发后台拉取并返回 null（非阻塞）。
+  // 本会话的 passes 命令不可用，但下个会话可用。
   if (!cachedEntry) {
     logForDebugging(
-      'Passes: No cache, fetching eligibility in background (command unavailable this session)',
+      'Passes: 无缓存，后台拉取资格（本会话命令不可用）',
     )
     void fetchAndStorePassesEligibility()
     return null
   }
 
-  // Cache exists but is stale - return stale cache and trigger background refresh
+  // 缓存存在但已过期——返回过期缓存并触发后台刷新
   if (now - cachedEntry.timestamp > CACHE_EXPIRATION_MS) {
     logForDebugging(
-      'Passes: Cache stale, returning cached data and refreshing in background',
+      'Passes: 缓存已过期，返回缓存数据并在后台刷新',
     )
-    void fetchAndStorePassesEligibility() // Background refresh
+    void fetchAndStorePassesEligibility() // 后台刷新
     const { timestamp, ...response } = cachedEntry
     return response as ReferralEligibilityResponse
   }
 
-  // Cache is fresh - return it immediately
-  logForDebugging('Passes: Using fresh cached eligibility data')
+  // 缓存是新的——立即返回
+  logForDebugging('Passes: 使用最新缓存资格数据')
   const { timestamp, ...response } = cachedEntry
   return response as ReferralEligibilityResponse
 }
 
 /**
- * Prefetch passes eligibility on startup
+ * 启动时预取 passes 资格
  */
 export async function prefetchPassesEligibility(): Promise<void> {
-  // Skip network requests if nonessential traffic is disabled
+  // 若非关键流量被禁用则跳过网络请求
   if (isEssentialTrafficOnly()) {
     return
   }

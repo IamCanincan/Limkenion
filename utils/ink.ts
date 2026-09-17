@@ -7,20 +7,20 @@ import {
 const DEFAULT_AGENT_THEME_COLOR = 'cyan_FOR_SUBAGENTS_ONLY'
 
 /**
- * Convert a color string to Ink's TextProps['color'] format.
- * Colors are typically AgentColorName values like 'blue', 'green', etc.
- * This converts them to theme keys so they respect the current theme.
- * Falls back to the raw ANSI color if the color is not a known agent color.
+ * 将颜色字符串转换为 Ink 的 TextProps['color'] 格式。
+ * 颜色通常是 AgentColorName 值，如 'blue'、'green' 等。
+ * 这会将它们转换为主题键，使其遵循当前主题。
+ * 若不是已知的智能体颜色，则回退到原始 ANSI 颜色。
  */
 export function toInkColor(color: string | undefined): TextProps['color'] {
   if (!color) {
     return DEFAULT_AGENT_THEME_COLOR
   }
-  // Try to map to a theme color if it's a known agent color
+  // 若是已知的智能体颜色，则尝试映射为主题颜色
   const themeColor = AGENT_COLOR_TO_THEME_COLOR[color as AgentColorName]
   if (themeColor) {
     return themeColor
   }
-  // Fall back to raw ANSI color for unknown colors
+  // 未知颜色回退到原始 ANSI 颜色
   return `ansi:${color}` as TextProps['color']
 }

@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+/**
+ * Limkenion CLI 全局启动器。
+ * 由 esbuild 打出的单文件 ESM 产物（dist/cli.mjs）运行。
+ * 动态 import() 以兼容无扩展名的 bin 入口（Node 按 CJS 解析）。
+ */
+import('../dist/cli.mjs').catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

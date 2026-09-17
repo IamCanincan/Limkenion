@@ -13,7 +13,7 @@ import type { PowerShellProgress } from '../../types/tools.js';
 import type { ThemeName } from '../../utils/theme.js';
 import type { Out, PowerShellToolInput } from './PowerShellTool.js';
 
-// Constants for command display
+// 命令显示常量
 const MAX_COMMAND_DISPLAY_LINES = 2;
 const MAX_COMMAND_DISPLAY_CHARS = 160;
 export function renderToolUseMessage(input: Partial<PowerShellToolInput>, {
@@ -64,7 +64,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
   const lastProgress = progressMessagesForMessage.at(-1);
   if (!lastProgress || !lastProgress.data) {
     return <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>;
   }
   const data = lastProgress.data;
@@ -72,7 +72,7 @@ export function renderToolUseProgressMessage(progressMessagesForMessage: Progres
 }
 export function renderToolUseQueuedMessage(): React.ReactNode {
   return <MessageResponse height={1}>
-      <Text dimColor>Waiting…</Text>
+      <Text dimColor>等待中…</Text>
     </MessageResponse>;
 }
 export function renderToolResultMessage(content: Out, progressMessagesForMessage: ProgressMessage<PowerShellProgress>[], {
@@ -98,7 +98,7 @@ export function renderToolResultMessage(content: Out, progressMessagesForMessage
   } = content;
   if (isImage) {
     return <MessageResponse height={1}>
-        <Text dimColor>[Image data detected and sent to Limkenion]</Text>
+        <Text dimColor>[检测到图像数据并已发送至 Limkenion]</Text>
       </MessageResponse>;
   }
   return <Box flexDirection="column">
@@ -107,9 +107,9 @@ export function renderToolResultMessage(content: Out, progressMessagesForMessage
       {stdout === '' && stderr.trim() === '' ? <MessageResponse height={1}>
           <Text dimColor>
             {backgroundTaskId ? <>
-                Running in the background{' '}
+                正在后台运行{' '}
                 <KeyboardShortcutHint shortcut="↓" action="manage" parens />
-              </> : interrupted ? 'Interrupted' : returnCodeInterpretation || '(No output)'}
+              </> : interrupted ? '已中断' : returnCodeInterpretation || '(无输出)'}
           </Text>
         </MessageResponse> : null}
       {timeoutMs ? <MessageResponse>

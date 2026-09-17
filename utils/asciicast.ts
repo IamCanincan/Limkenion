@@ -25,7 +25,7 @@ export function getRecordFilePath(): string | null {
   if (recordingState.filePath !== null) {
     return recordingState.filePath
   }
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return null
   }
   if (!isEnvTruthy(process.env.LIMKENION_TERMINAL_RECORDING)) {

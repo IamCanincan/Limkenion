@@ -28,19 +28,19 @@ export type PermissionPromptProps<T extends string> = {
   toolAnalyticsContext?: ToolAnalyticsContext;
 };
 const DEFAULT_PLACEHOLDERS: Record<FeedbackType, string> = {
-  accept: 'tell Limkenion what to do next',
-  reject: 'tell Limkenion what to do differently'
+  accept: '告诉 Limkenion 接下来要做什么',
+  reject: '告诉 Limkenion 要做出哪些不同的处理'
 };
 
 /**
- * Shared component for permission prompts with optional feedback input.
+ * 带可选反馈输入框的许可提示共用的组件。
  *
- * Handles:
- * - "Do you want to proceed?" question with optional Tab hint
- * - Feature flag check for feedback capability
- * - Input mode toggling (Tab to expand feedback input)
- * - Analytics events for feedback interactions
- * - Transforming options to Select-compatible format
+ * 处理：
+ * - “您想继续吗？”问题及可选的 Tab 提示
+ * - 反馈能力的特性开关检查
+ * - 输入模式切换（按 Tab 展开反馈输入框）
+ * - 反馈交互的分析事件
+ * - 将选项转换为 Select 兼容格式
  */
 export function PermissionPrompt(t0) {
   const $ = _c(54);
@@ -51,7 +51,7 @@ export function PermissionPrompt(t0) {
     question: t1,
     toolAnalyticsContext
   } = t0;
-  const question = t1 === undefined ? "Do you want to proceed?" : t1;
+  const question = t1 === undefined ? "您想继续吗？" : t1;
   const setAppState = useSetAppState();
   const [acceptFeedback, setAcceptFeedback] = useState("");
   const [rejectFeedback, setRejectFeedback] = useState("");
@@ -150,21 +150,21 @@ export function PermissionPrompt(t0) {
       if (type_0 === "accept") {
         if (acceptInputMode) {
           setAcceptInputMode(false);
-          logEvent("内部代号_accept_feedback_mode_collapsed", analyticsProps);
+          logEvent("limkenion_accept_feedback_mode_collapsed", analyticsProps);
         } else {
           setAcceptInputMode(true);
           setAcceptFeedbackModeEntered(true);
-          logEvent("内部代号_accept_feedback_mode_entered", analyticsProps);
+          logEvent("limkenion_accept_feedback_mode_entered", analyticsProps);
         }
       } else {
         if (type_0 === "reject") {
           if (rejectInputMode) {
             setRejectInputMode(false);
-            logEvent("内部代号_reject_feedback_mode_collapsed", analyticsProps);
+            logEvent("limkenion_reject_feedback_mode_collapsed", analyticsProps);
           } else {
             setRejectInputMode(true);
             setRejectFeedbackModeEntered(true);
-            logEvent("内部代号_reject_feedback_mode_entered", analyticsProps);
+            logEvent("limkenion_reject_feedback_mode_entered", analyticsProps);
           }
         }
       }
@@ -201,10 +201,10 @@ export function PermissionPrompt(t0) {
           entered_feedback_mode: option_0.feedbackConfig.type === "accept" ? acceptFeedbackModeEntered : rejectFeedbackModeEntered
         };
         if (option_0.feedbackConfig.type === "accept") {
-          logEvent("内部代号_accept_submitted", analyticsProps_0);
+          logEvent("limkenion_accept_submitted", analyticsProps_0);
         } else {
           if (option_0.feedbackConfig.type === "reject") {
-            logEvent("内部代号_reject_submitted", analyticsProps_0);
+            logEvent("limkenion_reject_submitted", analyticsProps_0);
           }
         }
       }
@@ -251,7 +251,7 @@ export function PermissionPrompt(t0) {
   let t7;
   if ($[31] !== onCancel || $[32] !== setAppState) {
     t7 = () => {
-      logEvent("内部代号_permission_request_escape", {});
+      logEvent("limkenion_permission_request_escape", {});
       setAppState(_temp);
       onCancel?.();
     };
@@ -303,10 +303,10 @@ export function PermissionPrompt(t0) {
   } else {
     t10 = $[47];
   }
-  const t11 = showTabHint && " \xB7 Tab to amend";
+  const t11 = showTabHint && " \xB7 Tab 修改";
   let t12;
   if ($[48] !== t11) {
-    t12 = <Box marginTop={1}><Text dimColor={true}>Esc to cancel{t11}</Text></Box>;
+    t12 = <Box marginTop={1}><Text dimColor={true}>按 Esc 取消{t11}</Text></Box>;
     $[48] = t11;
     $[49] = t12;
   } else {

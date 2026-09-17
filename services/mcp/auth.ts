@@ -65,7 +65,7 @@ import {
 const AUTH_REQUEST_TIMEOUT_MS = 30000
 
 /**
- * Failure reasons for the `内部代号_mcp_oauth_refresh_failure` event. Values
+ * Failure reasons for the `limkenion_mcp_oauth_refresh_failure` event. Values
  * are emitted to analytics — keep them stable (do not rename; add new ones).
  */
 type MCPRefreshFailureReason =
@@ -77,7 +77,7 @@ type MCPRefreshFailureReason =
   | 'request_failed'
 
 /**
- * Failure reasons for the `内部代号_mcp_oauth_flow_error` event. Values are
+ * Failure reasons for the `limkenion_mcp_oauth_flow_error` event. Values are
  * emitted to analytics for attribution in BigQuery. Keep stable (do not
  * rename; add new ones).
  */
@@ -263,7 +263,7 @@ async function fetchAuthServerMetadata(
   if (configuredMetadataUrl) {
     if (!configuredMetadataUrl.startsWith('https://')) {
       throw new Error(
-        `authServerMetadataUrl must use https:// (got: ${configuredMetadataUrl})`,
+        `authServerMetadataUrl 必须使用 https://（当前为：${configuredMetadataUrl}）`,
       )
     }
     const authFetch = fetchFn ?? createAuthFetch()
@@ -274,7 +274,7 @@ async function fetchAuthServerMetadata(
       return OAuthMetadataSchema.parse(await response.json())
     }
     throw new Error(
-      `HTTP ${response.status} fetching configured auth server metadata from ${configuredMetadataUrl}`,
+      `从 ${configuredMetadataUrl} 获取已配置的授权服务器元数据时收到 HTTP ${response.status}`,
     )
   }
 
@@ -676,14 +676,14 @@ async function performMCPXaaAuth(
   const idp = getXaaIdpSettings()
   if (!idp) {
     throw new Error(
-      "XAA: no IdP connection configured. Run 'limkenion mcp xaa setup --issuer <url> --client-id <id> --client-secret' to configure.",
+      "XAA：尚未配置 IdP 连接。运行 'limkenion mcp xaa setup --issuer <url> --client-id <id> --client-secret' 进行配置。",
     )
   }
 
   const clientId = serverConfig.oauth?.clientId
   if (!clientId) {
     throw new Error(
-      `XAA: server '${serverName}' needs an AS client_id. Re-add with --client-id.`,
+      `XAA：服务器 '${serverName}' 需要 AS client_id。请使用 --client-id 重新添加。`,
     )
   }
 
@@ -706,7 +706,7 @@ async function performMCPXaaAuth(
       `XAA: secret lookup miss. wanted=${wantedKey} have=[${haveKeys.join(', ')}] configHeaders=${jsonStringify(headersForLogging)}`,
     )
     throw new Error(
-      `XAA: AS client secret not found for '${serverName}'. Re-add with --client-secret.`,
+      `XAA：未找到 '${serverName}' 的 AS 客户端密钥。请使用 --client-secret 重新添加。`,
     )
   }
 
@@ -823,7 +823,7 @@ async function performMCPXaaAuth(
     })
 
     logMCPDebug(serverName, 'XAA: tokens saved')
-    logEvent('内部代号_mcp_oauth_flow_success', {
+    logEvent('limkenion_mcp_oauth_flow_success', {
       authMethod:
         'xaa' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       idTokenCacheHit,
@@ -833,7 +833,7 @@ async function performMCPXaaAuth(
     if (e instanceof AuthenticationCancelledError) {
       throw e
     }
-    logEvent('内部代号_mcp_oauth_flow_failure', {
+    logEvent('limkenion_mcp_oauth_flow_failure', {
       authMethod:
         'xaa' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       xaaFailureStage:
@@ -871,10 +871,10 @@ export async function performMCPOAuthFlow(
   if (serverConfig.oauth?.xaa) {
     if (!isXaaEnabled()) {
       throw new Error(
-        `XAA is not enabled (set LIMKENION_ENABLE_XAA=1). Remove 'oauth.xaa' from server '${serverName}' to use the standard consent flow.`,
+        `XAA 未启用（请设置 LIMKENION_ENABLE_XAA=1）。从服务器 '${serverName}' 移除 'oauth.xaa' 即可使用标准授权流程。`,
       )
     }
-    logEvent('内部代号_mcp_oauth_flow_start', {
+    logEvent('limkenion_mcp_oauth_flow_start', {
       isOAuthFlow: true,
       authMethod:
         'xaa' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -936,7 +936,7 @@ export async function performMCPOAuthFlow(
 
   const flowAttemptId = randomUUID()
 
-  logEvent('内部代号_mcp_oauth_flow_start', {
+  logEvent('limkenion_mcp_oauth_flow_start', {
     flowAttemptId:
       flowAttemptId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     isOAuthFlow: true,
@@ -1110,7 +1110,7 @@ export async function performMCPOAuthFlow(
           if (!error && state !== oauthState) {
             res.writeHead(400, { 'Content-Type': 'text/html' })
             res.end(
-              `<h1>Authentication Error</h1><p>Invalid state parameter. Please try again.</p><p>You can close this window.</p>`,
+              `<h1>认证出错</h1><p>state 参数无效，请重试。</p><p>现在可以关闭此窗口。</p>`,
             )
             cleanup()
             rejectOnce(new Error('OAuth state mismatch - possible CSRF attack'))
@@ -1240,7 +1240,7 @@ export async function performMCPOAuthFlow(
         logMCPDebug(serverName, `Token expires_in: ${savedTokens.expires_in}`)
       }
 
-      logEvent('内部代号_mcp_oauth_flow_success', {
+      logEvent('limkenion_mcp_oauth_flow_success', {
         flowAttemptId:
           flowAttemptId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         transportType:
@@ -1318,7 +1318,7 @@ export async function performMCPOAuthFlow(
       }
     }
 
-    logEvent('内部代号_mcp_oauth_flow_error', {
+    logEvent('limkenion_mcp_oauth_flow_error', {
       flowAttemptId:
         flowAttemptId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       reason:
@@ -1911,7 +1911,7 @@ export class LimkenionAuthProvider implements OAuthClientProvider {
     const urlString = authorizationUrl.toString()
     if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
       throw new Error(
-        'Invalid authorization URL: must use http:// or https:// scheme',
+        '无效的授权 URL：必须使用 http:// 或 https:// 协议',
       )
     }
 
@@ -2186,8 +2186,8 @@ export class LimkenionAuthProvider implements OAuthClientProvider {
     ): void => {
       logEvent(
         outcome === 'success'
-          ? '内部代号_mcp_oauth_refresh_success'
-          : '内部代号_mcp_oauth_refresh_failure',
+          ? 'limkenion_mcp_oauth_refresh_success'
+          : 'limkenion_mcp_oauth_refresh_failure',
         {
           transportType: this.serverConfig
             .type as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -2367,7 +2367,7 @@ export async function readClientSecret(): Promise<string> {
 
   if (!process.stdin.isTTY) {
     throw new Error(
-      'No TTY available to prompt for client secret. Set MCP_CLIENT_SECRET env var instead.',
+      '没有可用于提示输入客户端密钥的 TTY。请改用 MCP_CLIENT_SECRET 环境变量。',
     )
   }
 

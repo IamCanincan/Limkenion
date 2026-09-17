@@ -1,9 +1,9 @@
 /**
- * If the first line of a bash command is a `# comment` (not a `#!` shebang),
- * return the comment text stripped of the `#` prefix. Otherwise undefined.
+ * 如果 bash 命令的第一行是 `# comment`（而非 `#!` shebang），
+ * 返回去除 `#` 前缀后的注释文本。否则返回 undefined。
  *
- * Under fullscreen mode this is the non-verbose tool-use label AND the
- * collapse-group ⎿ hint — it's what Limkenion wrote for the human to read.
+ * 在整屏模式下，这就是非冗长的工具使用标签以及折叠组 ⎿ 提示——
+ * 它是 Limkenion 写给人读的内容。
  */
 export function extractBashCommentLabel(command: string): string | undefined {
   const nl = command.indexOf('\n')

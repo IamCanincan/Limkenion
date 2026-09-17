@@ -27,7 +27,7 @@ export function QuestionNavigationBar(t0) {
   let t2;
   if ($[0] !== columns || $[1] !== currentQuestionIndex || $[2] !== hideSubmitTab || $[3] !== questions) {
     bb0: {
-      const submitText = hideSubmitTab ? "" : ` ${figures.tick} Submit `;
+      const submitText = hideSubmitTab ? "" : ` ${figures.tick} 提交 `;
       const fixedWidth = stringWidth("\u2190 ") + stringWidth(" \u2192") + stringWidth(submitText);
       const availableForTabs = columns - fixedWidth;
       if (availableForTabs <= 0) {
@@ -135,7 +135,7 @@ export function QuestionNavigationBar(t0) {
   }
   let t5;
   if ($[26] !== currentQuestionIndex || $[27] !== hideSubmitTab || $[28] !== questions.length) {
-    t5 = !hideSubmitTab && <Box key="submit">{currentQuestionIndex === questions.length ? <Text backgroundColor="permission" color="inverseText">{" "}{figures.tick} Submit{" "}</Text> : <Text> {figures.tick} Submit </Text>}</Box>;
+    t5 = !hideSubmitTab && <Box key="submit">{currentQuestionIndex === questions.length ? <Text backgroundColor="permission" color="inverseText">{" "}{figures.tick} 提交{" "}</Text> : <Text> {figures.tick} 提交 </Text>}</Box>;
     $[26] = currentQuestionIndex;
     $[27] = hideSubmitTab;
     $[28] = questions.length;

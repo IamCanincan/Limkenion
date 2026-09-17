@@ -11,7 +11,7 @@ export const DEFAULT_MAX_AGE_DAYS =
 /**
  * Unified gate for the cron scheduling system. Combines the build-time
  * `feature('AGENT_TRIGGERS')` flag (dead code elimination) with the runtime
- * `内部代号_kairos_cron` GrowthBook gate on a 5-minute refresh window.
+ * `limkenion_kairos_cron` GrowthBook gate on a 5-minute refresh window.
  *
  * AGENT_TRIGGERS is independently shippable from KAIROS — the cron module
  * graph (cronScheduler/cronTasks/cronTasksLock/cron.ts + the three tools +
@@ -37,7 +37,7 @@ export function isKairosCronEnabled(): boolean {
   return feature('AGENT_TRIGGERS')
     ? !isEnvTruthy(process.env.LIMKENION_DISABLE_CRON) &&
         getFeatureValue_CACHED_WITH_REFRESH(
-          '内部代号_kairos_cron',
+          'limkenion_kairos_cron',
           true,
           KAIROS_CRON_REFRESH_MS,
         )
@@ -55,7 +55,7 @@ export function isKairosCronEnabled(): boolean {
  */
 export function isDurableCronEnabled(): boolean {
   return getFeatureValue_CACHED_WITH_REFRESH(
-    '内部代号_kairos_cron_durable',
+    'limkenion_kairos_cron_durable',
     true,
     KAIROS_CRON_REFRESH_MS,
   )

@@ -70,7 +70,7 @@ isEnvTruthy(process.env.LIMKENION_DISABLE_BACKGROUND_TASKS);
 // Auto-background agent tasks after this many ms (0 = disabled)
 // Enabled by env var OR GrowthBook gate (checked lazily since GB may not be ready at module load)
 function getAutoBackgroundMs(): number {
-  if (isEnvTruthy(process.env.LIMKENION_AUTO_BACKGROUND_TASKS) || getFeatureValue_CACHED_MAY_BE_STALE('内部代号_auto_background_agents', false)) {
+  if (isEnvTruthy(process.env.LIMKENION_AUTO_BACKGROUND_TASKS) || getFeatureValue_CACHED_MAY_BE_STALE('limkenion_auto_background_agents', false)) {
     return 120_000;
   }
   return 0;
@@ -78,57 +78,54 @@ function getAutoBackgroundMs(): number {
 
 // Multi-agent type constants are defined inline inside gated blocks to enable dead code elimination
 
-// Base input schema without multi-agent parameters
+// 基础输入 schema（不含多代理参数）
 const baseInputSchema = lazySchema(() => z.object({
-  description: z.string().describe('A short (3-5 word) description of the task'),
-  prompt: z.string().describe('The task for the agent to perform'),
-  subagent_type: z.string().optional().describe('The type of specialized agent to use for this task'),
-  model: z.enum(['sonnet', 'opus', 'haiku']).optional().describe("Optional model override for this agent. Takes precedence over the agent definition's model frontmatter. If omitted, uses the agent definition's model, or inherits from the parent."),
-  run_in_background: z.boolean().optional().describe('Set to true to run this agent in the background. You will be notified when it completes.')
+  description: z.string().describe('任务的一句简短描述（3-5 个词）'),
+  prompt: z.string().describe('要求代理执行的任务'),
+  subagent_type: z.string().optional().describe('用于此任务的专业化代理类型'),
+  model: z.enum(['sonnet', 'opus', 'haiku']).optional().describe("此代理的可选模型覆盖。优先于代理定义的 model frontmatter。若省略，则使用代理定义中的模型，或继承父级。"),
+  run_in_background: z.boolean().optional().describe('设为 true 以在后台运行此代理。运行完成时你会收到通知。')
 }));
 
-// Full schema combining base + multi-agent params + isolation
+// 组合 base + 多代理参数 + isolation 的完整 schema
 const fullInputSchema = lazySchema(() => {
-  // Multi-agent parameters
+  // 多代理参数
   const multiAgentInputSchema = z.object({
-    name: z.string().optional().describe('Name for the spawned agent. Makes it addressable via SendMessage({to: name}) while running.'),
-    team_name: z.string().optional().describe('Team name for spawning. Uses current team context if omitted.'),
-    mode: permissionModeSchema().optional().describe('Permission mode for spawned teammate (e.g., "plan" to require plan approval).')
+    name: z.string().optional().describe('生成的代理的名称。运行期间可通过 SendMessage({to: name}) 对其进行寻址。'),
+    team_name: z.string().optional().describe('生成所用的团队名称。若省略则使用当前团队上下文。'),
+    mode: permissionModeSchema().optional().describe('生成团队成员所需遵循的权限模式（例如 "plan" 表示需要计划审批）。')
   });
   return baseInputSchema().merge(multiAgentInputSchema).extend({
-    isolation: ("external" === 'ant' ? z.enum(['worktree', 'remote']) : z.enum(['worktree'])).optional().describe("external" === 'ant' ? 'Isolation mode. "worktree" creates a temporary git worktree so the agent works on an isolated copy of the repo. "remote" launches the agent in a remote CCR environment (always runs in background).' : 'Isolation mode. "worktree" creates a temporary git worktree so the agent works on an isolated copy of the repo.'),
-    cwd: z.string().optional().describe('Absolute path to run the agent in. Overrides the working directory for all filesystem and shell operations within this agent. Mutually exclusive with isolation: "worktree".')
+    isolation: (z.enum(['worktree'])).optional().describe('隔离模式。"worktree" 会创建一个临时 git 工作树，使代理在仓库的隔离副本上工作。'),
+    cwd: z.string().optional().describe('代理运行所在的绝对路径。覆盖该代理内所有文件系统与 shell 操作的工作目录。与 isolation: "worktree" 互斥。')
   });
 });
 
-// Strip optional fields from the schema when the backing feature is off so
-// the model never sees them. Done via .omit() rather than conditional spread
-// inside .extend() because the spread-ternary breaks Zod's type inference
-// (field type collapses to `unknown`). The ternary return produces a union
-// type, but call() destructures via the explicit AgentToolInput type below
-// which always includes all optional fields.
+// 当后备特性关闭时，从 schema 中剔除可选字段，使模型永远看不到它们。
+// 用 .omit() 而非 .extend() 中的条件展开来实现，因为展开三元会破坏 Zod 的
+// 类型推断（字段类型坍缩为 `unknown`）。三元返回会产生联合类型，但 call()
+// 通过下面显式的 AgentToolInput 类型解构，该类型总是包含所有可选字段。
 export const inputSchema = lazySchema(() => {
   const schema = feature('KAIROS') ? fullInputSchema() : fullInputSchema().omit({
     cwd: true
   });
 
-  // GrowthBook-in-lazySchema is acceptable here (unlike subagent_type, which
-  // was removed in 906da6c723): the divergence window is one-session-per-
-  // gate-flip via _CACHED_MAY_BE_STALE disk read, and worst case is either
-  // "schema shows a no-op param" (gate flips on mid-session: param ignored
-  // by forceAsync) or "schema hides a param that would've worked" (gate
-  // flips off mid-session: everything still runs async via memoized
-  // forceAsync). No Zod rejection, no crash — unlike required→optional.
+  // 此处的 lazySchema GD 中允许使用 GrowthBook（与 subagent_type 不同，
+  // 后者已在 906da6c723 中移除）：分歧窗口是通过 _CACHED_MAY_BE_STALE 磁盘
+  // 读取实现的一次会话/一次开关翻转，最坏情况要么是"schema 显示一个无效
+  // 参数"（会话中途开关翻转：forceAsync 忽略该参数），要么是"schema 隐藏
+  // 了本可用的参数"（会话中途开关翻转关闭：一切仍通过记忆化 forceAsync
+  // 异步运行）。不会出现 Zod 拒绝、崩溃——不同于必选→可选。
   return isBackgroundTasksDisabled || isForkSubagentEnabled() ? schema.omit({
     run_in_background: true
   }) : schema;
 });
 type InputSchema = ReturnType<typeof inputSchema>;
 
-// Explicit type widens the schema inference to always include all optional
-// fields even when .omit() strips them for gating (cwd, run_in_background).
-// subagent_type is optional; call() defaults it to general-purpose when the
-// fork gate is off, or routes to the fork path when the gate is on.
+// 强制加宽 schema 推断的类型，使其总是包含所有可选字段，即使 .omit()
+// 出于门控从 schema 中剥离它们（cwd、run_in_background）。subagent_type 是
+// 可选字段；当 fork 门控关闭时 call() 将其默认为通用用途，门控开启时
+// 则路由到 fork 路径。
 type AgentToolInput = z.infer<ReturnType<typeof baseInputSchema>> & {
   name?: string;
   team_name?: string;
@@ -137,7 +134,7 @@ type AgentToolInput = z.infer<ReturnType<typeof baseInputSchema>> & {
   cwd?: string;
 };
 
-// Output schema - multi-agent spawned schema added dynamically at runtime when enabled
+// 输出 schema——启用时在运行时动态添加生成的多代理 schema
 export const outputSchema = lazySchema(() => {
   const syncOutputSchema = agentToolResultSchema().extend({
     status: z.literal('completed'),
@@ -145,11 +142,11 @@ export const outputSchema = lazySchema(() => {
   });
   const asyncOutputSchema = z.object({
     status: z.literal('async_launched'),
-    agentId: z.string().describe('The ID of the async agent'),
-    description: z.string().describe('The description of the task'),
-    prompt: z.string().describe('The prompt for the agent'),
-    outputFile: z.string().describe('Path to the output file for checking agent progress'),
-    canReadOutputFile: z.boolean().optional().describe('Whether the calling agent has Read/Bash tools to check progress')
+    agentId: z.string().describe('异步代理的 ID'),
+    description: z.string().describe('任务的描述'),
+    prompt: z.string().describe('给代理的提示词'),
+    outputFile: z.string().describe('用于检查代理进度的输出文件路径'),
+    canReadOutputFile: z.boolean().optional().describe('调用方代理是否具有 Read/Bash 工具来检查进度')
   });
   return z.union([syncOutputSchema, asyncOutputSchema]);
 });
@@ -416,7 +413,7 @@ export const AgentTool = buildTool({
 
     // Resolve agent params for logging (these are already resolved in runAgent)
     const resolvedAgentModel = getAgentModel(selectedAgent.model, toolUseContext.options.mainLoopModel, isForkPath ? undefined : model, permissionMode);
-    logEvent('内部代号_agent_tool_selected', {
+    logEvent('limkenion_agent_tool_selected', {
       agent_type: selectedAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       model: resolvedAgentModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       source: selectedAgent.source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -432,54 +429,7 @@ export const AgentTool = buildTool({
 
     // Remote isolation: delegate to CCR. Gated ant-only — the guard enables
     // dead code elimination of the entire block for external builds.
-    if ("external" === 'ant' && effectiveIsolation === 'remote') {
-      const eligibility = await checkRemoteAgentEligibility();
-      if (!eligibility.eligible) {
-        const reasons = eligibility.errors.map(formatPreconditionError).join('\n');
-        throw new Error(`Cannot launch remote agent:\n${reasons}`);
-      }
-      let bundleFailHint: string | undefined;
-      const session = await teleportToRemote({
-        initialMessage: prompt,
-        description,
-        signal: toolUseContext.abortController.signal,
-        onBundleFail: msg => {
-          bundleFailHint = msg;
-        }
-      });
-      if (!session) {
-        throw new Error(bundleFailHint ?? 'Failed to create remote session');
-      }
-      const {
-        taskId,
-        sessionId
-      } = registerRemoteAgentTask({
-        remoteTaskType: 'remote-agent',
-        session: {
-          id: session.id,
-          title: session.title || description
-        },
-        command: prompt,
-        context: toolUseContext,
-        toolUseId: toolUseContext.toolUseId
-      });
-      logEvent('内部代号_agent_tool_remote_launched', {
-        agent_type: selectedAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
-      });
-      const remoteResult: RemoteLaunchedOutput = {
-        status: 'remote_launched',
-        taskId,
-        sessionUrl: getRemoteTaskSessionUrl(sessionId),
-        description,
-        prompt,
-        outputFile: getTaskOutputPath(taskId)
-      };
-      return {
-        data: remoteResult
-      } as unknown as {
-        data: Output;
-      };
-    }
+    
     // System prompt + prompt messages: branch on fork path.
     //
     // Fork path: child inherits the PARENT's system prompt (not FORK_AGENT's)
@@ -521,10 +471,8 @@ export const AgentTool = buildTool({
 
         // Log agent memory loaded event for subagents
         if (selectedAgent.memory) {
-          logEvent('内部代号_agent_memory_loaded', {
-            ...("external" === 'ant' && {
-              agent_type: selectedAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
-            }),
+          logEvent('limkenion_agent_memory_loaded', {
+            
             scope: selectedAgent.memory as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             source: 'subagent' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           });
@@ -994,7 +942,7 @@ export const AgentTool = buildTool({
                       // Transition status BEFORE worktree cleanup so
                       // TaskOutput unblocks even if git hangs (gh-20236).
                       killAsyncAgent(backgroundedTaskId, rootSetAppState);
-                      logEvent('内部代号_agent_tool_terminated', {
+                      logEvent('limkenion_agent_tool_terminated', {
                         agent_type: metadata.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                         model: metadata.resolvedAgentModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                         duration_ms: Date.now() - metadata.startTime,
@@ -1129,7 +1077,7 @@ export const AgentTool = buildTool({
           // AbortError should be re-thrown for proper interruption handling
           if (error instanceof AbortError) {
             wasAborted = true;
-            logEvent('内部代号_agent_tool_terminated', {
+            logEvent('limkenion_agent_tool_terminated', {
               agent_type: metadata.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               model: metadata.resolvedAgentModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               duration_ms: Date.now() - metadata.startTime,
@@ -1206,7 +1154,7 @@ export const AgentTool = buildTool({
         // TODO: Find a cleaner way to express this
         const lastMessage = agentMessages.findLast(_ => _.type !== 'system' && _.type !== 'progress');
         if (lastMessage && isSyntheticMessage(lastMessage)) {
-          logEvent('内部代号_agent_tool_terminated', {
+          logEvent('limkenion_agent_tool_terminated', {
             agent_type: metadata.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             model: metadata.resolvedAgentModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             duration_ms: Date.now() - metadata.startTime,
@@ -1284,12 +1232,7 @@ export const AgentTool = buildTool({
     // Only route through auto mode classifier when in auto mode
     // In all other modes, auto-approve sub-agent generation
     // Note: "external" === 'ant' guard enables dead code elimination for external builds
-    if ("external" === 'ant' && appState.toolPermissionContext.mode === 'auto') {
-      return {
-        behavior: 'passthrough',
-        message: 'Agent tool requires permission to spawn sub-agents.'
-      };
-    }
+    
     return {
       behavior: 'allow',
       updatedInput: input

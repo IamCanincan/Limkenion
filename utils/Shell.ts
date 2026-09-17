@@ -320,11 +320,7 @@ export async function exec(
         GIT_EDITOR: 'true',
         LIMKENIONCODE: '1',
         ...envOverrides,
-        ...(process.env.USER_TYPE === 'ant'
-          ? {
-              LIMKENION_SESSION_ID: getSessionId(),
-            }
-          : {}),
+        ...(({})),
       },
       cwd,
       stdio: usePipeMode
@@ -409,7 +405,7 @@ export async function exec(
             void onCwdChangedForHooks(cwd, newCwd)
           }
         } catch {
-          logEvent('内部代号_shell_set_cwd', { success: false })
+          logEvent('limkenion_shell_set_cwd', { success: false })
         }
       }
       // Clean up the temp file used for cwd tracking
@@ -464,7 +460,7 @@ export function setCwd(path: string, relativeTo?: string): void {
   setCwdState(physicalPath)
   if (process.env.NODE_ENV !== 'test') {
     try {
-      logEvent('内部代号_shell_set_cwd', {
+      logEvent('limkenion_shell_set_cwd', {
         success: true,
       })
     } catch (_error) {

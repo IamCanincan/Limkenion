@@ -1,5 +1,5 @@
 /**
- * Centralized utilities for parsing slash commands
+ * 解析斜杠命令的集中式工具
  */
 
 export type ParsedSlashCommand = {
@@ -9,10 +9,10 @@ export type ParsedSlashCommand = {
 }
 
 /**
- * Parses a slash command input string into its component parts
+ * 把斜杠命令输入字符串解析为其组成部分
  *
- * @param input - The raw input string (should start with '/')
- * @returns Parsed command name, args, and MCP flag, or null if invalid
+ * @param input - 原始输入字符串（应以 '/' 开头）
+ * @returns 解析出的命令名、参数和 MCP 标志，无效则返回 null
  *
  * @example
  * parseSlashCommand('/search foo bar')
@@ -25,12 +25,12 @@ export type ParsedSlashCommand = {
 export function parseSlashCommand(input: string): ParsedSlashCommand | null {
   const trimmedInput = input.trim()
 
-  // Check if input starts with '/'
+  // 检查输入是否以 '/' 开头
   if (!trimmedInput.startsWith('/')) {
     return null
   }
 
-  // Remove the leading '/' and split by spaces
+  // 移除前导的 '/' 并按空格切分
   const withoutSlash = trimmedInput.slice(1)
   const words = withoutSlash.split(' ')
 
@@ -42,14 +42,14 @@ export function parseSlashCommand(input: string): ParsedSlashCommand | null {
   let isMcp = false
   let argsStartIndex = 1
 
-  // Check for MCP commands (second word is '(MCP)')
+  // 检查 MCP 命令（第二个词是 '(MCP)'）
   if (words.length > 1 && words[1] === '(MCP)') {
     commandName = commandName + ' (MCP)'
     isMcp = true
     argsStartIndex = 2
   }
 
-  // Extract arguments (everything after command name)
+  // 提取参数（命令名之后的所有内容）
   const args = words.slice(argsStartIndex).join(' ')
 
   return {

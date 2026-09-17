@@ -82,7 +82,7 @@ export function registerElicitationHandler(
 
       const mode = getElicitationMode(request.params)
 
-      logEvent('内部代号_mcp_elicitation_shown', {
+      logEvent('limkenion_mcp_elicitation_shown', {
         mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
 
@@ -98,7 +98,7 @@ export function registerElicitationHandler(
             serverName,
             `Elicitation resolved by hook: ${jsonStringify(hookResponse)}`,
           )
-          logEvent('内部代号_mcp_elicitation_response', {
+          logEvent('limkenion_mcp_elicitation_response', {
             mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             action:
               hookResponse.action as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -137,7 +137,7 @@ export function registerElicitationHandler(
                   waitingState,
                   respond: (result: ElicitResult) => {
                     extra.signal.removeEventListener('abort', onAbort)
-                    logEvent('内部代号_mcp_elicitation_response', {
+                    logEvent('limkenion_mcp_elicitation_response', {
                       mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                       action:
                         result.action as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

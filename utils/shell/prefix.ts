@@ -213,7 +213,7 @@ async function getCommandPrefixImpl(
     )
 
     const useSystemPromptPolicySpec = getFeatureValue_CACHED_MAY_BE_STALE(
-      '内部代号_cork_m4q',
+      'limkenion_cork_m4q',
       false,
     )
 

@@ -116,14 +116,14 @@ export async function generateSessionTitle(
     const parsed = titleSchema().safeParse(safeParseJSON(text))
     const title = parsed.success ? parsed.data.title.trim() || null : null
 
-    logEvent('内部代号_session_title_generated', { success: title !== null })
+    logEvent('limkenion_session_title_generated', { success: title !== null })
 
     return title
   } catch (error) {
     logForDebugging(`generateSessionTitle failed: ${error}`, {
       level: 'error',
     })
-    logEvent('内部代号_session_title_generated', { success: false })
+    logEvent('limkenion_session_title_generated', { success: false })
     return null
   }
 }

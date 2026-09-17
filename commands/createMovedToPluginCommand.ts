@@ -9,9 +9,9 @@ type Options = {
   pluginName: string
   pluginCommand: string
   /**
-   * The prompt to use while the marketplace is private.
-   * External users will get this prompt. Once the marketplace is public,
-   * this parameter and the fallback logic can be removed.
+   * 在市场保持私有期间使用的提示词。
+   * 外部用户会拿到这个提示词。一旦市场公开，
+   * 该参数与回退逻辑便可移除。
    */
   getPromptWhileMarketplaceIsPrivate: (
     args: string,
@@ -32,7 +32,7 @@ export function createMovedToPluginCommand({
     name,
     description,
     progressMessage,
-    contentLength: 0, // Dynamic content
+    contentLength: 0, // 动态内容
     userFacingName() {
       return name
     },
@@ -41,23 +41,7 @@ export function createMovedToPluginCommand({
       args: string,
       context: ToolUseContext,
     ): Promise<ContentBlockParam[]> {
-      if (process.env.USER_TYPE === 'ant') {
-        return [
-          {
-            type: 'text',
-            text: `This command has been moved to a plugin. Tell the user:
-
-1. To install the plugin, run:
-   limkenion plugin install ${pluginName}@limkenion-marketplace
-
-2. After installation, use /${pluginName}:${pluginCommand} to run this command
-
-3. For more information, see: https://github.com/limkenions/limkenion-marketplace/blob/main/${pluginName}/README.md
-
-Do not attempt to run the command. Simply inform the user about the plugin installation.`,
-          },
-        ]
-      }
+      
 
       return getPromptWhileMarketplaceIsPrivate(args, context)
     },

@@ -4,7 +4,7 @@ const mobile = {
   type: 'local-jsx',
   name: 'mobile',
   aliases: ['ios', 'android'],
-  description: 'Show QR code to download the Limkenion mobile app',
+  description: '显示下载 Limkenion 移动应用的二维码',
   load: () => import('./mobile.js'),
 } satisfies Command
 

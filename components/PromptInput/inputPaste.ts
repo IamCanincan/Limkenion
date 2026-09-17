@@ -1,8 +1,8 @@
 import { getPastedTextRefNumLines } from 'src/history.js'
 import type { PastedContent } from 'src/utils/config.js'
 
-const TRUNCATION_THRESHOLD = 10000 // Characters before we truncate
-const PREVIEW_LENGTH = 1000 // Characters to show at start and end
+const TRUNCATION_THRESHOLD = 10000 // 超过此字符数即截断
+const PREVIEW_LENGTH = 1000 // 开头和结尾显示保留的字符数
 
 type TruncatedMessage = {
   truncatedText: string
@@ -10,18 +10,18 @@ type TruncatedMessage = {
 }
 
 /**
- * Determines whether the input text should be truncated. If so, it adds a
- * truncated text placeholder and neturns
+ * 判断输入文本是否应被截断。若是，则添加一个
+ * 截断文本占位符并返回
  *
- * @param text The input text
- * @param nextPasteId The reference id to use
- * @returns The new text to display and separate placeholder content if applicable.
+ * @param text 输入文本
+ * @param nextPasteId 使用的引用 id
+ * @returns 要显示的新文本以及（如适用）分离的占位符内容。
  */
 export function maybeTruncateMessageForInput(
   text: string,
   nextPasteId: number,
 ): TruncatedMessage {
-  // If the text is short enough, return it as-is
+  // 如果文本足够短，则原样返回
   if (text.length <= TRUNCATION_THRESHOLD) {
     return {
       truncatedText: text,
@@ -29,23 +29,23 @@ export function maybeTruncateMessageForInput(
     }
   }
 
-  // Calculate how much text to keep from start and end
+  // 计算在开头和结尾各保留多少文本
   const startLength = Math.floor(PREVIEW_LENGTH / 2)
   const endLength = Math.floor(PREVIEW_LENGTH / 2)
 
-  // Extract the portions we'll keep
+  // 提取我们将保留的部分
   const startText = text.slice(0, startLength)
   const endText = text.slice(-endLength)
 
-  // Calculate the number of lines that will be truncated
+  // 计算将被截断掉的行数
   const placeholderContent = text.slice(startLength, -endLength)
   const truncatedLines = getPastedTextRefNumLines(placeholderContent)
 
-  // Create a placeholder reference similar to pasted text
+  // 创建与粘贴文本类似的占位符引用
   const placeholderId = nextPasteId
   const placeholderRef = formatTruncatedTextRef(placeholderId, truncatedLines)
 
-  // Combine the parts with the placeholder
+  // 组合各部分与占位符
   const truncatedText = startText + placeholderRef + endText
 
   return {
@@ -55,18 +55,18 @@ export function maybeTruncateMessageForInput(
 }
 
 function formatTruncatedTextRef(id: number, numLines: number): string {
-  return `[...Truncated text #${id} +${numLines} lines...]`
+  return `[...已截断文本 #${id} +${numLines} 行...]`
 }
 
 export function maybeTruncateInput(
   input: string,
   pastedContents: Record<number, PastedContent>,
 ): { newInput: string; newPastedContents: Record<number, PastedContent> } {
-  // Get the next available ID for the truncated content
+  // 获取截断内容的下一可用 ID
   const existingIds = Object.keys(pastedContents).map(Number)
   const nextPasteId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1
 
-  // Apply truncation
+  // 应用截断
   const { truncatedText, placeholderContent } = maybeTruncateMessageForInput(
     input,
     nextPasteId,

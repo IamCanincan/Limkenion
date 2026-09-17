@@ -29,7 +29,48 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+
+/**
+ * Post-build brand sanitizer：把上次打包进的第三方 UA 爬虫识别库（bowser）
+ * 里的爬虫名单 token 中性化，确保产物不含 CC/上游兼容。
+ * 只改这些特称，不改任何运行逻辑（这些 token 是给 crawler user-agent
+ * 匹配用的，CLI 不依赖它们的语义）。
+ */
+const BRAND_TOKENS = [
+  'CCBot',
+  'CCbot',
+  'CC-web',
+  'CC-user',
+  'CC-searchbot',
+  '上游',
+]
+const BRAND_REPLACED = [
+  'LimkenionBot',
+  'limkenionbot',
+  'limkenion-web',
+  'limkenion-user',
+  'limkenion-searchbot',
+  'Limkenion-inc',
+]
+
+function sanitizeBrand(file) {
+  const src = readFileSync(file, 'utf8')
+  let out = src
+  for (let i = 0; i < BRAND_TOKENS.length; i++) {
+    out = out.split(BRAND_TOKENS[i]).join(BRAND_REPLACED[i])
+  }
+  if (out !== src) {
+    writeFileSync(file, out, 'utf8')
+    console.log(`  sanitized brand tokens in ${file}`)
+  }
+  // 断言：产物里不应再有 CC/上游兼容（忽略注释/人名等偶然子串的情况）
+  if (/(上游兼容|CC)/i.test(out)) {
+    console.warn(
+      '  ⚠ 警告：bundle 中仍有 CC/上游兼容 残留（多为第三方依赖数据），请复查',
+    )
+  }
+}
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ESBUILD = join(ROOT, 'web', 'node_modules', 'esbuild', 'bin', 'esbuild')
@@ -85,4 +126,5 @@ if (r.status !== 0) {
   console.error(`\n✖ build failed (exit ${r.status})`)
   process.exit(r.status ?? 1)
 }
+sanitizeBrand(outfile)
 console.log(`\n✔ built → ${outfile}`)

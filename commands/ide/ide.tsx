@@ -419,7 +419,7 @@ function InstallOnMount(t0) {
 export async function call(onDone: (result?: string, options?: {
   display?: CommandResultDisplay;
 }) => void, context: LocalJSXCommandContext, args: string): Promise<React.ReactNode | null> {
-  logEvent('内部代号_ext_ide_command', {});
+  logEvent('limkenion_ext_ide_command', {});
   const {
     options: {
       dynamicMcpConfig

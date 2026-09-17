@@ -27,7 +27,7 @@ async function createWorkflowFile(
     secretExists?: boolean
   },
 ): Promise<void> {
-  // Check if workflow file already exists
+  // 检查工作流文件是否已存在
   const checkFileResult = await execFileNoThrow('gh', [
     'api',
     `repos/${repoName}/contents/${workflowPath}`,
@@ -42,13 +42,13 @@ async function createWorkflowFile(
 
   let content = workflowContent
   if (secretName === 'LIMKENION_OAUTH_TOKEN') {
-    // For OAuth tokens, use the limkenion_oauth_token parameter
+    // 对 OAuth 令牌，使用 limkenion_oauth_token 参数
     content = workflowContent.replace(
       /limkenion_api_key: \$\{\{ secrets\.LIMKENION_API_KEY \}\}/g,
       `limkenion_oauth_token: \${{ secrets.LIMKENION_OAUTH_TOKEN }}`,
     )
   } else if (secretName !== 'LIMKENION_API_KEY') {
-    // For other custom secret names, keep using limkenion_api_key parameter
+    // 对其它自定义密钥名，继续使用 limkenion_api_key 参数
     content = workflowContent.replace(
       /limkenion_api_key: \$\{\{ secrets\.LIMKENION_API_KEY \}\}/g,
       `limkenion_api_key: \${{ secrets.${secretName} }}`,
@@ -79,18 +79,18 @@ async function createWorkflowFile(
       createFileResult.stderr.includes('422') &&
       createFileResult.stderr.includes('sha')
     ) {
-      logEvent('内部代号_setup_github_actions_failed', {
+      logEvent('limkenion_setup_github_actions_failed', {
         reason:
           'failed_to_create_workflow_file' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         exit_code: createFileResult.code,
         ...context,
       })
       throw new Error(
-        `Failed to create workflow file ${workflowPath}: A Limkenion workflow file already exists in this repository. Please remove it first or update it manually.`,
+        `创建工作流文件 ${workflowPath} 失败：此仓库中已存在一个 Limkenion 工作流文件。请先移除它，或手动更新。`,
       )
     }
 
-    logEvent('内部代号_setup_github_actions_failed', {
+    logEvent('limkenion_setup_github_actions_failed', {
       reason:
         'failed_to_create_workflow_file' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       exit_code: createFileResult.code,
@@ -98,13 +98,13 @@ async function createWorkflowFile(
     })
 
     const helpText =
-      '\n\nNeed help? Common issues:\n' +
-      '· Permission denied → Run: gh auth refresh -h github.com -s repo,workflow\n' +
-      '· Not authorized → Ensure you have admin access to the repository\n' +
-      '· For manual setup → Visit: https://github.com/limkenions/limkenion-action'
+      '\n\n需要帮助？常见问题：\n' +
+      '· 权限被拒 → 运行：gh auth refresh -h github.com -s repo,workflow\n' +
+      '· 未授权 → 确保你对仓库拥有管理员访问权限\n' +
+      '· 手动设置 → 访问：https://github.com/limkenions/limkenion-action'
 
     throw new Error(
-      `Failed to create workflow file ${workflowPath}: ${createFileResult.stderr}${helpText}`,
+      `创建工作流文件 ${workflowPath} 失败：${createFileResult.stderr}${helpText}`,
     )
   }
 }
@@ -124,7 +124,7 @@ export async function setupGitHubActions(
   },
 ) {
   try {
-    logEvent('内部代号_setup_github_actions_started', {
+    logEvent('limkenion_setup_github_actions_started', {
       skip_workflow: skipWorkflow,
       has_api_key: !!apiKeyOrOAuthToken,
       using_default_secret_name: secretName === 'LIMKENION_API_KEY',
@@ -134,7 +134,7 @@ export async function setupGitHubActions(
       ...context,
     })
 
-    // Check if repository exists
+    // 检查仓库是否存在
     const repoCheckResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}`,
@@ -142,18 +142,18 @@ export async function setupGitHubActions(
       '.id',
     ])
     if (repoCheckResult.code !== 0) {
-      logEvent('内部代号_setup_github_actions_failed', {
+      logEvent('limkenion_setup_github_actions_failed', {
         reason:
           'repo_not_found' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         exit_code: repoCheckResult.code,
         ...context,
       })
       throw new Error(
-        `Failed to access repository ${repoName}: ${repoCheckResult.stderr}`,
+        `无法访问仓库 ${repoName}：${repoCheckResult.stderr}`,
       )
     }
 
-    // Get default branch
+    // 获取默认分支
     const defaultBranchResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}`,
@@ -161,19 +161,19 @@ export async function setupGitHubActions(
       '.default_branch',
     ])
     if (defaultBranchResult.code !== 0) {
-      logEvent('内部代号_setup_github_actions_failed', {
+      logEvent('limkenion_setup_github_actions_failed', {
         reason:
           'failed_to_get_default_branch' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         exit_code: defaultBranchResult.code,
         ...context,
       })
       throw new Error(
-        `Failed to get default branch: ${defaultBranchResult.stderr}`,
+        `无法获取默认分支：${defaultBranchResult.stderr}`,
       )
     }
     const defaultBranch = defaultBranchResult.stdout.trim()
 
-    // Get SHA of default branch
+    // 获取默认分支的 SHA
     const shaResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}/git/ref/heads/${defaultBranch}`,
@@ -181,13 +181,13 @@ export async function setupGitHubActions(
       '.object.sha',
     ])
     if (shaResult.code !== 0) {
-      logEvent('内部代号_setup_github_actions_failed', {
+      logEvent('limkenion_setup_github_actions_failed', {
         reason:
           'failed_to_get_branch_sha' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         exit_code: shaResult.code,
         ...context,
       })
-      throw new Error(`Failed to get branch SHA: ${shaResult.stderr}`)
+      throw new Error(`无法获取分支 SHA：${shaResult.stderr}`)
     }
     const sha = shaResult.stdout.trim()
 
@@ -195,7 +195,7 @@ export async function setupGitHubActions(
 
     if (!skipWorkflow) {
       updateProgress()
-      // Create new branch
+      // 创建新分支
       branchName = `add-limkenion-github-actions-${Date.now()}`
       const createBranchResult = await execFileNoThrow('gh', [
         'api',
@@ -208,17 +208,17 @@ export async function setupGitHubActions(
         `sha=${sha}`,
       ])
       if (createBranchResult.code !== 0) {
-        logEvent('内部代号_setup_github_actions_failed', {
+        logEvent('limkenion_setup_github_actions_failed', {
           reason:
             'failed_to_create_branch' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           exit_code: createBranchResult.code,
           ...context,
         })
-        throw new Error(`Failed to create branch: ${createBranchResult.stderr}`)
+        throw new Error(`创建分支失败：${createBranchResult.stderr}`)
       }
 
       updateProgress()
-      // Create selected workflow files
+      // 创建所选工作流文件
       const workflows = []
 
       if (selectedWorkflows.includes('limkenion')) {
@@ -251,7 +251,7 @@ export async function setupGitHubActions(
     }
 
     updateProgress()
-    // Set the API key as a secret if provided
+    // 如果提供了 API 密钥，则作为密钥设置
     if (apiKeyOrOAuthToken) {
       const setSecretResult = await execFileNoThrow('gh', [
         'secret',
@@ -263,7 +263,7 @@ export async function setupGitHubActions(
         repoName,
       ])
       if (setSecretResult.code !== 0) {
-        logEvent('内部代号_setup_github_actions_failed', {
+        logEvent('limkenion_setup_github_actions_failed', {
           reason:
             'failed_to_set_api_key_secret' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           exit_code: setSecretResult.code,
@@ -271,26 +271,26 @@ export async function setupGitHubActions(
         })
 
         const helpText =
-          '\n\nNeed help? Common issues:\n' +
-          '· Permission denied → Run: gh auth refresh -h github.com -s repo\n' +
-          '· Not authorized → Ensure you have admin access to the repository\n' +
-          '· For manual setup → Visit: https://github.com/limkenions/limkenion-action'
+          '\n\n需要帮助？常见问题：\n' +
+          '· 权限被拒 → 运行：gh auth refresh -h github.com -s repo\n' +
+          '· 未授权 → 确保你对仓库拥有管理员访问权限\n' +
+          '· 手动设置 → 访问：https://github.com/limkenions/limkenion-action'
 
         throw new Error(
-          `Failed to set API key secret: ${setSecretResult.stderr || 'Unknown error'}${helpText}`,
+          `设置 API 密钥失败：${setSecretResult.stderr || '未知错误'}${helpText}`,
         )
       }
     }
 
     if (!skipWorkflow && branchName) {
       updateProgress()
-      // Create PR template URL instead of creating PR directly
+      // 直接创建 PR 模板 URL，而不是直接创建 PR
       const compareUrl = `https://github.com/${repoName}/compare/${defaultBranch}...${branchName}?quick_pull=1&title=${encodeURIComponent(PR_TITLE)}&body=${encodeURIComponent(PR_BODY)}`
 
       await openBrowser(compareUrl)
     }
 
-    logEvent('内部代号_setup_github_actions_completed', {
+    logEvent('limkenion_setup_github_actions_completed', {
       skip_workflow: skipWorkflow,
       has_api_key: !!apiKeyOrOAuthToken,
       auth_type:
@@ -311,7 +311,7 @@ export async function setupGitHubActions(
       !(error instanceof Error) ||
       !error.message.includes('Failed to')
     ) {
-      logEvent('内部代号_setup_github_actions_failed', {
+      logEvent('limkenion_setup_github_actions_failed', {
         reason:
           'unexpected_error' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         ...context,

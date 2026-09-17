@@ -156,7 +156,7 @@ After writing, tell the user:
 `
 
 export function registerSkillifySkill(): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (true) {
     return
   }
 

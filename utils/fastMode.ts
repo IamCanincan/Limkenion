@@ -75,7 +75,7 @@ export function getFastModeUnavailableReason(): string | null {
   }
 
   const statigReason = getFeatureValue_CACHED_MAY_BE_STALE(
-    '内部代号_penguins_off',
+    'limkenion_penguins_off',
     null,
   )
   // Statsig reason has priority over other reasons.
@@ -88,7 +88,7 @@ export function getFastModeUnavailableReason(): string | null {
   // longer necessary, but we keep this option behind a flag just in case.
   if (
     !isInBundledMode() &&
-    getFeatureValue_CACHED_MAY_BE_STALE('内部代号_marble_sandcastle', false)
+    getFeatureValue_CACHED_MAY_BE_STALE('limkenion_marble_sandcastle', false)
   ) {
     return 'Fast mode requires the native binary · Install from: https://limkenion.com/product/limkenion'
   }
@@ -224,7 +224,7 @@ export function triggerFastModeCooldown(
   logForDebugging(
     `Fast mode cooldown triggered (${reason}), duration ${Math.round(cooldownDurationMs / 1000)}s`,
   )
-  logEvent('内部代号_fast_mode_fallback_triggered', {
+  logEvent('limkenion_fast_mode_fallback_triggered', {
     cooldown_duration_ms: cooldownDurationMs,
     cooldown_reason:
       reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -297,7 +297,7 @@ export function handleFastModeOverageRejection(reason: string | null): void {
   logForDebugging(
     `Fast mode overage rejection: ${reason ?? 'unknown'} — ${message}`,
   )
-  logEvent('内部代号_fast_mode_overage_rejected', {
+  logEvent('limkenion_fast_mode_overage_rejected', {
     overage_disabled_reason: (reason ??
       'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
@@ -396,10 +396,9 @@ export function resolveFastModeStatusFromCache(): void {
   if (orgStatus.status !== 'pending') {
     return
   }
-  const isAnt = process.env.USER_TYPE === 'ant'
   const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
   orgStatus =
-    isAnt || cachedEnabled
+    cachedEnabled
       ? { status: 'enabled' }
       : { status: 'disabled', reason: 'unknown' }
 }
@@ -428,10 +427,9 @@ export async function prefetchFastModeStatus(): Promise<void> {
   const hasUsableOAuth =
     getLimkenionAIOAuthTokens()?.accessToken && hasProfileScope()
   if (!hasUsableOAuth && !apiKey) {
-    const isAnt = process.env.USER_TYPE === 'ant'
     const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
     orgStatus =
-      isAnt || cachedEnabled
+      cachedEnabled
         ? { status: 'enabled' }
         : { status: 'disabled', reason: 'preference' }
     return
@@ -511,17 +509,16 @@ export async function prefetchFastModeStatus(): Promise<void> {
       // On failure: ants default to enabled (don't block internal users).
       // External users: fall back to the cached penguinModeOrgEnabled value;
       // if no positive cache, disable with network_error reason.
-      const isAnt = process.env.USER_TYPE === 'ant'
       const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
       orgStatus =
-        isAnt || cachedEnabled
+        cachedEnabled
           ? { status: 'enabled' }
           : { status: 'disabled', reason: 'network_error' }
       logForDebugging(
         `Failed to fetch org fast mode status, defaulting to ${orgStatus.status === 'enabled' ? 'enabled (cached)' : 'disabled (network_error)'}: ${err}`,
         { level: 'error' },
       )
-      logEvent('内部代号_org_penguin_mode_fetch_failed', {})
+      logEvent('limkenion_org_penguin_mode_fetch_failed', {})
     } finally {
       inflightPrefetch = null
     }

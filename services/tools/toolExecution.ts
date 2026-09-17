@@ -369,7 +369,7 @@ export async function* runToolUse(
   if (!tool) {
     const sanitizedToolName = sanitizeToolNameForAnalytics(toolName)
     logForDebugging(`Unknown tool ${toolName}: ${toolUse.id}`)
-    logEvent('内部代号_tool_use_error', {
+    logEvent('limkenion_tool_use_error', {
       error:
         `No such tool available: ${sanitizedToolName}` as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       toolName: sanitizedToolName,
@@ -413,7 +413,7 @@ export async function* runToolUse(
   const toolInput = toolUse.input as { [key: string]: string }
   try {
     if (toolUseContext.abortController.signal.aborted) {
-      logEvent('内部代号_tool_use_cancelled', {
+      logEvent('limkenion_tool_use_cancelled', {
         toolName: sanitizeToolNameForAnalytics(tool.name),
         toolUseID:
           toolUse.id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -519,7 +519,7 @@ function streamedCheckPermissionsAndCallTool(
     mcpServerType,
     mcpServerBaseUrl,
     progress => {
-      logEvent('内部代号_tool_use_progress', {
+      logEvent('limkenion_tool_use_progress', {
         messageID:
           messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -622,7 +622,7 @@ async function checkPermissionsAndCallTool(
       toolUseContext.options.tools,
     )
     if (schemaHint) {
-      logEvent('内部代号_deferred_tool_schema_not_sent', {
+      logEvent('limkenion_deferred_tool_schema_not_sent', {
         toolName: sanitizeToolNameForAnalytics(tool.name),
         isMcp: tool.isMcp ?? false,
       })
@@ -632,7 +632,7 @@ async function checkPermissionsAndCallTool(
     logForDebugging(
       `${tool.name} tool input error: ${errorContent.slice(0, 200)}`,
     )
-    logEvent('内部代号_tool_use_error', {
+    logEvent('limkenion_tool_use_error', {
       error:
         'InputValidationError' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       errorDetails: errorContent.slice(
@@ -688,7 +688,7 @@ async function checkPermissionsAndCallTool(
     logForDebugging(
       `${tool.name} tool validation error: ${isValidCall.message?.slice(0, 200)}`,
     )
-    logEvent('内部代号_tool_use_error', {
+    logEvent('limkenion_tool_use_error', {
       messageID:
         messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -871,24 +871,7 @@ async function checkPermissionsAndCallTool(
 
   // Emit PreToolUse summary immediately so it's visible while the tool executes.
   // Use wall-clock time (not sum of individual durations) since hooks run in parallel.
-  if (process.env.USER_TYPE === 'ant' && preToolHookInfos.length > 0) {
-    if (preToolHookDurationMs > HOOK_TIMING_DISPLAY_THRESHOLD_MS) {
-      resultingMessages.push({
-        message: createStopHookSummaryMessage(
-          preToolHookInfos.length,
-          preToolHookInfos,
-          [],
-          false,
-          undefined,
-          false,
-          'suggestion',
-          undefined,
-          'PreToolUse',
-          preToolHookDurationMs,
-        ),
-      })
-    }
-  }
+  
 
   const toolAttributes: Record<string, string | number | boolean> = {}
   if (processedInput && typeof processedInput === 'object') {
@@ -998,7 +981,7 @@ async function checkPermissionsAndCallTool(
     endToolBlockedOnUserSpan('reject', decisionInfo?.source || 'unknown')
     endToolSpan()
 
-    logEvent('内部代号_tool_use_can_use_tool_rejected', {
+    logEvent('limkenion_tool_use_can_use_tool_rejected', {
       messageID:
         messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -1102,7 +1085,7 @@ async function checkPermissionsAndCallTool(
 
     return resultingMessages
   }
-  logEvent('内部代号_tool_use_can_use_tool_allowed', {
+  logEvent('limkenion_tool_use_can_use_tool_allowed', {
     messageID:
       messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -1328,7 +1311,7 @@ async function checkPermissionsAndCallTool(
       }
     }
 
-    logEvent('内部代号_tool_use_success', {
+    logEvent('limkenion_tool_use_success', {
       messageID:
         messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       toolName: sanitizeToolNameForAnalytics(tool.name),
@@ -1543,24 +1526,7 @@ async function checkPermissionsAndCallTool(
 
     // Show PostToolUse hook timing inline below tool result when > 500ms.
     // Use wall-clock time (not sum of individual durations) since hooks run in parallel.
-    if (process.env.USER_TYPE === 'ant' && postToolHookInfos.length > 0) {
-      if (postToolHookDurationMs > HOOK_TIMING_DISPLAY_THRESHOLD_MS) {
-        resultingMessages.push({
-          message: createStopHookSummaryMessage(
-            postToolHookInfos.length,
-            postToolHookInfos,
-            [],
-            false,
-            undefined,
-            false,
-            'suggestion',
-            undefined,
-            'PostToolUse',
-            postToolHookDurationMs,
-          ),
-        })
-      }
-    }
+    
 
     // If the tool provided new messages, add them to the list to return.
     if (result.newMessages && result.newMessages.length > 0) {
@@ -1636,7 +1602,7 @@ async function checkPermissionsAndCallTool(
       if (!(error instanceof ShellError)) {
         logError(error)
       }
-      logEvent('内部代号_tool_use_error', {
+      logEvent('limkenion_tool_use_error', {
         messageID:
           messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         toolName: sanitizeToolNameForAnalytics(tool.name),

@@ -556,7 +556,7 @@ async function _executeApiKeyHelper(
         `Security: apiKeyHelper executed before workspace trust is confirmed. If you see this message, post in ${MACRO.FEEDBACK_CHANNEL}.`,
       )
       logAntError('apiKeyHelper invoked before trust check', error)
-      logEvent('内部代号_apiKeyHelper_missing_trust11', {})
+      logEvent('limkenion_apiKeyHelper_missing_trust11', {})
       return null
     }
   }
@@ -631,7 +631,7 @@ async function runAwsAuthRefresh(): Promise<boolean> {
         `Security: awsAuthRefresh executed before workspace trust is confirmed. If you see this message, post in ${MACRO.FEEDBACK_CHANNEL}.`,
       )
       logAntError('awsAuthRefresh invoked before trust check', error)
-      logEvent('内部代号_awsAuthRefresh_missing_trust', {})
+      logEvent('limkenion_awsAuthRefresh_missing_trust', {})
       return false
     }
   }
@@ -728,7 +728,7 @@ async function getAwsCredsFromCredentialExport(): Promise<{
         `Security: awsCredentialExport executed before workspace trust is confirmed. If you see this message, post in ${MACRO.FEEDBACK_CHANNEL}.`,
       )
       logAntError('awsCredentialExport invoked before trust check', error)
-      logEvent('内部代号_awsCredentialExport_missing_trust', {})
+      logEvent('limkenion_awsCredentialExport_missing_trust', {})
       return null
     }
   }
@@ -895,7 +895,7 @@ async function runGcpAuthRefresh(): Promise<boolean> {
         `Security: gcpAuthRefresh executed before workspace trust is confirmed. If you see this message, post in ${MACRO.FEEDBACK_CHANNEL}.`,
       )
       logAntError('gcpAuthRefresh invoked before trust check', error)
-      logEvent('内部代号_gcpAuthRefresh_missing_trust', {})
+      logEvent('limkenion_gcpAuthRefresh_missing_trust', {})
       return false
     }
   }
@@ -1126,19 +1126,19 @@ export async function saveApiKey(apiKey: string): Promise<void> {
         reject: false,
       })
 
-      logEvent('内部代号_api_key_saved_to_keychain', {})
+      logEvent('limkenion_api_key_saved_to_keychain', {})
       savedToKeychain = true
     } catch (e) {
       logError(e)
-      logEvent('内部代号_api_key_keychain_error', {
+      logEvent('limkenion_api_key_keychain_error', {
         error: errorMessage(
           e,
         ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       })
-      logEvent('内部代号_api_key_saved_to_config', {})
+      logEvent('limkenion_api_key_saved_to_config', {})
     }
   } else {
-    logEvent('内部代号_api_key_saved_to_config', {})
+    logEvent('limkenion_api_key_saved_to_config', {})
   }
 
   const normalizedKey = normalizeApiKeyForConfig(apiKey)
@@ -1202,13 +1202,13 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
   warning?: string
 } {
   if (!shouldUseLimkenionAIAuth(tokens.scopes)) {
-    logEvent('内部代号_oauth_tokens_not_limkenion_ai', {})
+    logEvent('limkenion_oauth_tokens_not_limkenion_ai', {})
     return { success: true }
   }
 
   // Skip saving inference-only tokens (they come from env vars)
   if (!tokens.refreshToken || !tokens.expiresAt) {
-    logEvent('内部代号_oauth_tokens_inference_only', {})
+    logEvent('limkenion_oauth_tokens_inference_only', {})
     return { success: true }
   }
 
@@ -1237,9 +1237,9 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
     const updateStatus = secureStorage.update(storageData)
 
     if (updateStatus.success) {
-      logEvent('内部代号_oauth_tokens_saved', { storageBackend })
+      logEvent('limkenion_oauth_tokens_saved', { storageBackend })
     } else {
-      logEvent('内部代号_oauth_tokens_save_failed', { storageBackend })
+      logEvent('limkenion_oauth_tokens_save_failed', { storageBackend })
     }
 
     getLimkenionAIOAuthTokens.cache?.clear?.()
@@ -1248,7 +1248,7 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
     return updateStatus
   } catch (error) {
     logError(error)
-    logEvent('内部代号_oauth_tokens_save_exception', {
+    logEvent('limkenion_oauth_tokens_save_exception', {
       storageBackend,
       error: errorMessage(
         error,
@@ -1389,7 +1389,7 @@ async function handleOAuth401ErrorImpl(
 
   // If keychain has a different token, another tab already refreshed - use it
   if (currentTokens.accessToken !== failedAccessToken) {
-    logEvent('内部代号_oauth_401_recovered_from_keychain', {})
+    logEvent('limkenion_oauth_401_recovered_from_keychain', {})
     return true
   }
 
@@ -1493,27 +1493,27 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
 
   let release
   try {
-    logEvent('内部代号_oauth_token_refresh_lock_acquiring', {})
+    logEvent('limkenion_oauth_token_refresh_lock_acquiring', {})
     release = await lockfile.lock(limkenionDir)
-    logEvent('内部代号_oauth_token_refresh_lock_acquired', {})
+    logEvent('limkenion_oauth_token_refresh_lock_acquired', {})
   } catch (err) {
     if ((err as { code?: string }).code === 'ELOCKED') {
       // Another process has the lock, let's retry if we haven't exceeded max retries
       if (retryCount < MAX_RETRIES) {
-        logEvent('内部代号_oauth_token_refresh_lock_retry', {
+        logEvent('limkenion_oauth_token_refresh_lock_retry', {
           retryCount: retryCount + 1,
         })
         // Wait a bit before retrying
         await sleep(1000 + Math.random() * 1000)
         return checkAndRefreshOAuthTokenIfNeededImpl(retryCount + 1, force)
       }
-      logEvent('内部代号_oauth_token_refresh_lock_retry_limit_reached', {
+      logEvent('limkenion_oauth_token_refresh_lock_retry_limit_reached', {
         maxRetries: MAX_RETRIES,
       })
       return false
     }
     logError(err)
-    logEvent('内部代号_oauth_token_refresh_lock_error', {
+    logEvent('limkenion_oauth_token_refresh_lock_error', {
       error: errorMessage(
         err,
       ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -1529,11 +1529,11 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
       !lockedTokens?.refreshToken ||
       !isOAuthTokenExpired(lockedTokens.expiresAt)
     ) {
-      logEvent('内部代号_oauth_token_refresh_race_resolved', {})
+      logEvent('limkenion_oauth_token_refresh_race_resolved', {})
       return false
     }
 
-    logEvent('内部代号_oauth_token_refresh_starting', {})
+    logEvent('limkenion_oauth_token_refresh_starting', {})
     const refreshedTokens = await refreshOAuthToken(lockedTokens.refreshToken, {
       // For Limkenion.ai subscribers, omit scopes so the default
       // LIMKENION_AI_OAUTH_SCOPES applies — this allows scope expansion
@@ -1555,15 +1555,15 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
     clearKeychainCache()
     const currentTokens = await getLimkenionAIOAuthTokensAsync()
     if (currentTokens && !isOAuthTokenExpired(currentTokens.expiresAt)) {
-      logEvent('内部代号_oauth_token_refresh_race_recovered', {})
+      logEvent('limkenion_oauth_token_refresh_race_recovered', {})
       return true
     }
 
     return false
   } finally {
-    logEvent('内部代号_oauth_token_refresh_lock_releasing', {})
+    logEvent('limkenion_oauth_token_refresh_lock_releasing', {})
     await release()
-    logEvent('内部代号_oauth_token_refresh_lock_released', {})
+    logEvent('limkenion_oauth_token_refresh_lock_released', {})
   }
 }
 

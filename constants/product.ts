@@ -53,7 +53,7 @@ export function getLimkenionAiBaseUrl(
  * Get the full session URL for a remote session.
  *
  * The cse_→session_ translation is a temporary shim gated by
- * 内部代号_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
+ * limkenion_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
  * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the limkenion.ai
  * frontend currently routes on `session_*` (compat/convert.go:27 validates
  * TagSession). Same UUID body, different tag prefix. Once the server tags by

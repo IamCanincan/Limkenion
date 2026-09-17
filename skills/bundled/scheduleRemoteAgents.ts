@@ -317,7 +317,7 @@ Minimum interval is 1 hour. \`*/30 * * * *\` will be rejected.
 - Accept GitHub URLs in any format (https://github.com/org/repo, org/repo, etc.) and normalize to the full HTTPS URL (without .git suffix)
 - The prompt is the most important part — spend time getting it right. The remote agent starts with zero context, so the prompt must be self-contained.
 - To delete a trigger, direct users to https://limkenion.ai/code/scheduled
-${needsGitHubAccessReminder ? `- If the user's request seems to require GitHub repo access (e.g. cloning a repo, opening PRs, reading code), remind them that ${getFeatureValue_CACHED_MAY_BE_STALE('内部代号_cobalt_lantern', false) ? "they should run /web-setup to connect their GitHub account (or install the Limkenion GitHub App on the repo as an alternative) — otherwise the remote agent won't be able to access it" : "they need the Limkenion GitHub App installed on the repo — otherwise the remote agent won't be able to access it"}.` : ''}
+${needsGitHubAccessReminder ? `- If the user's request seems to require GitHub repo access (e.g. cloning a repo, opening PRs, reading code), remind them that ${getFeatureValue_CACHED_MAY_BE_STALE('limkenion_cobalt_lantern', false) ? "they should run /web-setup to connect their GitHub account (or install the Limkenion GitHub App on the repo as an alternative) — otherwise the remote agent won't be able to access it" : "they need the Limkenion GitHub App installed on the repo — otherwise the remote agent won't be able to access it"}.` : ''}
 ${userArgs ? `\n## User Request\n\nThe user said: "${userArgs}"\n\nStart by understanding their intent and working through the appropriate workflow above.` : ''}`
 }
 
@@ -330,7 +330,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
       'When the user wants to schedule a recurring remote agent, set up automated tasks, create a cron job for Limkenion, or manage their scheduled agents/triggers.',
     userInvocable: true,
     isEnabled: () =>
-      getFeatureValue_CACHED_MAY_BE_STALE('内部代号_surreal_dali', false) &&
+      getFeatureValue_CACHED_MAY_BE_STALE('limkenion_surreal_dali', false) &&
       isPolicyAllowed('allow_remote_sessions'),
     allowedTools: [REMOTE_TRIGGER_TOOL_NAME, ASK_USER_QUESTION_TOOL_NAME],
     async getPromptForCommand(args: string, context: ToolUseContext) {
@@ -398,7 +398,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
         if (!hasAccess) {
           needsGitHubAccessReminder = true
           const webSetupEnabled = getFeatureValue_CACHED_MAY_BE_STALE(
-            '内部代号_cobalt_lantern',
+            'limkenion_cobalt_lantern',
             false,
           )
           const msg = webSetupEnabled

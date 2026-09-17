@@ -138,7 +138,7 @@ export type TeamMemorySyncUploadResult = {
    * Structured error_code from a parsed 413 body (limkenion/limkenion#293258).
    * Currently only 'team_memory_too_many_entries' is modelled; if the server
    * adds more (entry_too_large, total_bytes_exceeded) they'd extend this
-   * union.  Passed straight through to the 内部代号_team_mem_sync_push event
+   * union.  Passed straight through to the limkenion_team_mem_sync_push event
    * as a Datadog-filterable facet.
    */
   serverErrorCode?: 'team_memory_too_many_entries'

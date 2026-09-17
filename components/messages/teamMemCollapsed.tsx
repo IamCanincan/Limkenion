@@ -35,7 +35,7 @@ export function TeamMemCountParts(t0) {
     const nodes = [];
     let count = hasPrecedingParts ? 1 : 0;
     if (tmReadCount > 0) {
-      const verb = isActiveGroup ? count === 0 ? "Recalling" : "recalling" : count === 0 ? "Recalled" : "recalled";
+      const verb = isActiveGroup ? count === 0 ? "正在回忆" : "正在回忆" : count === 0 ? "已回忆" : "已回忆";
       if (count > 0) {
         let t2;
         if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
@@ -54,10 +54,10 @@ export function TeamMemCountParts(t0) {
       } else {
         t2 = $[8];
       }
-      const t3 = tmReadCount === 1 ? "memory" : "memories";
+      const t3 = tmReadCount === 1 ? "条团队记忆" : "条团队记忆";
       let t4;
       if ($[9] !== t2 || $[10] !== t3 || $[11] !== verb) {
-        t4 = <Text key="team-mem-read">{verb} {t2} team{" "}{t3}</Text>;
+        t4 = <Text key="team-mem-read">{verb} {t2}{t3}</Text>;
         $[9] = t2;
         $[10] = t3;
         $[11] = verb;
@@ -69,7 +69,7 @@ export function TeamMemCountParts(t0) {
       count++;
     }
     if (tmSearchCount > 0) {
-      const verb_0 = isActiveGroup ? count === 0 ? "Searching" : "searching" : count === 0 ? "Searched" : "searched";
+      const verb_0 = isActiveGroup ? count === 0 ? "正在搜索" : "正在搜索" : count === 0 ? "已搜索" : "已搜索";
       if (count > 0) {
         let t2;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
@@ -80,7 +80,7 @@ export function TeamMemCountParts(t0) {
         }
         nodes.push(t2);
       }
-      const t2 = `${verb_0} team memories`;
+      const t2 = `${verb_0} 团队记忆`;
       let t3;
       if ($[14] !== t2) {
         t3 = <Text key="team-mem-search">{t2}</Text>;
@@ -93,7 +93,7 @@ export function TeamMemCountParts(t0) {
       count++;
     }
     if (tmWriteCount > 0) {
-      const verb_1 = isActiveGroup ? count === 0 ? "Writing" : "writing" : count === 0 ? "Wrote" : "wrote";
+      const verb_1 = isActiveGroup ? count === 0 ? "正在写入" : "正在写入" : count === 0 ? "已写入" : "已写入";
       if (count > 0) {
         let t2;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
@@ -112,10 +112,10 @@ export function TeamMemCountParts(t0) {
       } else {
         t2 = $[18];
       }
-      const t3 = tmWriteCount === 1 ? "memory" : "memories";
+      const t3 = tmWriteCount === 1 ? "条团队记忆" : "条团队记忆";
       let t4;
       if ($[19] !== t2 || $[20] !== t3 || $[21] !== verb_1) {
-        t4 = <Text key="team-mem-write">{verb_1} {t2} team{" "}{t3}</Text>;
+        t4 = <Text key="team-mem-write">{verb_1} {t2}{t3}</Text>;
         $[19] = t2;
         $[20] = t3;
         $[21] = verb_1;

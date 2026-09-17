@@ -303,7 +303,7 @@ export function ensureConfigScope(scope?: string): ConfigScope {
 
   if (!ConfigScopeSchema().options.includes(scope as ConfigScope)) {
     throw new Error(
-      `Invalid scope: ${scope}. Must be one of: ${ConfigScopeSchema().options.join(', ')}`,
+      `无效的作用域：${scope}。必须是以下之一：${ConfigScopeSchema().options.join(', ')}`,
     )
   }
 
@@ -315,7 +315,7 @@ export function ensureTransport(type?: string): 'stdio' | 'sse' | 'http' {
 
   if (type !== 'stdio' && type !== 'sse' && type !== 'http') {
     throw new Error(
-      `Invalid transport type: ${type}. Must be one of: stdio, sse, http`,
+      `无效的传输类型：${type}。必须是以下之一：stdio, sse, http`,
     )
   }
 
@@ -329,7 +329,7 @@ export function parseHeaders(headerArray: string[]): Record<string, string> {
     const colonIndex = header.indexOf(':')
     if (colonIndex === -1) {
       throw new Error(
-        `Invalid header format: "${header}". Expected format: "Header-Name: value"`,
+        `无效的请求头格式："${header}"。预期格式："Header-Name: value"`,
       )
     }
 
@@ -338,7 +338,7 @@ export function parseHeaders(headerArray: string[]): Record<string, string> {
 
     if (!key) {
       throw new Error(
-        `Invalid header: "${header}". Header name cannot be empty.`,
+        `无效的请求头："${header}"。请求头名称不能为空。`,
       )
     }
 

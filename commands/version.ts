@@ -13,8 +13,8 @@ const version = {
   type: 'local',
   name: 'version',
   description:
-    'Print the version this session is running (not what autoupdate downloaded)',
-  isEnabled: () => process.env.USER_TYPE === 'ant',
+    '打印当前会话运行的版本（而非自动更新下载的版本）',
+  isEnabled: () => false,
   supportsNonInteractive: true,
   load: () => Promise.resolve({ call }),
 } satisfies Command

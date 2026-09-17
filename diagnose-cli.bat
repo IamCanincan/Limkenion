@@ -27,7 +27,7 @@ echo [1] TTY status  (both should be true for the REPL)
 echo.
 
 echo [2] API key env vars  (presence only - values are hidden)
-"%NODE_EXE%" -e "const ks=['LIMKENION_API_KEY','上游_API_KEY','DEEPSEEK_API_KEY','上游_AUTH_TOKEN','LIMKENION_AUTH_TOKEN','上游_BASE_URL','LIMKENION_BASE_URL'];for(const k of ks){console.log('    '+k+': '+(process.env[k]?'SET':'not set'))}"
+"%NODE_EXE%" -e "const ks=['LIMKENION_API_KEY','DEEPSEEK_API_KEY','LIMKENION_AUTH_TOKEN','LIMKENION_BASE_URL'];for(const k of ks){console.log('    '+k+': '+(process.env[k]?'SET':'not set'))}"
 echo.
 
 echo [3] Bundle present?

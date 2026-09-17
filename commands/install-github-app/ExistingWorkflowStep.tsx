@@ -15,13 +15,13 @@ export function ExistingWorkflowStep(t0) {
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = [{
-      label: "Update workflow file with latest version",
+      label: "用最新版本更新工作流文件",
       value: "update"
     }, {
-      label: "Skip workflow update (configure secrets only)",
+      label: "跳过工作流更新（仅配置 secrets）",
       value: "skip"
     }, {
-      label: "Exit without making changes",
+      label: "不做任何更改退出",
       value: "exit"
     }];
     $[0] = t1;
@@ -53,14 +53,14 @@ export function ExistingWorkflowStep(t0) {
   const handleCancel = t3;
   let t4;
   if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-    t4 = <Text bold={true}>Existing Workflow Found</Text>;
+    t4 = <Text bold={true}>发现现有工作流</Text>;
     $[5] = t4;
   } else {
     t4 = $[5];
   }
   let t5;
   if ($[6] !== repoName) {
-    t5 = <Box flexDirection="column" marginBottom={1}>{t4}<Text dimColor={true}>Repository: {repoName}</Text></Box>;
+    t5 = <Box flexDirection="column" marginBottom={1}>{t4}<Text dimColor={true}>仓库：{repoName}</Text></Box>;
     $[6] = repoName;
     $[7] = t5;
   } else {
@@ -68,7 +68,7 @@ export function ExistingWorkflowStep(t0) {
   }
   let t6;
   if ($[8] === Symbol.for("react.memo_cache_sentinel")) {
-    t6 = <Box flexDirection="column" marginBottom={1}><Text>A Limkenion workflow file already exists at{" "}<Text color="limkenion">.github/workflows/limkenion.yml</Text></Text><Text dimColor={true}>What would you like to do?</Text></Box>;
+    t6 = <Box flexDirection="column" marginBottom={1}><Text>一个 Limkenion 工作流文件已存在于{" "}<Text color="limkenion">.github/workflows/limkenion.yml</Text></Text><Text dimColor={true}>请问你想做什么？</Text></Box>;
     $[8] = t6;
   } else {
     t6 = $[8];
@@ -84,7 +84,7 @@ export function ExistingWorkflowStep(t0) {
   }
   let t8;
   if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Box marginTop={1}><Text dimColor={true}>View the latest workflow template at:{" "}<Text color="limkenion">https://github.com/limkenions/limkenion-action/blob/main/examples/limkenion.yml</Text></Text></Box>;
+    t8 = <Box marginTop={1}><Text dimColor={true}>查看最新工作流模板：{" "}<Text color="limkenion">https://github.com/limkenions/limkenion-action/blob/main/examples/limkenion.yml</Text></Text></Box>;
     $[12] = t8;
   } else {
     t8 = $[12];
