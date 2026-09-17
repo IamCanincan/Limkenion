@@ -247,6 +247,30 @@ esbuild 只报"缺失导出/模块解析失败"，**不报类型错误**。删�
 - 同文件的 `MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000`，但 **DeepSeek 官方最大输出 384K**。
 两者都沿用上游保守值。放开属于行为变更（影响自动压缩时机、单次输出上限），等用户拍板。
 
+### 自有服务 URL：**已全部删除**（commit 3235f2f，170 处 / 99 文件）
+覆盖 `limkenion.ai` / `limkenion.com` / `platform.` / `code.` / `docs.` / `support.` /
+`limkenion.slack.com` / `github.com/limkenions/*` / `github.com/apps/limkenion` /
+`apps.apple.com/.../limkenion-by-limkenion` / `stickermule.com/limkenioncode` /
+`console.statsig.com` / `limkenion.sentry.io` / `limkenion.fedstart.com` /
+`storage.googleapis.com/limkenion-*` / `artifactory.infra.ant.dev` / `mcp-proxy.limkenion.com`。
+
+**做法：只删 URL 本身，不做启发式措辞清理。**
+教训：第一版脚本带了"顺手收拾措辞"的规则，dry-run 显示它会把
+`url: 'https://...'` 吃成 `url''`（**语法错误**）。
+**批量改代码前先 dry-run 打印 before/after 再 apply。**
+
+**副作用已修**：`PRODUCT_URL` 清空后 `utils/attribution.ts` 的署名会变成坏链接
+`🤖 Generated with [Limkenion]()`，会影响用户的 git 历史。已改为
+`LIMKENION_NAME = PRODUCT_URL ? \`[Limkenion](${PRODUCT_URL})\` : 'Limkenion'` ——
+以后把 URL 填回 `constants/product.ts` 就自动恢复成链接。
+
+### 待收尾：删 URL 后的空壳
+- 12 个 `const *_URL = ''`（`constants/product.ts` 的 `PRODUCT_URL` /
+  `LIMKENION_AI_BASE_URL` 等）
+- 约 20 处 `<Link url="" />`（渲染为空，用户看不见，但代码脏）
+- 几处悬空的 `Learn more: `
+**注意**：`<Link>` 那些在 react-compiler 产物里，动之前先确认不在 `$[N]` memo 区块内。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
