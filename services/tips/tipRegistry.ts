@@ -471,18 +471,18 @@ const externalTips: Tip[] = [
   {
     id: 'proplan-mode-reminder',
     content: async () =>
-      `Your default model setting is Opus Plan Mode. Press ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} twice to activate Plan Mode and plan with Limkenion Opus.`,
+      `你的默认模型设置是「Plan 用强模型」。按两次 ${getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')} 进入 Plan 模式，就会用 DeepSeek V4 Pro 来规划。`,
     cooldownSessions: 2,
     async isRelevant() {
       
       const config = getGlobalConfig()
       const modelSetting = getUserSpecifiedModelSetting()
-      const hasOpusPlanMode = modelSetting === 'proplan'
+      const hasPlanMode = modelSetting === 'proplan'
       // Show reminder if they have deepseek-v4-pro Plan Mode and haven't used plan mode recently (3+ days)
       const daysSinceLastUse = config.lastPlanModeUse
         ? (Date.now() - config.lastPlanModeUse) / (1000 * 60 * 60 * 24)
         : Infinity
-      return hasOpusPlanMode && daysSinceLastUse > 3
+      return hasPlanMode && daysSinceLastUse > 3
     },
   },
   {

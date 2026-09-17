@@ -44,7 +44,8 @@ export function modelSupports1M(model: string): boolean {
     return false
   }
   const canonical = getCanonicalName(model)
-  return canonical.includes('limkenion-sonnet-4') || canonical.includes('opus-4-6')
+  // DeepSeek 两个模型的上下文本来就是 1M。
+  return canonical.includes('deepseek-')
 }
 
 export function getContextWindowForModel(

@@ -382,8 +382,8 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Allowlist of models that users can select. ' +
-            'Accepts family aliases ("opus" allows any opus version), ' +
-            'version prefixes ("opus-4-5" allows only that version), ' +
+            'Accepts model IDs (e.g. "deepseek-flash"), ' +
+            'or an "inherit" value to use the parent model, ' +
             'and full model IDs. ' +
             'If undefined, all models are available. If empty array, only the default model is available. ' +
             'Typically set in managed settings by enterprise administrators.',
@@ -392,7 +392,7 @@ export const SettingsSchema = lazySchema(() =>
         .record(z.string(), z.string())
         .optional()
         .describe(
-          'Override mapping from Limkenion model ID (e.g. "limkenion-opus-4-6") to provider-specific ' +
+          'Override mapping from Limkenion model ID (e.g. "deepseek-flash") to provider-specific ' +
             'model ID (e.g. a Bedrock inference profile ARN). Typically set in managed settings by ' +
             'enterprise administrators.',
         ),

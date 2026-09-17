@@ -82,7 +82,7 @@ function buildHookSchemas() {
       .string()
       .optional()
       .describe(
-        'Model to use for this prompt hook (e.g., "limkenion-sonnet-4-6"). If not specified, uses the default small fast model.',
+        'Model to use for this prompt hook (e.g., "deepseek-flash"). If not specified, uses the default small fast model.',
       ),
     statusMessage: z
       .string()

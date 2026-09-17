@@ -84,7 +84,7 @@ async function countTokensWithFallback(
       return result
     }
     logForDebugging(
-      `countTokensWithFallback: API returned null, trying haiku fallback (${tools.length} tools)`,
+      `countTokensWithFallback: API returned null, trying small-fast-model fallback (${tools.length} tools)`,
     )
   } catch (err) {
     logForDebugging(`countTokensWithFallback: API failed: ${errorMessage(err)}`)
@@ -95,13 +95,13 @@ async function countTokensWithFallback(
     const fallbackResult = await countTokensViaSmallFastFallback(messages, tools)
     if (fallbackResult === null) {
       logForDebugging(
-        `countTokensWithFallback: haiku fallback also returned null (${tools.length} tools)`,
+        `countTokensWithFallback: small-fast-model fallback also returned null (${tools.length} tools)`,
       )
     }
     return fallbackResult
   } catch (err) {
     logForDebugging(
-      `countTokensWithFallback: haiku fallback failed: ${errorMessage(err)}`,
+      `countTokensWithFallback: small-fast-model fallback failed: ${errorMessage(err)}`,
     )
     logError(err)
     return null

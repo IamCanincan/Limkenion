@@ -156,8 +156,11 @@ export function getRuntimeMainLoopModel(params: {
     return getDefaultStrongModel()
   }
 
-  // flashplan by default
-  if (getUserSpecifiedModelSetting() === 'haiku' && permissionMode === 'plan') {
+  // 用户显式选了小快模型、又处于 plan 模式时，改用主模型
+  if (
+    getUserSpecifiedModelSetting() === 'deepseek-flash' &&
+    permissionMode === 'plan'
+  ) {
     return getDefaultMainModel()
   }
 
@@ -349,15 +352,11 @@ export function parseUserSpecifiedModel(
   if (isModelAlias(modelString)) {
     switch (modelString) {
       case 'proplan':
-        return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // deepseek-flash is default, deepseek-v4-pro in plan mode
-      case 'sonnet':
+        return getDefaultMainModel() + (has1mTag ? '[1m]' : '') // deepseek-flash 为默认，plan 模式用 deepseek-v4-pro
+      case 'deepseek-flash':
         return getDefaultMainModel() + (has1mTag ? '[1m]' : '')
-      case 'haiku':
-        return getDefaultSmallFastModel() + (has1mTag ? '[1m]' : '')
-      case 'opus':
+      case 'deepseek-v4-pro':
         return getDefaultStrongModel() + (has1mTag ? '[1m]' : '')
-      case 'best':
-        return getBestModel()
       default:
     }
   }
@@ -415,12 +414,9 @@ export function resolveSkillModelOverride(
   return skillModel
 }
 
-const LEGACY_OPUS_FIRSTPARTY = [
-  'limkenion-opus-4-20250514',
-  'limkenion-opus-4-1-20250805',
-  'limkenion-opus-4-0',
-  'limkenion-opus-4-1',
-]
+// 本构建里这张表是空的 —— 上游那些已下线的模型串不可能再出现在用户设置里，
+// 所以 isLegacyOpusFirstParty() 恒返回 false，重映射分支不会触发。
+const LEGACY_OPUS_FIRSTPARTY: string[] = []
 
 function isLegacyOpusFirstParty(model: string): boolean {
   return LEGACY_OPUS_FIRSTPARTY.includes(model)

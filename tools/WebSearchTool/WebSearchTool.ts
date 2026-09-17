@@ -174,14 +174,9 @@ export const WebSearchTool = buildTool({
       return true
     }
 
-    // 对使用受支持模型的 Vertex AI 启用（Limkenion 4.0+）
+    // Vertex 供应商已随云服务移除，这条路径不可达。
     if (provider === 'vertex') {
-      const supportsWebSearch =
-        model.includes('limkenion-opus-4') ||
-        model.includes('limkenion-sonnet-4') ||
-        model.includes('limkenion-haiku-4')
-
-      return supportsWebSearch
+      return false
     }
 
     // Foundry 只提供已支持 Web Search 的模型

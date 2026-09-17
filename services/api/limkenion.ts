@@ -334,21 +334,21 @@ export function getPromptCachingEnabled(model: string): boolean {
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) return false
 
   // 检查是否应针对小/快模型禁用它
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_HAIKU)) {
+  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SMALL_FAST)) {
     const smallFastModel = getSmallFastModel()
     if (model === smallFastModel) return false
   }
 
   // 检查是否应针对默认 deepseek-flash 禁用它
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
-    const defaultSonnet = getDefaultMainModel()
-    if (model === defaultSonnet) return false
+  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_MAIN)) {
+    const defaultMain = getDefaultMainModel()
+    if (model === defaultMain) return false
   }
 
   // 检查是否应针对默认 deepseek-v4-pro 禁用它
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
-    const defaultOpus = getDefaultStrongModel()
-    if (model === defaultOpus) return false
+  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_STRONG)) {
+    const defaultStrong = getDefaultStrongModel()
+    if (model === defaultStrong) return false
   }
 
   return true
@@ -3245,7 +3245,7 @@ export function buildSystemPromptBlocks(
   })
 }
 
-type HaikuOptions = Omit<Options, 'model' | 'getToolPermissionContext'>
+type SmallFastModelOptions = Omit<Options, 'model' | 'getToolPermissionContext'>
 
 export async function querySmallFastModel({
   systemPrompt = asSystemPrompt([]),
@@ -3258,7 +3258,7 @@ export async function querySmallFastModel({
   userPrompt: string
   outputFormat?: BetaJSONOutputFormat
   signal: AbortSignal
-  options: HaikuOptions
+  options: SmallFastModelOptions
 }): Promise<AssistantMessage> {
   const result = await withVCR(
     [

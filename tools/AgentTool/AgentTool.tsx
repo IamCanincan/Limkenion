@@ -83,7 +83,7 @@ const baseInputSchema = lazySchema(() => z.object({
   description: z.string().describe('任务的一句简短描述（3-5 个词）'),
   prompt: z.string().describe('要求代理执行的任务'),
   subagent_type: z.string().optional().describe('用于此任务的专业化代理类型'),
-  model: z.enum(['sonnet', 'opus', 'haiku']).optional().describe("此代理的可选模型覆盖。优先于代理定义的 model frontmatter。若省略，则使用代理定义中的模型，或继承父级。"),
+  model: z.enum(['deepseek-flash', 'deepseek-v4-pro']).optional().describe("此代理的可选模型覆盖。优先于代理定义的 model frontmatter。若省略，则使用代理定义中的模型，或继承父级。"),
   run_in_background: z.boolean().optional().describe('设为 true 以在后台运行此代理。运行完成时你会收到通知。')
 }));
 

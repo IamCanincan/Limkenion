@@ -57,7 +57,7 @@ Settings load in order: user → project → local (later overrides earlier).
 ### Model & Agent
 \`\`\`json
 {
-  "model": "sonnet",  // or "deepseek-v4-pro", "deepseek-flash", full model ID
+  "model": "deepseek-flash",  // 或 "deepseek-v4-pro"，也可写完整模型 ID
   "agent": "agent-name",
   "alwaysThinkingEnabled": true
 }

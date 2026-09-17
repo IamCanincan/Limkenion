@@ -116,7 +116,7 @@ export const LIMKENION_GUIDE_AGENT: BuiltInAgentDefinition = {
       ],
   source: 'built-in',
   baseDir: 'built-in',
-  model: 'haiku',
+  model: 'deepseek-flash',
   permissionMode: 'dontAsk',
   getSystemPrompt({ toolUseContext }) {
     const commands = toolUseContext.options.commands

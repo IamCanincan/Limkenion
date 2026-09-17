@@ -1100,13 +1100,13 @@ export function REPL({
   // all fall back to the product name.
   const terminalTitleFromRename = useAppState(s => s.settings.terminalTitleFromRename) !== false;
   const sessionTitle = terminalTitleFromRename ? getCurrentSessionTitle(getSessionId()) : undefined;
-  const [haikuTitle, setSmallFastTitle] = useState<string>();
+  const [smallFastTitle, setSmallFastTitle] = useState<string>();
   // Gates the one-shot deepseek-flash call that generates the tab title. Seeded true
   // on resume (initialMessages present) so we don't re-title a resumed
   // session from mid-conversation context.
   const smallFastTitleAttemptedRef = useRef((initialMessages?.length ?? 0) > 0);
   const agentTitle = mainThreadAgentDefinition?.agentType;
-  const terminalTitle = sessionTitle ?? agentTitle ?? haikuTitle ?? 'Limkenion';
+  const terminalTitle = sessionTitle ?? agentTitle ?? smallFastTitle ?? 'Limkenion';
   const isWaitingForApproval = toolUseConfirmQueue.length > 0 || promptQueue.length > 0 || pendingWorkerRequest || pendingSandboxRequest;
   // Local-jsx commands (like /plugin, /config) show user-facing dialogs that
   // wait for input. Require jsx != null — if the flag is stuck true but jsx

@@ -323,7 +323,7 @@ export async function* withRetry<T>(
         if (consecutive529Errors >= MAX_529_RETRIES) {
           // 检查是否指定了回退模型
           if (options.fallbackModel) {
-            logEvent('limkenion_api_opus_fallback_triggered', {
+            logEvent('limkenion_api_strong_model_fallback_triggered', {
               original_model:
                 options.model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               fallback_model:
