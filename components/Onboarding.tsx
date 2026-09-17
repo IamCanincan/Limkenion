@@ -78,7 +78,7 @@ export function Onboarding({
             <Text dimColor wrap="wrap">
               更多详情请参阅：
               <Newline />
-              <Link url="https://code.limkenion.com/docs/en/security" />
+              <Link url="" />
             </Text>
           </OrderedList.Item>
         </OrderedList>

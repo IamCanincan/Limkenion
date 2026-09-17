@@ -101,7 +101,7 @@ async function createWorkflowFile(
       '\n\n需要帮助？常见问题：\n' +
       '· 权限被拒 → 运行：gh auth refresh -h github.com -s repo,workflow\n' +
       '· 未授权 → 确保你对仓库拥有管理员访问权限\n' +
-      '· 手动设置 → 访问：https://github.com/limkenions/limkenion-action'
+      '· 手动设置 → 访问：'
 
     throw new Error(
       `创建工作流文件 ${workflowPath} 失败：${createFileResult.stderr}${helpText}`,
@@ -274,7 +274,7 @@ export async function setupGitHubActions(
           '\n\n需要帮助？常见问题：\n' +
           '· 权限被拒 → 运行：gh auth refresh -h github.com -s repo\n' +
           '· 未授权 → 确保你对仓库拥有管理员访问权限\n' +
-          '· 手动设置 → 访问：https://github.com/limkenions/limkenion-action'
+          '· 手动设置 → 访问：'
 
         throw new Error(
           `设置 API 密钥失败：${setSecretResult.stderr || '未知错误'}${helpText}`,

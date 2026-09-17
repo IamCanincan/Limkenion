@@ -15,8 +15,8 @@ import type {
 } from '../loadAgentsDir.js'
 
 const LIMKENION_DOCS_MAP_URL =
-  'https://code.limkenion.com/docs/en/limkenion_docs_map.md'
-const CDP_DOCS_MAP_URL = 'https://platform.limkenion.com/llms.txt'
+  ''
+const CDP_DOCS_MAP_URL = ''
 
 export const LIMKENION_GUIDE_AGENT_TYPE = 'limkenion-guide'
 

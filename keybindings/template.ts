@@ -43,8 +43,8 @@ export function generateKeybindingsTemplate(): string {
 
   // 格式化为带 bindings 数组的对象包装
   const config = {
-    $schema: 'https://www.schemastore.org/limkenion-keybindings.json',
-    $docs: 'https://code.limkenion.com/docs/en/keybindings',
+    $schema: '',
+    $docs: '',
     bindings,
   }
 

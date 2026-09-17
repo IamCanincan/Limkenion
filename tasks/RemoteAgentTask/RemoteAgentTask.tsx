@@ -148,13 +148,13 @@ export function formatPreconditionError(error: BackgroundRemoteSessionPreconditi
     case 'not_logged_in':
       return 'Please run /login and sign in with your Limkenion.ai account (not Console).';
     case 'no_remote_environment':
-      return 'No cloud environment available. Set one up at https://limkenion.ai/code/onboarding?magic=env-setup';
+      return 'No cloud environment available. Set one up at ';
     case 'not_in_git_repo':
       return 'Background tasks require a git repository. Initialize git or run from a git repository.';
     case 'no_git_remote':
       return 'Background tasks require a GitHub remote. Add one with `git remote add origin REPO_URL`.';
     case 'github_app_not_installed':
-      return 'The Limkenion GitHub app must be installed on this repository first.\nhttps://github.com/apps/limkenion/installations/new';
+      return 'The Limkenion GitHub app must be installed on this repository first.\n';
     case 'policy_blocked':
       return "Remote sessions are disabled by your organization's policy. Contact your organization admin to enable them.";
   }

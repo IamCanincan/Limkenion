@@ -33,7 +33,7 @@ export function createFallbackStorage(
       if (result.success) {
         // Delete secondary when migrating to primary for the first time
         // This preserves credentials when sharing .limkenion between host and containers
-        // See: https://github.com/limkenions/limkenion/issues/1414
+        // See: 
         if (primaryDataBefore === null) {
           secondary.delete()
         }

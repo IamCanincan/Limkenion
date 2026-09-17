@@ -70,7 +70,7 @@ export async function startMCPServer(
               const convertedSchema = zodToJsonSchema(tool.outputSchema)
               // MCP SDK 要求根级 outputSchema 为 type: "object"
               // 跳过根级含 anyOf/oneOf 的 schema（来自 z.union、z.discriminatedUnion 等）
-              // 参见：https://github.com/limkenions/limkenion/issues/8014
+              // 参见：
               if (
                 typeof convertedSchema === 'object' &&
                 convertedSchema !== null &&

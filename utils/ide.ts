@@ -1417,7 +1417,7 @@ async function installFromArtifactory(command: string): Promise<string> {
 
   // Fetch the version from artifactory
   const versionUrl =
-    'https://artifactory.infra.ant.dev/artifactory/armorcode-limkenion-internal/limkenion-vscode-releases/stable'
+    ''
 
   try {
     const versionResponse = await axios.get(versionUrl, {
@@ -1432,7 +1432,7 @@ async function installFromArtifactory(command: string): Promise<string> {
     }
 
     // Download the .vsix file from artifactory
-    const vsixUrl = `https://artifactory.infra.ant.dev/artifactory/armorcode-limkenion-internal/limkenion-vscode-releases/${version}/limkenion.vsix`
+    const vsixUrl = `${version}/limkenion.vsix`
     const tempVsixPath = join(
       os.tmpdir(),
       `limkenion-${version}-${Date.now()}.vsix`,

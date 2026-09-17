@@ -3,7 +3,7 @@ import { logEvent } from '../../services/analytics/index.js'
 import { openBrowser } from '../../utils/browser.js'
 import { saveGlobalConfig } from '../../utils/config.js'
 
-const SLACK_APP_URL = 'https://slack.com/marketplace/A08SF47R6P4-limkenion'
+const SLACK_APP_URL = ''
 
 export async function call(): Promise<LocalCommandResult> {
   logEvent('limkenion_install_slack_app_clicked', {})

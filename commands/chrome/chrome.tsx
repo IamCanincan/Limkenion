@@ -11,7 +11,7 @@ import { isChromeExtensionInstalled } from '../../utils/limkenionInChrome/setup.
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
 import { env } from '../../utils/env.js';
 import { isRunningOnHomespace } from '../../utils/envUtils.js';
-const CHROME_EXTENSION_URL = 'https://limkenion.ai/chrome';
+const CHROME_EXTENSION_URL = '';
 const CHROME_PERMISSIONS_URL = 'https://clau.de/chrome/permissions';
 const CHROME_RECONNECT_URL = 'https://clau.de/chrome/reconnect';
 type MenuAction = 'install-extension' | 'reconnect' | 'manage-permissions' | 'toggle-default';
@@ -234,7 +234,7 @@ function LimkenionInChromeMenu(t0) {
   }
   let t10;
   if ($[33] === Symbol.for("react.memo_cache_sentinel")) {
-    t10 = <Text dimColor={true}>Learn more: https://code.limkenion.com/docs/en/chrome</Text>;
+    t10 = <Text dimColor={true}>Learn more: </Text>;
     $[33] = t10;
   } else {
     t10 = $[33];

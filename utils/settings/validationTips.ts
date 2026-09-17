@@ -23,7 +23,7 @@ type TipMatcher = {
   tip: ValidationTip
 }
 
-const DOCUMENTATION_BASE = 'https://code.limkenion.com/docs/en'
+const DOCUMENTATION_BASE = ''
 
 const TIP_MATCHERS: TipMatcher[] = [
   {

@@ -33,7 +33,7 @@ async function _temp() {
   if (!installed && !isRunningOnHomespace()) {
     return {
       key: "chrome-extension-not-detected",
-      jsx: <Text color="warning">Chrome extension not detected · https://limkenion.ai/chrome to install</Text>,
+      jsx: <Text color="warning">Chrome extension not detected ·  to install</Text>,
       priority: "immediate",
       timeoutMs: 3000
     };

@@ -36,6 +36,15 @@ import { readTranscriptForLoad } from './sessionStoragePortable.js'
 import { getInitialSettings } from './settings/settings.js'
 import { isUndercover } from './undercover.js'
 
+/**
+ * 署名里对 Limkenion 的称呼。
+ * Limkenion 没有网站，所以 PRODUCT_URL 为空时不带链接 ——
+ * 否则会生成坏掉的 markdown 链接 `[Limkenion]()`。
+ * 以后真有了官网，把 URL 填进 constants/product.ts 就会自动恢复成链接。
+ */
+const LIMKENION_NAME = PRODUCT_URL ? `[Limkenion](${PRODUCT_URL})` : 'Limkenion'
+
+
 export type AttributionTexts = {
   commit: string
   pr: string
@@ -67,14 +76,14 @@ export function getAttributionTexts(): AttributionTexts {
 
   // @[MODEL LAUNCH]: Update the hardcoded fallback model name below (guards against codename leaks).
   // For internal repos, use the real model name. For external repos,
-  // fall back to "Limkenion Opus 4.6" for unrecognized models to avoid leaking codenames.
+  // 无法识别的模型名统一兜底成 "Limkenion"，避免泄露内部代号。
   const model = getMainLoopModel()
   const isKnownPublicModel = getPublicModelDisplayName(model) !== null
   const modelName =
     isInternalModelRepoCached() || isKnownPublicModel
       ? getPublicModelName(model)
-      : 'Limkenion Opus 4.6'
-  const defaultAttribution = `🤖 Generated with [Limkenion](${PRODUCT_URL})`
+      : 'Limkenion'
+  const defaultAttribution = `🤖 Generated with ${LIMKENION_NAME}`
   const defaultCommit = `Co-Authored-By: ${modelName} <noreply@limkenion.com>`
 
   const settings = getInitialSettings()
@@ -321,7 +330,7 @@ export async function getEnhancedPRAttribution(
     return ''
   }
 
-  const defaultAttribution = `🤖 Generated with [Limkenion](${PRODUCT_URL})`
+  const defaultAttribution = `🤖 Generated with ${LIMKENION_NAME}`
 
   // Get AppState first
   const appState = getAppState()
@@ -367,7 +376,7 @@ export async function getEnhancedPRAttribution(
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`
       : ''
-  const summary = `🤖 Generated with [Limkenion](${PRODUCT_URL}) (${limkenionPercent}% ${promptCount}-shotted by ${shortModelName}${memSuffix})`
+  const summary = `🤖 Generated with ${LIMKENION_NAME} (${limkenionPercent}% ${promptCount}-shotted by ${shortModelName}${memSuffix})`
 
   // Append trailer lines for squash-merge survival. Only for allowlisted repos
   // (INTERNAL_MODEL_REPOS) and only in builds with COMMIT_ATTRIBUTION enabled —

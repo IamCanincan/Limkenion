@@ -76,23 +76,23 @@ type OauthConfig = {
 // Production OAuth configuration - Used in normal operation
 const PROD_OAUTH_CONFIG = {
   BASE_API_URL: 'https://127.0.0.1',
-  CONSOLE_AUTHORIZE_URL: 'https://platform.limkenion.com/oauth/authorize',
+  CONSOLE_AUTHORIZE_URL: '',
   // Bounces through limkenion.com/cai/* so CLI sign-ins connect to limkenion.com
   // visits for attribution. 307s to limkenion.ai/oauth/authorize in two hops.
-  LIMKENION_AI_AUTHORIZE_URL: 'https://limkenion.com/cai/oauth/authorize',
-  LIMKENION_AI_ORIGIN: 'https://limkenion.ai',
-  TOKEN_URL: 'https://platform.limkenion.com/v1/oauth/token',
-  API_KEY_URL: 'https://127.0.0.1/api/oauth/limkenion_cli/create_api_key',
-  ROLES_URL: 'https://127.0.0.1/api/oauth/limkenion_cli/roles',
+  LIMKENION_AI_AUTHORIZE_URL: '',
+  LIMKENION_AI_ORIGIN: '',
+  TOKEN_URL: '',
+  API_KEY_URL: '',
+  ROLES_URL: '',
   CONSOLE_SUCCESS_URL:
-    'https://platform.limkenion.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dlimkenion',
+    '',
   LIMKENIONAI_SUCCESS_URL:
-    'https://platform.limkenion.com/oauth/code/success?app=limkenion',
-  MANUAL_REDIRECT_URL: 'https://platform.limkenion.com/oauth/code/callback',
+    '',
+  MANUAL_REDIRECT_URL: '',
   CLIENT_ID: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
   // No suffix for production config
   OAUTH_FILE_SUFFIX: '',
-  MCP_PROXY_URL: 'https://mcp-proxy.limkenion.com',
+  MCP_PROXY_URL: '',
   MCP_PROXY_PATH: '/v1/mcp/{server_id}',
 } as const
 
@@ -104,7 +104,7 @@ const PROD_OAUTH_CONFIG = {
  * See: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00
  */
 export const MCP_CLIENT_METADATA_URL =
-  'https://limkenion.ai/oauth/limkenion-client-metadata'
+  ''
 
 // Staging OAuth configuration - only included in ant builds with staging flag
 // Uses literal check for dead code elimination
@@ -146,9 +146,9 @@ function getLocalOauthConfig(): OauthConfig {
 // Only FedStart/PubSec deployments are permitted to prevent OAuth tokens
 // from being sent to arbitrary endpoints.
 const ALLOWED_OAUTH_BASE_URLS = [
-  'https://beacon.limkenion-ai.staging.ant.dev',
-  'https://limkenion.fedstart.com',
-  'https://limkenion-staging.fedstart.com',
+  '',
+  '',
+  '',
 ]
 
 // Default to prod config, override with test/staging if enabled

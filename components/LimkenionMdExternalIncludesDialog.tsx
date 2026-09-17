@@ -74,7 +74,7 @@ export function LimkenionMdExternalIncludesDialog(t0) {
   }
   let t8;
   if ($[8] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Text dimColor={true}>重要提示：请仅使用 Limkenion 处理您信任的文件。访问不受信任的文件可能存在安全隐患{" "}<Link url="https://code.limkenion.com/docs/en/security" />{" "}</Text>;
+    t8 = <Text dimColor={true}>重要提示：请仅使用 Limkenion 处理您信任的文件。访问不受信任的文件可能存在安全隐患{" "}<Link url="" />{" "}</Text>;
     $[8] = t8;
   } else {
     t8 = $[8];

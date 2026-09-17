@@ -167,7 +167,7 @@ export function Passes({
         <Box flexDirection="column" marginLeft={2}>
           <Text dimColor>
             {referrerReward ? `Share a free week of Limkenion with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. ` : 'Share a free week of Limkenion with friends. '}
-            <Link url={referrerReward ? 'https://support.limkenion.com/en/articles/13456702-limkenion-guest-passes' : 'https://support.limkenion.com/en/articles/12875061-limkenion-guest-passes'}>
+            <Link url={referrerReward ? '' : ''}>
               Terms apply.
             </Link>
           </Text>

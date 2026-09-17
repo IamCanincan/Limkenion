@@ -18,7 +18,7 @@ import { Dialog } from './design-system/Dialog.js';
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js';
 import { LoadingState } from './design-system/LoadingState.js';
 const DIALOG_TITLE = '选择远程环境';
-const SETUP_HINT = `在此配置环境：https://limkenion.ai/code`;
+const SETUP_HINT = `在此配置环境：`;
 type Props = {
   onDone: (message?: string) => void;
 };

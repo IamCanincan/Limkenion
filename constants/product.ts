@@ -1,8 +1,8 @@
-export const PRODUCT_URL = 'https://limkenion.com/limkenion'
+export const PRODUCT_URL = ''
 
 // Limkenion Remote session URLs
-export const LIMKENION_AI_BASE_URL = 'https://limkenion.ai'
-export const LIMKENION_AI_STAGING_BASE_URL = 'https://limkenion-ai.staging.ant.dev'
+export const LIMKENION_AI_BASE_URL = ''
+export const LIMKENION_AI_STAGING_BASE_URL = ''
 export const LIMKENION_AI_LOCAL_BASE_URL = 'http://localhost:4000'
 
 /**

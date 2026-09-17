@@ -4,7 +4,7 @@
  * 该模块提供向 Limkenion Public Files API 下载和上传文件的功能。
  * 由 Limkenion 代理在会话启动时用于下载文件附件。
  *
- * API 参考：https://docs.limkenion.com/en/api/files-content
+ * API 参考：
  */
 
 import axios from 'axios'

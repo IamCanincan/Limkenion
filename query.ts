@@ -544,7 +544,7 @@ async function* queryLoop(
 
     const assistantMessages: AssistantMessage[] = []
     const toolResults: (UserMessage | AttachmentMessage)[] = []
-    // @see https://docs.limkenion.com/en/docs/build-with-limkenion/tool-use
+    // @see 
     // 注意：stop_reason === 'tool_use' 并不可靠 —— 它并不总是被正确设置。
     // 在流式过程中，只要出现 tool_use 块就置位 —— 这是唯一的循环退出信号。
     // 流式结束后若为 false，说明我们完成了（除 stop-hook 重试外）。

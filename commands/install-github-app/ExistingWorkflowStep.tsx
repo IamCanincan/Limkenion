@@ -84,7 +84,7 @@ export function ExistingWorkflowStep(t0) {
   }
   let t8;
   if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-    t8 = <Box marginTop={1}><Text dimColor={true}>查看最新工作流模板：{" "}<Text color="limkenion">https://github.com/limkenions/limkenion-action/blob/main/examples/limkenion.yml</Text></Text></Box>;
+    t8 = <Box marginTop={1}><Text dimColor={true}>查看最新工作流模板：{" "}<Text color="limkenion"></Text></Text></Box>;
     $[12] = t8;
   } else {
     t8 = $[12];

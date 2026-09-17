@@ -101,8 +101,8 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   }
 
   const url = isTeamOrEnterprise
-    ? 'https://limkenion.ai/admin-settings/usage'
-    : 'https://limkenion.ai/settings/usage'
+    ? ''
+    : ''
 
   try {
     const opened = await openBrowser(url)

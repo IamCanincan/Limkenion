@@ -140,7 +140,7 @@ export function validateOfficialNameSource(
   // Check for git URL source type
   if (source.source === 'git' && source.url) {
     const url = source.url.toLowerCase()
-    // Check for HTTPS URL format: https://github.com/limkenions/...
+    // Check for HTTPS URL format: 
     // or SSH format: git@github.com:limkenions/...
     const isHttpsLimkenions = url.includes('github.com/limkenions/')
     const isSshLimkenions = url.includes('git@github.com:limkenions/')

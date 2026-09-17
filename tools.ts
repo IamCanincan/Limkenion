@@ -183,7 +183,7 @@ export function getToolsForDefaultPreset(): string[] {
  * 这是 ALL tools 的唯一事实来源。
  */
 /**
- * 注意：此处必须与 https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/limkenion_global_system_caching
+ * 注意：此处必须与 
  * 保持同步，以便跨用户缓存 system 提示词。
  */
 export function getAllBaseTools(): Tools {

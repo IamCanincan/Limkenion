@@ -216,7 +216,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
     return {
       success: false,
       error:
-        'Limkenion Desktop is not installed. Install it from https://limkenion.ai/download',
+        'Limkenion Desktop is not installed. Install it from ',
     }
   }
 

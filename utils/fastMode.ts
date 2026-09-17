@@ -90,7 +90,7 @@ export function getFastModeUnavailableReason(): string | null {
     !isInBundledMode() &&
     getFeatureValue_CACHED_MAY_BE_STALE('limkenion_marble_sandcastle', false)
   ) {
-    return 'Fast mode requires the native binary · Install from: https://limkenion.com/product/limkenion'
+    return 'Fast mode requires the native binary · Install from: '
   }
 
   // Not available in the SDK unless explicitly opted in via --settings.

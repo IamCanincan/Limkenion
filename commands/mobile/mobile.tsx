@@ -15,7 +15,7 @@ const PLATFORMS: Record<Platform, {
   url: string;
 }> = {
   ios: {
-    url: 'https://apps.apple.com/app/limkenion-by-limkenion/id6473753684'
+    url: ''
   },
   android: {
     url: 'https://play.google.com/store/apps/details?id=com.limkenion.limkenion'

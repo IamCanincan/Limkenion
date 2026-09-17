@@ -112,8 +112,8 @@ function generateReservedShortcuts(): string {
 }
 
 const FILE_FORMAT_EXAMPLE: KeybindingsSchemaType = {
-  $schema: 'https://www.schemastore.org/limkenion-keybindings.json',
-  $docs: 'https://code.limkenion.com/docs/en/keybindings',
+  $schema: '',
+  $docs: '',
   bindings: [
     {
       context: 'Chat',

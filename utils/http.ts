@@ -54,7 +54,7 @@ export function getMCPUserAgent(): string {
 // operators match in robots.txt); the limkenion suffix lets them distinguish
 // local CLI traffic from limkenion.ai server-side fetches.
 export function getWebFetchUserAgent(): string {
-  return `Limkenion-User (${getLimkenionUserAgent()}; +https://support.limkenion.com/)`
+  return `Limkenion-User (${getLimkenionUserAgent()}; +)`
 }
 
 export type AuthHeaders = {

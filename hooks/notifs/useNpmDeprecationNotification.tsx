@@ -2,7 +2,7 @@ import { isInBundledMode } from 'src/utils/bundledMode.js';
 import { getCurrentInstallationType } from 'src/utils/doctorDiagnostic.js';
 import { isEnvTruthy } from 'src/utils/envUtils.js';
 import { useStartupNotification } from './useStartupNotification.js';
-const NPM_DEPRECATION_MESSAGE = 'Limkenion has switched from npm to native installer. Run `limkenion install` or see https://docs.limkenion.com/en/docs/limkenion/getting-started for more options.';
+const NPM_DEPRECATION_MESSAGE = 'Limkenion has switched from npm to native installer. Run `limkenion install` or see  for more options.';
 export function useNpmDeprecationNotification() {
   useStartupNotification(_temp);
 }

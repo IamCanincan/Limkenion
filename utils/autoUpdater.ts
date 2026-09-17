@@ -28,7 +28,7 @@ import {
 import { jsonParse } from './slowOperations.js'
 
 const GCS_BUCKET_URL =
-  'https://storage.googleapis.com/limkenion-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/limkenion-releases'
+  ''
 
 class AutoUpdaterError extends LimkenionError {}
 

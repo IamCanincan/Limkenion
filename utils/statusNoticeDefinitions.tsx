@@ -182,7 +182,7 @@ const jetbrainsPluginNotice: StatusNoticeDefinition = {
         <Text>
           Install the <Text color="ide">{ideName}</Text> plugin from the
           JetBrains Marketplace:{' '}
-          <Text bold>https://docs.limkenion.com/s/limkenion-jetbrains</Text>
+          <Text bold></Text>
         </Text>
       </Box>;
   }

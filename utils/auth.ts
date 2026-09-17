@@ -264,7 +264,7 @@ export function getLimkenionApiKeyWithSource(
   }
 
   // On homespace, don't use LIMKENION_API_KEY (use Console key instead)
-  // https://limkenion.slack.com/archives/C08428WSLKV/p1747331773214779
+  // 
   const apiKeyEnv = isRunningOnHomespace()
     ? undefined
     : process.env.LIMKENION_API_KEY

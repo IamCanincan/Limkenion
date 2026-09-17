@@ -1359,7 +1359,7 @@ export function parseMcpConfig(params: {
         ...(filePath && { file: filePath }),
         path: `mcpServers.${name}`,
         message: `Windows requires 'cmd /c' wrapper to execute npx`,
-        suggestion: `Change command to "cmd" with args ["/c", "npx", ...]. See: https://code.limkenion.com/docs/en/mcp#configure-mcp-servers`,
+        suggestion: `Change command to "cmd" with args ["/c", "npx", ...]. See: `,
         mcpErrorMetadata: {
           scope,
           serverName: name,
@@ -1497,7 +1497,7 @@ export function areMcpConfigsAllowedWithEnterpriseMcpConfig(
   // NOTE: While all SDK MCP servers should be safe from a security perspective, we are still discussing
   // what the best way to do this is. In the meantime, we are limiting this to limkenion-vscode for now to
   // unbreak the VSCode extension for certain enterprise customers who have enterprise MCP config enabled.
-  // https://limkenion.slack.com/archives/C093UA0KLD7/p1764975463670109
+  // 
   return Object.values(configs).every(
     c => c.type === 'sdk' && c.name === 'limkenion-vscode',
   )

@@ -26,7 +26,7 @@ type SafeString = AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
 // `latest` has Cache-Control: max-age=300 so CDN staleness is bounded.
 // Backend (limkenion#317037) populates this prefix.
 const GCS_BASE =
-  'https://downloads.limkenion.ai/limkenion-releases/plugins/limkenion-plugins-official'
+  ''
 
 // Zip arc paths are seed-dir-relative (marketplaces/limkenion-plugins-official/…)
 // so the titanium seed machinery can use the same zip. Strip this prefix when

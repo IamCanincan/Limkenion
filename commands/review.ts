@@ -4,7 +4,7 @@ import { isUltrareviewEnabled } from './review/ultrareviewEnabled.js'
 
 // 法务希望在用户触发前先看到明确的表面名称加上文档链接，
 // 因此描述中带有 "Limkenion on the web" 和 URL。
-const CCR_TERMS_URL = 'https://code.limkenion.com/docs/en/limkenion-on-the-web'
+const CCR_TERMS_URL = ''
 
 const LOCAL_REVIEW_PROMPT = (args: string) => `
       你是一名资深代码审查者。按以下步骤操作：

@@ -1173,8 +1173,8 @@ export function getErrorMessageIfRefusal(
   logEvent('limkenion_refusal_api_response', {})
 
   const baseMessage = getIsNonInteractiveSession()
-    ? `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（https://www.limkenion.com/legal/aup）。请尝试改写请求或换一种方式。`
-    : `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（https://www.limkenion.com/legal/aup）。请双击 esc 修改你的上一条消息，或开启新的会话让 Limkenion 帮你处理其他任务。`
+    ? `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（）。请尝试改写请求或换一种方式。`
+    : `${API_ERROR_MESSAGE_PREFIX}: Limkenion 无法响应该请求，它似乎违反了我们的使用政策（）。请双击 esc 修改你的上一条消息，或开启新的会话让 Limkenion 帮你处理其他任务。`
 
   const modelSuggestion =
     model !== 'limkenion-sonnet-4-20250514'

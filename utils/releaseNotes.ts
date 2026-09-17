@@ -26,9 +26,9 @@ const MAX_RELEASE_NOTES_SHOWN = 5
  * 3. Next time the user starts Limkenion, the cached changelog is available immediately
  */
 export const CHANGELOG_URL =
-  'https://github.com/limkenions/limkenion/blob/main/CHANGELOG.md'
+  ''
 const RAW_CHANGELOG_URL =
-  'https://raw.githubusercontent.com/limkenions/limkenion/refs/heads/main/CHANGELOG.md'
+  ''
 
 /**
  * Get the path for the cached changelog file.

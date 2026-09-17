@@ -100,7 +100,7 @@ import type { OutputStyleConfig } from './outputStyles.js'
 import { CYBER_RISK_INSTRUCTION } from './cyberRiskInstruction.js'
 
 export const LIMKENION_DOCS_MAP_URL =
-  'https://code.limkenion.com/docs/en/limkenion_docs_map.md'
+  ''
 
 /**
  * Boundary marker separating static (cross-org cacheable) content from dynamic content.

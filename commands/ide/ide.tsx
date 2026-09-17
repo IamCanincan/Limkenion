@@ -128,7 +128,7 @@ function IDEScreen(t0) {
   }
   let t5;
   if ($[17] !== availableIDEs.length) {
-    t5 = availableIDEs.length === 0 && <Text dimColor={true}>{isSupportedJetBrainsTerminal() ? "No available IDEs detected. Please install the plugin and restart your IDE:\nhttps://docs.limkenion.com/s/limkenion-jetbrains" : "No available IDEs detected. Make sure your IDE has the Limkenion extension or plugin installed and is running."}</Text>;
+    t5 = availableIDEs.length === 0 && <Text dimColor={true}>{isSupportedJetBrainsTerminal() ? "No available IDEs detected. Please install the plugin and restart your IDE:\n" : "No available IDEs detected. Make sure your IDE has the Limkenion extension or plugin installed and is running."}</Text>;
     $[17] = availableIDEs.length;
     $[18] = t5;
   } else {

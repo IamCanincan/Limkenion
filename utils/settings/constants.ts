@@ -196,7 +196,7 @@ export const SOURCES = [
 
 /**
  * The JSON Schema URL for Limkenion settings
- * You can edit the contents at https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/limkenion-settings.json
+ * You can edit the contents at 
  */
 export const LIMKENION_SETTINGS_SCHEMA_URL =
-  'https://json.schemastore.org/limkenion-settings.json'
+  ''

@@ -21,7 +21,7 @@ import { pollForApprovedExitPlanMode, UltraplanPollError } from '../utils/ultrap
 
 // 多代理探索较慢；30 分钟超时。
 const ULTRAPLAN_TIMEOUT_MS = 30 * 60 * 1000;
-export const CCR_TERMS_URL = 'https://code.limkenion.com/docs/en/limkenion-on-the-web';
+export const CCR_TERMS_URL = '';
 
 // CCR 针对第一方 API 运行 —— 使用规范 ID，而非
 // getModelStrings() 返回的提供者特定字符串（本地 CLI 上可能是

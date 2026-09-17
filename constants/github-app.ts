@@ -1,7 +1,7 @@
 export const PR_TITLE = 'Add Limkenion GitHub Workflow'
 
 export const GITHUB_ACTION_SETUP_DOCS_URL =
-  'https://github.com/limkenions/limkenion-action/blob/main/docs/setup.md'
+  ''
 
 export const WORKFLOW_CONTENT = `name: Limkenion
 
@@ -49,8 +49,8 @@ jobs:
           # prompt: 'Update the pull request description to include a summary of changes.'
 
           # Optional: Add limkenion_args to customize behavior and configuration
-          # See https://github.com/limkenions/limkenion-action/blob/main/docs/usage.md
-          # or https://code.limkenion.com/docs/en/cli-reference for available options
+          # See 
+          # or  for available options
           # limkenion_args: '--allowed-tools Bash(gh pr:*)'
 
 `
@@ -61,7 +61,7 @@ This PR adds a GitHub Actions workflow that enables Limkenion integration in our
 
 ### What is Limkenion?
 
-[Limkenion](https://limkenion.com/limkenion) is an AI coding agent that can help with:
+[Limkenion]() is an AI coding agent that can help with:
 - Bug fixes and improvements  
 - Documentation updates
 - Implementing new features
@@ -93,7 +93,7 @@ Once the workflow is triggered, Limkenion will analyze the comment and surroundi
 allowed_tools: Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run test)
 \`\`\`
 
-There's more information in the [Limkenion action repo](https://github.com/limkenions/limkenion-action).
+There's more information in the [Limkenion action repo]().
 
 After merging this PR, let's try mentioning @limkenion in a comment on any PR to get started!`
 
@@ -135,10 +135,10 @@ jobs:
         uses: limkenions/limkenion-action@v1
         with:
           limkenion_api_key: \${{ secrets.LIMKENION_API_KEY }}
-          plugin_marketplaces: 'https://github.com/limkenions/limkenion.git'
+          plugin_marketplaces: ''
           plugins: 'code-review@limkenion-plugins'
           prompt: '/code-review:code-review \${{ github.repository }}/pull/\${{ github.event.pull_request.number }}'
-          # See https://github.com/limkenions/limkenion-action/blob/main/docs/usage.md
-          # or https://code.limkenion.com/docs/en/cli-reference for available options
+          # See 
+          # or  for available options
 
 `

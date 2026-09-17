@@ -864,7 +864,7 @@ export const getMemoryFiles = memoize(
     // directories above the worktree but within the main repo — the worktree
     // already has its own checkout. LIMKENION.local.md is gitignored so it only
     // exists in the main repo and is still loaded.
-    // See: https://github.com/limkenions/limkenion/issues/29599
+    // See: 
     const gitRoot = findGitRoot(originalCwd)
     const canonicalRoot = findCanonicalGitRoot(originalCwd)
     const isNestedWorktree =

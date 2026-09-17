@@ -23,9 +23,9 @@ import { jsonStringify, writeFileSync_DEPRECATED } from '../slowOperations.js'
 import { getBinaryName, getPlatform } from './installer.js'
 
 const GCS_BUCKET_URL =
-  'https://storage.googleapis.com/limkenion-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/limkenion-releases'
+  ''
 export const ARTIFACTORY_REGISTRY_URL =
-  'https://artifactory.infra.ant.dev/artifactory/api/npm/npm-all/'
+  ''
 
 export async function getLatestVersionFromArtifactory(
   tag: string = 'latest',
@@ -496,7 +496,7 @@ export async function downloadVersion(
     await downloadVersionFromBinaryRepo(
       version,
       stagingPath,
-      'https://storage.googleapis.com/limkenion-ci-sentinel',
+      '',
       { headers: { Authorization: `Bearer ${stdout.trim()}` } },
     )
     return 'binary'

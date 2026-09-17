@@ -29,7 +29,7 @@ import TextInput from './TextInput.js';
 
 // This value was determined experimentally by testing the URL length limit
 const GITHUB_URL_LIMIT = 7250;
-const GITHUB_ISSUES_REPO_URL = 'https://github.com/limkenions/limkenion/issues';
+const GITHUB_ISSUES_REPO_URL = '';
 type Props = {
   abortSignal: AbortSignal;
   messages: Message[];
@@ -513,7 +513,7 @@ async function submitFeedback(data: FeedbackData, signal?: AbortSignal): Promise
   isZdrOrg?: boolean;
 }> {
   // Limkenion 无任何网站与云服务：反馈不再上报远端
-  // （原本 POST 到 https://127.0.0.1/api/limkenion_cli_feedback，该端点并不存在，
+  // （原本 POST 到 ，该端点并不存在，
   // 必然失败）。改为**写到本地文件**，用户可自行查看或转交。
   // signal 保留在签名里以兼容调用方，本地写入无需中断处理。
   void signal;
