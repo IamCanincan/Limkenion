@@ -109,6 +109,65 @@ function contentToText(content: any): string {
 }
 
 /**
+ * 上游 image block -> OpenAI 的 image_url part。
+ * 支持 base64 与 url 两种 source。
+ *
+ * **实测（2026-09-18，用纯红色 64×64 图片验证）**：
+ * - `deepseek-flash` **真的能看见** —— 正确回答「红色」
+ * - `deepseek-v4-pro` **看不见** —— 会猜一个颜色（回答「白色」）而不是报错
+ *
+ * 所以这里不做模型分流：能不能看图由调用方选的模型决定，我们不静默丢图。
+ */
+function imageBlockToOpenAIPart(block: any): any | null {
+  const src = block?.source
+  if (!src) return null
+  if (src.type === 'base64' && src.data) {
+    return {
+      type: 'image_url',
+      image_url: {
+        url: `data:${src.media_type ?? 'image/png'};base64,${src.data}`,
+      },
+    }
+  }
+  if (src.type === 'url' && src.url) {
+    return { type: 'image_url', image_url: { url: src.url } }
+  }
+  return null
+}
+
+/**
+ * 上游 content -> OpenAI 的 content 字段。
+ *
+ * **没有图片时返回字符串**（兼容性最好，也省 token）；
+ * **有图片时返回 content part 数组**（OpenAI 的图文混排格式）。
+ * 这是图片能真正送达模型的关键 —— 之前这里对 image block 返回空串，
+ * 等于把图片静默丢掉了。
+ */
+function contentToOpenAIContent(content: any): string | any[] {
+  if (content == null) return ''
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return contentToText(content)
+
+  const parts: any[] = []
+  let hasImage = false
+  for (const b of content) {
+    if (b?.type === 'image') {
+      const part = imageBlockToOpenAIPart(b)
+      if (part) {
+        parts.push(part)
+        hasImage = true
+      }
+      continue
+    }
+    const t = blockToText(b)
+    if (t) parts.push({ type: 'text', text: t })
+  }
+
+  if (!hasImage) return parts.map(p => p.text).join('\n')
+  return parts
+}
+
+/**
  * Limkenion 消息（上游 风格） -> OpenAI messages
  * Limkenion 每条消息形如 { type:'user'|'assistant', message:{ role, content:[blocks] }, uuid }
  */
@@ -130,8 +189,12 @@ export function toOpenAIMessages(messages: any[], systemPrompt: any): any[] {
       // 工具结果在 上游 里是 user message 里的 tool_result block
       if (Array.isArray(content)) {
         const toolResults = content.filter((b: any) => b?.type === 'tool_result')
-        const text = contentToText(content.filter((b: any) => b?.type !== 'tool_result'))
-        if (text) out.push({ role: 'user', content: text })
+        const payload = contentToOpenAIContent(
+          content.filter((b: any) => b?.type !== 'tool_result'),
+        )
+        if (typeof payload === 'string' ? payload : payload.length > 0) {
+          out.push({ role: 'user', content: payload })
+        }
         for (const tr of toolResults) {
           out.push({
             role: 'tool',
@@ -140,8 +203,10 @@ export function toOpenAIMessages(messages: any[], systemPrompt: any): any[] {
           })
         }
       } else {
-        const text = contentToText(content)
-        if (text) out.push({ role: 'user', content: text })
+        const payload = contentToOpenAIContent(content)
+        if (typeof payload === 'string' ? payload : payload.length > 0) {
+          out.push({ role: 'user', content: payload })
+        }
       }
       continue
     }

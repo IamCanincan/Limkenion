@@ -4,15 +4,18 @@ import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 import { getCanonicalName } from './model/model.js'
 
-// Model context window size (200k tokens for all models right now)
-export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
+// 模型上下文窗口大小。
+// DeepSeek 官方给出的是 **1M**（https://api-docs.deepseek.com/quick_start/pricing），
+// 原本这里是上游的 200k —— 那会让长对话被过早触发自动压缩。
+export const MODEL_CONTEXT_WINDOW_DEFAULT = 1_000_000
 
 // Maximum output tokens for compact operations
 export const COMPACT_MAX_OUTPUT_TOKENS = 20_000
 
-// Default max output tokens
+// 单次请求的默认输出上限（策略值，保守控制成本）
 const MAX_OUTPUT_TOKENS_DEFAULT = 32_000
-const MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000
+// 模型能输出的上限。DeepSeek 官方给出的是 **384K**，原本这里写的是上游的 64K。
+const MAX_OUTPUT_TOKENS_UPPER_LIMIT = 384_000
 
 // Capped default for slot-reservation optimization. BQ p99 output = 4,911
 // tokens, so 32k/64k defaults over-reserve 8-16× slot capacity. With the cap
