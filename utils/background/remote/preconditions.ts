@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
-import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../../services/analytics/growthbook.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
@@ -89,7 +88,8 @@ export async function checkGithubAppInstalled(
       return false
     }
 
-    const orgUUID = await getOrganizationUUID()
+    // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null
     if (!orgUUID) {
       logForDebugging(
         'checkGithubAppInstalled: 未找到组织 UUID，假定应用未安装',
@@ -169,7 +169,8 @@ export async function checkGithubTokenSynced(): Promise<boolean> {
       return false
     }
 
-    const orgUUID = await getOrganizationUUID()
+    // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null
     if (!orgUUID) {
       logForDebugging('checkGithubTokenSynced: 未找到组织 UUID')
       return false

@@ -2,7 +2,6 @@ import axios from 'axios'
 import { z } from 'zod/v4'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
-import { getOrganizationUUID } from '../../services/oauth/client.js'
 import { isPolicyAllowed } from '../../services/policyLimits/index.js'
 import type { ToolUseContext } from '../../Tool.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
@@ -83,7 +82,8 @@ export const RemoteTriggerTool = buildTool({
         '尚未使用 limkenion.ai 账号登录。请运行 /login 后重试。',
       )
     }
-    const orgUUID = await getOrganizationUUID()
+    // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null
     if (!orgUUID) {
       throw new Error('无法解析组织 UUID。')
     }

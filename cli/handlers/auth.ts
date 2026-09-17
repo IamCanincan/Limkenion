@@ -8,7 +8,6 @@ import { logEvent } from '../../services/analytics/index.js'
 import {
   getLimkenionApiKeyWithSource,
   getAuthTokenSource,
-  getOauthAccountInfo,
   getSubscriptionType,
   isUsing3PServices,
 } from '../../utils/auth.js'
@@ -44,7 +43,6 @@ export async function authStatus(opts: {
   const { source: apiKeySource } = getLimkenionApiKeyWithSource()
   const hasApiKeyEnvVar =
     !!process.env.LIMKENION_API_KEY && !isRunningOnHomespace()
-  const oauthAccount = getOauthAccountInfo()
   const subscriptionType = getSubscriptionType()
   const using3P = isUsing3PServices()
   const loggedIn =
@@ -90,11 +88,6 @@ export async function authStatus(opts: {
     }
     if (resolvedApiKeySource) {
       output.apiKeySource = resolvedApiKeySource
-    }
-    if (oauthAccount) {
-      output.email = oauthAccount.emailAddress ?? null
-      output.orgId = oauthAccount.organizationUuid ?? null
-      output.subscriptionType = subscriptionType ?? null
     }
 
     process.stdout.write(jsonStringify(output, null, 2) + '\n')

@@ -4,7 +4,6 @@
  */
 
 import {
-  getOauthAccountInfo,
   getSubscriptionType,
   isOverageProvisioningAllowed,
 } from '../utils/auth.js'
@@ -82,8 +81,7 @@ export function getRateLimitMessage(
     const subscriptionType = getSubscriptionType()
     const isTeamOrEnterprise =
       subscriptionType === 'team' || subscriptionType === 'enterprise'
-    const hasExtraUsageEnabled =
-      getOauthAccountInfo()?.hasExtraUsageEnabled === true
+    const hasExtraUsageEnabled = false
 
     if (
       isTeamOrEnterprise &&
@@ -262,8 +260,7 @@ function getWarningUpsellText(
   rateLimitType: LimkenionAILimits['rateLimitType'],
 ): string | null {
   const subscriptionType = getSubscriptionType()
-  const hasExtraUsageEnabled =
-    getOauthAccountInfo()?.hasExtraUsageEnabled === true
+  const hasExtraUsageEnabled = false
 
   // 5-hour session limit warning
   if (rateLimitType === 'five_hour') {

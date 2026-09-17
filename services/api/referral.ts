@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import {
-  getOauthAccountInfo,
   getSubscriptionType,
   isLimkenionAISubscriber,
 } from '../../utils/auth.js'
@@ -70,7 +69,7 @@ export async function fetchReferralRedemptions(
  */
 function shouldCheckForPasses(): boolean {
   return !!(
-    getOauthAccountInfo()?.organizationUuid &&
+    null && // Limkenion 无远程账号，恒无组织 orgId。
     isLimkenionAISubscriber() &&
     getSubscriptionType() === 'max'
   )
@@ -93,7 +92,8 @@ export function checkCachedPassesEligibility(): {
     }
   }
 
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) {
     return {
       eligible: false,
@@ -148,7 +148,8 @@ export function formatCreditAmount(reward: ReferrerRewardInfo): string {
  * 若用户在 v1 活动中，则返回奖励信息，否则返回 null。
  */
 export function getCachedReferrerReward(): ReferrerRewardInfo | null {
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) return null
   const config = getGlobalConfig()
   const cachedEntry = config.passesEligibilityCache?.[orgId]
@@ -160,7 +161,8 @@ export function getCachedReferrerReward(): ReferrerRewardInfo | null {
  * 返回剩余 passes 数量，若不可用则返回 null。
  */
 export function getCachedRemainingPasses(): number | null {
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) return null
   const config = getGlobalConfig()
   const cachedEntry = config.passesEligibilityCache?.[orgId]
@@ -178,7 +180,8 @@ export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibil
     return fetchInProgress
   }
 
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
 
   if (!orgId) {
     return null
@@ -232,7 +235,8 @@ export async function getCachedOrFetchPassesEligibility(): Promise<ReferralEligi
     return null
   }
 
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) {
     return null
   }

@@ -4,7 +4,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
-import { getOauthAccountInfo, isConsumerSubscriber } from 'src/utils/auth.js'
+import { isConsumerSubscriber } from 'src/utils/auth.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { gracefulShutdown } from 'src/utils/gracefulShutdown.js'
 import { isEssentialTrafficOnly } from 'src/utils/privacyLevel.js'
@@ -157,7 +157,8 @@ export async function isQualifiedForGrove(): Promise<boolean> {
     return false
   }
 
-  const accountId = getOauthAccountInfo()?.accountUuid
+  // Limkenion 无远程账号，恒无账号 UUID，不符合 Grove 条件。
+  const accountId = null
   if (!accountId) {
     return false
   }

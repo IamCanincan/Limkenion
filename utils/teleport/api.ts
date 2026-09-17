@@ -1,7 +1,6 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { randomUUID } from 'crypto'
 import { getOauthConfig } from 'src/constants/oauth.js'
-import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import z from 'zod/v4'
 import { getLimkenionAIOAuthTokens } from '../auth.js'
 import { logForDebugging } from '../debug.js'
@@ -189,7 +188,8 @@ export async function prepareApiRequest(): Promise<{
     )
   }
 
-  const orgUUID = await getOrganizationUUID()
+  // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+  const orgUUID = null
   if (!orgUUID) {
     throw new Error('Unable to get organization UUID')
   }

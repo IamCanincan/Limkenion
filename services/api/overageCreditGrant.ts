@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
-import { getOauthAccountInfo } from '../../utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
@@ -46,7 +45,8 @@ async function fetchOverageCreditGrant(): Promise<OverageCreditGrantInfo | null>
  * refreshOverageCreditGrantCache 会懒触发以填充缓存。
  */
 export function getCachedOverageCreditGrant(): OverageCreditGrantInfo | null {
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) return null
   const cached = getGlobalConfig().overageCreditGrantCache?.[orgId]
   if (!cached) return null
@@ -59,7 +59,8 @@ export function getCachedOverageCreditGrant(): OverageCreditGrantInfo | null {
  * 保留其他组织的条目不变。
  */
 export function invalidateOverageCreditGrantCache(): void {
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) return
   const cache = getGlobalConfig().overageCreditGrantCache
   if (!cache || !(orgId in cache)) return
@@ -76,7 +77,8 @@ export function invalidateOverageCreditGrantCache(): void {
  */
 export async function refreshOverageCreditGrantCache(): Promise<void> {
   if (isEssentialTrafficOnly()) return
-  const orgId = getOauthAccountInfo()?.organizationUuid
+  // Limkenion 无远程账号，恒无组织 orgId。
+  const orgId = null
   if (!orgId) return
   const info = await fetchOverageCreditGrant()
   if (!info) return

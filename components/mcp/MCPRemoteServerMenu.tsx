@@ -14,7 +14,6 @@ import { clearServerCache } from '../../services/mcp/client.js';
 import { useMcpReconnect, useMcpToggleEnabled } from '../../services/mcp/MCPConnectionManager.js';
 import { describeMcpConfigFilePath, excludeCommandsByServer, excludeResourcesByServer, excludeToolsByServer, filterMcpPromptsByServer } from '../../services/mcp/utils.js';
 import { useAppState, useSetAppState } from '../../state/AppState.js';
-import { getOauthAccountInfo } from '../../utils/auth.js';
 import { openBrowser } from '../../utils/browser.js';
 import { errorMessage } from '../../utils/errors.js';
 import { logMCPDebug } from '../../utils/log.js';
@@ -214,19 +213,8 @@ export function MCPRemoteServerMenu({
   const toggleMcpServer = useMcpToggleEnabled();
   const handleLimkenionAIAuth = React.useCallback(async () => {
     const limkenionAiBaseUrl = getOauthConfig().LIMKENION_AI_ORIGIN;
-    const accountInfo = getOauthAccountInfo();
-    const orgUuid = accountInfo?.organizationUuid;
-    let authUrl: string;
-    if (orgUuid && server.config.type === 'limkenionai-proxy' && server.config.id) {
-      // Use the direct auth URL with org and server IDs
-      // Replace 'mcprs' prefix with 'mcpsrv' if present
-      const serverId = server.config.id.startsWith('mcprs') ? 'mcpsrv' + server.config.id.slice(5) : server.config.id;
-      const productSurface = encodeURIComponent(process.env.LIMKENION_ENTRYPOINT || 'cli');
-      authUrl = `${limkenionAiBaseUrl}/api/organizations/${orgUuid}/mcp/start-auth/${serverId}?product_surface=${productSurface}`;
-    } else {
-      // Fall back to settings/connectors if we don't have the required IDs
-      authUrl = `${limkenionAiBaseUrl}/settings/connectors`;
-    }
+    // Limkenion 是纯本地工具，无远程账号/org，统一走通用的设置/连接器入口。
+    const authUrl = `${limkenionAiBaseUrl}/settings/connectors`;
     setLimkenionAIAuthUrl(authUrl);
     setIsLimkenionAIAuthenticating(true);
     logEvent('limkenion_limkenionai_mcp_auth_started', {});

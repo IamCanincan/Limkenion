@@ -14,7 +14,6 @@ import type { Root } from '../ink.js';
 import { KeybindingSetup } from '../keybindings/KeybindingProviderSetup.js';
 import { queryHaiku } from '../services/api/limkenion.js';
 import { getSessionLogsViaOAuth, getTeleportEvents } from '../services/api/sessionIngress.js';
-import { getOrganizationUUID } from '../services/oauth/client.js';
 import { AppStateProvider } from '../state/AppState.js';
 import type { Message, SystemMessage } from '../types/message.js';
 import type { PermissionMode } from '../types/permissions.js';
@@ -442,7 +441,8 @@ export async function teleportResumeCodeSession(sessionId: string, onProgress?: 
     }
 
     // Get organization UUID
-    const orgUUID = await getOrganizationUUID();
+    // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null;
     if (!orgUUID) {
       logEvent('limkenion_teleport_resume_error', {
         error_type: 'no_org_uuid' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
@@ -637,7 +637,8 @@ export async function pollRemoteSessionEvents(sessionId: string, afterId: string
   if (!accessToken) {
     throw new Error('No access token for polling');
   }
-  const orgUUID = await getOrganizationUUID();
+  // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null;
   if (!orgUUID) {
     throw new Error('No org UUID for polling');
   }
@@ -807,7 +808,8 @@ export async function teleportToRemote(options: {
     }
 
     // Get organization UUID
-    const orgUUID = await getOrganizationUUID();
+    // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null;
     if (!orgUUID) {
       logError(new Error('Unable to get organization UUID for remote session creation'));
       return null;
@@ -1200,7 +1202,8 @@ export async function teleportToRemote(options: {
 export async function archiveRemoteSession(sessionId: string): Promise<void> {
   const accessToken = getLimkenionAIOAuthTokens()?.accessToken;
   if (!accessToken) return;
-  const orgUUID = await getOrganizationUUID();
+  // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+    const orgUUID = null;
   if (!orgUUID) return;
   const headers = {
     ...getOAuthHeaders(accessToken),

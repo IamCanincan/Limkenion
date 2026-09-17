@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { getOauthProfileFromApiKey } from 'src/services/oauth/getOauthProfile.js';
 import { isLimkenionAISubscriber } from 'src/utils/auth.js';
 import { Text } from '../../ink.js';
 import { logEvent } from '../../services/analytics/index.js';
@@ -45,15 +44,6 @@ async function getExistingLimkenionSubscription(): Promise<'Max' | 'Pro' | null>
   if (isLimkenionAISubscriber()) {
     return null;
   }
-  const profile = await getOauthProfileFromApiKey();
-  if (!profile) {
-    return null;
-  }
-  if (profile.account.has_limkenion_max) {
-    return 'Max';
-  }
-  if (profile.account.has_limkenion_pro) {
-    return 'Pro';
-  }
+  // Limkenion 是纯本地工具，无远程账号/OAuth 档案，恒无已有订阅可切换。
   return null;
 }

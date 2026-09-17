@@ -8,7 +8,7 @@ import { logEvent } from '../../services/analytics/index.js';
 import { useLimkenionAiLimits } from '../../services/limkenionAiLimitsHook.js';
 import type { ToolUseContext } from '../../Tool.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
-import { getOauthAccountInfo, getRateLimitTier, getSubscriptionType } from '../../utils/auth.js';
+import { getRateLimitTier, getSubscriptionType } from '../../utils/auth.js';
 import { hasLimkenionAiBillingAccess } from '../../utils/billing.js';
 import { call as extraUsageCall } from '../extra-usage/extra-usage.js';
 import { extraUsage } from '../extra-usage/index.js';
@@ -45,7 +45,7 @@ function RateLimitOptionsMenu(t0) {
     t2 = $[1];
   }
   const rateLimitTier = t2;
-  const hasExtraUsageEnabled = getOauthAccountInfo()?.hasExtraUsageEnabled === true;
+  const hasExtraUsageEnabled = false;
   const isMax = subscriptionType === "max";
   const isMax20x = isMax && rateLimitTier === "default_limkenion_max_20x";
   const isTeamOrEnterprise = subscriptionType === "team" || subscriptionType === "enterprise";

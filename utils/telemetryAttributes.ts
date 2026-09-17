@@ -1,10 +1,8 @@
 import type { Attributes } from '@opentelemetry/api'
 import { getSessionId } from 'src/bootstrap/state.js'
-import { getOauthAccountInfo } from './auth.js'
 import { getOrCreateUserID } from './config.js'
 import { envDynamic } from './envDynamic.js'
 import { isEnvTruthy } from './envUtils.js'
-import { toTaggedId } from './taggedId.js'
 
 // 指标基数的默认配置
 const METRICS_CARDINALITY_DEFAULTS = {
@@ -39,27 +37,6 @@ export function getTelemetryAttributes(): Attributes {
   }
   if (shouldIncludeAttribute('OTEL_METRICS_INCLUDE_VERSION')) {
     attributes['app.version'] = MACRO.VERSION
-  }
-
-  // 仅在积极使用 OAuth 认证时包含 OAuth 账户数据
-  const oauthAccount = getOauthAccountInfo()
-  if (oauthAccount) {
-    const orgId = oauthAccount.organizationUuid
-    const email = oauthAccount.emailAddress
-    const accountUuid = oauthAccount.accountUuid
-
-    if (orgId) attributes['organization.id'] = orgId
-    if (email) attributes['user.email'] = email
-
-    if (
-      accountUuid &&
-      shouldIncludeAttribute('OTEL_METRICS_INCLUDE_ACCOUNT_UUID')
-    ) {
-      attributes['user.account_uuid'] = accountUuid
-      attributes['user.account_id'] =
-        process.env.LIMKENION_ACCOUNT_TAGGED_ID ||
-        toTaggedId('user', accountUuid)
-    }
   }
 
   // 若有可用则添加终端类型

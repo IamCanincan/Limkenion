@@ -24,7 +24,6 @@ import {
   refreshOAuthToken,
   shouldUseLimkenionAIAuth,
 } from '../services/oauth/client.js'
-import { getOauthProfileFromOauthToken } from '../services/oauth/getOauthProfile.js'
 import type { OAuthTokens, SubscriptionType } from '../services/oauth/types.js'
 import {
   getApiKeyFromFileDescriptor,
@@ -42,7 +41,6 @@ import {
 import { AwsAuthStatusManager } from './awsAuthStatusManager.js'
 import { clearBetasCaches } from './betas.js'
 import {
-  type AccountInfo,
   checkHasTrustDialogAccepted,
   getGlobalConfig,
   saveGlobalConfig,
@@ -1615,37 +1613,11 @@ export function is1PApiCustomer(): boolean {
 }
 
 /**
- * Gets OAuth account information when Limkenion auth is enabled.
- * Returns undefined when using external API keys or third-party services.
- */
-export function getOauthAccountInfo(): AccountInfo | undefined {
-  return isLimkenionAuthEnabled() ? getGlobalConfig().oauthAccount : undefined
-}
-
-/**
  * Checks if overage/extra usage provisioning is allowed for this organization.
- * This mirrors the logic in apps/limkenion-ai `useIsOverageProvisioningAllowed` hook as closely as possible.
+ * Limkenion 是纯本地工具，无远程账号/组织，恒不允许超额资源开通。
  */
 export function isOverageProvisioningAllowed(): boolean {
-  const accountInfo = getOauthAccountInfo()
-  const billingType = accountInfo?.billingType
-
-  // Must be a Limkenion subscriber with a supported subscription type
-  if (!isLimkenionAISubscriber() || !billingType) {
-    return false
-  }
-
-  // only allow Stripe and mobile billing types to purchase extra usage
-  if (
-    billingType !== 'stripe_subscription' &&
-    billingType !== 'stripe_subscription_contracted' &&
-    billingType !== 'apple_subscription' &&
-    billingType !== 'google_play_subscription'
-  ) {
-    return false
-  }
-
-  return true
+  return false
 }
 
 // Returns whether the user has Opus access at all, regardless of whether they
@@ -1854,25 +1826,6 @@ export function getAccountInformation() {
     accountInfo.apiKeySource = apiKeySource
   }
 
-  // We don't know the organization if we're relying on an external API key or auth token
-  if (
-    authTokenSource === 'limkenion.ai' ||
-    apiKeySource === '/login managed key'
-  ) {
-    // Get organization name from OAuth account info
-    const orgName = getOauthAccountInfo()?.organizationName
-    if (orgName) {
-      accountInfo.organization = orgName
-    }
-  }
-  const email = getOauthAccountInfo()?.emailAddress
-  if (
-    (authTokenSource === 'limkenion.ai' ||
-      apiKeySource === '/login managed key') &&
-    email
-  ) {
-    accountInfo.email = email
-  }
   return accountInfo
 }
 
@@ -1909,65 +1862,9 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
     return { valid: true }
   }
 
-  // Ensure the access token is fresh before hitting the profile endpoint.
-  // No-op for env-var tokens (refreshToken is null).
-  await checkAndRefreshOAuthTokenIfNeeded()
-
-  const tokens = getLimkenionAIOAuthTokens()
-  if (!tokens) {
-    return { valid: true }
-  }
-
-  // Always fetch the authoritative org UUID from the profile endpoint.
-  // Even keychain-sourced tokens verify server-side: the cached org UUID
-  // in ~/.limkenion.json is user-writable and cannot be trusted.
-  const { source } = getAuthTokenSource()
-  const isEnvVarToken =
-    source === 'LIMKENION_OAUTH_TOKEN' ||
-    source === 'LIMKENION_OAUTH_TOKEN_FILE_DESCRIPTOR'
-
-  const profile = await getOauthProfileFromOauthToken(tokens.accessToken)
-  if (!profile) {
-    // Fail closed — we can't verify the org
-    return {
-      valid: false,
-      message:
-        `Unable to verify organization for the current authentication token.\n` +
-        `This machine requires organization ${requiredOrgUuid} but the profile could not be fetched.\n` +
-        `This may be a network error, or the token may lack the user:profile scope required for\n` +
-        `verification (该 scope 未包含在当前的认证信息中)。\n` +
-        `Try again, or obtain a full-scope token via 'limkenion auth login'.`,
-    }
-  }
-
-  const tokenOrgUuid = profile.organization.uuid
-  if (tokenOrgUuid === requiredOrgUuid) {
-    return { valid: true }
-  }
-
-  if (isEnvVarToken) {
-    const envVarName =
-      source === 'LIMKENION_OAUTH_TOKEN'
-        ? 'LIMKENION_OAUTH_TOKEN'
-        : 'LIMKENION_OAUTH_TOKEN_FILE_DESCRIPTOR'
-    return {
-      valid: false,
-      message:
-        `The ${envVarName} environment variable provides a token for a\n` +
-        `different organization than required by this machine's managed settings.\n\n` +
-        `Required organization: ${requiredOrgUuid}\n` +
-        `Token organization:   ${tokenOrgUuid}\n\n` +
-        `Remove the environment variable or obtain a token for the correct organization.`,
-    }
-  }
-
-  return {
-    valid: false,
-    message:
-      `Your authentication token belongs to organization ${tokenOrgUuid},\n` +
-      `but this machine requires organization ${requiredOrgUuid}.\n\n` +
-      `Please log in with the correct organization: limkenion auth login`,
-  }
+  // Limkenion 是纯本地工具，无远程账号/OAuth 档案，无法从 profile 端点校验
+  // 组织归属，也不存在需要强制登录的组织 —— 直接放行即可。
+  return { valid: true }
 }
 
 class GcpCredentialsTimeoutError extends Error {}

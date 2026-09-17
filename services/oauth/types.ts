@@ -41,7 +41,6 @@ export const ReferralCampaign = stub
 export const ReferralEligibilityResponse = stub
 export const SubscriptionType = stub
 export const BillingType = stub
-export const OAuthProfileResponse = stub
 export const OAuthTokenExchangeResponse = stub
 export const RateLimitTier = stub
 export const UserRolesResponse = stub

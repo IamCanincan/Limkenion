@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
-import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import { getLimkenionAIOAuthTokens } from '../auth.js'
 import { toError } from '../errors.js'
 import { logError } from '../log.js'
@@ -37,7 +36,8 @@ export async function fetchEnvironments(): Promise<EnvironmentResource[]> {
     )
   }
 
-  const orgUUID = await getOrganizationUUID()
+  // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+  const orgUUID = null
   if (!orgUUID) {
     throw new Error('Unable to get organization UUID')
   }
@@ -80,7 +80,8 @@ export async function createDefaultCloudEnvironment(
   if (!accessToken) {
     throw new Error('No access token available')
   }
-  const orgUUID = await getOrganizationUUID()
+  // Limkenion 无远程账号/OAuth 档案，无组织 UUID 可取。
+  const orgUUID = null
   if (!orgUUID) {
     throw new Error('Unable to get organization UUID')
   }

@@ -7,7 +7,6 @@ import { getIsNonInteractiveSession } from 'src/bootstrap/state.js'
 import type { AttributedCounter } from '../bootstrap/state.js'
 import { getSessionCounter, setMeter } from '../bootstrap/state.js'
 import { shutdownLspServerManager } from '../services/lsp/manager.js'
-import { populateOAuthAccountInfoIfNeeded } from '../services/oauth/client.js'
 import {
   initializePolicyLimitsLoadingPromise,
   isPolicyLimitsEligible,
@@ -102,11 +101,6 @@ export const init = memoize(async (): Promise<void> => {
       })
     })
     profileCheckpoint('init_after_1p_event_logging')
-
-    // 若 OAuth 账户信息尚未缓存在配置中则补全。这是必要的，因为
-    // 通过 VSCode 扩展登录时 OAuth 账户信息可能未被填充。
-    void populateOAuthAccountInfoIfNeeded()
-    profileCheckpoint('init_after_oauth_populate')
 
     // 异步初始化 JetBrains IDE 检测（填充缓存，供后续同步访问使用）
     void initJetBrainsDetection()

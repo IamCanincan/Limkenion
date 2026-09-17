@@ -56,7 +56,6 @@ import {
   splitSysPromptPrefix,
   toolToAPISchema,
 } from '../../utils/api.js'
-import { getOauthAccountInfo } from '../../utils/auth.js'
 import {
   getBedrockExtraBodyParamsBetas,
   getMergedBetas,
@@ -510,8 +509,8 @@ export function getAPIMetadata() {
     user_id: jsonStringify({
       ...extra,
       device_id: getOrCreateUserID(),
-      // 仅在主动使用 OAuth 认证时包含 OAuth 账户 UUID
-      account_uuid: getOauthAccountInfo()?.accountUuid ?? '',
+      // Limkenion 无远程账号，恒传空 account_uuid。
+      account_uuid: '',
       session_id: getSessionId(),
     }),
   }

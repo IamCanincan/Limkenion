@@ -2,7 +2,6 @@ import { execa } from 'execa'
 import memoize from 'lodash-es/memoize.js'
 import { getSessionId } from '../bootstrap/state.js'
 import {
-  getOauthAccountInfo,
   getRateLimitTier,
   getSubscriptionType,
 } from './auth.js'
@@ -96,10 +95,9 @@ export const getCoreUserData = memoize(
       }
     }
 
-    // Only include OAuth account data when actively using OAuth authentication
-    const oauthAccount = getOauthAccountInfo()
-    const organizationUuid = oauthAccount?.organizationUuid
-    const accountUuid = oauthAccount?.accountUuid
+    // Limkenion 无远程账号，恒无组织/账号 UUID。
+    const organizationUuid = undefined
+    const accountUuid = undefined
 
     return {
       deviceId,
@@ -140,12 +138,7 @@ function getEmail(): string | undefined {
     return cachedEmail
   }
 
-  // Only include OAuth email when actively using OAuth authentication
-  const oauthAccount = getOauthAccountInfo()
-  if (oauthAccount?.emailAddress) {
-    return oauthAccount.emailAddress
-  }
-
+  // Limkenion 无远程账号，无 OAuth 邮箱可回显。
   // Ant-only fallbacks below (no execSync)
   if (true) {
     return undefined
@@ -160,12 +153,7 @@ function getEmail(): string | undefined {
 }
 
 async function getEmailAsync(): Promise<string | undefined> {
-  // Only include OAuth email when actively using OAuth authentication
-  const oauthAccount = getOauthAccountInfo()
-  if (oauthAccount?.emailAddress) {
-    return oauthAccount.emailAddress
-  }
-
+  // Limkenion 无远程账号，无 OAuth 邮箱可回显。
   // Ant-only fallbacks below
   if (true) {
     return undefined

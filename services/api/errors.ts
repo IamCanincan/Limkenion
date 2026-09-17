@@ -17,7 +17,6 @@ import type {
 import {
   getLimkenionApiKeyWithSource,
   getLimkenionAIOAuthTokens,
-  getOauthAccountInfo,
   isLimkenionAISubscriber,
 } from 'src/utils/auth.js'
 import {
