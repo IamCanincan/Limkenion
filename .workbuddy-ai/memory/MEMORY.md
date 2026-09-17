@@ -104,13 +104,15 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
 2. **三处"保守但可能不对"的判定**（改造前就有，我没改行为）：
    - `modelSupportsStructuredOutputs` 对 DeepSeek 返回 false，但官方支持 JSON 输出
    - `utils/context.ts` 的上下文窗口与最大输出沿用上游保守值（见上）
-3. **三处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
+3. **两处"契约值"改名需用户拍板**（我没动，因为影响面超出"文案"）：
    - `'limkenionai-proxy'`（40+ 处）—— MCP 传输类型，**出现在 SDK 输出 schema 里**
      （`entrypoints/sdk/coreSchemas.ts`、`services/mcp/types.ts`），改名等于改 SDK 契约
-   - `'limkenion-ai'`（连字符）—— **`CommandAvailability` 枚举值**，就是判断命令可见性的那个字段
-   - `'limkenionai'` —— MCP 配置作用域（10 处）
-   - `'limkenion.ai'` —— 认证来源枚举（读写成对，5 处）
+   - `'limkenionai'`（10 处）—— MCP 配置作用域，且**出现在设置文件的 enum schema 里**
+     （`utils/settings/types.ts` 的 `forceLoginMethod`），改名可能让已有配置失效
    - `@limkenion.com` —— 邮件地址（会写进 git 提交 trailer，3 处）
+   - **已处理**：`'limkenion-ai'`（availability 枚举）→ `'cloud-subscriber'`。
+     动手前先确认过它**不落盘**（全仓搜 `availability` × JSON/stringify/save 无命中），
+     并写了 5 项断言的小测试确认命令可见性没变。**这个"先验证是否落盘再改名"的方法值得复用。**
 4. **与参照实现的功能缺口**（用户还没定做不做）：
    - `/effort` 命令是**空操作**（写的是 `utils/effort.ts` 的 `effortLevel`，没接到 API）；
      真正生效的是 `/model low|medium|high`。**没有"关闭思考"的入口**。
