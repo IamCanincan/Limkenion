@@ -364,7 +364,7 @@ function OAuthStatusMessage(t0) {
   switch (oauthStatus.state) {
     case "idle":
       {
-        const t1 = startingMessage ? startingMessage : "Limkenion 基于 OpenAI 兼容接口（默认 DeepSeek）运行。使用 DeepSeek / OpenAI 兼容 API Key 接入，或登录 Limkenion 账号使用订阅额度。";
+        const t1 = startingMessage ? startingMessage : "Limkenion 只以 DeepSeek 为模型后端，请通过 DeepSeek / OpenAI 兼容 API Key 接入。";
         let t2;
         if ($[0] !== t1) {
           t2 = <Text bold={true}>{t1}</Text>;
@@ -402,10 +402,7 @@ function OAuthStatusMessage(t0) {
         }
         let t6;
         if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-          t6 = [t4, t5, {
-            label: <Text>自定义 Base URL ·{" "}<Text dimColor={true}>其他 OpenAI 兼容端点</Text>{"\n"}</Text>,
-            value: "platform"
-          }];
+          t6 = [t5];
           $[5] = t6;
         } else {
           t6 = $[5];
