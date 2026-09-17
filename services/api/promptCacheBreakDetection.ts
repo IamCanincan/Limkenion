@@ -124,9 +124,9 @@ const MIN_CACHE_MISS_TOKENS = 2_000
 const CACHE_TTL_5MIN_MS = 5 * 60 * 1000
 export const CACHE_TTL_1HOUR_MS = 60 * 60 * 1000
 
-// 需排除在缓存破坏检测之外的模型（例如 deepseek-flash 的缓存行为不同）
+// 需排除在缓存破坏检测之外的模型（小快模型的缓存行为不同）
 function isExcludedModel(model: string): boolean {
-  return model.includes('haiku')
+  return model.includes('deepseek-flash')
 }
 
 /**

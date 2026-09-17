@@ -97,12 +97,8 @@ export function modelSupportsThinking(model: string): boolean {
   // launch DRI and research. This can greatly affect model quality and bashing.
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // 1P and Foundry: all Limkenion 4+ models (including deepseek-flash)
-  if (provider === 'foundry' || provider === 'firstParty') {
-    return !canonical.includes('limkenion-3-')
-  }
-  // 3P (Bedrock/Vertex): only deepseek-v4-pro+ and deepseek-flash+
-  return canonical.includes('sonnet-4') || canonical.includes('opus-4')
+  // 本构建只有 firstParty（DeepSeek），两个模型都支持交错思考。
+  return true
 }
 
 // @[MODEL LAUNCH]: Add the new model to the allowlist if it supports adaptive thinking.
@@ -112,17 +108,9 @@ export function modelSupportsAdaptiveThinking(model: string): boolean {
     return supported3P
   }
   const canonical = getCanonicalName(model)
-  // Supported by a subset of Limkenion 4 models
-  if (canonical.includes('opus-4-6') || canonical.includes('sonnet-4-6')) {
+  // DeepSeek 两个模型都支持自适应思考（思考模式默认开启）。
+  if (canonical.includes('deepseek-')) {
     return true
-  }
-  // Exclude any other known legacy models (allowlist above catches 4-6 variants first)
-  if (
-    canonical.includes('opus') ||
-    canonical.includes('sonnet') ||
-    canonical.includes('haiku')
-  ) {
-    return false
   }
   // IMPORTANT: Do not change adaptive thinking support without notifying the
   // model launch DRI and research. This can greatly affect model quality and

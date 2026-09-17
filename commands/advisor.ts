@@ -25,7 +25,7 @@ const call: LocalCommandCall = async (args, context) => {
       return {
         type: 'text',
         value:
-          'Advisor：未设置\n使用 "/advisor <model>" 启用（例如 "/advisor opus"）。',
+          'Advisor：未设置\n使用 "/advisor <model>" 启用（例如 "/advisor deepseek-v4-pro"）。',
       }
     }
     if (!modelSupportsAdvisor(baseModel)) {

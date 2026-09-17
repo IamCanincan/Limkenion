@@ -217,9 +217,9 @@ function EffortOptionLabel(t0) {
  * - Everyone else: mark as dismissed so it never shows
  */
 export function shouldShowEffortCallout(model: string): boolean {
-  // Only show for deepseek-v4-pro for now
+  // 目前只对强模型展示
   const parsed = parseUserSpecifiedModel(model);
-  if (!parsed.toLowerCase().includes('opus-4-6')) {
+  if (!parsed.toLowerCase().includes('deepseek-v4-pro')) {
     return false;
   }
   const config = getGlobalConfig();

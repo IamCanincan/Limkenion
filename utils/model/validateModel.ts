@@ -1,7 +1,6 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { MODEL_ALIASES } from './aliases.js'
 import { isModelAllowed } from './modelAllowlist.js'
-import { getAPIProvider } from './providers.js'
 import { sideQuery } from '../sideQuery.js'
 import {
   NotFoundError,
@@ -9,7 +8,6 @@ import {
   APIConnectionError,
   AuthenticationError,
 } from '../../types/llm-protocol.js'
-import { getModelStrings } from './modelStrings.js'
 
 // Cache valid models to avoid repeated API calls
 const validModelCache = new Map<string, boolean>()
@@ -137,23 +135,12 @@ function handleValidationError(
   }
 }
 
-// @[MODEL LAUNCH]: Add a fallback suggestion chain for the new model → previous version
 /**
- * Suggest a fallback model for 3P users when the selected model is unavailable.
+ * 为 3P 用户在所选模型不可用时建议一个回退模型。
+ *
+ * 本构建只有 firstParty（DeepSeek），原本那串"按上游模型名建议回退版本"的分支
+ * 在这里永远走不到，已随模型表移除。
  */
-function get3PFallbackSuggestion(model: string): string | undefined {
-  if (getAPIProvider() === 'firstParty') {
-    return undefined
-  }
-  const lowerModel = model.toLowerCase()
-  if (lowerModel.includes('opus-4-6') || lowerModel.includes('opus_4_6')) {
-    return getModelStrings().deepseekV4Pro
-  }
-  if (lowerModel.includes('sonnet-4-6') || lowerModel.includes('sonnet_4_6')) {
-    return getModelStrings().deepseekFlash
-  }
-  if (lowerModel.includes('sonnet-4-5') || lowerModel.includes('sonnet_4_5')) {
-    return getModelStrings().deepseekFlash
-  }
+function get3PFallbackSuggestion(_model: string): string | undefined {
   return undefined
 }

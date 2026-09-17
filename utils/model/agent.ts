@@ -108,17 +108,11 @@ export function getAgentModel(
  * since they carry semantics beyond "same tier as parent".
  */
 function aliasMatchesParentTier(alias: string, parentModel: string): boolean {
+  // 本构建的别名就是模型 ID 本身（deepseek-flash / deepseek-v4-pro），
+  // 所以直接判断父模型串里是否含这个别名。上游那套按家族通配的 switch 已移除。
   const canonical = getCanonicalName(parentModel)
-  switch (alias.toLowerCase()) {
-    case 'opus':
-      return canonical.includes('opus')
-    case 'sonnet':
-      return canonical.includes('sonnet')
-    case 'haiku':
-      return canonical.includes('haiku')
-    default:
-      return false
-  }
+  const a = alias.toLowerCase()
+  return a.includes('deepseek') && canonical.includes(a)
 }
 
 export function getAgentModelDisplay(model: string | undefined): string {

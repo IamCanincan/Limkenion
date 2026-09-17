@@ -87,22 +87,12 @@ export function getExperimentAdvisorModels():
 // @[MODEL LAUNCH]: 若新模型支持 advisor 工具，请在此添加。
 // 检查主循环模型是否支持调用 advisor 工具。
 export function modelSupportsAdvisor(model: string): boolean {
-  const m = model.toLowerCase()
-  return (
-    m.includes('opus-4-6') ||
-    m.includes('sonnet-4-6') ||
-    false
-  )
+  return model.toLowerCase().includes('deepseek-')
 }
 
 // @[MODEL LAUNCH]: 若新模型可作为 advisor 模型，请在此添加。
 export function isValidAdvisorModel(model: string): boolean {
-  const m = model.toLowerCase()
-  return (
-    m.includes('opus-4-6') ||
-    m.includes('sonnet-4-6') ||
-    false
-  )
+  return model.toLowerCase().includes('deepseek-')
 }
 
 export function getInitialAdvisorSetting(): string | undefined {

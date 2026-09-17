@@ -29,17 +29,10 @@ export function modelSupportsEffort(model: string): boolean {
   if (supported3P !== undefined) {
     return supported3P
   }
-  // 由 Limkenion 4 的模型子集支持
-  if (m.includes('opus-4-6') || m.includes('sonnet-4-6')) {
+  // 本构建的两个 DeepSeek 模型都支持 effort（`/model low|medium|high`）。
+  if (m.includes('deepseek-')) {
     return true
   }
-  // 排除任何其他已知的旧版模型（deepseek-flash、较老的 deepseek-v4-pro/deepseek-flash 变体）
-  if (m.includes('haiku') || m.includes('sonnet') || m.includes('opus')) {
-    return false
-  }
-
-  // 重要：更改默认 effort 支持前，务必通知模型发布 DRI 和研究团队。
-  // 这是一项敏感设置，会极大地影响模型质量和 bashing。
 
   // 对 1P 的未知模型串默认返回 true。
   // 对 3P 不默认 true，因为它们的模型串格式不同（例如 limkenions/limkenion#30795）
@@ -47,17 +40,13 @@ export function modelSupportsEffort(model: string): boolean {
 }
 
 // @[MODEL LAUNCH]: 若新模型支持 'max' effort，请将其加入白名单。
-// 根据 API 文档，对公开模型而言 'max' 仅限 deepseek-v4-pro——其他模型会返回错误。
+// 对公开模型而言 'max' 仅限强模型（deepseek-v4-pro）——其他模型会返回错误。
 export function modelSupportsMaxEffort(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(model, 'max_effort')
   if (supported3P !== undefined) {
     return supported3P
   }
-  if (model.toLowerCase().includes('opus-4-6')) {
-    return true
-  }
-  
-  return false
+  return model.toLowerCase().includes('deepseek-v4-pro')
 }
 
 export function isEffortLevel(value: string): value is EffortLevel {

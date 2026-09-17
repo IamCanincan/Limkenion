@@ -1,31 +1,17 @@
-import { checkStrong1mAccess, checkMain1mAccess } from './check1mAccess.js'
-import { getUserSpecifiedModelSetting } from './model.js'
 
-// @[MODEL LAUNCH]: Add a branch for the new model if it supports a 1M context upgrade path.
 /**
- * Get available model upgrade for more context
- * Returns null if no upgrade available or user already has max context
+ * 获取"更多上下文"的模型升级项。
+ * 没有可升级项、或用户已经是最大上下文时返回 null。
+ *
+ * **本构建恒返回 null** —— DeepSeek 的上下文本来就是 1M，不存在"升到 1M"这个阶梯；
+ * 而且原本那两条分支依赖的是订阅判定，本地恒 false；
+ * 上游那套 `[1m]` 变体别名也已随模型表移除。
  */
 function getAvailableUpgrade(): {
   alias: string
   name: string
   multiplier: number
 } | null {
-  const currentModelSetting = getUserSpecifiedModelSetting()
-  if (currentModelSetting === 'opus' && checkStrong1mAccess()) {
-    return {
-      alias: 'opus[1m]',
-      name: 'Opus 1M',
-      multiplier: 5,
-    }
-  } else if (currentModelSetting === 'sonnet' && checkMain1mAccess()) {
-    return {
-      alias: 'sonnet[1m]',
-      name: 'Sonnet 1M',
-      multiplier: 5,
-    }
-  }
-
   return null
 }
 
