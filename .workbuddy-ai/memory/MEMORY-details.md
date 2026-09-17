@@ -480,6 +480,29 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 | `permissions.additionalDirectories` | 同 worktree，安全边界 |
 | 其他设置键（`env` / `outputStyle` / `mcpServers`） | 未消费 |
 
+### 十六、计划模式冒烟：一次虚惊（2026-09-18）
+做功能冒烟矩阵时，计划模式下发"请创建文件 xxx"后**回合一直不结束**，一度以为是 bug。
+排查：`/status` 显示 **待作答：1** —— 模型在计划模式下调了 `AskUserQuestion`，
+而测试脚本没答问题，所以回合挂在等回答上。**不是 bug，是测试脚本没处理问答。**
+
+**教训（写自动化时）**：跟权限弹窗一样，**`AskUserQuestion` 也要自动应答**，
+否则回合会静默挂住。判断"是挂住还是真卡死"最快的方法是 `/status` 看
+`待作答` / `待确认` 计数。
+
+**未完成的冒烟项**（下一轮可接着做，脚本已移出仓库）：
+计划模式下的只读探查行为、子代理（Agent·xxx 标记）、中断按钮后能否继续发消息。
 
 
+---
 
+## 附：承重的"半坏残留"完整清单（看着像死的，其实是活的，**别删**）
+
+- `constants/oauth.ts`（203 行）：被 12+ 处导入，删除直接断构建。
+- `utils/model/bedrock.ts`（265 行）：`getInferenceProfileBackingModel` 在活路径上被调用。
+- `services/mcp/oauthPort.ts`（78 行）：远程 MCP OAuth 用，正当保留。
+- `stubs/bedrock-sdk.ts`：由 `tsconfig.json` 的 `paths` 映射，无显式 import。
+- `commands/oauth-refresh/index.js`：1 行中性 stub（`isEnabled: () => false`），无害。
+- `bun-bundle-stub.ts`：**esbuild 的 `--alias:bun:bundle` 指向它**，`feature()` 由它实现。
+- `entrypoints/sdk/`（23 个未使用导出）：**SDK 输出格式的公开定义**，有意保留。
+- `stubs/{chrome-mcp,computer-use-mcp-*}.ts`：由 `tsconfig.json` 的 `paths` 映射。
+- `.workbuddy-ai/i18n/`（34MB）：暂停中的注释中文化工程的**工作产物**，删了流水线没法恢复。
