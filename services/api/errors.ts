@@ -464,7 +464,7 @@ export function getAssistantMessageFromError(
     // 检查这是否是带多重限流响应头的新 API
     const rateLimitType = error.headers?.get?.(
       'limkenion-ratelimit-unified-representative-claim',
-    ) as 'five_hour' | 'seven_day' | 'seven_day_opus' | null
+    ) as 'five_hour' | 'seven_day' | null
 
     const overageStatus = error.headers?.get?.(
       'limkenion-ratelimit-unified-overage-status',

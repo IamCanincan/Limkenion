@@ -1309,8 +1309,6 @@ export const SDKRateLimitInfoSchema = lazySchema(() =>
         .enum([
           'five_hour',
           'seven_day',
-          'seven_day_opus',
-          'seven_day_sonnet',
           'overage',
         ])
         .optional(),

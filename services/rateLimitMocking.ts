@@ -71,20 +71,6 @@ export function checkMockRateLimitError(
   const status = mockHeaders['limkenion-ratelimit-unified-status']
   const overageStatus =
     mockHeaders['limkenion-ratelimit-unified-overage-status']
-  const rateLimitType =
-    mockHeaders['limkenion-ratelimit-unified-representative-claim']
-
-  // Check if this is an Opus-specific rate limit
-  const isOpusLimit = rateLimitType === 'seven_day_opus'
-
-  // Check if current model is an Opus model (handles all variants including aliases)
-  const isUsingOpus = currentModel.includes('opus')
-
-  // For Opus limits, only throw 429 if actually using Opus
-  // This simulates the real API behavior where fallback to Sonnet succeeds
-  if (isOpusLimit && !isUsingOpus) {
-    return null
-  }
 
   // Check for mock fast mode rate limits (handles expiry, countdown, etc.)
   if (isMockFastModeRateLimitScenario()) {

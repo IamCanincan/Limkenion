@@ -174,14 +174,8 @@ const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER') ? require('./utils/
 import { migrateAutoUpdatesToSettings } from './migrations/migrateAutoUpdatesToSettings.js';
 import { migrateBypassPermissionsAcceptedToSettings } from './migrations/migrateBypassPermissionsAcceptedToSettings.js';
 import { migrateEnableAllProjectMcpServersToSettings } from './migrations/migrateEnableAllProjectMcpServersToSettings.js';
-import { migrateFennecToOpus } from './migrations/migrateFennecToOpus.js';
-import { migrateLegacyOpusToCurrent } from './migrations/migrateLegacyOpusToCurrent.js';
-import { migrateOpusToOpus1m } from './migrations/migrateOpusToOpus1m.js';
 import { migrateReplBridgeEnabledToRemoteControlAtStartup } from './migrations/migrateReplBridgeEnabledToRemoteControlAtStartup.js';
-import { migrateSonnet1mToSonnet45 } from './migrations/migrateSonnet1mToSonnet45.js';
-import { migrateSonnet45ToSonnet46 } from './migrations/migrateSonnet45ToSonnet46.js';
 import { resetAutoModeOptInForDefaultOffer } from './migrations/resetAutoModeOptInForDefaultOffer.js';
-import { resetProToOpusDefault } from './migrations/resetProToOpusDefault.js';
 /* eslint-enable @typescript-eslint/no-require-imports */
 // teleportWithProgress 在调用处动态导入
 import { initializeLspServerManager } from './services/lsp/manager.js';
@@ -319,7 +313,8 @@ async function logStartupTelemetry(): Promise<void> {
   });
 }
 
-// @[MODEL LAUNCH]: 考虑你可能需要的模型字符串迁移。参见 migrateSonnet1mToSonnet45.ts 示例。
+// 上游的模型版本迁移（Sonnet/Opus 各代之间的设置改写）已全部删除 ——
+// 那些模型在本构建里不存在，迁移只会把用户设置改写成无效的模型名。
 // 添加新的同步迁移时递增此值，使现有用户重新运行整组迁移。
 const CURRENT_MIGRATION_VERSION = 11;
 function runMigrations(): void {
@@ -327,11 +322,6 @@ function runMigrations(): void {
     migrateAutoUpdatesToSettings();
     migrateBypassPermissionsAcceptedToSettings();
     migrateEnableAllProjectMcpServersToSettings();
-    resetProToOpusDefault();
-    migrateSonnet1mToSonnet45();
-    migrateLegacyOpusToCurrent();
-    migrateSonnet45ToSonnet46();
-    migrateOpusToOpus1m();
     migrateReplBridgeEnabledToRemoteControlAtStartup();
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       resetAutoModeOptInForDefaultOffer();

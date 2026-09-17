@@ -170,19 +170,6 @@ function getLimitReachedText(limits: LimkenionAILimits, model: string): string {
     return formatLimitReachedText('限额', overageResetMessage, model)
   }
 
-  if (limits.rateLimitType === 'seven_day_sonnet') {
-    const subscriptionType = getSubscriptionType()
-    const isProOrEnterprise =
-      subscriptionType === 'pro' || subscriptionType === 'enterprise'
-    // For pro and enterprise, Sonnet limit is the same as weekly
-    const limit = isProOrEnterprise ? '周限额' : 'Sonnet 限额'
-    return formatLimitReachedText(limit, resetMessage, model)
-  }
-
-  if (limits.rateLimitType === 'seven_day_opus') {
-    return formatLimitReachedText('Opus 限额', resetMessage, model)
-  }
-
   if (limits.rateLimitType === 'seven_day') {
     return formatLimitReachedText('周限额', resetMessage, model)
   }
@@ -202,12 +189,6 @@ function getEarlyWarningText(limits: LimkenionAILimits): string | null {
       break
     case 'five_hour':
       limitName = '会话限额'
-      break
-    case 'seven_day_opus':
-      limitName = 'Opus 限额'
-      break
-    case 'seven_day_sonnet':
-      limitName = 'Sonnet 限额'
       break
     case 'overage':
       limitName = '额外用量'
@@ -307,14 +288,6 @@ export function getUsingOverageText(limits: LimkenionAILimits): string {
     limitName = '会话限额'
   } else if (limits.rateLimitType === 'seven_day') {
     limitName = '周限额'
-  } else if (limits.rateLimitType === 'seven_day_opus') {
-    limitName = 'Opus 限额'
-  } else if (limits.rateLimitType === 'seven_day_sonnet') {
-    const subscriptionType = getSubscriptionType()
-    const isProOrEnterprise =
-      subscriptionType === 'pro' || subscriptionType === 'enterprise'
-    // For pro and enterprise, Sonnet limit is the same as weekly
-    limitName = isProOrEnterprise ? '周限额' : 'Sonnet 限额'
   }
 
   if (!limitName) {

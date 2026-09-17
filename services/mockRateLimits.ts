@@ -26,8 +26,6 @@ type MockHeaders = {
   'limkenion-ratelimit-unified-representative-claim'?:
     | 'five_hour'
     | 'seven_day'
-    | 'seven_day_opus'
-    | 'seven_day_sonnet'
   'limkenion-ratelimit-unified-overage-status'?:
     | 'allowed'
     | 'allowed_warning'
@@ -78,10 +76,6 @@ export type MockScenario =
   | 'org-spend-cap-hit'
   | 'member-zero-credit-limit'
   | 'seat-tier-zero-credit-limit'
-  | 'opus-limit'
-  | 'opus-warning'
-  | 'sonnet-limit'
-  | 'sonnet-warning'
   | 'fast-mode-limit'
   | 'fast-mode-short-limit'
   | 'extra-usage-required'
@@ -98,7 +92,7 @@ const DEFAULT_MOCK_SUBSCRIPTION: SubscriptionType = 'max'
 
 // Track individual exceeded limits with their reset times
 type ExceededLimit = {
-  type: 'five_hour' | 'seven_day' | 'seven_day_opus' | 'seven_day_sonnet'
+  type: 'five_hour' | 'seven_day'
   resetsAt: number // Unix timestamp
 }
 
@@ -145,19 +139,13 @@ export function setMockHeader(
       const validClaims = [
         'five_hour',
         'seven_day',
-        'seven_day_opus',
-        'seven_day_sonnet',
       ]
       if (validClaims.includes(value)) {
         // Determine reset time based on claim type
         let resetsAt: number
         if (value === 'five_hour') {
           resetsAt = Math.floor(Date.now() / 1000) + 5 * 3600
-        } else if (
-          value === 'seven_day' ||
-          value === 'seven_day_opus' ||
-          value === 'seven_day_sonnet'
-        ) {
+        } else if (value === 'seven_day') {
           resetsAt = Math.floor(Date.now() / 1000) + 7 * 24 * 3600
         } else {
           resetsAt = Math.floor(Date.now() / 1000) + 3600
@@ -255,7 +243,7 @@ function updateRepresentativeClaim(): void {
 
 // Add function to add exceeded limit with custom reset time
 export function addExceededLimit(
-  type: 'five_hour' | 'seven_day' | 'seven_day_opus' | 'seven_day_sonnet',
+  type: 'five_hour' | 'seven_day',
   hoursFromNow: number,
 ): void {
   if (true) {
@@ -543,42 +531,6 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
       break
     }
 
-    case 'opus-limit': {
-      exceededLimits = [{ type: 'seven_day_opus', resetsAt: sevenDaysFromNow }]
-      updateRepresentativeClaim()
-      // Always send 429 rejected status - the error handler will decide whether
-      // to show an error or return NO_RESPONSE_REQUESTED based on fallback eligibility
-      mockHeaders['limkenion-ratelimit-unified-status'] = 'rejected'
-      break
-    }
-
-    case 'opus-warning': {
-      mockHeaders = {
-        'limkenion-ratelimit-unified-status': 'allowed_warning',
-        'limkenion-ratelimit-unified-reset': String(sevenDaysFromNow),
-        'limkenion-ratelimit-unified-representative-claim': 'seven_day_opus',
-      }
-      break
-    }
-
-    case 'sonnet-limit': {
-      exceededLimits = [
-        { type: 'seven_day_sonnet', resetsAt: sevenDaysFromNow },
-      ]
-      updateRepresentativeClaim()
-      mockHeaders['limkenion-ratelimit-unified-status'] = 'rejected'
-      break
-    }
-
-    case 'sonnet-warning': {
-      mockHeaders = {
-        'limkenion-ratelimit-unified-status': 'allowed_warning',
-        'limkenion-ratelimit-unified-reset': String(sevenDaysFromNow),
-        'limkenion-ratelimit-unified-representative-claim': 'seven_day_sonnet',
-      }
-      break
-    }
-
     case 'fast-mode-limit': {
       updateRepresentativeClaim()
       mockHeaders['limkenion-ratelimit-unified-status'] = 'rejected'
@@ -737,14 +689,6 @@ export function getCurrentMockScenario(): MockScenario | null {
   const overage = mockHeaders['limkenion-ratelimit-unified-overage-status']
   const claim = mockHeaders['limkenion-ratelimit-unified-representative-claim']
 
-  if (claim === 'seven_day_opus') {
-    return status === 'rejected' ? 'opus-limit' : 'opus-warning'
-  }
-
-  if (claim === 'seven_day_sonnet') {
-    return status === 'rejected' ? 'sonnet-limit' : 'sonnet-warning'
-  }
-
   if (overage === 'rejected') return 'overage-exhausted'
   if (overage === 'allowed_warning') return 'overage-warning'
   if (overage === 'allowed') return 'overage-active'
@@ -789,14 +733,6 @@ export function getScenarioDescription(scenario: MockScenario): string {
       return 'Member limit is zero (admin can allocate more)'
     case 'seat-tier-zero-credit-limit':
       return 'Seat tier limit is zero (admin can allocate more)'
-    case 'opus-limit':
-      return 'Opus limit reached'
-    case 'opus-warning':
-      return 'Approaching Opus limit'
-    case 'sonnet-limit':
-      return 'Sonnet limit reached'
-    case 'sonnet-warning':
-      return 'Approaching Sonnet limit'
     case 'fast-mode-limit':
       return 'Fast mode rate limit'
     case 'fast-mode-short-limit':

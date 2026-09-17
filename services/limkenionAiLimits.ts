@@ -29,8 +29,6 @@ type QuotaStatus = 'allowed' | 'allowed_warning' | 'rejected'
 type RateLimitType =
   | 'five_hour'
   | 'seven_day'
-  | 'seven_day_opus'
-  | 'seven_day_sonnet'
   | 'overage'
 
 export type { RateLimitType }
@@ -79,8 +77,6 @@ const EARLY_WARNING_CLAIM_MAP: Record<string, RateLimitType> = {
 const RATE_LIMIT_DISPLAY_NAMES: Record<RateLimitType, string> = {
   five_hour: '会话限额',
   seven_day: '周限额',
-  seven_day_opus: 'Opus 限额',
-  seven_day_sonnet: 'Sonnet 限额',
   overage: '额外用量限额',
 }
 

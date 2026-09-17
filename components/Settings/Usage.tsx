@@ -228,22 +228,14 @@ export function Usage(): React.ReactNode {
       </Box>;
   }
 
-  // Only Max and Team plans have a Sonnet limit that differs from the weekly
-  // limit (see rateLimitMessages.ts). For other plans the bar is redundant.
-  // Show for null (unknown plan) to stay consistent with rateLimitMessages.ts,
-  // which labels it "Sonnet limit" in that case.
-  const subscriptionType = getSubscriptionType();
-  const showSonnetBar = subscriptionType === 'max' || subscriptionType === 'team' || subscriptionType === null;
+  // 上游的「Sonnet 专属周用量」条已移除 —— 本构建只有 DeepSeek，没有按模型分档的限流。
   const limits = [{
     title: 'Current session',
     limit: utilization.five_hour
   }, {
     title: 'Current week (all models)',
     limit: utilization.seven_day
-  }, ...(showSonnetBar ? [{
-    title: 'Current week (Sonnet only)',
-    limit: utilization.seven_day_sonnet
-  }] : [])];
+  }];
   return <Box flexDirection="column" gap={1} width="100%">
       {limits.some(({
       limit
