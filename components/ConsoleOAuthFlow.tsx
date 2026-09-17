@@ -364,7 +364,7 @@ function OAuthStatusMessage(t0) {
   switch (oauthStatus.state) {
     case "idle":
       {
-        const t1 = startingMessage ? startingMessage : "Limkenion can be used with your Limkenion subscription or billed based on API usage through your Console account.";
+        const t1 = startingMessage ? startingMessage : "Limkenion 基于 OpenAI 兼容接口（默认 DeepSeek）运行。使用 DeepSeek / OpenAI 兼容 API Key 接入，或登录 Limkenion 账号使用订阅额度。";
         let t2;
         if ($[0] !== t1) {
           t2 = <Text bold={true}>{t1}</Text>;
@@ -375,7 +375,7 @@ function OAuthStatusMessage(t0) {
         }
         let t3;
         if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-          t3 = <Text>Select login method:</Text>;
+          t3 = <Text>选择登录方式：</Text>;
           $[2] = t3;
         } else {
           t3 = $[2];
@@ -383,7 +383,7 @@ function OAuthStatusMessage(t0) {
         let t4;
         if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
           t4 = {
-            label: <Text>Limkenion account with subscription ·{" "}<Text dimColor={true}>Pro, Max, Team, or Enterprise</Text>{false && <Text>{"\n"}<Text color="warning">[ANT-ONLY]</Text>{" "}<Text dimColor={true}>Please use this option unless you need to login to a special org for accessing sensitive data (e.g. customer data, HIPI data) with the Console option</Text></Text>}{"\n"}</Text>,
+            label: <Text>Limkenion 账号登录 ·{" "}<Text dimColor={true}>订阅额度</Text>{false && <Text>{"\n"}<Text color="warning">[ANT-ONLY]</Text>{" "}<Text dimColor={true}>Please use this option unless you need to login to a special org for accessing sensitive data (e.g. customer data, HIPI data) with the Console option</Text></Text>}{"\n"}</Text>,
             value: "limkenionai"
           };
           $[3] = t4;
@@ -393,7 +393,7 @@ function OAuthStatusMessage(t0) {
         let t5;
         if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
           t5 = {
-            label: <Text>Limkenion Console account ·{" "}<Text dimColor={true}>API usage billing</Text>{"\n"}</Text>,
+            label: <Text>DeepSeek / OpenAI 兼容 API Key ·{" "}<Text dimColor={true}>按用量计费</Text>{"\n"}</Text>,
             value: "console"
           };
           $[4] = t5;
@@ -403,7 +403,7 @@ function OAuthStatusMessage(t0) {
         let t6;
         if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
           t6 = [t4, t5, {
-            label: <Text>3rd-party platform ·{" "}<Text dimColor={true}>Amazon Bedrock, Microsoft Foundry, or Vertex AI</Text>{"\n"}</Text>,
+            label: <Text>自定义 Base URL ·{" "}<Text dimColor={true}>其他 OpenAI 兼容端点</Text>{"\n"}</Text>,
             value: "platform"
           }];
           $[5] = t6;
@@ -452,7 +452,7 @@ function OAuthStatusMessage(t0) {
       {
         let t1;
         if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-          t1 = <Text bold={true}>Using 3rd-party platforms</Text>;
+          t1 = <Text bold={true}>使用自定义 OpenAI 兼容端点</Text>;
           $[12] = t1;
         } else {
           t1 = $[12];
@@ -460,8 +460,8 @@ function OAuthStatusMessage(t0) {
         let t2;
         let t3;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <Text>Limkenion supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment variables, then restart Limkenion.</Text>;
-          t3 = <Text>If you are part of an enterprise organization, contact your administrator for setup instructions.</Text>;
+          t2 = <Text>设置 DEEPSEEK_API_KEY / OPENAI_API_KEY 与环境变量（默认端点 https://api.deepseek.com），然后重启 Limkenion。</Text>;
+          t3 = <Text>企业/组织用户可向管理员索取接入配置。</Text>;
           $[13] = t2;
           $[14] = t3;
         } else {
