@@ -18,10 +18,10 @@ export function createRecentActivityFeed(activities: LogOption[]): FeedConfig {
     };
   });
   return {
-    title: 'Recent activity',
+    title: '最近活动',
     lines,
-    footer: lines.length > 0 ? '/resume for more' : undefined,
-    emptyMessage: 'No recent activity'
+    footer: lines.length > 0 ? '/resume 查看更多' : undefined,
+    emptyMessage: '暂无最近活动'
   };
 }
 export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
@@ -31,11 +31,11 @@ export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
       text: note
     };
   });
-  const emptyMessage = 'Check the Limkenion changelog for updates';
+  const emptyMessage = '前往 Limkenion 更新日志查看新内容';
   return {
-    title: "What's new",
+    title: '更新内容',
     lines,
-    footer: lines.length > 0 ? '/release-notes for more' : undefined,
+    footer: lines.length > 0 ? '/release-notes 查看更多' : undefined,
     emptyMessage
   };
 }
@@ -52,22 +52,22 @@ export function createProjectOnboardingFeed(steps: Step[]): FeedConfig {
       text: `${checkmark}${text}`
     };
   });
-  const warningText = getCwd() === homedir() ? 'Note: You have launched limkenion in your home directory. For the best experience, launch it in a project directory instead.' : undefined;
+  const warningText = getCwd() === homedir() ? '提示：你已在主目录中启动 Limkenion。为获得最佳体验，请在项目目录中启动。' : undefined;
   if (warningText) {
     lines.push({
       text: warningText
     });
   }
   return {
-    title: 'Tips for getting started',
+    title: '上手建议',
     lines
   };
 }
 export function createGuestPassesFeed(): FeedConfig {
   const reward = getCachedReferrerReward();
-  const subtitle = reward ? `Share Limkenion and earn ${formatCreditAmount(reward)} of extra usage` : 'Share Limkenion with friends';
+  const subtitle = reward ? `分享 Limkenion，获赠 ${formatCreditAmount(reward)} 额外额度` : '与好友分享 Limkenion';
   return {
-    title: '3 guest passes',
+    title: '3 张访客通行证',
     lines: [],
     customContent: {
       content: <>

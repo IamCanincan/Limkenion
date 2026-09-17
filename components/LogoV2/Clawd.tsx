@@ -10,65 +10,64 @@ type Props = {
   pose?: ClawdPose;
 };
 
-// Standard-terminal pose fragments. Each row is split into segments so we can
-// vary only the parts that change (eyes, arms) while keeping the body/bg spans
-// stable. All poses end up 9 cols wide.
+// Neutral Limkenion badge: a simple diamond/gem glyph built from block
+// characters. Standard-terminal fragments. Each row is split into segments
+// so the pose system keeps working unchanged; every pose shares the same
+// neutral, brand-agnostic art (the abstract glyph is not a character).
+// All poses end up 9 cols wide.
 //
-// arms-up: the row-2 arm shapes (▝▜ / ▛▘) move to row 1 as their
-// bottom-heavy mirrors (▗▟ / ▙▖) — same silhouette, one row higher.
-//
-// look-* use top-quadrant eye chars (▙/▟) so both eyes change from the
-// default (▛/▜, bottom pupils) — otherwise only one eye would appear to move.
+// Row 1 is the top facet, row 2 is the bright solid middle band, and row 3
+// (hardcoded near the bottom of Clawd) is the base facet that closes the gem.
 type Segments = {
-  /** row 1 left (no bg): optional raised arm + side */
+  /** row 1 left (no bg): left facet corner */
   r1L: string;
-  /** row 1 eyes (with bg): left-eye, forehead, right-eye */
+  /** row 1 middle facet (with bg) */
   r1E: string;
-  /** row 1 right (no bg): side + optional raised arm */
+  /** row 1 right (no bg): right facet corner */
   r1R: string;
-  /** row 2 left (no bg): arm + body curve */
+  /** row 2 left (no bg): left band corner */
   r2L: string;
-  /** row 2 right (no bg): body curve + arm */
+  /** row 2 right (no bg): right band corner */
   r2R: string;
 };
 const POSES: Record<ClawdPose, Segments> = {
   default: {
-    r1L: ' ▐',
-    r1E: '▛███▜',
-    r1R: '▌',
-    r2L: '▝▜',
-    r2R: '▛▘'
+    r1L: ' ▗',
+    r1E: '▄▄▄▄▄',
+    r1R: '▖ ',
+    r2L: '▗▟',
+    r2R: '▙▖'
   },
   'look-left': {
-    r1L: ' ▐',
-    r1E: '▟███▟',
-    r1R: '▌',
-    r2L: '▝▜',
-    r2R: '▛▘'
+    r1L: ' ▗',
+    r1E: '▄▄▄▄▄',
+    r1R: '▖ ',
+    r2L: '▗▟',
+    r2R: '▙▖'
   },
   'look-right': {
-    r1L: ' ▐',
-    r1E: '▙███▙',
-    r1R: '▌',
-    r2L: '▝▜',
-    r2R: '▛▘'
+    r1L: ' ▗',
+    r1E: '▄▄▄▄▄',
+    r1R: '▖ ',
+    r2L: '▗▟',
+    r2R: '▙▖'
   },
   'arms-up': {
-    r1L: '▗▟',
-    r1E: '▛███▜',
-    r1R: '▙▖',
-    r2L: ' ▜',
-    r2R: '▛ '
+    r1L: ' ▗',
+    r1E: '▄▄▄▄▄',
+    r1R: '▖ ',
+    r2L: '▗▟',
+    r2R: '▙▖'
   }
 };
 
-// Apple Terminal uses a bg-fill trick (see below), so only eye poses make
-// sense. Arm poses fall back to default.
+// Apple Terminal uses a bg-fill trick (see below), so the middle segment is a
+// flat facet here too; every pose has the same neutral look.
 const APPLE_EYES: Record<ClawdPose, string> = {
-  default: ' ▗   ▖ ',
-  'look-left': ' ▘   ▘ ',
-  'look-right': ' ▝   ▝ ',
-  'arms-up': ' ▗   ▖ '
+  default: '▄▄▄▄▄',
+  'look-left': '▄▄▄▄▄',
+  'look-right': '▄▄▄▄▄',
+  'arms-up': '▄▄▄▄▄'
 };
 export function Clawd(t0) {
   const $ = _c(26);
@@ -164,7 +163,7 @@ export function Clawd(t0) {
   }
   let t11;
   if ($[22] === Symbol.for("react.memo_cache_sentinel")) {
-    t11 = <Text color="clawd_body">{"  "}▘▘ ▝▝{"  "}</Text>;
+    t11 = <Text color="clawd_body">{"  "}▗▀▀▀▀▀▖{"  "}</Text>;
     $[22] = t11;
   } else {
     t11 = $[22];
@@ -220,7 +219,7 @@ function AppleTerminalClawd(t0) {
   let t7;
   if ($[6] === Symbol.for("react.memo_cache_sentinel")) {
     t6 = <Text backgroundColor="clawd_body">{" ".repeat(7)}</Text>;
-    t7 = <Text color="clawd_body">▘▘ ▝▝</Text>;
+    t7 = <Text color="clawd_body">▗▀▀▀▀▀▖</Text>;
     $[6] = t6;
     $[7] = t7;
   } else {

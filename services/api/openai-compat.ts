@@ -20,7 +20,7 @@ import OpenAI from 'openai'
 
 /**  endpoints 默认值 */
 const DEFAULT_BASE_URL = 'https://api.deepseek.com'
-const DEFAULT_MODEL = 'deepseek-chat'
+const DEFAULT_MODEL = 'deepseek-flash'
 
 function getConfig() {
   return {

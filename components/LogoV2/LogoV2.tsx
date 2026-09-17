@@ -188,9 +188,9 @@ export function LogoV2() {
       t12 = null;
       t13 = <Opus1mMergeNotice />;
       t14 = ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />;
-      t15 = isDebugMode() && <Box paddingLeft={2} flexDirection="column"><Text color="warning">Debug mode enabled</Text><Text dimColor={true}>Logging to: {isDebugToStdErr() ? "stderr" : getDebugLogPath()}</Text></Box>;
+      t15 = isDebugMode() && <Box paddingLeft={2} flexDirection="column"><Text color="warning">调试模式已启用</Text><Text dimColor={true}>日志写入：{isDebugToStdErr() ? "stderr" : getDebugLogPath()}</Text></Box>;
       t16 = <EmergencyTip />;
-      t17 = process.env.LIMKENION_TMUX_SESSION && <Box paddingLeft={2} flexDirection="column"><Text dimColor={true}>tmux session: {process.env.LIMKENION_TMUX_SESSION}</Text><Text dimColor={true}>{process.env.LIMKENION_TMUX_PREFIX_CONFLICTS ? `Detach: ${process.env.LIMKENION_TMUX_PREFIX} ${process.env.LIMKENION_TMUX_PREFIX} d (press prefix twice - Limkenion uses ${process.env.LIMKENION_TMUX_PREFIX})` : `Detach: ${process.env.LIMKENION_TMUX_PREFIX} d`}</Text></Box>;
+      t17 = process.env.LIMKENION_TMUX_SESSION && <Box paddingLeft={2} flexDirection="column"><Text dimColor={true}>tmux 会话：{process.env.LIMKENION_TMUX_SESSION}</Text><Text dimColor={true}>{process.env.LIMKENION_TMUX_PREFIX_CONFLICTS ? `分离：${process.env.LIMKENION_TMUX_PREFIX} ${process.env.LIMKENION_TMUX_PREFIX} d（连按两次前缀，Limkenion 使用 ${process.env.LIMKENION_TMUX_PREFIX}）` : `分离：${process.env.LIMKENION_TMUX_PREFIX} d`}</Text></Box>;
       $[15] = t11;
       $[16] = t12;
       $[17] = t13;
@@ -209,7 +209,7 @@ export function LogoV2() {
     }
     let t18;
     if ($[22] !== announcement || $[23] !== config) {
-      t18 = announcement && <Box paddingLeft={2} flexDirection="column">{!process.env.IS_DEMO && config.oauthAccount?.organizationName && <Text dimColor={true}>Message from {config.oauthAccount.organizationName}:</Text>}<Text>{announcement}</Text></Box>;
+      t18 = announcement && <Box paddingLeft={2} flexDirection="column">{!process.env.IS_DEMO && config.oauthAccount?.organizationName && <Text dimColor={true}>来自 {config.oauthAccount.organizationName} 的消息：</Text>}<Text>{announcement}</Text></Box>;
       $[22] = announcement;
       $[23] = config;
       $[24] = t18;
@@ -308,7 +308,7 @@ export function LogoV2() {
     }
     let t17;
     if ($[40] !== showSandboxStatus) {
-      t17 = showSandboxStatus && <Box marginTop={1} flexDirection="column"><Text color="warning">Your bash commands will be sandboxed. Disable with /sandbox.</Text></Box>;
+      t17 = showSandboxStatus && <Box marginTop={1} flexDirection="column"><Text color="warning">你的 bash 命令将受到沙箱保护，可用 /sandbox 关闭。</Text></Box>;
       $[40] = showSandboxStatus;
       $[41] = t17;
     } else {
@@ -459,9 +459,9 @@ export function LogoV2() {
     t29 = null;
     t30 = <Opus1mMergeNotice />;
     t31 = ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />;
-    t32 = isDebugMode() && <Box paddingLeft={2} flexDirection="column"><Text color="warning">Debug mode enabled</Text><Text dimColor={true}>Logging to: {isDebugToStdErr() ? "stderr" : getDebugLogPath()}</Text></Box>;
+    t32 = isDebugMode() && <Box paddingLeft={2} flexDirection="column"><Text color="warning">调试模式已启用</Text><Text dimColor={true}>日志写入：{isDebugToStdErr() ? "stderr" : getDebugLogPath()}</Text></Box>;
     t33 = <EmergencyTip />;
-    t34 = process.env.LIMKENION_TMUX_SESSION && <Box paddingLeft={2} flexDirection="column"><Text dimColor={true}>tmux session: {process.env.LIMKENION_TMUX_SESSION}</Text><Text dimColor={true}>{process.env.LIMKENION_TMUX_PREFIX_CONFLICTS ? `Detach: ${process.env.LIMKENION_TMUX_PREFIX} ${process.env.LIMKENION_TMUX_PREFIX} d (press prefix twice - Limkenion uses ${process.env.LIMKENION_TMUX_PREFIX})` : `Detach: ${process.env.LIMKENION_TMUX_PREFIX} d`}</Text></Box>;
+    t34 = process.env.LIMKENION_TMUX_SESSION && <Box paddingLeft={2} flexDirection="column"><Text dimColor={true}>tmux 会话：{process.env.LIMKENION_TMUX_SESSION}</Text><Text dimColor={true}>{process.env.LIMKENION_TMUX_PREFIX_CONFLICTS ? `分离：${process.env.LIMKENION_TMUX_PREFIX} ${process.env.LIMKENION_TMUX_PREFIX} d（连按两次前缀，Limkenion 使用 ${process.env.LIMKENION_TMUX_PREFIX}）` : `分离：${process.env.LIMKENION_TMUX_PREFIX} d`}</Text></Box>;
     $[75] = t29;
     $[76] = t30;
     $[77] = t31;
@@ -478,7 +478,7 @@ export function LogoV2() {
   }
   let t35;
   if ($[81] !== announcement || $[82] !== config) {
-    t35 = announcement && <Box paddingLeft={2} flexDirection="column">{!process.env.IS_DEMO && config.oauthAccount?.organizationName && <Text dimColor={true}>Message from {config.oauthAccount.organizationName}:</Text>}<Text>{announcement}</Text></Box>;
+    t35 = announcement && <Box paddingLeft={2} flexDirection="column">{!process.env.IS_DEMO && config.oauthAccount?.organizationName && <Text dimColor={true}>来自 {config.oauthAccount.organizationName} 的消息：</Text>}<Text>{announcement}</Text></Box>;
     $[81] = announcement;
     $[82] = config;
     $[83] = t35;
@@ -487,7 +487,7 @@ export function LogoV2() {
   }
   let t36;
   if ($[84] !== showSandboxStatus) {
-    t36 = showSandboxStatus && <Box paddingLeft={2} flexDirection="column"><Text color="warning">Your bash commands will be sandboxed. Disable with /sandbox.</Text></Box>;
+    t36 = showSandboxStatus && <Box paddingLeft={2} flexDirection="column"><Text color="warning">你的 bash 命令将受到沙箱保护，可用 /sandbox 关闭。</Text></Box>;
     $[84] = showSandboxStatus;
     $[85] = t36;
   } else {
