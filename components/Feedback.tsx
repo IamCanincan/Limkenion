@@ -1,9 +1,8 @@
-import axios from 'axios';
-import { readFile, stat } from 'fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'fs/promises';
+import { join } from 'path';
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { getLastAPIRequest } from 'src/bootstrap/state.js';
-import { logEventTo1P } from 'src/services/analytics/firstPartyEventLogger.js';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
 import { getLastAssistantMessage, normalizeMessagesForAPI } from 'src/utils/messages.js';
 import type { CommandResultDisplay } from '../commands.js';
@@ -13,14 +12,12 @@ import { useKeybinding } from '../keybindings/useKeybinding.js';
 import { queryHaiku } from '../services/api/limkenion.js';
 import { startsWithApiErrorPrefix } from '../services/api/errors.js';
 import type { Message } from '../types/message.js';
-import { ensureLocalAuthAvailable } from '../utils/auth.js';
 import { openBrowser } from '../utils/browser.js';
 import { logForDebugging } from '../utils/debug.js';
 import { env } from '../utils/env.js';
+import { getLimkenionConfigHomeDir } from '../utils/envUtils.js';
 import { type GitRepoState, getGitState, getIsGit } from '../utils/git.js';
-import { getAuthHeaders, getUserAgent } from '../utils/http.js';
 import { getInMemoryErrors, logError } from '../utils/log.js';
-import { isEssentialTrafficOnly } from '../utils/privacyLevel.js';
 import { extractTeammateTranscriptsFromTasks, getTranscriptPath, loadAllSubagentTranscriptsFromDisk, MAX_TRANSCRIPT_READ_BYTES } from '../utils/sessionStorage.js';
 import { jsonStringify } from '../utils/slowOperations.js';
 import { asSystemPrompt } from '../utils/systemPromptType.js';
@@ -231,11 +228,8 @@ export function Feedback({
           feedback_id: result.feedbackId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           last_assistant_message_id: lastAssistantMessageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
         });
-        // 1P-only: freeform text approved for BQ. Join on feedback_id.
-        logEventTo1P('limkenion_bug_report_description', {
-          feedback_id: result.feedbackId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          description: redactSensitiveInfo(description) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
-        });
+        // 原本这里还会把反馈正文通过 logEventTo1P 上报到第一方遥测端点。
+        // Limkenion 无云服务，且那是用户原文 —— 不再外发，只留在本地文件里。
       }
       setStep('done');
     } else {
@@ -518,68 +512,31 @@ async function submitFeedback(data: FeedbackData, signal?: AbortSignal): Promise
   feedbackId?: string;
   isZdrOrg?: boolean;
 }> {
-  if (isEssentialTrafficOnly()) {
-    return {
-      success: false
-    };
-  }
+  // Limkenion 无任何网站与云服务：反馈不再上报远端
+  // （原本 POST 到 https://127.0.0.1/api/limkenion_cli_feedback，该端点并不存在，
+  // 必然失败）。改为**写到本地文件**，用户可自行查看或转交。
+  // signal 保留在签名里以兼容调用方，本地写入无需中断处理。
+  void signal;
   try {
-    // Ensure OAuth token is fresh before getting auth headers
-    // This prevents 401 errors from stale cached tokens
-    await ensureLocalAuthAvailable();
-    const authResult = getAuthHeaders();
-    if (authResult.error) {
-      return {
-        success: false
-      };
-    }
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': getUserAgent(),
-      ...authResult.headers
-    };
-    const response = await axios.post('https://127.0.0.1/api/limkenion_cli_feedback', {
-      content: jsonStringify(data)
-    }, {
-      headers,
-      timeout: 30000,
-      // 30 second timeout to prevent hanging
-      signal
-    });
-    if (response.status === 200) {
-      const result = response.data;
-      if (result?.feedback_id) {
-        return {
-          success: true,
-          feedbackId: result.feedback_id
-        };
-      }
-      sanitizeAndLogError(new Error('Failed to submit feedback: request did not return feedback_id'));
-      return {
-        success: false
-      };
-    }
-    sanitizeAndLogError(new Error('Failed to submit feedback:' + response.status));
+    const dir = join(getLimkenionConfigHomeDir(), 'feedback');
+    await mkdir(dir, { recursive: true });
+    const now = new Date();
+    const feedbackId = `fb_${now.getTime().toString(36)}`;
+    const file = join(
+      dir,
+      `${now.toISOString().replace(/[:.]/g, '-')}-${feedbackId}.json`,
+    );
+    await writeFile(
+      file,
+      jsonStringify({ feedbackId, createdAt: now.toISOString(), ...data }, null, 2),
+      { encoding: 'utf-8', mode: 0o600 },
+    );
+    logForDebugging(`反馈已保存到本地：${file}`);
     return {
-      success: false
+      success: true,
+      feedbackId
     };
   } catch (err) {
-    // Handle cancellation/abort - don't log as error
-    if (axios.isCancel(err)) {
-      return {
-        success: false
-      };
-    }
-    if (axios.isAxiosError(err) && err.response?.status === 403) {
-      const errorData = err.response.data;
-      if (errorData?.error?.type === 'permission_error' && errorData?.error?.message?.includes('Custom data retention settings')) {
-        sanitizeAndLogError(new Error('Cannot submit feedback because custom data retention settings are enabled'));
-        return {
-          success: false,
-          isZdrOrg: true
-        };
-      }
-    }
     // Use our safe error logging function to avoid leaking API keys
     sanitizeAndLogError(err);
     return {

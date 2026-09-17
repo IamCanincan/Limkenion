@@ -7,8 +7,8 @@ const thinkbackPlay = {
   type: 'local',
   name: 'thinkback-play',
   description: '播放 thinkback 动画',
-  isEnabled: () =>
-    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('limkenion_thinkback'),
+  // 同上：thinkback 整体已关闭，这个动画播放器随之关闭。
+  isEnabled: () => false,
   isHidden: true,
   supportsNonInteractive: false,
   load: () => import('./thinkback-play.js'),

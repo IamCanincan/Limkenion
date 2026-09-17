@@ -18,5 +18,7 @@ export default {
     const { eligible, hasCache } = checkCachedPassesEligibility()
     return !eligible || !hasCache
   },
+  // 无网站与云服务：guest passes 是账号侧的邀请奖励，本地模式下无从获得。
+  isEnabled: () => false,
   load: () => import('./passes.js'),
 } satisfies Command
