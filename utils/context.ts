@@ -3,7 +3,6 @@ import { CONTEXT_1M_BETA_HEADER } from '../constants/betas.js'
 import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 import { getCanonicalName } from './model/model.js'
-import { getModelCapability } from './model/modelCapabilities.js'
 
 // Model context window size (200k tokens for all models right now)
 export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
@@ -61,17 +60,6 @@ export function getContextWindowForModel(
   // [1m] suffix — explicit client-side opt-in, respected over all detection
   if (has1mContext(model)) {
     return 1_000_000
-  }
-
-  const cap = getModelCapability(model)
-  if (cap?.max_input_tokens && cap.max_input_tokens >= 100_000) {
-    if (
-      cap.max_input_tokens > MODEL_CONTEXT_WINDOW_DEFAULT &&
-      is1mContextDisabled()
-    ) {
-      return MODEL_CONTEXT_WINDOW_DEFAULT
-    }
-    return cap.max_input_tokens
   }
 
   if (betas?.includes(CONTEXT_1M_BETA_HEADER) && modelSupports1M(model)) {
@@ -132,61 +120,22 @@ export function calculateContextPercentages(
 
 /**
  * Returns the model's default and upper limit for max output tokens.
+ *
+ * 本构建只有 DeepSeek。官方给出最大输出 384K
+ * （https://api-docs.deepseek.com/quick_start/pricing），
+ * 但这里沿用保守的通用上限 —— 放开到 384K 属于行为变更，另行确认。
+ *
+ * 原本那一长串按上游模型名分档的判断（opus-4-6 / sonnet-4-6 / haiku-4 /
+ * limkenion-3-* …）已随模型表一起删除。
  */
-export function getModelMaxOutputTokens(model: string): {
+export function getModelMaxOutputTokens(_model: string): {
   default: number
   upperLimit: number
 } {
-  let defaultTokens: number
-  let upperLimit: number
-
-  
-
-  const m = getCanonicalName(model)
-
-  if (m.includes('opus-4-6')) {
-    defaultTokens = 64_000
-    upperLimit = 128_000
-  } else if (m.includes('sonnet-4-6')) {
-    defaultTokens = 32_000
-    upperLimit = 128_000
-  } else if (
-    m.includes('opus-4-5') ||
-    m.includes('sonnet-4') ||
-    m.includes('haiku-4')
-  ) {
-    defaultTokens = 32_000
-    upperLimit = 64_000
-  } else if (m.includes('opus-4-1') || m.includes('opus-4')) {
-    defaultTokens = 32_000
-    upperLimit = 32_000
-  } else if (m.includes('limkenion-3-opus')) {
-    defaultTokens = 4_096
-    upperLimit = 4_096
-  } else if (m.includes('limkenion-3-sonnet')) {
-    defaultTokens = 8_192
-    upperLimit = 8_192
-  } else if (m.includes('limkenion-3-haiku')) {
-    defaultTokens = 4_096
-    upperLimit = 4_096
-  } else if (m.includes('3-5-sonnet') || m.includes('3-5-haiku')) {
-    defaultTokens = 8_192
-    upperLimit = 8_192
-  } else if (m.includes('3-7-sonnet')) {
-    defaultTokens = 32_000
-    upperLimit = 64_000
-  } else {
-    defaultTokens = MAX_OUTPUT_TOKENS_DEFAULT
-    upperLimit = MAX_OUTPUT_TOKENS_UPPER_LIMIT
+  return {
+    default: MAX_OUTPUT_TOKENS_DEFAULT,
+    upperLimit: MAX_OUTPUT_TOKENS_UPPER_LIMIT,
   }
-
-  const cap = getModelCapability(model)
-  if (cap?.max_tokens && cap.max_tokens >= 4_096) {
-    upperLimit = cap.max_tokens
-    defaultTokens = Math.min(defaultTokens, upperLimit)
-  }
-
-  return { default: defaultTokens, upperLimit }
 }
 
 /**

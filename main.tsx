@@ -159,7 +159,6 @@ import { errorMessage, getErrnoCode, isENOENT, TeleportOperationError, toError }
 import { getFsImplementation, safeResolvePath } from 'src/utils/fsOperations.js';
 import { gracefulShutdown, gracefulShutdownSync } from 'src/utils/gracefulShutdown.js';
 import { setAllHookEventsEnabled } from 'src/utils/hooks/hookEvents.js';
-import { refreshModelCapabilities } from 'src/utils/model/modelCapabilities.js';
 import { peekForStdinData, writeToStderr } from 'src/utils/process.js';
 import { setCwd } from 'src/utils/Shell.js';
 import { type ProcessedResume, processResumedConversation } from 'src/utils/sessionRestore.js';
@@ -402,7 +401,6 @@ export function startDeferredPrefetches(): void {
   // 分析与功能开关初始化
   void initializeAnalyticsGates();
   void prefetchOfficialMcpUrls();
-  void refreshModelCapabilities();
 
   // 从 init() 延迟到首次渲染后的文件变更检测器
   void settingsChangeDetector.initialize();
