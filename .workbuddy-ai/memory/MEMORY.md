@@ -98,8 +98,8 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
   `isNonCustomOpusModel`→`isNonCustomStrongModel`、`queryHaiku`→`querySmallFastModel`
 
 **待办（按优先级）**：
-1. **删 URL 留下的空壳**：12 个 `const *_URL = ''`、约 20 处 `<Link url="" />`、
-   几处悬空的 `Learn more: `。`<Link>` 在 react-compiler 产物里，**动前先确认不在 `$[N]` memo 区块内**。
+1. **约 20 处 `<Link url="" />`**（渲染为空，用户看不见但代码脏）。
+   ⚠️ 在 react-compiler 产物里，**动前先确认不在 `$[N]` memo 区块内**。
 2. **剩余 ~980 处零散模型名**（注释、字符串、变量名）。
 3. **两处待用户拍板的行为变更**（我没动）：
    - `utils/context.ts` 的 `MODEL_CONTEXT_WINDOW_DEFAULT = 200_000`，DeepSeek 官方是 **1M**
@@ -110,6 +110,10 @@ Base：`https://api.deepseek.com`。OpenAI 协议 + 上游 协议**都原生支�
    - **图片输入**：`deepseek-flash` 支持 Vision，但适配器 `blockToText()` 对 image 块返回空串，
      **图片被静默丢弃**。
    - **本地定时任务**：原调度依赖云端（已停用），无本地替代。
+
+**已完成的空壳清理**：`constants/product.ts`（整个远程会话模块，含 `PRODUCT_URL` /
+`getRemoteSessionUrl` / `buildBridgeConnectUrl` 等）已整文件删除；`/feedback` 的
+"去 GitHub 提 issue" 断路径（54 行）已删除；一批悬空文案与空括号已修。
 
 ### 其它
 - **`/login` 已能真正录入并持久化 key**（`components/ConsoleOAuthFlow.tsx` → `saveApiKey()`）。
