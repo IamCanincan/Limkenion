@@ -49,6 +49,7 @@ import { enableTools, toolsOverview } from './toolindex.mjs'
 import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
 import { hooksSummary, refreshHooks } from './hooks.mjs'
 import { mcpSummary, reloadMcp } from './mcp.mjs'
+import { generateInsights, insightsSummary } from './insights.mjs'
 import { worktreeSummary } from './worktree.mjs'
 
 // ---------------------------------------------------------------------------
@@ -222,6 +223,7 @@ export const WEB_IMPLEMENTED = [
   'cost', 'status', 'context', 'version', 'session', 'resume', 'export', 'diff',
   'hooks',       // 工具前后钩子（与 CLI 同款 settings.json 的 hooks 段）
   'mcp',         // MCP 服务器连接状态与重连
+  'insights',    // 使用洞察报告（web 自己的会话存储）
   'files', 'memory', 'skills', 'tasks', 'todos', 'agents', 'summary', 'tag',
   'config', 'env', 'output-style', 'tools', 'cron', 'web', 'exit',
   // ---- 以下是从 CLI 搬过来的 ----
@@ -387,6 +389,11 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       return `主题已切换为 ${arg}（仅本会话）。`
     }
     return `当前主题：${settings.theme}\n用法：/theme <${THEMES.join('|')}>`
+  }
+  if (name === 'insights') {
+    const wantNarrative = !/^--stats|^no-ai/.test(arg.trim())
+    const result = await generateInsights({ narrative: wantNarrative })
+    return insightsSummary(result)
   }
   if (name === 'mcp') {
     const sub = String(arg ?? '').trim().toLowerCase()

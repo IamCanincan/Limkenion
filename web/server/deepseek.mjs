@@ -49,6 +49,10 @@ export function getApiKey() {
  * @returns {Promise<{usage: {inputTokens: number, outputTokens: number}, toolCalls: Array<{id: string, name: string, arguments: string}>, text: string}>}
  */
 export async function chatCompletion({ model, messages, tools, onDelta, signal, reasoningEffort }) {
+  // onDelta 是可选的回调 —— 但要有个默认实现。缺了它就 `onDelta is not a function`
+  // 抛在**流解析中途**，表现为"模型调用失败"，而真正的原因只是调用方没传回调
+  // （踩过：/insights 的叙述生成就是这么挂的）。
+  const emitDelta = typeof onDelta === 'function' ? onDelta : () => {}
   const apiKey = getApiKey()
   if (!apiKey) {
     const err = new Error(`缺少 ${API_KEY_ENV} 环境变量。请设置后重启服务：set ${API_KEY_ENV}=sk-...`)
@@ -149,11 +153,11 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
         const delta = choice.delta ?? {}
         // 思维链在前，正文在后（思考模型的交错顺序）
         if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) {
-          onDelta({ type: 'reasoning', delta: delta.reasoning_content })
+          emitDelta({ type: 'reasoning', delta: delta.reasoning_content })
         }
         if (typeof delta.content === 'string' && delta.content.length > 0) {
           text += delta.content
-          onDelta({ type: 'text', delta: delta.content })
+          emitDelta({ type: 'text', delta: delta.content })
         }
         for (const call of delta.tool_calls ?? []) {
           let acc = toolCallAcc.get(call.index)
@@ -165,7 +169,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
           if (call.function?.name) acc.name = call.function.name
           if (call.function?.arguments) {
             acc.arguments += call.function.arguments
-            onDelta({ type: 'tool_call', delta: call.function.arguments, toolCall: { index: call.index, name: acc.name } })
+            emitDelta({ type: 'tool_call', delta: call.function.arguments, toolCall: { index: call.index, name: acc.name } })
           }
         }
       }

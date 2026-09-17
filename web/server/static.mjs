@@ -13,6 +13,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 import { DIST_DIR } from './config.mjs'
 import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN } from './security.mjs'
+import { latestReport, readReport } from './insights.mjs'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -91,6 +92,38 @@ export function createHttpServer() {
 
     if (urlPath === '/' || urlPath === '') {
       await serveIndex(res)
+      return
+    }
+
+    // /insights 报告（CLI 那边给的是 file:// 链接，web 端用 HTTP 提供）。
+    // 名字必须过 insights.mjs 的白名单（严格的文件名正则 + 落在目录内），
+    // 这里不做任何路径拼接的自由发挥。
+    if (urlPath === '/insights' || urlPath === '/insights/') {
+      const name = await latestReport()
+      if (!name) {
+        respond(
+          res,
+          404,
+          { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
+          '还没有生成过洞察报告。在对话里执行 /insights 生成。',
+        )
+        return
+      }
+      const html = await readReport(name)
+      if (!html) {
+        respond(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'Not Found')
+        return
+      }
+      respond(res, 200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' }, html)
+      return
+    }
+    if (urlPath.startsWith('/insights/')) {
+      const html = await readReport(urlPath.slice('/insights/'.length))
+      if (!html) {
+        respond(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'Not Found')
+        return
+      }
+      respond(res, 200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' }, html)
       return
     }
 
