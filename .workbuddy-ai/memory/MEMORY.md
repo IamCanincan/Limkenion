@@ -271,6 +271,42 @@ esbuild 只报"缺失导出/模块解析失败"，**不报类型错误**。删�
 - 几处悬空的 `Learn more: `
 **注意**：`<Link>` 那些在 react-compiler 产物里，动之前先确认不在 `$[N]` memo 区块内。
 
+### DeepSeek 实测：思考模式会吃掉 max_tokens（2026-09-18 实测）
+```
+默认（思考开启）+ max_tokens=16  →  正文 = ""      推理 token = 16   ← 答案被推理吃光
+reasoning_effort='none'         →  正文 = "正常回答"
+```
+**DeepSeek 默认开启思考，且 reasoning token 计入 `max_tokens` 配额。**
+所以任何设了小 `max_tokens` 的调用点，都可能静默返回空响应。
+我们这边目前只有 `maxTokens: 1`（只读 usage，不受影响）和 8192（够用），属潜在风险。
+
+**思考控制现状（有坑）**：
+- `/model low|medium|high` → `setRuntimeReasoningEffort()` → **真的生效** ✓
+- `/effort [low|medium|high|max|auto]` → 写的是 `utils/effort.ts` 的 `effortLevel`，
+  **完全没接到 API**，对 DeepSeek 是**空操作** ✗
+- **没有关闭思考的入口**（`reasoning_effort: 'none'` 只在适配器内部"强制工具"时用）
+
+### DeepSeek usage 字段实测（别凭印象）
+`prompt_tokens` / `completion_tokens` / `total_tokens`，
+外加 `prompt_tokens_details.cached_tokens`（= `prompt_cache_hit_tokens`）与
+`prompt_cache_miss_tokens`、`completion_tokens_details.reasoning_tokens`。
+**我们的适配器读 `prompt_tokens_details.cached_tokens` 是对的**（实测第二次调用命中 896）。
+
+### 与参照实现（`D:\下载\agent`）的功能对比结论
+**参照物**：`upstream-ref-impl`（上游 CLI 原型 桌面端工作台）、`deepseek-harness`（DS 官方 harness `dsh`，
+Web UI + 插件化）、`deepseek-reasonix`（DS agent CLI，配置驱动 + 单二进制）。
+
+**我们已有**（核实过）：computerUse、workflows、swarm/Agent Teams、teleport、agents、
+plugins、memdir、MCP、skills、hooks、沙箱、权限模式、子代理、后台任务、会话管理
+（resume/fork/rewind）、本地 Web UI（`/web`）、IDE 集成、headless/print、SDK。
+
+**我们缺的**（按值得补的程度排序）：
+1. **思考模式暴露不全** —— `/effort` 是空操作、没有"关闭思考"入口（见上）
+2. **视觉/图片输入** —— deepseek-flash 官方支持，但适配器 `blockToText()` 对 image 块返回空串
+3. **本地定时任务** —— 原来的调度依赖云端（已停用），没有本地替代
+4. 桌面端 App、IM 接入（upstream-ref-impl 有 8 个平台）、模型请求追踪面板、单二进制分发、VS Code 扩展
+5. 图片生成（属云端，不建议做）、多供应商（用户已明确只做 DeepSeek）
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
