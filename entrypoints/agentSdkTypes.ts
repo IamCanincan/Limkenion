@@ -358,7 +358,7 @@ export function buildMissedTaskNotification(_missed: CronTask[]): string {
 }
 
 /**
- * 用户在 limkenion.ai 上键入的用户消息，从 bridge WS 提取。
+ * 用户在 远端服务 上键入的用户消息，从 bridge WS 提取。
  * @internal
  */
 export type InboundPrompt = {
@@ -409,14 +409,14 @@ export type RemoteControlHandle = {
 }
 
 /**
- * 从 daemon 进程持有一条 limkenion.ai 远程控制桥接连接。
+ * 从 daemon 进程持有一条 远端服务 远程控制桥接连接。
  *
  * daemon 在父进程中拥有 WebSocket —— 如果 agent 子进程（通过 `query()` 生成）
- * 崩溃，daemon 会重新生成它，而 limkenion.ai 保持同一会话。与 `query.enableRemoteControl`
+ * 崩溃，daemon 会重新生成它，而 远端服务 保持同一会话。与 `query.enableRemoteControl`
  * 相对，后者把 WebSocket 放在子进程中（会随 agent 一起销毁）。
  *
  * 通过 `write()` + `sendResult()` 接入 `query()` 的产出。把
- * `inboundPrompts()`（用户在 limkenion.ai 上键入的内容）读入 `query()` 的输入流。
+ * `inboundPrompts()`（用户在 远端服务 上键入的内容）读入 `query()` 的输入流。
  * 在本地处理 `controlRequests()`（interrupt → 中止，set_model → 重新配置）。
  *
  * 跳过 `limkenion_ccr_bridge` 门控与策略限制检查 —— @internal

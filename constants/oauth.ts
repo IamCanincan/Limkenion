@@ -55,10 +55,10 @@ type OauthConfig = {
   CONSOLE_AUTHORIZE_URL: string
   LIMKENION_AI_AUTHORIZE_URL: string
   /**
-   * The limkenion.ai web origin. Separate from LIMKENION_AI_AUTHORIZE_URL because
-   * that now routes through limkenion.com/cai/* for attribution — deriving
-   * .origin from it would give limkenion.com, breaking links to /code,
-   * /settings/connectors, and other limkenion.ai web pages.
+   * The 远端服务 web origin. Separate from LIMKENION_AI_AUTHORIZE_URL because
+   * that now routes through 远端服务* for attribution — deriving
+   * .origin from it would give 远端服务, breaking links to /code,
+   * /settings/connectors, and other 远端服务 web pages.
    */
   LIMKENION_AI_ORIGIN: string
   TOKEN_URL: string
@@ -77,8 +77,8 @@ type OauthConfig = {
 const PROD_OAUTH_CONFIG = {
   BASE_API_URL: 'https://127.0.0.1',
   CONSOLE_AUTHORIZE_URL: '',
-  // Bounces through limkenion.com/cai/* so CLI sign-ins connect to limkenion.com
-  // visits for attribution. 307s to limkenion.ai/oauth/authorize in two hops.
+  // Bounces through 远端服务* so CLI sign-ins connect to 远端服务
+  // visits for attribution. 307s to 远端服务 in two hops.
   LIMKENION_AI_AUTHORIZE_URL: '',
   LIMKENION_AI_ORIGIN: '',
   TOKEN_URL: '',

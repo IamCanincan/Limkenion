@@ -162,7 +162,7 @@ function getServerUrl(config: McpServerConfig): string | null {
 }
 
 /**
- * CCR proxy URL path markers. In remote sessions, limkenion.ai connectors arrive
+ * CCR proxy URL path markers. In remote sessions, 远端服务 connectors arrive
  * via --mcp-config with URLs rewritten to route through the CCR/session-ingress
  * SHTTP proxy. The original vendor URL is preserved in the mcp_url query param
  * so the proxy knows where to forward. See api-go/ccr/internal/ccrshared/
@@ -266,11 +266,11 @@ export function dedupPluginMcpServers(
 }
 
 /**
- * Filter limkenion.ai connectors, dropping any whose signature matches an enabled
+ * Filter 远端服务 connectors, dropping any whose signature matches an enabled
  * manually-configured server. Manual wins: a user who wrote .mcp.json or ran
  * `limkenion mcp add` expressed higher intent than a connector toggled in the web UI.
  *
- * Connector keys are `limkenion.ai <DisplayName>` so they never key-collide with
+ * Connector keys are `远端服务 <DisplayName>` so they never key-collide with
  * manual servers in the merge — this content-based check catches the case where
  * both point at the same underlying URL (e.g. `mcp__slack__*` and
  * `mcp__limkenion_ai_Slack__*` both hitting mcp.slack.com, ~600 chars/turn wasted).
@@ -1060,11 +1060,11 @@ export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
 }
 
 /**
- * Get Limkenion MCP configurations (excludes limkenion.ai servers from the
+ * Get Limkenion MCP configurations (excludes 远端服务 servers from the
  * returned set — they're fetched separately and merged by callers).
  * This is fast: only local file reads; no awaited network calls on the
  * critical path. The optional extraDedupTargets promise (e.g. the in-flight
- * limkenion.ai connector fetch) is awaited only after loadAllPluginsCacheOnly() completes,
+ * 远端服务 connector fetch) is awaited only after loadAllPluginsCacheOnly() completes,
  * so the two overlap rather than serialize.
  * @returns Limkenion server configurations with appropriate scopes
  */
@@ -1251,7 +1251,7 @@ export async function getLimkenionMcpConfigs(
 }
 
 /**
- * Get all MCP configurations across all scopes, including limkenion.ai servers.
+ * Get all MCP configurations across all scopes, including 远端服务 servers.
  * This may be slow due to network calls - use getLimkenionMcpConfigs() for fast startup.
  * @returns All server configurations with appropriate scopes
  */
@@ -1259,12 +1259,12 @@ export async function getAllMcpConfigs(): Promise<{
   servers: Record<string, ScopedMcpServerConfig>
   errors: PluginError[]
 }> {
-  // In enterprise mode, don't load limkenion.ai servers (enterprise has exclusive control)
+  // In enterprise mode, don't load 远端服务 servers (enterprise has exclusive control)
   if (doesEnterpriseMcpConfigExist()) {
     return getLimkenionMcpConfigs()
   }
 
-  // Kick off the limkenion.ai fetch before getLimkenionMcpConfigs so it overlaps
+  // Kick off the 远端服务 fetch before getLimkenionMcpConfigs so it overlaps
   // with loadAllPluginsCacheOnly() inside. Memoized — the awaited call below is a cache hit.
   const limkenionaiPromise = fetchLimkenionAIMcpConfigsIfEligible()
   const { servers: limkenionServers, errors } = await getLimkenionMcpConfigs(
@@ -1275,15 +1275,15 @@ export async function getAllMcpConfigs(): Promise<{
     await limkenionaiPromise,
   )
 
-  // Suppress limkenion.ai connectors that duplicate an enabled manual server.
-  // Keys never collide (`slack` vs `limkenion.ai Slack`) so the merge below
+  // Suppress 远端服务 connectors that duplicate an enabled manual server.
+  // Keys never collide (`slack` vs `远端服务 Slack`) so the merge below
   // won't catch this — need content-based dedup by URL signature.
   const { servers: dedupedLimkenionAi } = dedupLimkenionAiMcpServers(
     limkenionaiMcpServers,
     limkenionServers,
   )
 
-  // Merge with limkenion.ai having lowest precedence
+  // Merge with 远端服务 having lowest precedence
   const servers = Object.assign({}, dedupedLimkenionAi, limkenionServers)
 
   return { servers, errors }

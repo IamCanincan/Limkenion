@@ -426,7 +426,7 @@ export function getMcpServerScopeFromToolName(
   // Look up server config
   const serverConfig = getMcpConfigByName(mcpInfo.serverName)
 
-  // Fallback: limkenion.ai servers have normalized names starting with "limkenion_ai_"
+  // Fallback: 远端服务 servers have normalized names starting with "limkenion_ai_"
   // but aren't in getMcpConfigByName (they're fetched async separately)
   if (!serverConfig && mcpInfo.serverName.startsWith('limkenion_ai_')) {
     return 'limkenionai'

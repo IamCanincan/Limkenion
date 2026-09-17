@@ -62,7 +62,7 @@ export const fetchLimkenionAIMcpConfigsIfEligible = memoize(
       // In non-interactive mode, isLimkenionAISubscriber() returns false when LIMKENION_API_KEY
       // is set (even with valid OAuth tokens) because preferThirdPartyAuthentication() causes
       // isLimkenionAuthEnabled() to return false. Checking the scope directly allows users
-      // with both API keys and OAuth tokens to access limkenion.ai MCPs in print mode.
+      // with both API keys and OAuth tokens to access 远端服务 MCPs in print mode.
       if (!tokens.scopes?.includes('user:mcp_servers')) {
         logForDebugging(
           `[limkenionai-mcp] Missing user:mcp_servers scope (scopes=${tokens.scopes?.join(',') || 'none'})`,
@@ -144,7 +144,7 @@ export function clearLimkenionAIMcpConfigsCache(): void {
 }
 
 /**
- * Record that a limkenion.ai connector successfully connected. Idempotent.
+ * Record that a 远端服务 connector successfully connected. Idempotent.
  *
  * Gates the "N connectors unavailable/need auth" startup notifications: a
  * connector that was working yesterday and is now failed is a state change

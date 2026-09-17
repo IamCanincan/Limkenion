@@ -364,7 +364,7 @@ const SLACK_ARCHIVES_RE = /^https:\/\/[a-z0-9-]+\.slack\.com\/archives\/([A-Z0-9
 
 /**
  * 检测 Slack 发送消息的结果，返回紧凑的 {channel, url} 对。
- * 同时匹配托管版（limkenion.ai Slack）和社区 MCP 服务器的结构——
+ * 同时匹配托管版（远端服务 Slack）和社区 MCP 服务器的结构——
  * 两者都会在结果中返回 `message_link`。频道标签优先使用工具输入
  * （可能是 "#foo" 这样的名称或 "C09EVDAN1NK" 这样的 ID），
  * 否则回退到从 archives URL 解析出的 ID。

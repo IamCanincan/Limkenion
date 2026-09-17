@@ -2203,7 +2203,7 @@ export function REPL({
 
       // When the REPL bridge is connected, also forward the sandbox
       // permission request as a can_use_tool control_request so the
-      // remote user (e.g. on limkenion.ai) can approve it too.
+      // remote user (e.g. on 远端服务) can approve it too.
       if (feature('BRIDGE_MODE')) {
         const bridgeCallbacks = store.getState().replBridgePermissionCallbacks;
         if (bridgeCallbacks) {

@@ -70,7 +70,7 @@ export function ChannelsNotice() {
     }
     let t2;
     if ($[9] === Symbol.for("react.memo_cache_sentinel")) {
-      t2 = <Text dimColor={true}>Channels require limkenion.ai authentication · run /login, then restart</Text>;
+      t2 = <Text dimColor={true}>Channels 需要远端服务认证，本构建不可用</Text>;
       $[9] = t2;
     } else {
       t2 = $[9];

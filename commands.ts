@@ -412,7 +412,7 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
         if (isLimkenionAISubscriber()) return true
         break
       case 'console':
-        // Console API key 用户 = 直接的 1P API 客户（不是 3P，也不是 limkenion.ai）。
+        // Console API key 用户 = 直接的 1P API 客户（不是 3P，也不是 远端服务）。
         // 排除 3P（Bedrock/Vertex/Foundry）—— 它们不设置 LIMKENION_BASE_URL；
         // 也排除通过自定义 base URL 走网关的用户。
         if (

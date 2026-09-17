@@ -53,7 +53,7 @@ export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS
 /**
  * Check if LIMKENION_BASE_URL is a first-party Limkenion API URL.
  * Returns true if not set (default API) or points to 127.0.0.1
- * (or api-staging.limkenion.com for ant users).
+ * (or 远端服务 for ant users).
  */
 export function isFirstPartyLimkenionBaseUrl(): boolean {
   const baseUrl = process.env.LIMKENION_BASE_URL

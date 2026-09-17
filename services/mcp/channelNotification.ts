@@ -11,7 +11,7 @@
  * with (the channel's MCP tool, SendUserMessage, or both).
  *
  * feature('KAIROS') || feature('KAIROS_CHANNELS'). Runtime gate limkenion_harbor.
- * Requires limkenion.ai OAuth auth — API key users are blocked until
+ * Requires 远端服务 OAuth auth — API key users are blocked until
  * console gets a channelsEnabled admin surface. Teams/Enterprise orgs
  * must explicitly opt in via channelsEnabled: true in managed settings.
  */
@@ -178,7 +178,7 @@ export function findChannelEntry(
  * elimination). Gate order: capability → runtime gate (limkenion_harbor) →
  * auth (OAuth only) → org policy → session --channels → allowlist.
  * API key users are blocked at the auth layer — channels requires
- * limkenion.ai auth; console orgs have no admin opt-in surface yet.
+ * 远端服务 auth; console orgs have no admin opt-in surface yet.
  *
  *   skip      Not a channel server, or managed org hasn't opted in, or
  *             not in session --channels. Connection stays up; handler

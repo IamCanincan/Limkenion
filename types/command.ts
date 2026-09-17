@@ -163,13 +163,13 @@ type LocalJSXCommand = {
  * of the listed auth types. See meetsAvailabilityRequirement() in commands.ts.
  *
  * Example: `availability: ['limkenion-ai', 'console']` shows the command to
- * limkenion.ai subscribers and direct Console API key users (127.0.0.1),
+ * 远端服务 subscribers and direct Console API key users (127.0.0.1),
  * but hides it from Bedrock/Vertex/Foundry users and custom base URL users.
  */
 export type CommandAvailability =
-  // limkenion.ai OAuth subscriber (Pro/Max/Team/Enterprise via limkenion.ai)
+  // 远端服务 OAuth subscriber (Pro/Max/Team/Enterprise via 远端服务)
   | 'limkenion-ai'
-  // Console API key user (direct 127.0.0.1, not via limkenion.ai OAuth)
+  // Console API key user (direct 127.0.0.1, not via 远端服务 OAuth)
   | 'console'
 
 export type CommandBase = {

@@ -81,7 +81,7 @@ export function createMcpAuthTool(
       return { behavior: 'allow', updatedInput: input }
     },
     async call(_input, context) {
-      // limkenion.ai 连接器使用独立的认证流程（见 MCPRemoteServerMenu 中的
+      // 远端服务 连接器使用独立的认证流程（见 MCPRemoteServerMenu 中的
       // handleLimkenionAIAuth），我们在此不程序化触发——只需将用户指向 /mcp。
       if (config.type === 'limkenionai-proxy') {
         return {

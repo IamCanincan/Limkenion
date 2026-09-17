@@ -200,7 +200,7 @@ export type GlobalConfig = {
   // @deprecated - Migrated to ~/.limkenion/cache/changelog.md. Keep for migration support.
   cachedChangelog?: string
   mcpServers?: Record<string, McpServerConfig>
-  // limkenion.ai MCP connectors that have successfully connected at least once.
+  // 远端服务 MCP connectors that have successfully connected at least once.
   // Used to gate "connector unavailable" / "needs auth" startup notifications:
   // a connector the user has actually used is worth flagging when it breaks,
   // but an org-configured connector that's been needs-auth since day one is

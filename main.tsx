@@ -1470,7 +1470,7 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
-    // 提取 Limkenion in Chrome 选项并强制 limkenion.ai 订阅者检查（除非用户是 Ant）
+    // 提取 Limkenion in Chrome 选项并强制 远端服务 订阅者检查（除非用户是 Ant）
     const chromeOpts = options as {
       chrome?: boolean;
     };
@@ -1719,12 +1719,12 @@ async function run(): Promise<CommanderCommand> {
     });
     void assertMinVersion();
 
-    // limkenion.ai 配置获取：仅 -p 模式（交互式使用 useManageMCPConnections
+    // 远端服务 配置获取：仅 -p 模式（交互式使用 useManageMCPConnections
     // 两阶段加载）。在此触发以与 setup() 重叠；在 runHeadless
     // 之前等待，使单轮 -p 能看到连接器。在企业/
     // 严格 MCP 下跳过以保持策略边界。
     const limkenionaiConfigPromise: Promise<Record<string, ScopedMcpServerConfig>> = isNonInteractiveSession && !strictMcpConfig && !doesEnterpriseMcpConfigExist() &&
-    // --bare / SIMPLE：跳过 limkenion.ai 代理服务器（datadog、Gmail、
+    // --bare / SIMPLE：跳过 远端服务 代理服务器（datadog、Gmail、
     // Slack、BigQuery、PubMed——每个连通需 6-14s）。需要 MCP 的脚本化调用
     // 通过 --mcp-config 显式传入。
     !isBareMode() ? fetchLimkenionAIMcpConfigsIfEligible().then(configs => {
@@ -2209,7 +2209,7 @@ async function run(): Promise<CommanderCommand> {
         void refreshPolicyLimits();
         // 在 GrowthBook 刷新前清除用户数据缓存，使其拾取到新凭据
         resetUserCache();
-        // 登录后刷新 GrowthBook 以获取更新的功能标志（例如用于 limkenion.ai MCP 的）
+        // 登录后刷新 GrowthBook 以获取更新的功能标志（例如用于 远端服务 MCP 的）
         refreshGrowthBookAfterAuthChange();
       }
 
@@ -2640,14 +2640,14 @@ async function run(): Promise<CommanderCommand> {
       // 消息和第 1 轮工具列表都需要已配置的 MCP 工具就位。
       // 零服务器情形通过 connectMcpBatch 中的提前返回免费。
       // 连接器在 getMcpToolsCommandsAndResources 内部并行化
-      //（processBatched 与 Promise.all）。limkenion.ai 也会被等待——其
+      //（processBatched 与 Promise.all）。远端服务 也会被等待——其
       // 获取很早被触发（约 2558 行），因此只有残余时间在此阻塞。
-      // --bare 完全跳过 limkenion.ai，以兼顾对性能敏感的脚本。
+      // --bare 完全跳过 远端服务，以兼顾对性能敏感的脚本。
       profileCheckpoint('before_connectMcp');
       await connectMcpBatch(regularMcpConfigs, 'regular');
       profileCheckpoint('after_connectMcp');
-      // 去重：抑制重复 limkenion.ai 连接器的插件 MCP 服务器（连接器优先），
-      // 然后连接 limkenion.ai 服务器。
+      // 去重：抑制重复 远端服务 连接器的插件 MCP 服务器（连接器优先），
+      // 然后连接 远端服务 服务器。
       // 限制等待——#23725 使其阻塞，使单轮 -p 能看到
       // 连接器，但 40+ 个慢连接器把 limkenion_startup_perf p99
       // 抬高到 76s。若获取+连接未能及时完成，则继续；
@@ -2704,10 +2704,10 @@ async function run(): Promise<CommanderCommand> {
             });
           }
         }
-        // 抑制与已启用手动服务器重复的 limkenion.ai 连接器（URL 签名匹配）。
+        // 抑制与已启用手动服务器重复的 远端服务 连接器（URL 签名匹配）。
         // 上面的插件去重只处理 `plugin:*` 键；这会捕获手动的 `.mcp.json` 条目。
         // plugin:* 必须在此排除——第 1 步已抑制
-        // 它们（limkenion.ai 优先）；让它们保留会把连接器的
+        // 它们（远端服务 优先）；让它们保留会把连接器的
         // 抑制也连带掉，二者都活不下来（gh-39974）。
         const nonPluginConfigs = pickBy(regularMcpConfigs, (_, n) => !n.startsWith('plugin:'));
         const {

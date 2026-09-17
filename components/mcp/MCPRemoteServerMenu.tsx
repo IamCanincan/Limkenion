@@ -429,8 +429,7 @@ export function MCPRemoteServerMenu({
             </Box>
           </> : <>
             <Text>
-              This will open limkenion.ai in the browser. Find the MCP server in
-              the list and click &quot;Disconnect&quot;.
+              本构建没有远端服务，无法在浏览器中管理远程 MCP 服务器。
             </Text>
             <Box marginLeft={3} flexDirection="column">
               <Text color="permission">

@@ -766,7 +766,7 @@ export function useManageMCPConnections(
   // Re-runs on session change (/clear) and on /reload-plugins (pluginReconnectKey).
   // On plugin reload, also disconnects stale plugin MCP servers (scope 'dynamic')
   // that no longer appear in configs — prevents ghost tools from disabled plugins.
-  // Skip limkenion.ai dedup here to avoid blocking on the network fetch; the connect
+  // Skip 远端服务 dedup here to avoid blocking on the network fetch; the connect
   // useEffect below runs immediately after and dedups before connecting.
   const sessionId = getSessionId()
   useEffect(() => {
@@ -854,12 +854,12 @@ export function useManageMCPConnections(
   ])
 
   // Load MCP configs and connect to servers
-  // Two-phase loading: Limkenion configs first (fast), then limkenion.ai configs (may be slow)
+  // Two-phase loading: Limkenion configs first (fast), then 远端服务 configs (may be slow)
   useEffect(() => {
     let cancelled = false
 
     async function loadAndConnectMcpConfigs() {
-      // Clear limkenion.ai MCP cache so we fetch fresh configs with current auth
+      // Clear 远端服务 MCP cache so we fetch fresh configs with current auth
       // state. This is important when authVersion changes (e.g., after login/
       // logout). Kick off the fetch now so it overlaps with loadAllPlugins()
       // inside getLimkenionMcpConfigs; it's awaited only at the dedup step.
@@ -873,7 +873,7 @@ export function useManageMCPConnections(
       }
 
       // Phase 1: Load Limkenion configs. Plugin MCP servers that duplicate a
-      // --mcp-config entry or a limkenion.ai connector are suppressed here so they
+      // --mcp-config entry or a 远端服务 connector are suppressed here so they
       // don't connect alongside the connector in Phase 2.
       const { servers: limkenionConfigs, errors: mcpErrors } =
         isStrictMcpConfig
@@ -901,7 +901,7 @@ export function useManageMCPConnections(
         )
       })
 
-      // Phase 2: Await limkenion.ai configs (started above; memoized — no second fetch)
+      // Phase 2: Await 远端服务 configs (started above; memoized — no second fetch)
       let limkenionaiConfigs: Record<string, ScopedMcpServerConfig> = {}
       if (!isStrictMcpConfig) {
         limkenionaiConfigs = filterMcpServersByPolicy(
@@ -909,8 +909,8 @@ export function useManageMCPConnections(
         ).allowed
         if (cancelled) return
 
-        // Suppress limkenion.ai connectors that duplicate an enabled manual server.
-        // Keys never collide (`slack` vs `limkenion.ai Slack`) so the merge below
+        // Suppress 远端服务 connectors that duplicate an enabled manual server.
+        // Keys never collide (`slack` vs `远端服务 Slack`) so the merge below
         // won't catch this — need content-based dedup by URL signature.
         if (Object.keys(limkenionaiConfigs).length > 0) {
           const { servers: dedupedLimkenionAi } = dedupLimkenionAiMcpServers(
@@ -921,7 +921,7 @@ export function useManageMCPConnections(
         }
 
         if (Object.keys(limkenionaiConfigs).length > 0) {
-          // Add limkenion.ai servers as pending immediately so they show up in UI
+          // Add 远端服务 servers as pending immediately so they show up in UI
           setAppState(prevState => {
             const existingServerNames = new Set(
               prevState.mcp.clients.map(c => c.name),

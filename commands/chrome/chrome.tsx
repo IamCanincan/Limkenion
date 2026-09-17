@@ -212,7 +212,7 @@ function LimkenionInChromeMenu(t0) {
   }
   let t8;
   if ($[23] !== isLimkenionAISubscriber) {
-    t8 = true && !isLimkenionAISubscriber && <Text color="error">Limkenion in Chrome requires a limkenion.ai subscription.</Text>;
+    t8 = true && !isLimkenionAISubscriber && <Text color="error">Limkenion in Chrome 需要远端订阅，本构建不可用。</Text>;
     $[23] = isLimkenionAISubscriber;
     $[24] = t8;
   } else {

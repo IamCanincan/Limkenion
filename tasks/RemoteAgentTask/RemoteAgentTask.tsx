@@ -321,7 +321,7 @@ function extractReviewTagFromLog(log: SDKMessage[]): string | null {
  * Enqueue a remote-review completion notification. Injects the review text
  * directly into the message queue so the local model receives it on the next
  * turn — no file indirection, no mode change. Session is kept alive so the
- * limkenion.ai URL stays a durable record the user can revisit; TTL handles cleanup.
+ * 远端服务 URL stays a durable record the user can revisit; TTL handles cleanup.
  */
 function enqueueRemoteReviewNotification(taskId: string, reviewContent: string, setAppState: SetAppState): void {
   if (!markTaskNotified(taskId, setAppState)) return;
@@ -555,7 +555,7 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
       const task = appState.tasks?.[taskId] as RemoteAgentTaskState | undefined;
       if (!task || task.status !== 'running') {
         // Task was killed externally (TaskStopTool) or already terminal.
-        // Session left alive so the limkenion.ai URL stays valid — the run_hunt.sh
+        // Session left alive so the 远端服务 URL stays valid — the run_hunt.sh
         // post_stage() calls land as assistant events there, and the user may
         // want to revisit them after closing the terminal. TTL reaps it.
         return;
@@ -726,7 +726,7 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
         // message queue. No mode change, no file indirection — the local model
         // just sees the review appear as a task-notification on its next turn.
         // Session kept alive — run_hunt.sh's post_stage() has already written
-        // the formatted findings as an assistant event, so the limkenion.ai URL
+        // the formatted findings as an assistant event, so the 远端服务 URL
         // stays a durable record the user can revisit. TTL handles cleanup.
         if (task.isRemoteReview) {
           // cachedReviewContent hit the tag in the delta scan. Full-log scan

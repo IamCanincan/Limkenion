@@ -46,7 +46,7 @@ export type ImportTokenError =
  * 将 GitHub token POST 到 CCR 后端，后端会用 GitHub 的 /user
  * 端点校验它，并以 Fernet 加密形式存入 sync_user_tokens。
  * 存储后的 token 满足与 OAuth token 相同的读取路径，因此
- * 成功后 limkenion.ai/code 中的 clone/push 可立即使用。
+ * 成功后 远端服务 中的 clone/push 可立即使用。
  */
 export async function importGithubToken(
   token: RedactedGithubToken,

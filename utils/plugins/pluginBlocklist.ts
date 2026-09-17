@@ -5,7 +5,7 @@
  * that have been removed, and auto-uninstalls them.
  *
  * The security.json fetch was removed (see #25447) — ~29.5M/week GitHub hits
- * for UI reason/text only. If re-introduced, serve from downloads.limkenion.ai.
+ * for UI reason/text only. If re-introduced, serve from 远端服务
  */
 
 import { uninstallPluginOp } from '../../services/plugins/pluginOperations.js'

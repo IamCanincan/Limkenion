@@ -15,7 +15,7 @@ export interface PreflightCheckResult {
   sslHint?: string;
 }
 async function checkEndpoints(): Promise<PreflightCheckResult> {
-  // Network preflight is a Limkenion-service connectivity check (api.limkenion.com).
+  // Network preflight is a Limkenion-service connectivity check (远端服务).
   // We have intentionally dropped those services, so skip the check entirely:
   // any real connectivity issue will surface when the user actually tries to
   // reach a backend (DeepSeek), and bailing out here only produces an

@@ -269,7 +269,7 @@ export class StructuredIO {
 
   /**
    * 注入一条 control_response 消息以解析某个挂起的权限请求。
-   * 由网桥用来把来自 limkenion.ai 的权限响应喂入 SDK 权限流程。
+   * 由网桥用来把来自 远端服务 的权限响应喂入 SDK 权限流程。
    *
    * 同时向 SDK 消费方发送一条 control_cancel_request，以便其 canUseTool
    * 回调通过信号被中止——否则该回调会一直挂起。
@@ -304,7 +304,7 @@ export class StructuredIO {
 
   /**
    * 注册一个在 can_use_tool 控制请求被写入 stdout 时触发的回调。
-   * 网桥用它把权限请求转发到 limkenion.ai。
+   * 网桥用它把权限请求转发到 远端服务。
    */
   setOnControlRequestSent(
     callback: ((request: SDKControlRequest) => void) | undefined,
@@ -314,7 +314,7 @@ export class StructuredIO {
 
   /**
    * 注册一个在 SDK 消费方（经 stdin）返回 can_use_tool 的 control_response
-   * 时触发的回调。网桥用它来在 SDK 消费方赢得竞速时取消 limkenion.ai 上
+   * 时触发的回调。网桥用它来在 SDK 消费方赢得竞速时取消 远端服务 上
    * 已过期的权限提示。
    */
   setOnControlRequestResolved(
@@ -391,7 +391,7 @@ export class StructuredIO {
         this.trackResolvedToolUseId(request.request)
         this.pendingRequests.delete(message.response.request_id)
         // 在 SDK 消费方解析 can_use_tool 请求时通知网桥，以便它取消
-        // limkenion.ai 上已过期的权限提示。
+        // 远端服务 上已过期的权限提示。
         if (
           request.request.request.subtype === 'can_use_tool' &&
           this.onControlRequestResolved

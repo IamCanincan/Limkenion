@@ -360,12 +360,12 @@ function handleRemoteAuthFailure(
 }
 
 /**
- * Fetch wrapper for limkenion.ai proxy connections. Attaches the OAuth bearer
+ * Fetch wrapper for 远端服务 proxy connections. Attaches the OAuth bearer
  * token and retries once on 401 via handleOAuth401Error (force-refresh).
  *
  * The Limkenion API path has this retry (withRetry.ts, grove.ts) to handle
  * memoize-cache staleness and clock drift. Without the same here, a single
- * stale token mass-401s every limkenion.ai connector and sticks them all in the
+ * stale token mass-401s every 远端服务 connector and sticks them all in the
  * 15-min needs-auth cache.
  */
 export function createLimkenionAiProxyFetch(innerFetch: FetchLike): FetchLike {

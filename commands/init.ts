@@ -22,7 +22,7 @@ const OLD_INIT_PROMPT = `请分析此代码库并创建一份 LIMKENION.md 文�
 \`\`\`
 # LIMKENION.md
 
-This file provides guidance to Limkenion (limkenion.ai/code) when working with code in this repository.
+This file provides guidance to Limkenion when working with code in this repository.
 \`\`\``
 
 const NEW_INIT_PROMPT = `为当前仓库搭建一份精简的 LIMKENION.md（并可选择搭配 skills 与 hooks）。LIMKENION.md 会被加载进每一个 Limkenion 会话中，因此必须保持简洁——只包含缺少它 Limkenion 就会犯错的内容。
@@ -125,7 +125,7 @@ const NEW_INIT_PROMPT = `为当前仓库搭建一份精简的 LIMKENION.md（并
 \`\`\`
 # LIMKENION.md
 
-This file provides guidance to Limkenion (limkenion.ai/code) when working with code in this repository.
+This file provides guidance to Limkenion when working with code in this repository.
 \`\`\`
 
 如果 LIMKENION.md 已存在：阅读它，提出具体的改动（以 diff 形式），并解释每项改动为何能改进它。不要静默覆盖。

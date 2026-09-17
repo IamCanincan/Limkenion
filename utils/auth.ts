@@ -113,7 +113,7 @@ export function isLimkenionAuthEnabled(): boolean {
 
   // OpenAI-compatible provider (DeepSeek etc.): authenticated purely by API
   // key, so skip anything tied to Limkenion OAuth — the login-method picker
-  // and the connectivity preflight against api.limkenion.com are both
+  // and the connectivity preflight against 远端服务 are both
   // meaningless here.
   if (isOpenAICompat()) return false
 

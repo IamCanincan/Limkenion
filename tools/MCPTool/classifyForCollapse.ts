@@ -46,11 +46,11 @@ const SEARCH_TOOLS = new Set([
   'find_dsns',
   // Notion（mcp.notion.com — kebab-case 形式，已归一化）
   'search',
-  // Gmail（limkenion.ai 托管版）
+  // Gmail（远端服务 托管版）
   'gmail_search_messages',
-  // Google Drive（limkenion.ai 托管版 + @modelcontextprotocol/server-gdrive）
+  // Google Drive（远端服务 托管版 + @modelcontextprotocol/server-gdrive）
   'google_drive_search',
-  // Google Calendar（limkenion.ai 托管版）
+  // Google Calendar（远端服务 托管版）
   'gcal_find_my_free_time',
   'gcal_find_meeting_times',
   'gcal_find_user_emails',
@@ -84,7 +84,7 @@ const SEARCH_TOOLS = new Set([
   // Stripe
   'search_stripe_resources',
   'search_stripe_documentation',
-  // PubMed（limkenion.ai 托管版 + 社区版）
+  // PubMed（远端服务 托管版 + 社区版）
   'search_articles',
   'find_related_articles',
   'lookup_article_by_citation',
@@ -256,16 +256,16 @@ const READ_TOOLS = new Set([
   'get_comments',
   'get_users',
   'get_self',
-  // Gmail（limkenion.ai 托管版）
+  // Gmail（远端服务 托管版）
   'gmail_get_profile',
   'gmail_read_message',
   'gmail_read_thread',
   'gmail_list_drafts',
   'gmail_list_labels',
-  // Google Drive（limkenion.ai 托管版 + @modelcontextprotocol/server-gdrive）
+  // Google Drive（远端服务 托管版 + @modelcontextprotocol/server-gdrive）
   'google_drive_fetch',
   'google_drive_export',
-  // Google Calendar（limkenion.ai 托管版）
+  // Google Calendar（远端服务 托管版）
   'gcal_list_calendars',
   'gcal_list_events',
   'gcal_get_event',
@@ -450,7 +450,7 @@ const READ_TOOLS = new Set([
   'list_coupons',
   'list_disputes',
   'fetch_stripe_resources',
-  // PubMed（limkenion.ai 托管版 + 社区版）
+  // PubMed（远端服务 托管版 + 社区版）
   'get_article_metadata',
   'get_full_text_article',
   'convert_article_ids',
@@ -466,7 +466,7 @@ const READ_TOOLS = new Set([
   'pubmed_spell',
   'pubmed_cite',
   'pubmed_related',
-  // BigQuery（limkenion.ai 托管版 + 社区版）
+  // BigQuery（远端服务 托管版 + 社区版）
   'bigquery_query',
   'bigquery_schema',
   'list_dataset_ids',

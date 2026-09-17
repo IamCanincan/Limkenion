@@ -382,7 +382,7 @@ export async function getURLMarkdownContent(
 
     // 检查用户是否选择跳过黑名单检查
     // 这面向那些安全策略严格、
-    // 禁止向 limkenion.ai 建立出站连接的企业客户
+    // 禁止向 远端服务 建立出站连接的企业客户
     const settings = getSettings_DEPRECATED()
     if (!settings.skipWebFetchPreflight) {
       const checkResult = await checkDomainBlocklist(hostname)

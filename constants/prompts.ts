@@ -117,11 +117,10 @@ export const SYSTEM_PROMPT_DYNAMIC_BOUNDARY =
 // @[MODEL LAUNCH]: Update the latest frontier model.
 const FRONTIER_MODEL_NAME = 'DeepSeek V4 Pro'
 
-// @[MODEL LAUNCH]: Update the model family IDs below to the latest in each tier.
-const LIMKENION_4_5_OR_4_6_MODEL_IDS = {
-  opus: 'limkenion-opus-4-6',
-  sonnet: 'limkenion-sonnet-4-6',
-  haiku: 'limkenion-haiku-4-5-20251001',
+// @[MODEL LAUNCH]: 新增模型时更新下面的模型 ID。
+const LIMKENION_MODEL_IDS = {
+  pro: 'deepseek-v4-pro',
+  flash: 'deepseek-flash',
 }
 
 function getHooksSection(): string {
@@ -646,8 +645,8 @@ export async function computeSimpleEnvInfo(
     `OS Version: ${unameSR}`,
     modelDescription,
     knowledgeCutoffMessage,
-    `The most recent Limkenion model family is Limkenion 4.5/4.6. Model IDs — Opus 4.6: '${LIMKENION_4_5_OR_4_6_MODEL_IDS.opus}', Sonnet 4.6: '${LIMKENION_4_5_OR_4_6_MODEL_IDS.sonnet}', Haiku 4.5: '${LIMKENION_4_5_OR_4_6_MODEL_IDS.haiku}'. When building AI applications, default to the latest and most capable Limkenion models.`,
-    `Limkenion is available as a CLI in the terminal, desktop app (Mac/Windows), web app (limkenion.ai/code), and IDE extensions (VS Code, JetBrains).`,
+    `The available models are DeepSeek V4 Pro ('${LIMKENION_MODEL_IDS.pro}') for the hardest reasoning and DeepSeek Flash ('${LIMKENION_MODEL_IDS.flash}') for everyday work. DeepSeek Flash is the default.`,
+    `Limkenion is available as a CLI in the terminal, a local web UI (start it with /web), and IDE extensions (VS Code, JetBrains).`,
     `Fast mode for Limkenion uses the same ${FRONTIER_MODEL_NAME} model with faster output. It does NOT switch to a different model. It can be toggled with /fast.`,
   ].filter(item => item !== null)
 

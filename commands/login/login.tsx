@@ -31,7 +31,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
       void refreshPolicyLimits();
       // 在 GrowthBook 刷新之前清除用户数据缓存，以便其读取到新的凭据
       resetUserCache();
-      // 登录后刷新 GrowthBook 以获取更新的功能开关（例如用于 limkenion.ai 的 MCP）
+      // 登录后刷新 GrowthBook 以获取更新的功能开关（例如用于 远端服务 的 MCP）
       refreshGrowthBookAfterAuthChange();
       // 重置 killswitch 门禁检查并以新组织重新运行
       resetBypassPermissionsCheck();

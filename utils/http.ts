@@ -52,7 +52,7 @@ export function getMCPUserAgent(): string {
 // User-Agent for WebFetch requests to arbitrary sites. `Limkenion-User` is
 // Limkenion's publicly documented agent for user-initiated fetches (what site
 // operators match in robots.txt); the limkenion suffix lets them distinguish
-// local CLI traffic from limkenion.ai server-side fetches.
+// local CLI traffic from 远端服务 server-side fetches.
 export function getWebFetchUserAgent(): string {
   return `Limkenion-User (${getLimkenionUserAgent()}; +)`
 }

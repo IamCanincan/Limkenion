@@ -10,7 +10,7 @@ const LIMKENIONAI_SERVER_PREFIX = 'limkenion.ai '
  * Normalize server names to be compatible with the API pattern ^[a-zA-Z0-9_-]{1,64}$
  * Replaces any invalid characters (including dots and spaces) with underscores.
  *
- * For limkenion.ai servers (names starting with "limkenion.ai "), also collapses
+ * For 远端服务 servers (names starting with "远端服务 "), also collapses
  * consecutive underscores and strips leading/trailing underscores to prevent
  * interference with the __ delimiter used in MCP tool names.
  */

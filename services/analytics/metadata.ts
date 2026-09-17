@@ -93,7 +93,7 @@ export function isToolDetailsLoggingEnabled(): boolean {
  *
  * Per go/taxonomy, MCP names are medium PII. We log them for:
  * - Cowork (entrypoint=local-agent) — no ZDR concept, log all MCPs
- * - limkenion.ai-proxied connectors — always official (from limkenion.ai's list)
+ * - 远端服务 connectors — always official (from 远端服务's list)
  * - Servers whose URL matches the official MCP registry — directory
  *   connectors added via `limkenion mcp add`, not customer-specific config
  *
