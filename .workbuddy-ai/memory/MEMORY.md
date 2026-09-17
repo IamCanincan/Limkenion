@@ -117,6 +117,31 @@ Desktop 交付（`components/DesktopHandoff.tsx`、`utils/desktopDeepLink.ts`）
 - `opusplan` / `sonnetplan` / `haiku` 别名 → 从别名表移除（13 处）
 - `seven_day_opus` / `seven_day_sonnet` 限流键、`migrateSonnet*` 迁移函数 → 纯服务端概念，删除
 
+### 命令级处置清单（2026-09-17 核实）
+**① 早就禁用了（`isEnabled: () => false`），只剩残留要清**
+`/teleport`、`/ant-trace`、`/bughunter`、`/backfill-sessions`、`/mock-limits`、
+`/reset-limits`、`/perf-issue`、`/issue` —— 这些不是"要失去的功能"，本来就没有。
+
+**② 当前仍启用、但真依赖不存在的服务（按功能处置就是这些会消失）**
+`/chrome`（Chrome 扩展 + 订阅）、`/desktop`（Desktop 应用）、`/mobile`（App Store 上的 iOS App）、
+`/passes`（guest passes）、`/stickers`（stickermule 周边）、`/usage`（套餐用量）、
+`/extra-usage`（limkenion.ai 计费）、`/privacy-settings`（账号隐私设置）、
+`/remote-env`（teleport 远程环境）、`/feedback`（fedstart 调查）、`/install-slack-app`、
+`/think-back`（从 GitHub 拉插件市场）、`/install-github-app`、`/review` 的 ultrareview
+（余额/超额计费）、`/release-notes`（从 GitHub 拉 CHANGELOG）。
+
+**③ 千万别误删 —— 功能是本地能力，只是带了个文档链接**
+- **`/web` 是本地 Web UI 服务器**（`http://localhost:${port}`），是本仓库 `web/` 交付物的一部分，
+  **必须保留**。
+- `/fast`（fast 模式）、`/memory` —— 只是 "Learn more: <Link>"，删链接即可。
+- `/ide` —— IDE 集成本地可用；只有 JetBrains 插件下载链接指向不存在的 docs。
+- `/mcp` —— 本地 MCP 保留；只有远程 MCP 代理（`mcp-proxy.limkenion.com`）没了。
+
+**④ 非命令的云端依赖**
+遥测/错误上报（sentry、Statsig/GrowthBook 功能开关）、官方插件市场自动安装（已默认关闭）、
+远程 agent 调度（`skills/bundled/scheduleRemoteAgents`）、GitHub Action（`.github/workflows`）、
+内部构建端点（`artifactory.infra.ant.dev`）。
+
 ## 项目性质
 `D:\Github Repositories\Limkenion` 是一个 **CLI（Limkenion 终端 REPL）+ web 界面** 的双端 agent harness。
 
