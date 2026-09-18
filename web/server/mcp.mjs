@@ -1113,6 +1113,18 @@ export function hasConfigFileHint() {
 }
 
 /**
+ * 为指定服务器发起 OAuth 授权流程（发现 → 注册 → 浏览器授权 → 回调换 token）。
+ * @param {string} serverName 服务器名（mcpServers 的键）
+ */
+export async function mcpAuthFlow(serverName) {
+  const conn = [...connections.values()].find(k => k.name === serverName)
+  if (!conn) throw new Error(`没有名为「${serverName}」的 MCP 服务器`)
+  const token = await bearerFor(serverName).catch(() => null)
+  if (token) return `「${serverName}」已持有有效凭证，无需重新授权。`
+  return startAuthorization({ name: serverName, url: conn.cfg?.url })
+}
+
+/**
  * 取 MCP 服务器的提示词模板（prompts/get），消息内容拼成文本返回。
  * @param {string} serverName 服务器名（mcpServers 的键）
  * @param {string} name 模板名

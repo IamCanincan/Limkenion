@@ -245,7 +245,7 @@ const TERMINAL_ONLY = {
   'remote-env': '远端环境属于 CLI 托管能力',
   'remote-setup': '远端配置属于 CLI 托管能力',
   'remote-control-server': '远端控制服务属于 CLI 托管能力',
-  'add-dir': 'web 端沙箱固定为工作区根（LIMKENION_WEB_WORKSPACE）',
+  'add-dir': '追加目录暂未实现；web 端用 /cwd 收窄工作区根',
   // 注意：这个命令在 commands/sandbox-toggle/index.ts 里，但 name 是 'sandbox'。
   // 原来这里只写了 'sandbox-toggle'，键名对不上，于是 /sandbox 会落到
   // 兜底的"CLI 终端专属（描述）"上，说明不够准确。两个键都留着。
@@ -260,8 +260,6 @@ const TERMINAL_ONLY = {
   'terminal-setup': '需要写入终端配置文件',
   'reload-plugins': '插件加载在 CLI 进程内',
   plugin: '插件管理写入 CLI 配置，web 端只读展示',
-  mcp: 'MCP 客户端未在 web 服务端挂载',
-  hooks: 'hooks 由 CLI 进程执行',
   commit: '需要 git 仓库（当前工作区未初始化 git）',
   'commit-push-pr': '需要 git 仓库与 GitHub 凭证',
   'autofix-pr': '需要 GitHub CLI 凭证',
@@ -281,7 +279,6 @@ const TERMINAL_ONLY = {
   'ant-trace': '内部诊断命令',
   ant: '内部诊断命令',
   'backfill-sessions': '会话回填属于 CLI 存储维护',
-  rewind: '会话回溯依赖 CLI 的检查点机制',
   doctor: 'CLI 环境体检；web 端可用 /status 查看服务状态',
   feedback: '反馈通道由 CLI 上报',
   'perf-issue': '性能问题上报由 CLI 上报',

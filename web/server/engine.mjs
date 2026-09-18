@@ -48,7 +48,7 @@ function fireNoticeHooks(text) {
 import { autoCompactThreshold, compactSession } from './compact.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
-import { callMcpTool, listMcpResources, readMcpResource, getMcpPrompt, mcpRegistrySearch } from './mcp.mjs'
+import { callMcpTool, listMcpResources, readMcpResource, getMcpPrompt, mcpRegistrySearch, mcpAuthFlow } from './mcp.mjs'
 import { runWorkflow } from './workflow.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
@@ -272,6 +272,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     listMcpResources: server => listMcpResources(server),
     readMcpResource: (server, uri) => readMcpResource(server, uri),
     getMcpPrompt: (server, name, args) => getMcpPrompt(server, name, args),
+    mcpAuthFlow: name => mcpAuthFlow(name),
     mcpRegistrySearch: query => mcpRegistrySearch(query),
     // 动态工作流：脚本里的每个 agent() 派一个**只读子代理**（与 Agent 工具同一套机制，
     // 所以只读保证、轮次上限、事件标记都一致）。并发与预算在 workflow.mjs 里控制。

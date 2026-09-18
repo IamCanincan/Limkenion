@@ -10,7 +10,7 @@
  *   流程类   PlanEnter / PlanExit / AskUserQuestion / Sleep / CronCreate
  *            / EnterWorktree / ExitWorktree
  *   配置类   Config / Skill / ToolSearch / StructuredOutput
- *   降级类   LSP / MCPTool / ListMcpResourcesTool / ReadMcpResource / McpAuth / RemoteTrigger
+ *   MCP 类    mcp / ListMcpResourcesTool / ReadMcpResource / McpAuth / McpPrompt / McpRegistrySearch
  *
  * 所有文件工具都限制在**会话的沙箱根**内（可以随 EnterWorktree 变化，见 paths.mjs）。
  * 默认根：LIMKENION_WEB_WORKSPACE（默认 CLI 源码根目录）。
@@ -830,6 +830,16 @@ async function toolWebSearch({ query, allowed_domains, blocked_domains }, ctx) {
 // ---------------------------------------------------------------------------
 // 协作类工具
 // ---------------------------------------------------------------------------
+
+/**
+ * McpAuth：为指定服务器发起 OAuth 授权（生成链接 + 自动开浏览器 + 回调换 token）。
+ * 此前这里是一个失真的降级桩 —— OAuth 流程早在第 20 轮就实现了。
+ */
+async function toolMcpAuth(input, ctx) {
+  const server = requireText(input?.server, 'server', 'MCP 服务器名，例如 {"server": "github"}')
+  if (typeof ctx?.mcpAuthFlow !== 'function') throw new Error('当前服务端未挂载 MCP 授权执行器（ctx.mcpAuthFlow 缺失）')
+  return ctx.mcpAuthFlow(server)
+}
 
 async function toolMcpPrompt(input, ctx) {
   const server = requireText(input?.server, 'server', 'MCP 服务器名，例如 {"server": "github"}')
@@ -2012,23 +2022,7 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'LSP',
-      description: '语言服务能力（跳转定义/引用/诊断）。web 沙箱内未挂载 LSP 服务，调用会返回不可用说明。',
-      parameters: {
-        type: 'object',
-        properties: {
-          operation: { type: 'string' },
-          filePath: { type: 'string' },
-          line: { type: 'number' },
-          character: { type: 'number' },
-        },
-        required: ['operation'],
-      },
-    },
-  },
+
   {
     type: 'function',
     function: {
@@ -2101,22 +2095,6 @@ export const TOOL_SCHEMAS = [
         'MCP 服务器鉴权。web 端没有 OAuth 回调流程，此工具不可用 —— 需要凭证的服务器请在 ' +
         'mcpServers 配置里用 headers 传固定 token。',
       parameters: { type: 'object', properties: { server: { type: 'string' } }, required: ['server'] },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'RemoteTrigger',
-      description: '触发远端会话/流水线。web 端无远端基础设施，调用会返回不可用说明。',
-      parameters: {
-        type: 'object',
-        properties: {
-          action: { type: 'string' },
-          trigger_id: { type: 'string' },
-          body: { type: 'object' },
-        },
-        required: ['action'],
-      },
     },
   },
   {
@@ -2273,15 +2251,13 @@ export async function executeTool(rawName, input, ctx) {
     case 'ToolSearch': return toolToolSearch(input, ctx)
     case 'StructuredOutput': return toolStructuredOutput(input)
     // 降级
-    case 'LSP': return degraded('未挂载语言服务器，无法提供跳转/引用/诊断')()
     // MCP：真实现（见 mcp.mjs）。发现的工具是 mcp__server__tool 形式，走下面的前缀分支。
     case 'mcp': return toolMcpGeneric(input, ctx)
     case 'McpPrompt': return toolMcpPrompt(input, ctx)
     case 'McpRegistrySearch': return toolMcpRegistrySearch(input, ctx)
     case 'ListMcpResourcesTool': return toolListMcpResources(input, ctx)
     case 'ReadMcpResource': return toolReadMcpResource(input, ctx)
-    case 'McpAuth': return degraded('web 端没有 OAuth 回调流程；需要凭证请在 mcpServers 里配 headers')()
-    case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')()
+    case 'McpAuth': return toolMcpAuth(input, ctx)
     case 'EnterWorktree': return toolEnterWorktree(input, session)
     case 'ExitWorktree': return toolExitWorktree(input, session)
     case 'Workflow': return toolWorkflow(input, ctx)

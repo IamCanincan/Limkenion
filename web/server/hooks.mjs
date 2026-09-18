@@ -4,13 +4,11 @@
  * CLI 的 `utils/hooks/` 是 17 个文件 / 3600 行、27 种事件、4 种执行方式
  * （command / prompt / agent / http）的子系统。web 端这里实现的是**能真用起来的子集**：
  *
- *   ✅ 事件：tool-before / tool-after / tool-failed / prompt-submit /
- *           session-open / session-close / turn-end / agent-end
- *   ✅ 执行方式：command（本地跑命令，stdin 收 JSON、stdout 回 JSON）
- *   ❌ 其余 19 种事件、prompt / agent / http 三种执行方式 —— **如实列出来，不假装支持**
+ *   ✅ 事件：CLI 契约的 27 个事件全部接线（HOOK_EVENTS_UNSUPPORTED 为空）
+ *   ✅ 执行方式：command / prompt / agent / http 四种全实现
+ *      （prompt/agent 走会话默认模型做 JSON 判定；http 带 SSRF 防护：
+ *       禁私网/链路本地地址、不跟随重定向、环回放行）
  *
- * 为什么不做 http：它要配 SSRF 防护（CLI 有独立的 `ssrfGuard.ts`），
- * 半做等于给用户一个能被内网打穿的入口。
  *
  * ## 协议（与 CLI 对齐，别自己发明）
  *
