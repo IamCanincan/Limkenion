@@ -120,9 +120,9 @@ async function main(): Promise<void> {
     } = await import('../utils/sinks.js');
     initSinks();
     const {
-      daemonMain
-    } = await import('../daemon/main.js');
-    await daemonMain(args.slice(1));
+      daemonFastMain
+    } = await import('../daemon/backgroundDaemon.js');
+    await daemonFastMain(args.slice(1));
     return;
   }
 
