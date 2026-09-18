@@ -323,10 +323,10 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       // 设置里的 deny、shell 守卫的硬拦截，也不能绕过 escalate（见 needsPermission）。
       let hookVerdict = null
       if (hooksEnabled()) {
-        hookVerdict = await runEventHooks('PreToolUse', {
+        hookVerdict = await runToolHooksScoped(session, 'PreToolUse', () => ({
           toolName: tc.name,
           hookInput: toolHookInput(session, tc.name, input),
-        })
+        }))
         for (const m of hookVerdict.messages) emit({ type: 'notice', text: m })
         if (hookVerdict.updatedInput) {
           input = hookVerdict.updatedInput
@@ -449,7 +449,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       let result
       let diff
       try {
-        const raw = await executeTool(tc.name, input, ctx)
+        const raw = await runToolScoped(session, tc.name, input, ctx)
         const normalized = normalizeToolResult(raw)
         result = normalized.text
         diff = normalized.diff
@@ -471,10 +471,10 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       // 这样"格式检查失败"这类钩子能让模型看到具体哪里不对，而不是一句笼统的报错。
       if (hooksEnabled()) {
         const postEvent = ok ? 'PostToolUse' : 'PostToolUseFailure'
-        const post = await runEventHooks(postEvent, {
+        const post = await runToolHooksScoped(session, postEvent, () => ({
           toolName: tc.name,
           hookInput: toolHookInput(session, tc.name, input, { tool_result: result }),
-        })
+        }))
         for (const m of post.messages) emit({ type: 'notice', text: m })
         if (post.additionalContext) {
           result = `${result}\n\n[${postEvent} 钩子附加]\n${post.additionalContext}`
@@ -604,7 +604,7 @@ async function runSubAgent(session, prompt, description, emit, expired) {
       let ok = true
       let result
       try {
-        result = normalizeToolResult(await executeTool(tc.name, input, ctx)).text
+        result = normalizeToolResult(await runToolScoped(session, tc.name, input, ctx)).text
       } catch (err) {
         ok = false
         result = '工具执行失败：' + String(err.message ?? err)
@@ -670,6 +670,38 @@ async function runAgentTurn(session, text, emit, expired, hookContext) {
 function sessionScope(session) {
   const base = scopeForSession(session)
   return { root: base.root, additions: [...additionalDirectories(), ...base.additions] }
+}
+
+/**
+ * 在**当前**会话作用域里执行一次工具调用。
+ *
+ * 关键：作用域要**每次调用重新解析**，不能在回合开头算一次用到回合结束。
+ * `EnterWorktree` 会把 `session.workspaceRoot` 换掉，而 AsyncLocalStorage 里
+ * 已经进入的那层作用域**不会自己更新** —— 结果是"模型说进入了 worktree，
+ * 紧跟着的 Write 却还写在原来的树上"（真机实测到：文件落在主仓库，worktree 里是空的，
+ * 而 EnterWorktree 自己报成功，用户完全看不出来）。
+ *
+ * 每次调用重新进入作用域，切换在**同一回合内**立即生效 —— 这既是模型与用户的直觉，
+ * 也是 CLI 的行为（那边 EnterWorktree 之后 cwd 立刻就变了）。
+ */
+function runToolScoped(session, name, input, ctx) {
+  return withWorkspace(sessionScope(session), () => executeTool(name, input, ctx))
+}
+
+/**
+ * 跑**工具相关**的钩子（PreToolUse / PostToolUse / PostToolUseFailure）。
+ *
+ * 两件事都必须在**当前**作用域里发生，缺一不可：
+ *   1. 钩子进程的 cwd；2. **钩子输入 JSON 里的 `cwd` 字段**。
+ *
+ * 第 2 点尤其容易写错：`hookInput` 里带了 `cwd`，如果把它当实参在外面先构造好
+ * （`runToolHooksScoped(session, ev, { hookInput: toolHookInput(...) })`），
+ * 它就在**进作用域之前**求值了 —— 于是 `EnterWorktree` 之后钩子进程确实在新目录里跑，
+ * 但它在 stdin 里读到的 `cwd` 还是老目录。那种"两处说法不一致"最难查。
+ * 所以这里收的是**构造函数**，等进了作用域再调用。
+ */
+function runToolHooksScoped(session, event, buildOpts) {
+  return withWorkspace(sessionScope(session), () => runEventHooks(event, buildOpts()))
 }
 
 /**

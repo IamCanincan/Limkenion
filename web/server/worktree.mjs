@@ -166,13 +166,33 @@ export async function enterWorktree(session, name) {
 
 /**
  * 退出 worktree：把沙箱根还原，并按需移除目录。
+ *
+ * `discardChanges` 与 CLI 的 `discard_changes` 同义：**只有它显式为 true 才允许
+ * 丢弃未提交的改动**。默认（false）时如果目录是脏的，就**拒绝移除**并把要丢的东西列出来
+ * —— 原来没有这个参数，于是脏 worktree 根本无法通过工具清理（只剩"自己敲 git 命令"
+ * 这条路），模型会反复重试 remove 而每次都失败。
+ *
+ * @param {object} session
+ * @param {boolean} remove action === 'remove'
+ * @param {boolean} discardChanges 是否允许丢弃未提交改动
  * @returns {Promise<{action: 'keep'|'remove', message: string}>}
  */
-export async function exitWorktree(session, remove) {
+export async function exitWorktree(session, remove, discardChanges = false) {
   const current = currentWorktree(session)
   if (!current) throw new Error('当前会话不在任何 worktree 里')
 
+  // **先还原沙箱根，再决定目录怎么处理。**
+  // 顺序很重要：任何一条分支提前 return，都必须已经还原过 ——
+  // 否则会出现"工具说已退出，会话其实还卡在 worktree 里"，
+  // 而 worktree 目录可能刚被删掉，之后所有文件工具都在一个不存在的根上工作。
+  // 还原成「默认根」用 null 表示（与会话对象的字段形状一致：blankSession 里就是 null）。
+  // 不要用 delete —— 那会让字段变成 undefined，落盘/前端判断时又要多一处特例。
+  const restored = current.base ?? null
+  session.workspaceRoot = restored
+  session.worktree = null
+
   const repoRoot = await repoRootOf(current.path)
+  const backTo = toPosix(restored ?? repoRoot ?? workspaceRoot())
   let action = 'keep'
   const notes = []
 
@@ -180,31 +200,52 @@ export async function exitWorktree(session, remove) {
     if (!repoRoot) {
       notes.push('找不到主仓库，保留目录（请手动清理）。')
     } else {
-      // 不带 --force：有未提交改动时 git 会拒绝，这正是我们要的 —— 不能悄悄丢用户的东西
-      const rm = await git(['worktree', 'remove', current.path], repoRoot)
+      // 先看这棵树脏不脏：有未提交改动 / 未合并提交时**不能默默丢掉**。
+      // 这一步是"拒绝"与"--force"的分水岭，所以要在动手之前做。
+      let dirty = []
+      if (!discardChanges) {
+        const status = await git(['status', '--porcelain'], current.path)
+        const unmerged = await git(['log', '--oneline', 'HEAD', '--not', '--remotes', '--branches'], current.path)
+        if (status.ok && status.stdout) {
+          const lines = status.stdout.split('\n').filter(Boolean)
+          dirty.push(`${lines.length} 个未提交改动（如 ${lines.slice(0, 3).join('、')}${lines.length > 3 ? ' …' : ''}）`)
+        }
+        if (unmerged.ok && unmerged.stdout) {
+          const n = unmerged.stdout.split('\n').filter(Boolean).length
+          dirty.push(`${n} 个未合并提交`)
+        }
+      }
+
+      if (dirty.length > 0) {
+        return {
+          action: 'keep',
+          message:
+            `已退出 worktree（沙箱根还原为 ${backTo}），但**目录没有删除**：` +
+            `这棵树里有 ${dirty.join('、')}，删掉就永久没了。\n` +
+            `目录保留在 ${toPosix(current.path)}（分支 ${current.branch}）。\n` +
+            '确认要丢弃这些改动，再用 action:"remove" 且 discard_changes:true 重试；' +
+            '想先看看改了什么，可以在进入 worktree 后用 /diff。',
+        }
+      }
+
+      // 带 --force 只在调用方显式确认（discard_changes: true）后才用
+      const args = ['worktree', 'remove', current.path, ...(discardChanges ? ['--force'] : [])]
+      const rm = await git(args, repoRoot)
       if (rm.ok) {
         action = 'remove'
-        notes.push('目录已移除。')
+        notes.push(discardChanges ? '目录已强制移除（未提交的改动已丢弃）。' : '目录已移除。')
         const del = await git(['branch', '-D', current.branch], repoRoot)
         if (!del.ok) notes.push(`分支 ${current.branch} 未删除：${del.stderr || del.error}`)
       } else {
-        notes.push(
-          `目录未移除（git worktree remove 失败，通常是有未提交的改动 —— 不替你丢东西）：` +
-            `${rm.stderr || rm.error}`,
-        )
+        notes.push(`目录未移除（git worktree remove 失败）：${rm.stderr || rm.error}`)
       }
     }
   }
 
-  // 还原成「默认根」用 null 表示（与会话对象的字段形状一致：blankSession 里就是 null）。
-  // 不要用 delete —— 那会让字段变成 undefined，落盘/前端判断时又要多一处特例。
-  session.workspaceRoot = current.base ?? null
-  session.worktree = null
-
   return {
     action,
     message:
-      `已退出 worktree。沙箱根还原为：${toPosix(session.workspaceRoot ?? repoRoot ?? workspaceRoot())}\n` +
+      `已退出 worktree。沙箱根还原为：${backTo}\n` +
       (action === 'keep'
         ? `目录保留在 ${toPosix(current.path)}（分支 ${current.branch}），可以之后再进来。`
         : `已清理 ${toPosix(current.path)}。`) +

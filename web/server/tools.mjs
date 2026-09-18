@@ -97,8 +97,27 @@ function truncate(text, limit = MAX_OUTPUT_CHARS) {
   )
 }
 
-/** diff 体积上限：超大 diff 只保留摘要，避免撑爆 WS 帧与会话内存。 */
-function capDiff(diff) {
+/**
+ * 必填字符串参数的校验。
+ *
+ * **每个工具都要自己校验一遍**，这不是形式主义：模型忘参数是常态（尤其第一轮），
+ * 而漏校验的后果不止"少一句报错"：
+ *   - `Bash` / `PowerShell` 会把 `undefined` 当命令**真的去执行**，回来一串
+ *     "undefined 不是内部或外部命令"，模型得再花一轮才反应过来；
+ *   - `TodoWrite` 会先把 `session.todos` 写坏（变成 undefined）再抛错，状态被污染；
+ *   - `SendMessage` 会回一句"已记录消息 → ："，让模型**以为成功了**；
+ *   - `Glob` / `TodoWrite` 直接抛 `TypeError: Cannot read properties of undefined`
+ *     —— 这种原始 JS 异常对模型完全没有可操作性。
+ * 宁可抛一句能照着改的错。
+ */
+function requireText(value, label, hint) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`缺少 ${label} 参数${hint ? `：${hint}` : ''}`)
+  }
+  return value
+}
+
+/** diff 体积上限：超大 diff 只保留摘要，避免撑爆 WS 帧与会话内存。 */function capDiff(diff) {
   if (diff.length <= MAX_DIFF_CHARS) return diff
   return (
     diff.slice(0, MAX_DIFF_CHARS) +
@@ -469,6 +488,7 @@ async function toolGrep({ pattern, path, glob, head_limit, offset, output_mode, 
 }
 
 async function toolGlob({ pattern, path }) {
+  requireText(pattern, 'pattern', '例如 {"pattern": "**/*.ts"}（`*` 不跨目录，`**` 跨目录）')
   const re = globToRegExp(pattern)
   const files = await collectFiles(path ? safePath(path) : undefined)
   const hits = files.map(f => rel(f)).filter(f => re.test(f)).slice(0, 200)
@@ -504,10 +524,12 @@ function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
 }
 
 async function toolBash({ command }) {
+  requireText(command, 'command', 'Bash 需要一条要执行的命令，例如 {"command": "ls -la"}')
   return truncate(`$ ${command}\n\n${await execShell(command)}`)
 }
 
 async function toolPowerShell({ command }) {
+  requireText(command, 'command', 'PowerShell 需要一条要执行的命令，例如 {"command": "Get-ChildItem"}')
   if (process.platform !== 'win32') {
     throw new Error('PowerShell 工具仅在 Windows 平台可用（当前平台：' + process.platform + '）')
   }
@@ -535,6 +557,7 @@ async function toolPowerShell({ command }) {
 
 /** REPL：在受限 vm 沙箱里执行 JS 片段（CLI REPLTool 的 web 镜像）。 */
 async function toolREPL({ code }) {
+  requireText(code, 'code', '要执行的 JS 片段，例如 {"code": "return [1,2,3].map(n => n * 2)"}')
   const logs = []
   const sandbox = {
     console: {
@@ -685,6 +708,7 @@ async function toolAgent({ description, prompt }, ctx) {
   if (typeof ctx?.runSubAgent !== 'function') {
     throw new Error('当前服务端未挂载子代理执行器（ctx.runSubAgent 缺失）')
   }
+  requireText(prompt, 'prompt', '要交给子代理的任务描述（它是只读的，只能查不能改）')
   const text = await ctx.runSubAgent({ description, prompt })
   return truncate(`子代理「${description ?? 'task'}」结论：\n\n${text}`, 12_000)
 }
@@ -695,8 +719,12 @@ function teamOf(session) {
 }
 
 async function toolTeamCreate({ team_name, name, description, agent_type, members }, session) {
+  const teamName = String(team_name ?? name ?? '').trim()
+  if (!teamName) {
+    throw new Error('缺少 name 参数（或 CLI 风格的 team_name）：团队名，例如 {"name": "review", "members": ["a", "b"]}')
+  }
   const team = teamOf(session)
-  team.name = String(team_name ?? name ?? 'team')
+  team.name = teamName
   team.description = description ? String(description) : undefined
   team.members = Array.isArray(members)
     ? members.map(m => (typeof m === 'string' ? { name: m, role: agent_type ?? 'agent' } : m))
@@ -715,8 +743,10 @@ async function toolTeamDelete(_input, session) {
 }
 
 async function toolSendMessage({ to, message, summary }, session) {
+  requireText(to, 'to', '收件成员名，例如 {"to": "reviewer", "message": "帮我看一下 diff"}')
+  requireText(message, 'message', '要发的内容')
   const team = teamOf(session)
-  const entry = { to: String(to ?? ''), message: String(message ?? ''), summary, at: Date.now() }
+  const entry = { to: String(to), message: String(message), summary, at: Date.now() }
   team.log.push(entry)
   if (team.members.length === 0) {
     return `已记录消息（当前无团队成员，web 端不承载真实多进程协作）：\n→ ${entry.to}：${entry.message.slice(0, 200)}`
@@ -729,7 +759,8 @@ async function toolSendMessage({ to, message, summary }, session) {
 
 /** SendUserMessage（CLI BriefTool）：把一条提示直接推到界面。 */
 async function toolSendUserMessage({ message, attachments, status }, ctx) {
-  const text = String(message ?? '')
+  requireText(message, 'message', '要推送到界面的提示文本')
+  const text = String(message)
   if (typeof ctx?.emit === 'function') {
     ctx.emit({ type: 'notice', text, status: status ?? 'info' })
   }
@@ -749,6 +780,7 @@ function tasksOf(session) {
 let taskSeq = 0
 
 async function toolTaskCreate({ subject, description, activeForm, metadata }, session) {
+  requireText(subject, 'subject', '一句话的任务标题，例如 {"subject": "修掉登录页的抖动"}')
   const tasks = tasksOf(session)
   const task = {
     id: String(++taskSeq),
@@ -765,9 +797,23 @@ async function toolTaskCreate({ subject, description, activeForm, metadata }, se
   return `已创建任务 #${task.id}：${task.subject}`
 }
 
-async function toolTaskGet({ taskId }, session) {
-  const task = tasksOf(session).find(t => t.id === String(taskId))
-  if (!task) throw new Error(`任务不存在：#${taskId}`)
+/**
+ * 解析任务 id。缺参数时给一句**能照着改**的错，
+ * 而不是 `任务不存在：#undefined` —— 后者会让模型以为"任务是存在但找不到"，
+ * 于是去 TaskList 里翻半天，而真正的原因只是它忘了传 id。
+ */
+function requireTaskId(input) {
+  const raw = input?.taskId ?? input?.task_id
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    throw new Error('缺少 task_id 参数（先用 TaskList 看现有任务的编号）')
+  }
+  return String(raw)
+}
+
+async function toolTaskGet(input, session) {
+  const id = requireTaskId(input)
+  const task = tasksOf(session).find(t => t.id === id)
+  if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   return JSON.stringify(task, null, 2)
 }
 
@@ -779,9 +825,11 @@ async function toolTaskList(_input, session) {
     .join('\n')
 }
 
-async function toolTaskUpdate({ taskId, status, subject, description, owner, activeForm, metadata, addBlocks, addBlockedBy }, session) {
-  const task = tasksOf(session).find(t => t.id === String(taskId))
-  if (!task) throw new Error(`任务不存在：#${taskId}`)
+async function toolTaskUpdate(input, session) {
+  const { taskId, status, subject, description, owner, activeForm, metadata, addBlocks, addBlockedBy } = input ?? {}
+  const id = requireTaskId(input)
+  const task = tasksOf(session).find(t => t.id === id)
+  if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   const changed = []
   if (Array.isArray(addBlocks)) {
     task.blocks = [...new Set([...(task.blocks ?? []), ...addBlocks.map(String)])]
@@ -801,27 +849,41 @@ async function toolTaskUpdate({ taskId, status, subject, description, owner, act
   return `已更新任务 #${task.id}（${changed.join('、') || '无字段变更'}）：${task.subject} [${task.status}]`
 }
 
-async function toolTaskStop({ task_id, taskId }, session) {
-  const id = String(task_id ?? taskId ?? '')
+async function toolTaskStop(input, session) {
+  const id = requireTaskId(input)
   const task = tasksOf(session).find(t => t.id === id)
-  if (!task) throw new Error(`任务不存在：#${id}`)
+  if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   task.status = 'stopped'
   task.updatedAt = Date.now()
   return `已停止任务 #${task.id}：${task.subject}`
 }
 
-async function toolTaskOutput({ task_id, taskId }, session) {
-  const id = String(task_id ?? taskId ?? '')
+async function toolTaskOutput(input, session) {
+  const id = requireTaskId(input)
   const task = tasksOf(session).find(t => t.id === id)
-  if (!task) throw new Error(`任务不存在：#${id}`)
+  if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   return JSON.stringify(task, null, 2)
 }
 
 /** TodoWrite：更新会话待办（CLI TodoWriteTool 的 web 镜像）。 */
 async function toolTodoWrite({ todos }, session) {
-  session.todos = todos
-  const done = todos.filter(t => t.status === 'completed').length
-  return `待办已更新：${done}/${todos.length} 完成`
+  // 先校验再写状态：原来的顺序是 `session.todos = todos` 后紧跟 `todos.filter(...)`，
+  // 传空入参时**待办先被写成 undefined、然后才抛错** —— 会话状态被污染且没人修。
+  if (!Array.isArray(todos)) {
+    throw new Error(
+      'todos 必须是数组，例如 [{"content": "写文档", "status": "pending"}]（status: pending | in_progress | completed）',
+    )
+  }
+  const normalized = todos.map((t, i) => {
+    if (!t || typeof t !== 'object') throw new Error(`todos[${i}] 必须是对象，例如 {"content": "...", "status": "pending"}`)
+    const content = String(t.content ?? t.subject ?? '').trim()
+    if (!content) throw new Error(`todos[${i}] 缺少 content`)
+    const status = ['pending', 'in_progress', 'completed'].includes(t.status) ? t.status : 'pending'
+    return { content, status, ...(t.activeForm ? { activeForm: String(t.activeForm) } : {}) }
+  })
+  session.todos = normalized
+  const done = normalized.filter(t => t.status === 'completed').length
+  return `待办已更新：${done}/${normalized.length} 完成`
 }
 
 // ---------------------------------------------------------------------------
@@ -1196,7 +1258,8 @@ async function toolEnterWorktree(input, session) {
 
 async function toolExitWorktree(input, session) {
   const action = input?.action === 'remove' ? 'remove' : 'keep'
-  const r = await exitWorktree(session, action === 'remove')
+  // `discard_changes` 与 CLI 同名同义，必须显式为 true 才允许丢弃未提交的改动。
+  const r = await exitWorktree(session, action === 'remove', input?.discard_changes === true)
   return r.message
 }
 
@@ -1873,14 +1936,23 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'ExitWorktree',
-      description: '退出当前 worktree：把会话的沙箱根还原，并按需移除 worktree 目录。',
+      description:
+        '退出当前 worktree：把会话的沙箱根还原，并按需移除 worktree 目录。' +
+        '若目录里有未提交的改动或未合并的提交，remove 会**拒绝**并列出会丢什么 —— ' +
+        '确认要丢弃时再带 discard_changes:true。',
       parameters: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
             enum: ['keep', 'remove'],
-            description: 'keep 保留目录（默认）、remove 删除目录（有未提交改动时会拒绝，不会替你丢东西）',
+            description: 'keep 保留目录（默认）、remove 删除目录',
+          },
+          discard_changes: {
+            type: 'boolean',
+            description:
+              '当 action 为 "remove" 且 worktree 里有未提交改动或未合并提交时，必须为 true；' +
+              '否则工具会拒绝并列出这些改动，不会替你丢东西。',
           },
         },
         required: [],

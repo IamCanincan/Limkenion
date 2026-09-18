@@ -640,13 +640,18 @@ export async function runCommand(session, rawName, argString, ws, registry) {
   }
   if (name === 'export') {
     const md = exportSessionMarkdown(session)
-    send(ws, {
+    // 连接可能已经断开（客户端关标签页 / 命令由程序化调用触发）。
+    // 这种情况必须说出来 —— 否则用户看到"已开始下载"却在浏览器里什么都没有。
+    const delivered = send(ws, {
       type: 'session_export',
       sessionId: session.id,
       filename: `${session.title || 'session'}.md`,
       markdown: md,
     })
-    return `已导出 ${session.messages.length} 条消息（Markdown），浏览器应已开始下载。`
+    const head = `已导出 ${session.messages.length} 条消息（Markdown，${md.length} 字符）。`
+    return delivered
+      ? head + '浏览器应已开始下载。'
+      : head + '但当前连接不可用，下载没有发出 —— 请在已打开的页面里重新执行 /export。'
   }
 
   // ---- 旁路提问 / 初始化 / 工作流 ----

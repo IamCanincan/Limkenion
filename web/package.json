@@ -21,7 +21,7 @@
     "build": "vite build",
     "serve": "node server/index.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test test/*.test.mjs"
   },
   "engines": {
     "node": ">=20.11"

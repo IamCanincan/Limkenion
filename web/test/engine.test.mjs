@@ -7,11 +7,14 @@
 
 import { test, describe, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { fakeClient, makeWorkspace, startStubModel } from './helpers.mjs'
 
 let ws
+let configDir
 let stub
 let bus
 let engine
@@ -38,6 +41,11 @@ before(async () => {
   ws = await makeWorkspace({ 'seed.txt': 'seed\n' })
   process.env.LIMKENION_WEB_WORKSPACE = ws.dir
   process.env.LIMKENION_WEB_STATE_DIR = join(ws.dir, '.state')
+  // 设置文件也要隔离：否则本机会读**用户自己**的 ~/.limkenion/settings.json，
+  // 他配的 hooks / permissions 会跑进测试里（测试结果取决于开发者本机配置是最糟的）。
+  configDir = join(ws.dir, '.config')
+  await mkdir(configDir, { recursive: true })
+  process.env.LIMKENION_CONFIG_DIR = configDir
   process.env.DEEPSEEK_API_KEY = 'test-key'
   // 桩模型地址必须在 import 之前设好（deepseek.mjs 在模块加载时读环境变量）
   stub = await startStubModel([{ text: '默认回复' }])
@@ -483,5 +491,111 @@ describe('同一会话不并发跑两个回合', () => {
     setScript([{ text: '好的。' }])
     await engine.runTurn(s, '说话', 'msg_idle')
     assert.equal(engine.isTurnActive(s.id), false, 'isTurnActive 应在回合结束后归位')
+  })
+})
+
+/**
+ * worktree 会**换掉会话的沙箱根**，而回合的作用域是在回合开头进一次的
+ * （AsyncLocalStorage 里那层不会自己更新）。所以"模型说进了 worktree、紧跟着的
+ * Write 却还写在原来的树上"是一种非常安静的错误：EnterWorktree 报成功，
+ * 文件也确实写成功了 —— 只是写在了**另一棵树**里，用户当场看不出来。
+ *
+ * 实测（真实 API + 真实 git 仓库）：修之前 only-in-wt.txt 落在主仓库、worktree 里是空的。
+ * 所以这条必须由**引擎层**的测试守住 —— 直接调 executeTool 是测不到的，
+ * 因为那条路径根本没有回合作用域。
+ */
+describe('回合中途切换沙箱根（worktree）', () => {
+  const git = args =>
+    new Promise(res => {
+      execFile('git', args, { cwd: ws.dir, windowsHide: true }, (e, so, se) =>
+        res({ ok: !e, out: String(so).trim(), err: String(se).trim() }),
+      )
+    })
+
+  before(async () => {
+    await git(['init', '-b', 'main'])
+    await git(['config', 'user.email', 'test@local'])
+    await git(['config', 'user.name', 'test'])
+    await git(['add', '-A'])
+    const c = await git(['commit', '-m', 'init', '--allow-empty'])
+    if (!c.ok) throw new Error('git 仓库准备失败：' + c.err)
+  })
+
+  afterEach(async () => {
+    // 清掉用例留下的 worktree，别让下一个用例看见
+    const dir = join(ws.dir, '.limkenion', 'worktrees')
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  test('同一回合内：EnterWorktree 之后的 Write 落在新树，老树不被污染', async () => {
+    const s = sessions.createSession()
+    setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
+    setScript([
+      { toolCalls: [{ id: 'wt', name: 'EnterWorktree', args: { name: 'mid-turn' } }] },
+      { toolCalls: [{ id: 'w', name: 'Write', args: { file_path: 'inside-wt.txt', content: '在 worktree 里\n' } }] },
+      { text: '完成' },
+    ])
+
+    await engine.runTurn(s, '先进入 worktree，再写文件', 'msg_wt')
+
+    const wtDir = join(ws.dir, '.limkenion', 'worktrees', 'mid-turn')
+    assert.ok(existsSync(join(wtDir, 'inside-wt.txt')), '文件必须落在 worktree 里')
+    assert.ok(
+      !existsSync(join(ws.dir, 'inside-wt.txt')),
+      '老根里绝不能出现这个文件 —— 那意味着沙箱根没跟着换，写到了别的树上',
+    )
+    // 会话的根确实换了（供后续回合与前端展示）
+    assert.equal(s.workspaceRoot, wtDir)
+  })
+
+  test('钩子的 cwd 也跟着换（否则"提交前跑 lint"会检查错文件树）', async () => {
+    const s = sessions.createSession()
+    setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
+
+    // 钩子把每次收到的 cwd 追加到日志里；模型在同一个回合内先切根、再动工具
+    const hookLog = join(ws.dir, 'hook-cwd.log')
+    const hookScript = join(ws.dir, 'record-cwd.mjs')
+    await writeFile(
+      hookScript,
+      `import { appendFileSync } from 'node:fs'\n` +
+        `let b = ''\n` +
+        `process.stdin.on('data', c => { b += c })\n` +
+        `process.stdin.on('end', () => appendFileSync(${JSON.stringify(hookLog)}, String(JSON.parse(b || '{}').cwd ?? '') + '\\n'))\n`,
+      'utf8',
+    )
+    await writeFile(
+      join(configDir, 'settings.json'),
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: 'Write',
+              hooks: [{ type: 'command', command: `"${process.execPath}" "${hookScript}"`, timeout: 20 }],
+            },
+          ],
+        },
+      }),
+      'utf8',
+    )
+    const hooks = await import('../server/hooks.mjs')
+    hooks.refreshHooks()
+
+    setScript([
+      { toolCalls: [{ id: 'wt', name: 'EnterWorktree', args: { name: 'hook-cwd' } }] },
+      { toolCalls: [{ id: 'w', name: 'Write', args: { file_path: 'x.txt', content: 'x\n' } }] },
+      { text: '完成' },
+    ])
+    await engine.runTurn(s, '进入 worktree 并写文件', 'msg_hookcwd')
+
+    const logged = await readFile(hookLog, 'utf8')
+    const cwds = logged.split('\n').filter(Boolean)
+    const wtDir = join(ws.dir, '.limkenion', 'worktrees', 'hook-cwd')
+    assert.ok(cwds.length > 0, '钩子应当被调用并记录了 cwd')
+    assert.equal(
+      cwds.at(-1),
+      wtDir,
+      '切了 worktree 之后，钩子必须在**新树**里跑 —— cwd 沿用回合开头那层的话，' +
+        '一个"提交前跑 lint"的钩子会检查错文件树，而且什么都不说',
+    )
   })
 })

@@ -19,9 +19,21 @@ export function clientCount() {
   return clients.size
 }
 
-/** 发给单个连接（用于对本次请求的直接应答）。 */
+/** `ws` 的 OPEN 常量值。写成字面量，避免在 ws 为 null 时去读 `ws.OPEN`。 */
+const OPEN = 1
+
+/**
+ * 发给单个连接（用于对本次请求的直接应答）。
+ *
+ * 注意这里**不能**写成 `ws?.readyState === ws.OPEN` —— 可选链只保护了左边，
+ * 右边的 `ws.OPEN` 照样求值，ws 为 null 时抛 `TypeError: Cannot read properties of null`。
+ * （`/export` 传的就是调用方给的 ws，缺了就会炸在命令里而不是静默跳过。）
+ */
 export function send(ws, msg) {
-  if (ws?.readyState === ws.OPEN) ws.send(JSON.stringify(msg))
+  if (!ws) return false
+  if (ws.readyState !== (ws.OPEN ?? OPEN)) return false
+  ws.send(JSON.stringify(msg))
+  return true
 }
 
 /** 发给所有连接。 */

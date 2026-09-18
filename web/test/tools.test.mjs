@@ -631,8 +631,10 @@ describe('worktree（沙箱根切换）', () => {
       executeTool('Write', { file_path: 'dirty.txt', content: '未提交\n' }, ctx),
     )
     const dirty = await executeTool('ExitWorktree', { action: 'remove' }, ctx)
-    assert.match(dirty, /未移除/, '有未提交改动时不能替用户丢东西')
+    assert.match(dirty, /没有删除/, '有未提交改动时不能替用户丢东西')
+    assert.match(dirty, /discard_changes/, '要把「怎么才能真删」说清楚，否则用户只能干瞪眼')
     assert.ok(existsSync(WT_DIR), '拒绝移除时目录必须还在')
+    assert.equal(session.workspaceRoot, null, '拒绝移除时沙箱根也要还原，不能卡在新树里')
 
     // 改动清掉之后再进去退一次 —— 这次应当真的删掉。
     // 用 git 自己清（前面的用例在树里留过未跟踪文件，git worktree remove 一律会拒绝）。
@@ -644,6 +646,19 @@ describe('worktree（沙箱根切换）', () => {
     assert.ok(!existsSync(WT_DIR), 'remove 之后目录应当没了')
     const branches = await gitSync(['branch', '--list', 'limkenion-wt/wt-one'])
     assert.equal(branches.out, '', '分支也应当被删掉，避免留下一堆孤儿分支')
+  })
+
+  test('remove + discard_changes:true —— 用户明说了才丢改动', async () => {
+    freshSession()
+    await executeTool('EnterWorktree', { name: 'wt-discard' }, ctx)
+    await withWorkspace({ root: session.workspaceRoot }, () =>
+      executeTool('Write', { file_path: 'throwaway.txt', content: '可以丢\n' }, ctx),
+    )
+    // 没明说 → 拒绝（上一条用例已验证）；这里验证「明说了」确实会删
+    const out = await executeTool('ExitWorktree', { action: 'remove', discard_changes: true }, ctx)
+    assert.match(out, /已清理/)
+    assert.ok(!existsSync(join(WT_DIR)), '用户显式放弃改动后，目录应当真的删掉')
+    assert.equal(session.workspaceRoot, null)
   })
 
   test('已在 worktree 里时不能重复进入', async () => {
