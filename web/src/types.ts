@@ -19,6 +19,8 @@ export type ClientMessage =
   | { type: 'get_settings'; sessionId?: string }
   | { type: 'set_setting'; key: string; value: unknown; sessionId?: string }
   | { type: 'get_stats' }
+  | { type: 'get_team'; sessionId: string }
+  | { type: 'team_message'; sessionId: string; member: string; text: string }
   | { type: 'get_requests'; limit?: number }
   | { type: 'clear_requests'; limit?: number }
   | { type: 'export_session'; sessionId: string }
@@ -93,6 +95,8 @@ export type ServerMessage =
     }
   | { type: 'question_request'; sessionId: string; requestId: string; questions: AskQuestion[] }
   | { type: 'preview_open'; sessionId: string; url: string }
+  | { type: 'team'; sessionId: string; team: TeamInfo | null }
+  | { type: 'team_event'; sessionId: string; member: string; payload: Record<string, unknown> & { type?: string } }
   | { type: 'error'; message: string }
 
 // ---------------------------------------------------------------------------
@@ -262,4 +266,22 @@ export interface ElicitField {
 }
 export interface ElicitForm {
   fields: ElicitField[]
+}
+
+/** Agent Teams 工作台：团队快照。 */
+export interface TeamMember {
+  name: string
+  role?: string
+  status?: 'idle' | 'busy' | 'stopped'
+}
+export interface TeamLogEntry {
+  to: string
+  message: string
+  summary?: string
+  at: number
+}
+export interface TeamInfo {
+  name: string | null
+  members: TeamMember[]
+  log: TeamLogEntry[]
 }

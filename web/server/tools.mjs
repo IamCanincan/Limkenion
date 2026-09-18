@@ -950,11 +950,13 @@ async function toolSendMessage(input, ctx) {
     return `已投递给成员「${entry.to}」（子代理执行器未挂载，暂未执行）：${entry.message.slice(0, 200)}`
   }
   member.status = 'busy'
+    ctx?.emit?.({ type: 'team_event', member: member.name, payload: { type: 'notice', text: `收到任务：${entry.message.slice(0, 200)}` } })
   try {
-    const result = await ctx.runSubAgent({ description: `队友「${member.name}」处理消息`, prompt: entry.message })
+    const result = await ctx.runSubAgent({ description: `队友「${member.name}」处理消息`, prompt: entry.message, tag: member.name })
     return `队友「${member.name}」已完成：\n${result}`
   } finally {
     member.status = 'idle'
+    ctx?.emit?.({ type: 'team', sessionId: session.id, team: session.team })
     void runEventHooks(HOOK_EVENT.TEAMMATE_IDLE, {
       hookInput: { session_id: session?.id ?? '', team: team.name ?? '', member: member.name },
     }).catch(() => {})

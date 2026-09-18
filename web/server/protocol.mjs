@@ -19,7 +19,7 @@ import {
 } from './config.mjs'
 import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { runCommand, exportSessionMarkdown } from './commands.mjs'
-import { isTurnActive, newMessageId, runTurn } from './engine.mjs'
+import { isTurnActive, newMessageId, runTeamMemberTurn, runTurn } from './engine.mjs'
 import { resolvePermission, resolveQuestions } from './interactions.mjs'
 import { clearRequests, listRequests, requestSummary } from './requestLog.mjs'
 import { checkHandshake } from './security.mjs'
@@ -221,6 +221,23 @@ async function handleClientMessageInner(ws, msg, registry) {
         send(ws, { type: 'error', message: `无法切换模型：${msg.model}` })
       }
       schedulePersist()
+      break
+    }
+
+    case 'get_team': {
+      const s = getSession(msg.sessionId)
+      send(ws, { type: 'team', sessionId: s?.id ?? null, team: s?.team ?? null })
+      break
+    }
+
+    case 'team_message': {
+      const s = getSession(msg.sessionId)
+      if (!s) {
+        send(ws, { type: 'error', message: '会话不存在' })
+        break
+      }
+      // 后台跑成员回合：事件按成员广播到团队面板，不阻塞消息通道
+      void runTeamMemberTurn(s, String(msg.member ?? ""), String(msg.text ?? ""))
       break
     }
 

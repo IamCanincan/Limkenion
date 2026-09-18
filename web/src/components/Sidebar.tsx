@@ -12,6 +12,7 @@ interface Props {
   onExport: (id: string) => void
   /** 分叉会话（对应 CLI 的 /branch）。 */
   onFork: (id: string, title?: string) => void
+  onOpenTeam: () => void
 }
 
 function formatTime(ts: number): string {
@@ -36,6 +37,7 @@ export function Sidebar({
   stats,
   onSelect,
   onNew,
+  onOpenTeam,
   onRename,
   onDelete,
   onExport,
@@ -84,6 +86,7 @@ export function Sidebar({
         <button className="new-session" onClick={onNew} title="新建会话">
           ＋
         </button>
+        <button className="new-session" onClick={onOpenTeam} title="Agent Teams 工作台">团队</button>
       </div>
       <div className="session-search">
         <input

@@ -10,6 +10,8 @@ import { RequestLogPanel } from './components/RequestLogPanel'
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog'
 import { QuestionDialog } from './components/QuestionDialog'
 import { PreviewPanel } from './components/PreviewPanel'
+import { TeamPanel } from './components/TeamPanel'
+import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
   RequestSummary,
@@ -53,6 +55,10 @@ export function App() {
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  // Agent Teams 工作台：面板开关、团队快照、每个成员的事件流
+  const [teamOpen, setTeamOpen] = useState(false)
+  const [teamData, setTeamData] = useState<TeamInfo | null>(null)
+  const [teamStreams, setTeamStreams] = useState<Record<string, Record<string, unknown>[]>>({})
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -253,6 +259,15 @@ export function App() {
         case 'preview_open':
           setPreviewUrl(msg.url)
           break
+        case 'team':
+          setTeamData(msg.team)
+          break
+        case 'team_event':
+          setTeamStreams(prev => ({
+            ...prev,
+            [msg.member]: [...(prev[msg.member] ?? []), msg.payload],
+          }))
+          break
 
         case 'question_request':
           setQuestionRequest({ requestId: msg.requestId, questions: msg.questions })
@@ -393,6 +408,15 @@ export function App() {
       {previewUrl && (
         <PreviewPanel url={previewUrl} onClose={() => setPreviewUrl(null)} />
       )}
+      {teamOpen && (
+        <TeamPanel
+          sessionId={activeSessionId ?? ''}
+          team={teamData}
+          streams={teamStreams}
+          onSend={(member, text) => connectionRef.current.send({ type: 'team_message', sessionId: activeSessionId ?? '', member, text })}
+          onClose={() => setTeamOpen(false)}
+        />
+      )}
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
@@ -403,7 +427,11 @@ export function App() {
         onDelete={onDeleteSession}
         onExport={onExportSession}
         onFork={onForkSession}
-      />
+        onOpenTeam={() => {
+            setTeamOpen(true)
+            connectionRef.current.send({ type: 'get_team', sessionId: activeSessionId ?? '' })
+          }} />
+
       <main className="main">
         <header className="chat-header">
           <ModelSelector models={models} current={currentModel} onSelect={onSelectModel} />

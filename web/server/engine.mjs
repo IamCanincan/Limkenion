@@ -266,7 +266,8 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       return ok
     },
     enableTools: names => enableTools(session, names),
-    runSubAgent: ({ description, prompt }) => runSubAgent(session, prompt, description, emit, expired),
+    runSubAgent: ({ description, prompt, tag, emit: customEmit }) =>
+      runSubAgent(session, prompt, description, tag ? ev => emit({ type: 'team_event', member: tag, payload: ev }) : customEmit ?? emit, expired, tag),
     // MCP：发现的工具经这里执行（tools.mjs 不反向 import mcp.mjs）。
     callMcpTool: (name, args) => callMcpTool(name, args, session),
     listMcpResources: server => listMcpResources(server),
@@ -603,7 +604,13 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
  * 只读子代理（Agent 工具）：独立上下文跑一个小循环，只允许只读工具。
  * 内部工具调用以 `Agent·<工具>` 的形式冒泡到界面，保持过程可见。
  */
-async function runSubAgent(session, prompt, description, emit, expired) {
+async function runSubAgent(session, prompt, description, emit, expired, tag) {
+  // 工作台模式：tag = 成员名。子代理的全部事件包装成 team_event，
+  // 前端团队面板按成员分列展示 —— 否则子代理就是黑盒。
+  if (tag) {
+    const base = emit
+    emit = ev => base({ type: 'team_event', member: tag, payload: ev })
+  }
   // agent-start：与 agent-end 成对。原来只有 end 没有 start，
   // 用户配的「子代理启动」钩子永远不触发且无任何提示。
   if (hooksEnabled()) {
@@ -665,7 +672,7 @@ async function runSubAgent(session, prompt, description, emit, expired) {
       tools: subTools,
       reasoningEffort: resolveEffort(settingsFor(session).model, settingsFor(session).effortLevel),
       onDelta: ev => {
-        if (ev.type === 'text') answer += ev.delta
+        if (ev.type === 'text') { answer += ev.delta; if (tag) emit({ type: 'assistant_delta', delta: ev.delta }) }
       },
     })
     if (!toolCalls || toolCalls.length === 0) {
@@ -939,6 +946,52 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     const next = session.messageQueue.shift()
     broadcast({ type: 'notice', sessionId: session.id, text: `开始处理排队的消息（剩 ${session.messageQueue.length} 条）…` })
     await runTurn(session, next.text, newMessageId())
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Agent Teams 工作台（后端）
+// ---------------------------------------------------------------------------
+
+/** 广播团队快照（成员列表 + 状态 + 日志）。 */
+function broadcastTeam(session) {
+  broadcast({ type: 'team', sessionId: session.id, team: session.team ?? null })
+}
+
+export function getTeam(session) {
+  return session.team ?? null
+}
+
+/**
+ * 从工作台直接给某成员派一个独立回合（不等主 agent 转发）。
+ * 成员置 busy → 跑只读子代理（事件按成员广播）→ 回 idle → teammate-idle 钩子。
+ */
+export async function runTeamMemberTurn(session, memberName, text) {
+  const member = session.team?.members?.find(m => m.name === memberName)
+  if (!member) return { ok: false, error: `成员「${memberName}」不在团队中` }
+  if (member.status === 'busy') return { ok: false, error: `成员「${memberName}」正在工作中，请稍候` }
+  member.status = "busy"
+  broadcastTeam(session)
+    // 里程碑事件：面板上至少能看到「收到任务」，否则纯文本回合是空白流
+    broadcast({ sessionId: session.id, type: 'team_event', member: memberName, payload: { type: 'notice', text: `收到任务：${String(text ?? '').slice(0, 200)}` } })
+  try {
+    const result = await runSubAgent(
+      session,
+      String(text ?? ""),
+      `成员「${memberName}」处理消息`,
+      ev => broadcast({ sessionId: session.id, ...ev }),
+      () => session.cancelled,
+      memberName,
+    )
+    return { ok: true, result }
+  } catch (err) {
+    return { ok: false, error: String(err?.message ?? err) }
+  } finally {
+    member.status = "idle"
+    broadcastTeam(session)
+    void runEventHooks(HOOK_EVENT.TEAMMATE_IDLE, {
+      hookInput: sessionHookInput(session, { member: memberName }),
+    }).catch(() => {})
   }
 }
 
