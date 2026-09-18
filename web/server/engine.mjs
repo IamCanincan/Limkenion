@@ -48,7 +48,7 @@ function fireNoticeHooks(text) {
 import { autoCompactThreshold, compactSession } from './compact.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
-import { callMcpTool, listMcpResources, readMcpResource } from './mcp.mjs'
+import { callMcpTool, listMcpResources, readMcpResource, getMcpPrompt, mcpRegistrySearch } from './mcp.mjs'
 import { runWorkflow } from './workflow.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
@@ -208,6 +208,28 @@ function makeSummarizer(session) {
  * @param {(ev: object) => void} emit
  * @param {() => boolean} expired 本回合是否已过期（被中断，或被后来的回合顶掉）
  */
+/**
+ * microcompact：把旧的 tool 消息内容替换为占位符（保留最近 keep 条）。
+ * 与上游 CLI 原型 的 microcompact 同思路：工具结果是大头，清它们比压整段历史划算。
+ * 导出供测试直接验证。
+ */
+export function microcompactToolResults(messages, lastInputTokens, { keep = 4 } = {}) {
+  const threshold = autoCompactThreshold() - 24_000
+  if ((lastInputTokens ?? 0) < threshold) return 0
+  const toolIdx = []
+  messages.forEach((m, i) => { if (m.role === "tool") toolIdx.push(i) })
+  const victims = toolIdx.slice(0, Math.max(0, toolIdx.length - keep))
+  let cleared = 0
+  for (const i of victims) {
+    const m = messages[i]
+    if (typeof m.content === "string" && !m.content.startsWith("[microcompact]")) {
+      m.content = `[microcompact] 工具结果已被清除以释放上下文（原 ${m.content.length} 字符）`
+      cleared++
+    }
+  }
+  return cleared
+}
+
 async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
   const settings = settingsFor(session)
   const messages = sessionToWireMessages(session)
@@ -249,6 +271,8 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     callMcpTool: (name, args) => callMcpTool(name, args, session),
     listMcpResources: server => listMcpResources(server),
     readMcpResource: (server, uri) => readMcpResource(server, uri),
+    getMcpPrompt: (server, name, args) => getMcpPrompt(server, name, args),
+    mcpRegistrySearch: query => mcpRegistrySearch(query),
     // 动态工作流：脚本里的每个 agent() 派一个**只读子代理**（与 Agent 工具同一套机制，
     // 所以只读保证、轮次上限、事件标记都一致）。并发与预算在 workflow.mjs 里控制。
     runWorkflow: ({ script, name, resumeFrom, args, maxAgents }) =>
@@ -269,6 +293,12 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (expired()) break
+
+    // ---- microcompact：回合内多轮工具时，旧工具结果（大文件读取/长命令输出）
+    // ---- 是挤占上下文的大头。接近软阈值就清旧保新（保留最近 4 条），
+    // ---- 让硬上限墙尽量不要撞上。工具结果本来就不进跨回合历史，
+    // ---- 所以这只影响本回合内的多轮工具循环。
+    microcompactToolResults(messages, lastInputTokens)
 
     // 回合内硬上限：软阈值（回合末自动压缩）之上再留一道墙。
     // 上一轮请求已烧到极限时，继续请求只会换来 API 报错 —— 主动收束本轮，
@@ -888,6 +918,14 @@ export async function runTurn(session, text, messageId = newMessageId()) {
   session.updatedAt = Date.now()
   broadcastSessions()
   schedulePersist()
+
+  // ---- 排队消息接续：回合期间用户发的消息按序处理（每条一个完整回合）----
+  // 递归深度 = 队列长度，量级完全可控；用户中断不清队 —— 排队的意图还在。
+  if (Array.isArray(session.messageQueue) && session.messageQueue.length > 0) {
+    const next = session.messageQueue.shift()
+    broadcast({ type: 'notice', sessionId: session.id, text: `开始处理排队的消息（剩 ${session.messageQueue.length} 条）…` })
+    await runTurn(session, next.text, newMessageId())
+  }
 }
 
 // ---------------------------------------------------------------------------

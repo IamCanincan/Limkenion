@@ -47,6 +47,9 @@ import {
   canonicalHookEvent,
   unknownAgainstContract,
 } from './clicontract.mjs'
+import { chatCompletion } from './deepseek.mjs'
+import { fetch as guardedFetch } from './egress.mjs'
+import { settingsFor } from './config.mjs'
 
 /**
  * 钩子事件名（**Limkenion 自己的命名**，连字符的「对象-动作」）。
@@ -128,8 +131,8 @@ export const HOOK_EVENTS_UNSUPPORTED = ALL_HOOK_EVENTS_NEW.filter(
 }
 
 /** 已支持的执行方式 / 未支持的执行方式。 */
-export const HOOK_TYPES_SUPPORTED = ['command']
-export const HOOK_TYPES_UNSUPPORTED = ['prompt', 'agent', 'http']
+export const HOOK_TYPES_SUPPORTED = ['command', 'prompt', 'agent', 'http']
+export const HOOK_TYPES_UNSUPPORTED = []
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const MAX_TIMEOUT_MS = 600_000
@@ -183,6 +186,8 @@ function readConfigs() {
             matcher: typeof group?.matcher === 'string' ? group.matcher : '',
             type: String(entry.type ?? 'command'),
             command: typeof entry.command === 'string' ? entry.command : '',
+            prompt: typeof entry.prompt === 'string' ? entry.prompt : '',
+            url: typeof entry.url === 'string' ? entry.url : '',
             timeout: entry.timeout,
             // CLI 的 `if` 条件表达式语法 web 端没实现：不静默忽略，单独标出来
             ifCondition: typeof entry.if === 'string' && entry.if.trim() ? entry.if.trim() : null,
@@ -208,8 +213,8 @@ const CONFIG_TTL_MS = 3_000
 
 /**
  * 一条可执行的钩子配置。
- * @typedef {{event: string, matcher: string, type: string, command: string,
- *   timeout: number, ifCondition: string, source: string, path: string}} HookConfig
+ * @typedef {{event: string, matcher: string, type: string, command: string, prompt: string,
+ *   url: string, timeout: number, ifCondition: string, source: string, path: string}} HookConfig
  */
 
 /**
@@ -266,6 +271,10 @@ export function configuredHooks() {
     } else if (!HOOK_TYPES_SUPPORTED.includes(h.type)) {
       usable = false
       reason = `执行方式 ${h.type} 未实现（只支持 command）`
+    } else if (h.type === 'prompt' || h.type === 'agent') {
+      if (!String(h.prompt ?? "").trim()) { usable = false; reason = "prompt 类型钩子缺 prompt 字段" }
+    } else if (h.type === "http") {
+      if (!String(h.url ?? "").trim()) { usable = false; reason = "http 类型钩子缺 url 字段" }
     } else if (!h.command.trim()) {
       usable = false
       reason = '缺 command'
@@ -285,12 +294,19 @@ export function configuredHooks() {
 }
 
 /** 命中的、可执行的钩子（按事件 + 工具名过滤）。 */
+/** 每种类型的必填字段；返回 null 表示字段齐备。 */
+function typeFieldMissing(h) {
+  if (h.type === 'prompt' || h.type === 'agent') return String(h.prompt ?? '').trim() ? null : 'prompt'
+  if (h.type === 'http') return String(h.url ?? '').trim() ? null : 'url'
+  return h.command.trim() ? null : 'command'
+}
+
 function runnableHooks(event, toolName) {
   return currentConfigs().filter(
     h =>
       h.event === event &&
       HOOK_TYPES_SUPPORTED.includes(h.type) &&
-      h.command.trim() &&
+      typeFieldMissing(h) === null &&
       !h.ifCondition &&
       matcherHits(h.matcher, toolName),
   )
@@ -303,7 +319,7 @@ export function hooksSummary() {
   const unusable = all.filter(h => !h.usable)
   const lines = [
     `钩子：配置 ${all.length} 个，其中生效 ${usable.length} 个`,
-    `执行方式：只支持 command（prompt / agent / http 未实现）`,
+    `执行方式：command / prompt / agent / http（模型判定类钩子走会话模型；http 默认禁私网地址）`,
     `已接线事件：${HOOK_EVENTS_SUPPORTED.join('、')}`,
     `未接线事件（${HOOK_EVENTS_UNSUPPORTED.length} 个）：${HOOK_EVENTS_UNSUPPORTED.join('、')}`,
     `执行钩子的 shell：${hookShell().label}`,
@@ -351,6 +367,95 @@ function killHookTree(child) {
 }
 
 /** 跑一个 command 钩子。 */
+/** 判定类钩子用哪个模型：全局默认模型（钩子没有会话上下文）。 */
+function judgeModel() {
+  try { return settingsFor(null).model } catch { return 'deepseek-flash' }
+}
+
+/** 按类型分发：command / prompt / agent / http。 */
+async function runHook(hook, hookInput, opts) {
+  if (hook.type === 'prompt') return runModelHook(hook, hookInput, 'judge')
+  if (hook.type === 'agent') return runModelHook(hook, hookInput, 'agent')
+  if (hook.type === 'http') return runHttpHook(hook, hookInput)
+  return runCommandHook(hook, hookInput, opts)
+}
+
+/**
+ * 把模型的判定结果包装成 command 钩子的 stdout 形状，让 mergeResult 逻辑复用。
+ * 期望模型输出 JSON：{"decision":"allow"|"deny","reason":"...","additionalContext":"..."}
+ * @returns {Promise<{ok:boolean, code:number|null, stdout:string, stderr:string, error:string|null}>}
+ */
+async function runModelHook(hook, hookInput, kind) {
+  try {
+    const persona =
+      kind === 'agent'
+        ? "你是独立评审代理：根据给定的钩子指令与事件输入，独立判断是否放行。只输出一个 JSON 对象。"
+        : "你是钩子判定器：根据用户给出的判定规则与事件输入，判断是否放行。只输出一个 JSON 对象。"
+    const res = await chatCompletion({
+      model: judgeModel(),
+      messages: [
+        { role: "system", content: persona + ' 输出格式：{"decision":"allow"|"deny","reason":"一句话原因","additionalContext":"可选的附加上下文"}' },
+        { role: "user", content: `判定规则：\n${hook.prompt}\n\n事件输入（JSON）：\n${JSON.stringify(hookInput)}` },
+      ],
+    })
+    const reply = res.text ?? ''
+    let parsed = {}
+    try {
+      const m = String(reply).match(/\{[\s\S]*\}/)
+      if (m) parsed = JSON.parse(m[0])
+    } catch { /* 非 JSON 输出按无判定处理 */ }
+    const out = {
+      hookSpecificOutput: {
+        hookEventName: hookInput.hook_event_name,
+        permissionDecision: parsed.decision === "deny" ? "deny" : parsed.decision === "allow" ? "allow" : undefined,
+        permissionDecisionReason: parsed.reason,
+        additionalContext: parsed.additionalContext,
+      },
+    }
+    return { ok: true, code: 0, stdout: JSON.stringify(out), stderr: "", error: null }
+  } catch (err) {
+    return { ok: false, code: null, stdout: "", stderr: "", error: String(err?.message ?? err) }
+  }
+}
+
+/**
+ * http 钩子：POST 事件 JSON 到 hook.url，响应体按 command 钩子的 stdout 语义解析。
+ * SSRF 防护：仅 http/https；禁私网/链路本地地址（云元数据 169.254.169.254 就在其中）；
+ * 不跟随重定向（防 302 跳私网）。环回地址放行 —— 本机自建 webhook 是合法用途。
+ */
+async function runHttpHook(hook, hookInput) {
+  try {
+    const u = new URL(hook.url)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      return { ok: false, code: null, stdout: "", stderr: "", error: `http 钩子仅支持 http/https：${hook.url}` }
+    }
+    const host = u.hostname.toLowerCase()
+    const privateRe = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|\[::1\]|\[fc|\[fd)/
+    const loopback = host === 'localhost' || host === '127.0.0.1' || host === '[::1]'
+    if (!loopback && (privateRe.test(host + '.') || privateRe.test(host))) {
+      if (process.env.LIMKENION_HOOK_HTTP_ALLOW_PRIVATE !== "1") {
+        return { ok: false, code: null, stdout: "", stderr: "", error: `http 钩子拒绝私网/链路本地地址：${host}（云元数据防护）` }
+      }
+    }
+    const seconds = Number(hook.timeout)
+    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds * 1000, MAX_TIMEOUT_MS) : DEFAULT_TIMEOUT_MS
+    const res = await guardedFetch(hook.url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(hookInput),
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    const text = await res.text()
+    if (!res.ok) {
+      return { ok: false, code: res.status, stdout: "", stderr: text.slice(0, 2000), error: `HTTP ${res.status}` }
+    }
+    return { ok: true, code: 0, stdout: cap(text), stderr: "", error: null }
+  } catch (err) {
+    return { ok: false, code: null, stdout: "", stderr: "", error: String(err?.message ?? err) }
+  }
+}
+
 function runCommandHook(hook, hookInput, { cwd }) {
   const shell = hookShell()
   const seconds = Number(hook.timeout)
@@ -523,7 +628,7 @@ export async function runEventHooks(event, { toolName = '', hookInput, cwd = wor
   const hooks = runnableHooks(event, toolName)
   for (const hook of hooks) {
     acc.ran++
-    const res = await runCommandHook(hook, { ...hookInput, hook_event_name: event }, { cwd })
+    const res = await runHook(hook, { ...hookInput, hook_event_name: event }, { cwd })
     mergeResult(acc, hook, res)
   }
   return acc

@@ -159,20 +159,21 @@ describe('配置解析与 /hooks 摘要', () => {
     const usable = all.filter(h => h.usable)
     const unusable = all.filter(h => !h.usable)
 
-    assert.equal(usable.length, 5, `应当有 5 个生效：${JSON.stringify(usable)}`)
+    assert.equal(usable.length, 6, `应当有 6 个生效：${JSON.stringify(usable)}`)
     assert.deepEqual(
       usable.map(h => h.event).sort(),
-      ['config-change', 'context-compact-before', 'permission-request', 'prompt-submit', 'tool-before'],
+      ['config-change', 'context-compact-before', 'permission-request', 'prompt-submit', 'tool-after', 'tool-before'],
     )
     const reasons = unusable.map(h => `${h.event}:${h.reason}`)
-    assert.ok(reasons.some(r => /prompt/.test(r)), `prompt 类型应标为不生效：${reasons}`)
-    assert.ok(reasons.some(r => /tool-after.*未实现|turn-end.*未接线/.test(r)), `未接线事件应标出来：${reasons}`)
+    // prompt / agent / http 三种执行方式自本轮起都已实现 —— 反过来断言它们会生效
+    assert.ok(!reasons.some(r => /执行方式.*未实现/.test(r)), `不应再有"执行方式未实现"：${reasons}`)
+    assert.ok(reasons.some(r => /turn-end.*if/.test(r)), `if 条件仍应标为不生效：${reasons}`)
     assert.ok(reasons.some(r => /if/.test(r)), `if 条件未实现应标出来：${reasons}`)
 
     const summary = hooks.hooksSummary()
-    assert.match(summary, /生效 5 个/)
+    assert.match(summary, /生效 6 个/)
     assert.match(summary, /不会生效的/)
-    assert.match(summary, /只支持 command/)
+    assert.match(summary, /prompt \/ agent \/ http/)
   })
 
   test('hooksEnabled：没有可用钩子时为 false（引擎据此跳过整段逻辑）', async () => {

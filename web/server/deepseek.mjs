@@ -99,7 +99,8 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
 
   let response
   try {
-    response = await guardedFetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    const baseUrl = process.env.DEEPSEEK_BASE_URL || DEEPSEEK_BASE_URL
+    response = await guardedFetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

@@ -516,7 +516,13 @@ function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
     execFile(
       file,
       args,
-      { cwd: workspaceRoot(), timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
+      {
+        cwd: workspaceRoot(),
+        timeout: timeoutMs,
+        maxBuffer: 4 * 1024 * 1024,
+        windowsHide: true,
+        env: { ...process.env, ...shellNetEnv() },
+      },
       (error, stdout, stderr) => {
         const out = [
           stdout && `stdout:\n${stdout}`,
@@ -564,7 +570,12 @@ function startBackgroundShell(session, command) {
   const isWin = process.platform === 'win32'
   const file = isWin ? 'cmd.exe' : '/bin/sh'
   const args = isWin ? ['/d', '/s', '/c', command] : ['-c', command]
-  const proc = spawn(file, args, { cwd: workspaceRoot(), windowsHide: true, detached: !isWin })
+  const proc = spawn(file, args, {
+    cwd: workspaceRoot(),
+    windowsHide: true,
+    detached: !isWin,
+    env: { ...process.env, ...shellNetEnv() },
+  })
   const task = {
     id, sessionId: session?.id ?? '', command, startedAt: Date.now(),
     chunks: [], bytes: 0, done: false, killed: false, exitCode: /** @type {number|null} */ (null), error: /** @type {string|null} */ (null), proc,
@@ -615,6 +626,15 @@ function stopBackgroundShell(id) {
     return `已发送终止信号（${String(err.message ?? err)}）：${id}`
   }
   return `已终止后台任务 ${id}。`
+}
+
+function shellNetEnv() {
+  // 尽力而为的网络开关：LIMKENION_WEB_SHELL_NET=off 时给子进程一个
+  // 指向死端口的代理 —— curl/npm/pip 这类守规矩的 CLI 会立即失败。
+  // 局限：不走代理的原始 socket / 自定义 DNS 拦不住（OS 级沙箱才能根治）。
+  if (process.env.LIMKENION_WEB_SHELL_NET !== "off") return {}
+  const dead = "http://127.0.0.1:9"
+  return { HTTP_PROXY: dead, HTTPS_PROXY: dead, ALL_PROXY: dead, http_proxy: dead, https_proxy: dead, all_proxy: dead }
 }
 
 async function toolBash(input, session) {
@@ -810,6 +830,19 @@ async function toolWebSearch({ query, allowed_domains, blocked_domains }, ctx) {
 // ---------------------------------------------------------------------------
 // 协作类工具
 // ---------------------------------------------------------------------------
+
+async function toolMcpPrompt(input, ctx) {
+  const server = requireText(input?.server, 'server', 'MCP 服务器名，例如 {"server": "github"}')
+  const name = requireText(input?.name, 'name', '提示词模板名，例如 {"name": "review"}')
+  if (typeof ctx?.getMcpPrompt !== 'function') throw new Error('当前服务端未挂载 MCP 提示词执行器（ctx.getMcpPrompt 缺失）')
+  return ctx.getMcpPrompt(server, name, input?.arguments)
+}
+
+async function toolMcpRegistrySearch(input, ctx) {
+  const query = requireText(input?.query, 'query', '搜索词，例如 {"query": "github"}')
+  if (typeof ctx?.mcpRegistrySearch !== 'function') throw new Error('当前服务端未挂载 registry 查询器')
+  return ctx.mcpRegistrySearch(query)
+}
 
 async function toolAgent({ description, prompt }, ctx) {
   if (typeof ctx?.runSubAgent !== 'function') {
@@ -2013,6 +2046,36 @@ export const TOOL_SCHEMAS = [
   {
     type: 'function',
     function: {
+      name: 'McpPrompt',
+      description: '取 MCP 服务器暴露的提示词模板（prompts/get），返回渲染后的提示词文本。',
+      parameters: {
+        type: 'object',
+        properties: {
+          server: { type: 'string', description: 'MCP 服务器名' },
+          name: { type: 'string', description: '模板名' },
+          arguments: { type: 'object', description: '模板参数（键值对）' },
+        },
+        required: ['server', 'name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'McpRegistrySearch',
+      description: '在官方 MCP registry 里搜索可接入的服务器（返回名字与描述列表）。',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: '搜索词' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'ListMcpResourcesTool',
       description: '列出已连接的 MCP 服务器上的资源。省略 server 则列出全部服务器。',
       parameters: { type: 'object', properties: { server: { type: 'string' } }, required: [] },
@@ -2213,6 +2276,8 @@ export async function executeTool(rawName, input, ctx) {
     case 'LSP': return degraded('未挂载语言服务器，无法提供跳转/引用/诊断')()
     // MCP：真实现（见 mcp.mjs）。发现的工具是 mcp__server__tool 形式，走下面的前缀分支。
     case 'mcp': return toolMcpGeneric(input, ctx)
+    case 'McpPrompt': return toolMcpPrompt(input, ctx)
+    case 'McpRegistrySearch': return toolMcpRegistrySearch(input, ctx)
     case 'ListMcpResourcesTool': return toolListMcpResources(input, ctx)
     case 'ReadMcpResource': return toolReadMcpResource(input, ctx)
     case 'McpAuth': return degraded('web 端没有 OAuth 回调流程；需要凭证请在 mcpServers 里配 headers')()

@@ -19,7 +19,7 @@ import {
 } from './config.mjs'
 import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { runCommand, exportSessionMarkdown } from './commands.mjs'
-import { newMessageId, runTurn } from './engine.mjs'
+import { isTurnActive, newMessageId, runTurn } from './engine.mjs'
 import { resolvePermission, resolveQuestions } from './interactions.mjs'
 import { clearRequests, listRequests, requestSummary } from './requestLog.mjs'
 import { checkHandshake } from './security.mjs'
@@ -347,6 +347,16 @@ async function handleClientMessageInner(ws, msg, registry) {
       s.updatedAt = Date.now()
       broadcast({ type: 'user_message', sessionId: s.id, message: userMessage })
       broadcastSessions()
+
+      // ---- 排队消息（上游 CLI 原型 同款）：回合进行中再发消息不打断、不吞掉，
+      // ---- 排进队列，当前回合结束后按序自动处理。此前这里会被并发守卫
+      // ---- 静默吞掉（消息入库了但永远得不到回复）。
+      if (isTurnActive(s.id)) {
+        ;(s.messageQueue ??= []).push({ text, at: Date.now() })
+        broadcast({ type: 'notice', sessionId: s.id, text: `回合进行中，这条消息已排队（当前还有 ${s.messageQueue.length} 条待处理），回合结束后自动执行。` })
+        schedulePersist()
+        break
+      }
 
       const messageId = newMessageId()
       broadcast({ type: 'assistant_start', sessionId: s.id, messageId })

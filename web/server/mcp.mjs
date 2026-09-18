@@ -586,6 +586,10 @@ class McpConnection {
       else p.resolve(msg.result)
       return
     }
+    if (msg.method === 'notifications/resources/updated') {
+      broadcast({ type: 'notice', text: `MCP 资源已更新：${this.name} ${msg.params?.uri ?? ''}` })
+      return
+    }
     if (msg.id !== undefined && msg.method === 'elicitation/create') {
       // 服务端反问：转成前端问答弹窗（不回话服务器会一直等，表现为工具卡住）
       this.handleElicitation(msg)
@@ -785,6 +789,13 @@ class McpConnection {
       closedFailure.catch(() => {})
       this.serverInfo = init?.serverInfo ?? null
       this.capabilities = init?.capabilities ?? null
+    // prompts 能力：记下服务器暴露的提示词模板（McpPrompt 工具用）
+    if (this.capabilities?.prompts !== undefined) {
+      try {
+        const pl = await this.request("prompts/list", {})
+        this.prompts = Array.isArray(pl?.prompts) ? pl.prompts : []
+      } catch { this.prompts = [] }
+    }
       this.notify('notifications/initialized', {})
 
       if (this.capabilities?.tools !== undefined) {
@@ -991,6 +1002,8 @@ export async function listMcpResources(serverName) {
 
 /** 读一个资源。 */
 export async function readMcpResource(serverName, uri) {
+  // 读过的资源顺手订阅更新通知（best-effort：服务器不支持就算了）
+  try { await subscribeMcpResource(serverName, uri) } catch { /* 不支持订阅就不订 */ }
   const conn = [...connections.values()].find(
     c => c.state === 'connected' && normalizeNameForMCP(c.name) === serverName,
   )
@@ -1097,4 +1110,55 @@ export function needsAuthHint() {
 /** 配置文件是否存在（避免 /mcp 输出里给出不存在的路径）。 */
 export function hasConfigFileHint() {
   return settingsSources().some(s => existsSync(s.path))
+}
+
+/**
+ * 取 MCP 服务器的提示词模板（prompts/get），消息内容拼成文本返回。
+ * @param {string} serverName 服务器名（mcpServers 的键）
+ * @param {string} name 模板名
+ * @param {Record<string,string>|undefined} args 模板参数
+ */
+export async function getMcpPrompt(serverName, name, args) {
+  const conn = [...connections.values()].find(k => k.name === serverName)
+  if (!conn || conn.state !== 'connected') throw new Error(`MCP 服务器「${serverName}」未连接`)
+  const res = await conn.request("prompts/get", { name, arguments: args ?? {} })
+  const msgs = Array.isArray(res?.messages) ? res.messages : []
+  return msgs
+    .map(m => {
+        const c = m.content
+        return typeof c === 'string' ? c : c?.type === 'text' ? c.text : JSON.stringify(c)
+      })
+    .join("\n\n")
+}
+
+/** 订阅某服务器的某资源：之后服务器推送 resources/updated 会播报到聊天里。 */
+export async function subscribeMcpResource(serverName, uri) {
+  const conn = [...connections.values()].find(k => k.name === serverName)
+  if (!conn || conn.state !== 'connected') throw new Error(`MCP 服务器「${serverName}」未连接`)
+  await conn.request("resources/subscribe", { uri })
+  return true
+}
+
+/**
+ * 搜官方 MCP registry（registry.modelcontextprotocol.io）。返回紧凑文本列表；
+ * 网络/白名单失败时返回带原因的错误提示，不抛异常。
+ */
+export async function mcpRegistrySearch(query) {
+  try {
+    const url = `https://registry.modelcontextprotocol.io/v0/servers?search=${encodeURIComponent(String(query ?? ""))}&limit=10`
+    const res = await guardedFetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) })
+    if (!res.ok) return `registry 查询失败：HTTP ${res.status}`
+    const data = /** @type {any} */ (await res.json())
+    const servers = Array.isArray(data?.servers) ? data.servers : []
+    if (servers.length === 0) return `registry 里没有匹配「${query}」的服务器`
+    return servers
+      .map(s => {
+        const name = s?.name ?? s?.id ?? "?"
+        const desc = s?.description ?? ""
+        return `- ${name}${desc ? `：${String(desc).slice(0, 120)}` : ""}`
+      })
+      .join("\n")
+  } catch (err) {
+    return "registry 查询失败：" + String(err?.message ?? err)
+  }
 }
