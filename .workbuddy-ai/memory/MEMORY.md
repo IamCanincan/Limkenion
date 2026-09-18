@@ -38,7 +38,8 @@ git 仓库，分支 `master`；备份在 `..\Limkenion_backup_2026-09-16.tar.gz`
   "用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**这个坑踩过两次。**
 - **CLI 每轮改完**：`node scripts/build-cli.mjs` 0 错误 → **冒烟** → `npm install -g .` → commit
   （**不 push、不动 git config**）。
-- **web 每轮改完**：`npx tsc --noEmit` → `npx vite build` → 逐文件跑 `test/*.test.mjs` → 真实 API 端到端。
+- **web 每轮改完**：`npm run typecheck`（**前后端两套 tsc**）→ `npx vite build` →
+  `npm test`（`test/*.test.mjs`）→ `npm run test:e2e`（真实 API）。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾。
 
 ## 环境要点
@@ -54,6 +55,12 @@ git 仓库，分支 `master`；备份在 `..\Limkenion_backup_2026-09-16.tar.gz`
   （**类型是 `run_command`，不是 `command`**）。
 - 单测 CLI 源码模块要用 esbuild 打包 + 特定 banner/alias（见 details）；`NODE_ENV=test` 会让
   `services/vcr.ts` 往 cwd 写 `fixtures/`，跑完清掉。
+- **服务端 JS 也在类型检查里了**（2026-09-18 起）：`web/tsconfig.server.json`
+  （allowJs + checkJs + noEmit，覆盖 `server/**/*.mjs`）。档位：关 noImplicitAny 与
+  useUnknownInCatchVariables，**开 strictNullChecks**。写服务端代码时三个反复踩的推断坑：
+  **空数组 → `never[]`**、**`.filter(Boolean)` 不收窄**、**初始值被推成字面量类型**
+  （`result: null` / `let action = 'keep'`）。改契约时先想清楚 JSDoc —— 解构默认值
+  `= {}` 会把字段从推断结果里**整个漏掉**（runEventHooks 的 `hookInput` 就是这么丢的）。
 - **真实模型的 E2E 只有一份**：`web/e2e/e2e.mjs`（`npm run test:e2e`，24 项，跑一次 1~2 分钟、
   会花真 token）。改完 **worktree / hooks / MCP / Workflow / 沙箱作用域** 后必须跑它 ——
   单测覆盖不到"模型真的会怎么调"，而这几个功能的 bug 恰恰只在真实调用序列里现形。
