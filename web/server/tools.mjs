@@ -659,17 +659,21 @@ async function toolWebSearch({ query, allowed_domains, blocked_domains }, ctx) {
   }
 
   const blocks = html.split(/<li class="b_algo"/i).slice(1, 11)
-  const items = blocks
-    .map(b => {
-      const href = (b.match(/<a[^>]+href="(https?:\/\/[^"]+)"/i) ?? [])[1]
-      const titleRaw = (b.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ?? [])[1]
-      const snipRaw = (b.match(/<p[^>]*>([\s\S]*?)<\/p>/i) ?? [])[1]
-      const title = titleRaw ? stripTags(titleRaw) : ''
-      const snippet = snipRaw ? stripTags(snipRaw) : ''
-      return href ? { href, title: title || href, snippet } : null
-    })
-    .filter(Boolean)
-    .filter(it => {
+  // 两处 `.filter(Boolean)` 都不做类型收窄：map 会产出 `({...}|null)[]`，
+  // 过滤后 TS 仍然认为元素可能是 null，于是 `it.href` 全线报错。显式断言一次。
+  const parsed = /** @type {Array<{href: string, title: string, snippet: string}>} */ (
+    blocks
+      .map(b => {
+        const href = (b.match(/<a[^>]+href="(https?:\/\/[^"]+)"/i) ?? [])[1]
+        const titleRaw = (b.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ?? [])[1]
+        const snipRaw = (b.match(/<p[^>]*>([\s\S]*?)<\/p>/i) ?? [])[1]
+        const title = titleRaw ? stripTags(titleRaw) : ''
+        const snippet = snipRaw ? stripTags(snipRaw) : ''
+        return href ? { href, title: title || href, snippet } : null
+      })
+      .filter(Boolean)
+  )
+  const items = parsed.filter(it => {
       let host = ''
       try {
         host = new URL(it.href).hostname
@@ -2061,13 +2065,13 @@ export async function executeTool(name, input, ctx) {
     case 'ToolSearch': return toolToolSearch(input, ctx)
     case 'StructuredOutput': return toolStructuredOutput(input)
     // 降级
-    case 'LSP': return degraded('未挂载语言服务器，无法提供跳转/引用/诊断')(input)
+    case 'LSP': return degraded('未挂载语言服务器，无法提供跳转/引用/诊断')()
     // MCP：真实现（见 mcp.mjs）。发现的工具是 mcp__server__tool 形式，走下面的前缀分支。
     case 'mcp': return toolMcpGeneric(input, ctx)
     case 'ListMcpResourcesTool': return toolListMcpResources(input, ctx)
     case 'ReadMcpResource': return toolReadMcpResource(input, ctx)
-    case 'McpAuth': return degraded('web 端没有 OAuth 回调流程；需要凭证请在 mcpServers 里配 headers')(input)
-    case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')(input)
+    case 'McpAuth': return degraded('web 端没有 OAuth 回调流程；需要凭证请在 mcpServers 里配 headers')()
+    case 'RemoteTrigger': return degraded('web 端不承载远端会话触发')()
     case 'EnterWorktree': return toolEnterWorktree(input, session)
     case 'ExitWorktree': return toolExitWorktree(input, session)
     case 'Workflow': return toolWorkflow(input, ctx)

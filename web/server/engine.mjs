@@ -82,11 +82,15 @@ function baseSystemPrompt() {
  * 因此「旁路回答」会显示在界面上，但不会被发给模型。导出供测试直接验证。
  */
 export function sessionToWireMessages(session) {
+  /** @type {import('./deepseek.mjs').WireMessage[]} */
   const messages = [{ role: 'system', content: baseSystemPrompt() }]
   for (const m of session.messages) {
     if (m.role === 'user') {
       // 图片输入：走多模态 content parts
       if (Array.isArray(m.images) && m.images.length > 0) {
+        // parts 要显式标类型：从 `[{type:'text',...}]` 起步会被推断成只有 text 的数组，
+        // 后面 push image_url 就报类型错（而多模态一直是对的、也一直在跑）。
+        /** @type {Array<{type: string, text?: string, image_url?: {url: string}}>} */
         const parts = [{ type: 'text', text: m.text || '' }]
         for (const img of m.images) {
           parts.push({ type: 'image_url', image_url: { url: img.dataUrl } })
@@ -520,6 +524,7 @@ async function runSubAgent(session, prompt, description, emit, expired) {
     return `（mock 引擎）子代理「${description ?? 'task'}」无法执行：未设置 DEEPSEEK_API_KEY。`
   }
   const subTools = TOOL_SCHEMAS.filter(s => isSubAgentTool(s.function.name))
+  /** @type {import('./deepseek.mjs').WireMessage[]} */
   const messages = [
     {
       role: 'system',

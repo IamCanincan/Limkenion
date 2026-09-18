@@ -229,6 +229,21 @@ function parseSse(text) {
   return out
 }
 
+/**
+ * 传输层：stdio 是"发了就不管"（同步、无返回），HTTP 是"一次 POST 一次往返"。
+ * 两者 `send()` 的返回类型不同，靠 `kind` 判别。
+ *
+ * @typedef {{kind: 'stdio', start(): void, send(msg: object): void,
+ *   onMessage(fn: (m: any) => void): void, closedReason: string|null,
+ *   stderrText(): string, close(): void,
+ *   closedPromise?: Promise<string>}} StdioTransport
+ * @typedef {{kind: 'http', start(): void, send(msg: object, timeoutMs?: number): Promise<any[]>,
+ *   onMessage(fn: (m: any) => void): void, closedReason: string|null,
+ *   stderrText(): string, close(): void,
+ *   closedPromise?: Promise<string>}} HttpTransport
+ * @typedef {StdioTransport | HttpTransport} Transport
+ */
+
 function createHttpTransport(cfg) {
   return {
     kind: 'http',
@@ -288,9 +303,16 @@ class McpConnection {
     this.serverRequests = 0
   }
 
+  /**
+   * 两种传输的**判别联合**：`kind` 必须是字面量类型，否则 `t.kind === 'http'` 收不了窄，
+   * 调用点就会拿到 `send()` 的两种返回类型的联合（`void | any[]`），
+   * 于是 `for (const m of messages)` / `messages.find(...)` 全线报错。
+   *
+   * @returns {Transport}
+   */
   get transport() {
     if (!this._t) this._t = this.transportName === 'stdio' ? createStdioTransport(this.cfg) : createHttpTransport(this.cfg)
-    return this._t
+    return /** @type {Transport} */ (this._t)
   }
 
   /** 发一条请求并等回应（带超时；超时要能看出是哪个方法超的）。 */

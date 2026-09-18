@@ -35,13 +35,31 @@ export function getApiKey() {
 }
 
 /**
+ * 一条发给模型的消息。
+ *
+ * `content` 允许数组：图片输入走 OpenAI 的多模态格式
+ * `[{type:'text',text}, {type:'image_url',image_url:{url}}]`。
+ * 原来只写了 `string`，于是 engine 里所有多模态分支都被判成类型错误 ——
+ * 而那段代码一直是对的、也一直在跑。
+ *
+ * `content` 还允许 null：assistant 只发工具调用时，OpenAI 格式里 content 就是 null
+ * （engine 在 `answer` 为空时正是这么发的）。
+ *
+ * @typedef {{role: 'system'|'user'|'assistant'|'tool',
+ *   content: string|null|Array<{type: string, text?: string, image_url?: {url: string}}>,
+ *   tool_calls?: object[], tool_call_id?: string}} WireMessage
+ */
+
+/**
  * 流式对话补全（含函数调用）。
  *
  * @param {object} opts
  * @param {string} opts.model
- * @param {Array<{role: 'system'|'user'|'assistant'|'tool', content: string, tool_calls?: object[], tool_call_id?: string}>} opts.messages 完整对话历史
+ * @param {WireMessage[]} opts.messages 完整对话历史
  * @param {Array<object>} [opts.tools] OpenAI function-calling 工具 schema
- * @param {(ev: {type: 'text'|'reasoning'|'tool_call', delta: string, toolCall?: object}) => void} opts.onDelta 流式增量
+ * @param {(ev: {type: 'text'|'reasoning'|'tool_call', delta: string, toolCall?: object}) => void} [opts.onDelta] 流式增量。
+ *   可选 —— 不传时函数内部用空实现兜住（曾经因为漏传，抛 "onDelta is not a function"
+ *   在**流解析中途**，表现为"模型调用失败"，真正原因却只是调用方没给回调）。
  * @param {AbortSignal} [opts.signal] 取消信号
  * @param {string} [opts.reasoningEffort] 推理强度。实测 DeepSeek 接受
  *   `none|minimal|low|medium|high|max`（`auto` 会 400）；`none` 是唯一能关掉思考链的取值。
@@ -55,7 +73,9 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
   const emitDelta = typeof onDelta === 'function' ? onDelta : () => {}
   const apiKey = getApiKey()
   if (!apiKey) {
-    const err = new Error(`缺少 ${API_KEY_ENV} 环境变量。请设置后重启服务：set ${API_KEY_ENV}=sk-...`)
+    // 标成 ErrnoException：Error 本身没有 `code` 字段，但 Node 的惯例就是往 error 上挂 code
+    // （下面 TRANSPORT / HTTP_xxx 同理，调用方靠 `err.code` 区分失败原因）。
+    const err = /** @type {NodeJS.ErrnoException} */ (new Error(`缺少 ${API_KEY_ENV} 环境变量。请设置后重启服务：set ${API_KEY_ENV}=sk-...`))
     err.code = 'MISSING_CREDENTIAL'
     throw err
   }
@@ -89,7 +109,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
     })
   } catch (error) {
     if (signal?.aborted) throw error
-    const err = new Error(`DeepSeek API 请求失败（${DEEPSEEK_BASE_URL}）：${String(error)}`)
+    const err = /** @type {NodeJS.ErrnoException} */ (new Error(`DeepSeek API 请求失败（${DEEPSEEK_BASE_URL}）：${String(error)}`))
     err.code = 'TRANSPORT'
     throw err
   }
@@ -97,17 +117,25 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
   if (!response.ok) {
     let message = `DeepSeek API 错误（HTTP ${response.status}）`
     try {
-      const parsed = await response.json()
+      // `response.json()` 在 undici 的类型里是 Promise<unknown>，要先放开才能取字段
+      const parsed = /** @type {any} */ (await response.json())
       if (parsed?.error?.message) message = parsed.error.message
     } catch {
       // 网关返回非 JSON 时以状态码为准
     }
-    const err = new Error(message)
+    const err = /** @type {NodeJS.ErrnoException} */ (new Error(message))
     err.code = `HTTP_${response.status}`
     throw err
   }
 
   // --- SSE 解析（与 llm-deepseek translate.ts 相同的事件顺序） ---
+  // body 为 null 时下面的 getReader() 会抛 "Cannot read properties of null"，
+  // 读起来完全看不出是响应没有主体 —— 明确说出来。
+  if (!response.body) {
+    const err = /** @type {NodeJS.ErrnoException} */ (new Error(`DeepSeek API 返回了没有响应体的结果（HTTP ${response.status}）`))
+    err.code = 'EMPTY_BODY'
+    throw err
+  }
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''

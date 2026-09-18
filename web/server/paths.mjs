@@ -29,11 +29,13 @@ import { existsSync } from 'node:fs'
  */
 function detectCliRoot() {
   const fallback = process.cwd()
-  const candidates = [
+  // `.filter(Boolean)` 在 TS 里**不做类型收窄**（仍是 `(string|undefined)[]`），
+  // 所以这里显式断言一次 —— 语义上 filter 已经把 falsy 全去掉了。
+  const candidates = /** @type {string[]} */ ([
     process.env.LIMKENION_CLI_ROOT,
     join(import.meta.dirname, '..', '..'),
     fallback,
-  ].filter(Boolean)
+  ].filter(Boolean))
   for (const c of candidates) {
     try {
       if (existsSync(join(c, 'commands'))) return resolve(c)

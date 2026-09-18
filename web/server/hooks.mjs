@@ -148,6 +148,19 @@ function readConfigs() {
  * 但也不至于每次调用都去读盘 —— 3 秒的窗口够短，不至于让人以为"配置没生效"。
  */
 const CONFIG_TTL_MS = 3_000
+
+/**
+ * 一条可执行的钩子配置。
+ * @typedef {{event: string, matcher: string, type: string, command: string,
+ *   timeout: number, ifCondition: string, source: string, path: string}} HookConfig
+ */
+
+/**
+ * `list` 必须显式标类型：写成 `[]` 会被推断成 `never[]`，
+ * 之后每一处 `hook.event` / `hook.command` 都会报「属性不存在于 never」——
+ * 一次性冒出 20 多条报错，全是同一个根因。
+ * @type {{at: number, list: HookConfig[]}}
+ */
 let configCache = { at: 0, list: [] }
 
 /** 立即刷新（`/hooks`、`/reload-settings` 用）。 */
@@ -425,6 +438,15 @@ function mergeResult(acc, hook, res) {
 
 /**
  * 跑某个事件的钩子。
+ *
+ * `hookInput` 是喂给钩子进程的 stdin JSON（工具相关的事件才有）。
+ * 它必须写进 `@param` —— 签名里的解构默认值是 `= {}`，TS 会据此推断成
+ * `{toolName?: string, cwd?: any}`，**`hookInput` 会被整个漏掉**，
+ * 于是 engine.mjs / index.mjs 里所有传它的调用点都报 TS2353，
+ * 而运行时其实一直是好的。类型契约与实现不符，比没有类型更糟。
+ *
+ * @param {string} event
+ * @param {{toolName?: string, hookInput?: Record<string, any>, cwd?: string}} [opts]
  * @returns {Promise<{event:string, decision:'allow'|'ask'|'deny'|null, reason:string|null,
  *   updatedInput:object|null, additionalContext:string|null, preventContinuation:boolean,
  *   stopReason:string|null, messages:string[], ran:number}>}

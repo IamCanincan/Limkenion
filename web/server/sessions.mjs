@@ -35,7 +35,25 @@ function newSessionId() {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-/** 新建会话对象（不落库，供反序列化复用）。 */
+/**
+ * 新建会话对象（不落库，供反序列化复用）。
+ *
+ * 一堆空数组字段必须**整体**标类型：写成 `[]` 会被推断成 `never[]`，
+ * 于是后面 `forked.tags = [...]` 这种赋值全都会报「any[] 不能赋给 never[]」。
+ * 标一次，整片都干净。
+ *
+ * @param {string} [id]
+ * @returns {{
+ *   id: string, title: string, updatedAt: number, messages: any[],
+ *   cancelled: boolean, usage: {inputTokens: number, outputTokens: number},
+ *   turnCount: number, toolCallCount: number, todos: any[], tasks: any[],
+ *   team: {name: string|null, members: any[], log: any[]},
+ *   settings: Record<string, any>, planMode: boolean, filesChanged: any[],
+ *   tags: string[], allowedTools: Set<any>, enabledTools: Set<any>,
+ *   turnSeq: number, workspaceRoot: string|null, workspaceAdditions: string[],
+ *   worktree: any|null
+ * }}
+ */
 function blankSession(id) {
   return {
     id: id ?? newSessionId(),
@@ -122,8 +140,12 @@ export function getSession(id) {
 export function forkSession(source, title, atIndex) {
   if (!source) return null
   const forked = blankSession()
+  // `Number.isInteger()` 不做类型窄化，TS 仍认为 atIndex 可能 undefined；
+  // 这里用 `at ?? 0` 把两种可能合并成一条表达式 —— 语义与原来完全一致
+  // （整数时取 at+1，否则走 else 分支），但不依赖窄化。
+  const at = atIndex ?? 0
   const cut = Number.isInteger(atIndex)
-    ? Math.max(0, Math.min(atIndex + 1, source.messages.length))
+    ? Math.max(0, Math.min(at + 1, source.messages.length))
     : source.messages.length
 
   // 消息浅拷贝：消息对象本身在两侧都不再被原地修改（引擎每轮 push 新对象），

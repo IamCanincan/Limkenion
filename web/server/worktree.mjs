@@ -193,7 +193,8 @@ export async function exitWorktree(session, remove, discardChanges = false) {
 
   const repoRoot = await repoRootOf(current.path)
   const backTo = toPosix(restored ?? repoRoot ?? workspaceRoot())
-  let action = 'keep'
+  /** 标成联合：`let action = 'keep'` 会被推成 string，与返回类型里的 'keep'|'remove' 对不上。 */
+  let action = /** @type {'keep'|'remove'} */ ('keep')
   const notes = []
 
   if (remove) {

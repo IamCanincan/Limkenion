@@ -1,0 +1,30 @@
+{
+  // 服务端是纯 JS（.mjs），不在主 tsconfig 的 include 里（那边只有 src）。
+  // 这份配置用 allowJs + checkJs 把 22 个 server/*.mjs 也纳入类型检查，只检查不产出。
+  //
+  // noImplicitAny 关掉的原因：JS 项目里 379 个「参数隐式 any」全是没写 JSDoc，不是 bug，
+  // 一次补完不现实、也会把真正有价值的报错淹没掉。
+  // 保留 strict 的其余部分 —— 真正抓到 bug 的是这几类：
+  //   TS2353（对象字面量写了类型里没有的属性 → 契约与实际不符）
+  //   TS2339（访问了不存在的属性）  TS2322/2345（类型对不上）
+  //   TS18046/18047（unknown / 可能为 null）
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    // catch 变量不做 unknown：JS 里 catch 到的是 `{}`，`err?.message` 一律报错，
+    // 一堆无谓的 cast 会把真正有价值的报错淹没。与 noImplicitAny:false 是同一档取舍。
+    // 注意 strictNullChecks **保持开启** —— TS18047（可能为 null）能抓到真问题，一律留着。
+    "useUnknownInCatchVariables": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["server/**/*.mjs"]
+}

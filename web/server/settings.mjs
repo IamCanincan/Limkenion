@@ -184,7 +184,14 @@ function mergePermissions(files) {
     sources.push(source)
     const p = data.permissions
     if (!p || typeof p !== 'object') continue
-    for (const [key, bucket] of [['allow', allow], ['deny', deny], ['ask', ask]]) {
+    // 标成元组：否则被推成 `(string|any[])[][]`，`p[key]` 会报「any[] 不能当索引类型」，
+    // `bucket.push` 会报「string 上没有 push」——而这段代码本身是对的。
+    const buckets = /** @type {Array<[string, string[]]>} */ ([
+      ['allow', allow],
+      ['deny', deny],
+      ['ask', ask],
+    ])
+    for (const [key, bucket] of buckets) {
       if (Array.isArray(p[key])) {
         for (const r of p[key]) if (typeof r === 'string' && r.trim()) bucket.push(r.trim())
       }

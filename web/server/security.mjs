@@ -89,6 +89,9 @@ export const SHELL_TOOLS = new Set(['Bash', 'PowerShell', 'REPL'])
 export const SHELL_DISABLED = String(process.env.LIMKENION_WEB_SHELL ?? '').toLowerCase() === 'off'
 
 /** 灾难性命令：任何权限模式、任何「总是允许」都不放行。 */
+/** `[正则, 命中说明]` 对。必须标成元组 —— 否则被推成 `(string|RegExp)[][]`，
+ *  下面 `re.test(cmd)` 就会报「string 上没有 test」。 */
+/** @type {Array<[RegExp, string]>} */
 const HARD_BLOCK = [
   [/\brm\s+(-[\w-]+\s+)*-[\w]*[rf][\w]*\s+(\/|~|\$HOME|\*)(\s|$|\/)/i, '递归删除根/家目录'],
   [/\brm\s+(-[\w-]+\s+)*\/(\s|$)/i, '删除根目录'],
@@ -111,6 +114,7 @@ const HARD_BLOCK = [
 ]
 
 /** 需要升级确认（即使「本会话总是允许」也要重新问）的情形。 */
+/** @type {Array<[RegExp, string]>} */
 const ESCALATE_PATTERNS = [
   [/(^|\s)~(?:[\\/]|$)/, '访问家目录'],
   [/\$HOME|\$env:USERPROFILE|%USERPROFILE%/i, '访问家目录'],

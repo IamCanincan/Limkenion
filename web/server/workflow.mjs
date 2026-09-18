@@ -160,6 +160,18 @@ export async function runWorkflow({
   )
 
   const runId = newRunId()
+  /**
+   * `phases/logs/agents` 写成 `[]` 会被推断成 `never[]`（后面每一次 push 都报错），
+   * `finishedAt/error/status` 写成 null / 'running' 会被推断成 **字面量类型 null / 'running'**
+   * （于是"改成别的值"也报错）。一次性标清楚。
+   *
+   * @type {{runId: string, name: string, description: string|null, sessionId: string|null,
+   *   startedAt: number, finishedAt: number|null, status: string,
+   *   phases: Array<{name: string, at: number}>, logs: string[],
+   *   agents: Array<{id: number, prompt: string, label: string|undefined,
+   *     status: string, result: any}>,
+   *   error: string|null, budget: any, tokensUsed: number, result?: string}}
+   */
   const run = {
     runId,
     name: (name ? String(name) : null) || (meta?.name ? String(meta.name) : null) || '工作流',
@@ -210,7 +222,10 @@ export async function runWorkflow({
     }
 
     const id = ++agentSeq
-    const rec = { id, prompt: p, label, status: 'running', result: null }
+    /** `result: null` 会被推断成字面量类型 `null`，之后赋字符串就报错 —— 标出来。 */
+    const rec = /** @type {{id: number, prompt: string, label: string|undefined, status: string, result: any}} */ ({
+      id, prompt: p, label, status: 'running', result: null,
+    })
     run.agents.push(rec)
     emit(`[workflow] 派子代理 #${id}：${label ?? p.slice(0, 40)}`)
     try {
