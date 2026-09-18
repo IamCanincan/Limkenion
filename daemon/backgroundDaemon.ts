@@ -158,6 +158,30 @@ export function renderSdkMessage(msg: Record<string, unknown>): string | null {
   return null
 }
 
+/**
+ * 构造一条 `can_use_tool` 权限响应（control_response），写回给 spawn 的子进程。
+ *
+ * 形状必须与子进程 stream-json 协议解析端完全一致：
+ * `cli/structuredIO.ts`（消费 `message.response.subtype/response/request_id`）
+ * 与 `entrypoints/sdk/controlSchemas.ts` 的 `SDKControlResponseSchema`
+ *（`response: { subtype:'success', request_id, response: {behavior,message?} }`）。
+ * 改这里必须同步改那两端——`test-cli/daemon-permission.test.ts` 守住这条契约。
+ */
+export function buildPermissionControlResponse(
+  requestId: string,
+  behavior: 'allow' | 'deny',
+  message?: string,
+): string {
+  return JSON.stringify({
+    type: 'control_response',
+    response: {
+      subtype: 'success',
+      request_id: requestId,
+      response: { behavior, ...(message ? { message } : {}) },
+    },
+  })
+}
+
 function briefInput(input: unknown): string {
   if (input === null || input === undefined) return ''
   if (typeof input !== 'object') return String(input).slice(0, 80)
@@ -250,15 +274,7 @@ export async function runDaemonProcess(opts: RunOptions): Promise<void> {
   }
 
   const respondPermission = (requestId: string, behavior: 'allow' | 'deny', message?: string): void => {
-    const payload = JSON.stringify({
-      type: 'control_response',
-      response: {
-        subtype: 'success',
-        request_id: requestId,
-        response: { behavior, ...(message ? { message } : {}) },
-      },
-    })
-    child.stdin!.write(payload + '\n')
+    child.stdin!.write(buildPermissionControlResponse(requestId, behavior, message) + '\n')
     const pending = pendingPermissions.get(requestId)
     if (pending) {
       clearTimeout(pending.timer)
