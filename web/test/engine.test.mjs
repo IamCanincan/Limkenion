@@ -410,11 +410,16 @@ describe('同一会话不并发跑两个回合', () => {
   test('中断后紧接着再发一条 → 被中断的回合不复活', async () => {
     const s = sessions.createSession()
     setupClient()
-    // 永远只读文件 → 旧回合会一直想跑下去（只需它"还活着"就行）
-    setScript([{ toolCalls: [{ id: 'loop', name: 'Read', args: { file_path: 'seed.txt' } }] }])
+    // 旧回合先睡 300ms：保证 cancel 发生时它**必然**还卡在 await 上。
+    // 之前用快速 Read 工具，机器快时 60ms 内旧回合就跑完了——先于 cancel
+    // 正常结束（turn_complete），测试就时序性假失败。
+    setScript([
+      { toolCalls: [{ id: 'sl', name: 'Sleep', args: { duration_ms: 300 } }] },
+      { toolCalls: [{ id: 'loop', name: 'Read', args: { file_path: 'seed.txt' } }] },
+    ])
 
     const old = engine.runTurn(s, '第一轮', 'msg_old')
-    await sleep(60) // 让它真的跑起来（多数时间卡在 await 上）
+    await sleep(60) // 让它真的跑起来（必然卡在 Sleep 工具上）
 
     // 模拟「Esc 中断 + 立刻再发一条」：两步之间没有 await，
     // 所以旧回合没机会在中间观察到 cancelled 为 true。

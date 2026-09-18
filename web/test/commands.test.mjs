@@ -437,7 +437,7 @@ describe('命令注册表扫描', () => {
     const reg = await mod.loadCommandRegistry()
     const names = new Set(reg.map(c => c.name))
     // web 自带的这几个 CLI 里没有同名命令，跳过
-    const webOnly = new Set(['cron', 'web', 'todos', 'summary', 'env', 'tools'])
+    const webOnly = new Set(['cron', 'web', 'todos', 'summary', 'env', 'tools', 'cost']) // cost：web 自有实现（token 统计），CLI 同名命令已随计费层删除
     for (const cmd of mod.WEB_IMPLEMENTED) {
       if (webOnly.has(cmd)) continue
       assert.ok(names.has(cmd), `/${cmd} 标为已实现，但注册表里没有`)
