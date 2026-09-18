@@ -2,6 +2,7 @@ import { feature } from 'bun:bundle'
 import { AGENT_TOOL_NAME } from '../../tools/AgentTool/constants.js'
 import { TASK_OUTPUT_TOOL_NAME } from '../../tools/TaskOutputTool/constants.js'
 import { TASK_STOP_TOOL_NAME } from '../../tools/TaskStopTool/prompt.js'
+import { canonicalToolName } from '../../shared/naming.js'
 import type { PermissionRuleValue } from './PermissionRule.js'
 
 // Dead code elimination: ant-only tool names are conditionally required so
@@ -18,6 +19,12 @@ const BRIEF_TOOL_NAME: string | null =
 // Maps legacy tool names to their current canonical names.
 // When a tool is renamed, add old → new here so permission rules,
 // hooks, and persisted wire names resolve to the canonical name.
+//
+// 注意：本表只收 上游 CLI 原型 时代的古老改名（Task→Agent 等）。
+// 本 fork 自己的重命名契约（EnterPlanMode→PlanEnter 等）统一走
+// `shared/naming.ts` 的 `canonicalToolName` —— 见下方 normalizeLegacyToolName，
+// 否则会出现"双端各有一套解析、兼容层漏掉一端"的回归
+//（权限规则里写旧名 EnterPlanMode 静默不匹配已改名为 PlanEnter 的工具）。
 const LEGACY_TOOL_NAME_ALIASES: Record<string, string> = {
   Task: AGENT_TOOL_NAME,
   KillShell: TASK_STOP_TOOL_NAME,
@@ -29,7 +36,9 @@ const LEGACY_TOOL_NAME_ALIASES: Record<string, string> = {
 }
 
 export function normalizeLegacyToolName(name: string): string {
-  return LEGACY_TOOL_NAME_ALIASES[name] ?? name
+  // 先查本 fork 自己的重命名契约（单一事实源 shared/naming.ts），
+  // 再兜底古老别名——两条路都认，旧配置/旧写法都不失效。
+  return LEGACY_TOOL_NAME_ALIASES[name] ?? canonicalToolName(name)
 }
 
 export function getLegacyToolNames(canonicalName: string): string[] {
