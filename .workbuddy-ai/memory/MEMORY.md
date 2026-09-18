@@ -1,179 +1,138 @@
 # Limkenion 项目长期记忆
 
-> **本文件在会话启动时自动注入，必须保持精简**（超上限会被截断 = 接力断掉）。
-> 分阶段全账、被压缩掉的细节都在同目录 **`MEMORY-details.md`**，按需读。
-> **加内容前先想清楚放哪一份。**
+> 本文件自动注入，**必须精简**（超上限会被截断 = 接力断掉）。
+> 分阶段全账 / 细节清单 → 同目录 **`MEMORY-details.md`**；逐轮流水 → `YYYY-MM-DD.md`。
+> **加内容前先想清楚放哪一份**；本文件只放"不知道就会写错"的东西。
 
 ---
 
 ## 用户明确要求（最高优先级，别自作主张改）
-1. **只保留 web 界面**（2026-09-18 用户拍板）：CLI 已停止维护并从工作树删除，
-   完整源码在 git 分支 **`archive/cli`**。今后一切功能只做 web 端。
-2. **只依赖 Node**，不引入新运行时（不要 Bun/Deno/Python）。
-3. **以"高效编码"为目的** —— 取舍标准是写代码好不好用，不是功能多。
-4. **只支持 DeepSeek**，不做其他供应商。
+1. **只做 web 界面**：CLI 已停止维护并从工作树删除，源码在 git 分支 `archive/cli`。
+2. **只依赖 Node**，不引入新运行时（不要 Bun/Deno/Python/Electron）。
+3. **以"高效编码"为目的** —— 取舍标准是写代码好不好用。
+4. **只支持 DeepSeek**（预留多供应商扩展点，但不做其他供应商）。
 5. **尽量不要删功能；发现问题先提出来，不要擅自删。**
 6. 本地 agent：无云、无账号、**无网站、无邮箱**。
-7. **DeepSeek 模型/价格以官网实测为准，不要凭印象写死**（且**不写死单价换算金额**——
-   2026-09-18 起计费层已整体删除，只展示 token/时长/行数）。
-8. **API key 由用户自己输入**（`/login` 已能录入并持久化）。
-9. **不要桌宠**。
+7. **不写死单价/换算金额**（2026-09-18 计费层已整体删除，只展示 token/时长/行数）。
+8. **API key 由用户自己输入**（`/login` 录入并持久化）。**不要桌宠。**
 
-## 项目性质
-`D:\Github Repositories\Limkenion` = **纯 web 项目**。git 仓库，分支 `master`。
-- **web/**：Vite + React 18 + 自研本地 Node 服务，完全自包含（引擎/会话/工具/钩子/
-  定时任务），**零外部进程依赖**。
-- `web/server/data/cli-contract.json`、`commands-manifest.json` 是 CLI 时代的契约
-  **数据快照**，web 端仅作数据消费，仍有效；生成脚本已随 CLI 归档。
-- `web/test/drift.test.mjs` 自带 `HAS_CLI_SOURCE` 守卫，CLI 源码不在时自动跳过（预期）。
+## 项目性质与交付形态
+`D:\Github Repositories\Limkenion` = **纯 web 项目**，git 分支 `master`，远程 origin = Gitee。
+- **web/**：Vite + React 18 + 自研本地 Node 服务（同端口伺服静态页 + WebSocket），
+  完全自包含（引擎/会话/工具/钩子/定时任务/MCP/Workflow/Teams），**零外部进程依赖**。
+- **桌面分发 = Tier C 内置 Node**：`cd web && npm run release` 出一份三平台通用 zip
+  （实测 448MB）。入口链路：包内 node 优先 → 系统 node 回退 → 都缺弹 GUI 提示。
+  更新器 `web/launcher/updater.mjs` 跳过 `node/`，不覆盖内置 Node。`web/release/` 已 ignore。
+- CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
+
+## 仓库红线
+- **品牌词已全历史抹除**（`upstream-brand`/`upstream-brand`/`upstream-brand` 及变体，含 `archive/cli` 分支，
+  filter-repo 重写 + 强推；备份 bundle 在仓库外）。**任何新代码/注释/文档不得带回这些词**，
+  解释设计来源用中性说法（如"参考通用 CLI agent 的设计"）。
+- `.gitattributes`：`web/launcher/**` 锁 **LF**（仅 `.vbs` 锁 CRLF）、`scripts/**` 锁 LF。
+- 原上游品牌词在 `web/` 源码 0 命中，别破功。
 
 ## 硬约束与每轮惯例
 - **无任何在线账号 / OAuth / 订阅 / 云供应商**。登录 = 设 `DEEPSEEK_API_KEY`
   （OpenAI 兼容端点，默认 `https://api.deepseek.com`）。
-- **模型只有两个**：`deepseek-flash`（默认/快/支持 Vision）与 `deepseek-v4-pro`（强/不支持图）。
-- **判断"是否 OpenAI 兼容模式"只许用 `isOpenAICompat()`**：**它恒返回 `true`，不是"检测"出来的**。
-  "用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**这个坑踩过两次。**
-- **每轮改完**：`npm run typecheck`（**前后端两套 tsc**）→ `npx vite build` →
-  `npm test`（`test/*.test.mjs`）→ commit（**不 push、不动 git config**）。
-  改了 worktree / hooks / MCP / Workflow / 沙箱作用域 → 还要跑 `npm run test:e2e`（真实 API）。
+- **模型只有两个**：`deepseek-flash`（默认/快/支持 Vision）、`deepseek-v4-pro`（强/不支持图）。
+- **判断"是否 OpenAI 兼容模式"只许用 `isOpenAICompat()`**：**它恒返回 `true`**，
+  不是"检测"出来的。"用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。
+- **每轮改完必跑四件套**（在 `web/`，用系统 node v24）：
+  `npm run typecheck`（前端 + server 两套 tsc，**别用管道掩盖退出码**）→ `npm test`
+  → `npm run test:ui`（vitest）→ `npm run build`（vite）。
+  改了 **worktree / hooks / MCP / Workflow / 沙箱作用域 / 桌面入口** → 还要跑
+  `npm run test:e2e`（真实 API，会花真 token）。改完 commit（**不 push、不动 git config**）。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾。
 
 ## 环境要点
 - 有 HTTP 代理：访问 localhost 必须 `curl --noproxy '*'`；**DuckDuckGo 超时，Bing 可用**。
-- 全局安装 npm 前必须 `export APPDATA='C:\Users\20653\AppData\Roaming'`。
-  全局命令 **`limkenion-web`** 是 web 启动入口（保留可用）。
-- Node：**测试/tsc/vite 用系统 v24**（`D:\nodejs\node.exe`）；**web 预览服务用托管 22.22.2**
-  （`C:\Users\20653\.workbuddy\binaries\node\versions\22.22.2-3\node.exe web/server/index.mjs`）。
-- **web 服务的 API key 只从环境变量来**（没有配置文件）。重启服务时从这里取，**别问用户**：
-  `~/.limkenion.json` 的 **`primaryApiKey`**。**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
+- Node：**测试/tsc/vite 用系统 v24**（`D:\nodejs\node.exe`）；
+  **web 预览服务用托管 22.22.2**（`C:\Users\20653\.workbuddy\binaries\node\versions\22.22.2-3\node.exe web/server/index.mjs`）。
+- **web 服务的 API key 只从环境变量来**（无配置文件）。重启服务时从 `~/.limkenion.json`
+  的 **`primaryApiKey`** 取，**别问用户**。**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
   查活服务：取 `limkenion-token` → 连 WS 发 `{type:'run_command', command:'/status'}`
   （**类型是 `run_command`，不是 `command`**）。
-- **服务端 JS 也在类型检查里了**（2026-09-18 起）：`web/tsconfig.server.json`
-  （allowJs + checkJs + noEmit，覆盖 `server/**/*.mjs`）。档位：关 noImplicitAny 与
-  useUnknownInCatchVariables，**开 strictNullChecks**。写服务端代码时三个反复踩的推断坑：
-  **空数组 → `never[]`**、**`.filter(Boolean)` 不收窄**、**初始值被推成字面量类型**
-  （`result: null` / `let action = 'keep'`）。改契约时先想清楚 JSDoc —— 解构默认值
-  `= {}` 会把字段从推断结果里**整个漏掉**（runEventHooks 的 `hookInput` 就是这么丢的）。
-- **真实模型的 E2E 只有一份**：`web/e2e/e2e.mjs`（`npm run test:e2e`，24 项，跑一次 1~2 分钟、
-  会花真 token）。改完 **worktree / hooks / MCP / Workflow / 沙箱作用域** 后必须跑它 ——
-  单测覆盖不到"模型真的会怎么调"，而这几个功能的 bug 恰恰只在真实调用序列里现形。
-- Windows：`rm` 会被安全策略拦 → 用 `mv` 移出仓库；`taskkill //F` 报错 → 用 `Stop-Process -Id`；
-  **找端口占用用 `netstat -ano | grep LISTENING`**（`Get-NetTCPConnection` 在这台机器上返回空）。
+- Windows：`rm` 被安全策略拦 → 用 `mv` 移出仓库；`taskkill //F` 报错 → 用 `Stop-Process -Id`；
+  **找端口占用用 `netstat -ano | grep LISTENING`**。tar 一律**相对路径 + 指定 cwd**
+  （bsdtar 把 `D:/...` 误判成远程主机）；Windows GNU tar **不解 .zip** → 用 PowerShell `Expand-Archive`。
+- **服务端 JS 也在类型检查里**（`web/tsconfig.server.json`：allowJs + checkJs + noEmit，
+  关 noImplicitAny / useUnknownInCatchVariables，**开 strictNullChecks**）。
+  三个反复踩的推断坑：**空数组 → `never[]`**、**`.filter(Boolean)` 不收窄**、
+  **初始值被推成字面量类型**（`result: null` / `let action = 'keep'`）。改契约时留意 JSDoc ——
+  解构默认值 `= {}` 会把字段从推断结果里**整个漏掉**（runEventHooks 的 `hookInput` 就这么丢的）。
 
-## DeepSeek 接口实测事实
-Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目只走 OpenAI**。**完整清单见 details**，
-下面三条是"不知道就会写出静默 bug"的：
-
+## DeepSeek 接口实测事实（不知道就会写出静默 bug）
+Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目只走 OpenAI**。
 - **思考默认开启，且 reasoning token 计入 `max_tokens`** → **任何设了小 `max_tokens` 的调用点
   都可能静默返回空响应**（`reasoning_effort:'none'` 是唯一能完全关掉思考的档位）。
-- **`reasoning_effort` 实测**：`none`/`minimal`/`low`/`medium`/`high`/`max` 都接受，**`auto` → 400**。
-  CLI 与 web 都只暴露 low|medium|high|max（刻意不加 none，两端语义要对齐）。
+- **`reasoning_effort`**：`none`/`minimal`/`low`/`medium`/`high`/`max` 都接受，**`auto` → 400**。
+  对外只暴露 low|medium|high|max（刻意不加 none）。
 - **推理模式 + 强制 `tool_choice` 不可共存**（400）。适配器在"强制工具"时自动加 `reasoning_effort:'none'`。
 
-## 当前状态
-**纯 web 项目（2026-09-18 起）**，CLI 已归档到分支 `archive/cli` 并从工作树删除。
-Web：`cd web && node server/index.mjs`（或全局 `limkenion-web`）。
-
-### Web 端：已按「CLI 有的都搬过来」审过**三层**，并且五项"没搬的"已全部实现
-| 层 | 结果 |
-|---|---|
-| **命令** | 82 个 → 搬了 7 个；其余是占位桩/已停用/需云端/终端专属 |
-| **工具** | 55 个目录 → 真缺只有 `CronList`/`CronDelete`（已补）；**现 44 个** |
-| **设置** | 原先**完全不读设置文件** → 现读 deny/ask/allow、defaultMode、bypass 开关、additionalDirectories、hooks、mcpServers |
-
-**五项"之前没搬的"本轮全部实现**（用户明确要求"全部都做"）：
-
-| 项 | 实现（web/server/） | 保留的差异 |
-|---|---|---|
-| **worktree + additionalDirectories** | 沙箱根**按会话可变**（AsyncLocalStorage）；两个工具真实现 | 只在当前沙箱内建；进入后原目录不可访问 |
-| **hooks** | `hooks.mjs`：command 类型 + 8 个事件 | 19 种事件、prompt/agent/http 未做（http 要 SSRF 防护） |
-| **MCP 客户端** | `mcp.mjs`：stdio + HTTP，tools/resources | sse / OAuth / elicitation / registry 未做 |
-| **WorkflowTool** | `workflow.mjs`：vm 沙箱 + agent/parallel/pipeline/phase + journal | 子代理只读、无预定义脚本与远端 |
-| **`/insights`** | `insights.mjs`：真实聚合 + 模型洞察 + HTML + 只读路由 | 无 facets 缓存、不跨项目 |
-
-**Web 端抓到的 5 个静默严重 bug（都已修 + 有回归防线）**：
-① 工具 schema 从没发给模型 → agent 实际只能聊天；② `chatCompletion` 不返回 `text` → 网页提炼器一直失效；
-③ 工具结果不回填服务端记录 → **刷新页面后执行轨迹全丢**；④ **中断后旧回合"复活"** → 已用回合代次修掉；
-⑤ `onDelta` 可选却直接调用 → 没传就抛"模型调用失败"。
-
-**Web 端其它已做**：请求追踪面板、推理强度下拉、侧栏会话搜索 + 分叉、模型列表与 CLI 对齐、
-**回合代次**（同一会话不并发跑两个回合；定时任务撞上未结束的回合就跳过**并说明**）。
-**测试 299 项全过**（13 个文件：engine/commands/tools/security/settings/protocol/hooks/mcp/paths/insights/workflow/requestLog/drift）；
-真实 E2E **24/24**（`npm run test:e2e`，唯一走真实模型的集成测试）。
-**阶段 2 已落地**：对外概念重命名（钩子事件连字符 `tool-before` 等 + `PlanEnter`/`PlanExit`），
-旧名经 `clicontract.mjs` 的 `canonical*` 归一化兼容；权限模式名未改（用户未确认）。
-
-**阶段 3 已落地（2026-09-18）**：CLI 侧 27 个 hook-event 旧名 + `EnterPlanMode`/`ExitPlanMode`
-工具名也按同一契约迁移到 `shared/naming.ts` 新名，并在 `Tool.ts`/`hooksSettings.ts`/
-`hooksConfigManager.ts`/`loadPluginHooks.ts` 加 `canonicalHookEvent`/`canonicalToolName`
-归一化，老配置/老调用继续兼容。生成 `cli-contract.json` + `commands-manifest.json`。
-验证：`node scripts/build-cli.mjs` 0 错误、`npm install -g .` 冒烟、`web` typecheck + build + test
-通过；E2E 里 `【C】PreToolUse 钩子拦截` 仍用旧名配置，经兼容路径通过。
-
-
-**2026-09-18 晚补齐**：真压缩+auto-compact、Bash 后台/超时、文件检查点（/rewind 连文件回滚）、
-钩子 11 事件、MCP 三传输（stdio/http/sse）+ elicitation + OAuth 2.1。
-**明确不做**（CC 生态专属，用户拍板）：插件/技能市场、Agent Teams 可视化面板。
-
-### 仍未做的
-只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
+## 当前状态（第 28 轮，2026-09-19 02:47）
+**纯 web 项目**。对标能力已全部补齐：
+- **钩子 27 事件 × 4 执行类型**（command/prompt/agent/http）；**MCP** stdio/http/sse +
+  elicitation/OAuth 2.1/sampling/roots/prompts/registry 搜索；**自动 compact + microcompact**；
+  **文件检查点**（/rewind 连文件回滚）；**后台 Bash**（TaskOutput/TaskStop）；
+  **出站白名单** `LIMKENION_EGRESS_ALLOWLIST`；非回环绑定 LAN 鉴权；outputStyle 注入；
+  LIMKENION.md/AGENTS.md instructions 加载；回合中排队消息；**localhost 预览面板**（PreviewUrl + iframe）；
+  **Computer Use**（Windows PowerShell 零依赖，`LIMKENION_WEB_COMPUTER_USE=1`，非 Windows 自动禁用）；
+  **Agent Teams 工作台**（TeamPanel + 成员事件流 + teammate-idle 钩子）；
+  worktree + additionalDirectories（沙箱根**按会话可变**，AsyncLocalStorage）；
+  WorkflowTool（vm 沙箱）；`/insights`。
+- **测试 341 项 0 失败**（`web/test/*.test.mjs`）+ vitest 6/6；**真实 E2E 24/24**。
+- **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
+- **注释中文化：工作树已 100% 完成**（只剩 JSDoc 类型定义/路径示例/shebang 等不该译的行）。
+  `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 那份 B1–B28 计划**已过期**（B2–B27 针对已归档的
+  CLI 树）；`archive/cli` 分支仍有 ~1987 个 ts/tsx 未译 —— **要动必须先问用户**。见 details 附七。
+- **仍未做**：只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
 
 ## 关键陷阱（都踩过，别再踩）
-1. **`availability` 决定命令是否可见**，`commands.ts:meetsAvailabilityRequirement()` 在
+1. **删模块后必须跑冒烟** —— esbuild 只报"缺失导出"，不报类型错误；被删符号的**调用点**会静默变
+   `undefined`，构建 0 错误、服务照常启动，执行到才炸。**删模块前把它 export 的每个符号都 grep 一遍。**
+2. **`availability` 决定命令是否可见**，`commands.ts:meetsAvailabilityRequirement()` 在
    `isEnabled()` **之前**运行。判断"本地是否可见"必须同时看两个条件。
-2. **删模块后必须跑冒烟** —— esbuild 只报"缺失导出"，不报类型错误；被删符号的**调用点**会静默变
-   `undefined`，构建 0 错误、CLI 照常启动，执行到才炸。**踩过四次。删模块前把它 export 的
-   每个符号都 grep 一遍，不能只 grep 模块名。**
-3. **CLI 源码编辑的五条硬规矩**（react-compiler `$[N]` 槽位 / 批量改先 dry-run / 导入正则不能跨行 /
-   JSDoc 里不能写 `**/` / "已移除 X"的注释别把 X 写出来）—— 全文见 details。
-4. **桩模型按脚本回放 → 断言不到"请求里少了什么"**。凡"某参数有没有真的发出去"的问题，
-   必须断言请求体（`stub.requests.at(-1)`）或打真实 API。
-5. **前端有独立状态时，只测实时界面会漏掉"持久化/重载后"的 bug** —— web 验证脚本必须
-   加一次 `Page.reload` 再断言，且断言**服务端那份记录**。
-6. **`session.cancelled` 是共享布尔值，不能当"这个回合还活着吗"用** —— 按 Esc 后紧接着
-   再发一条，协议层会把它置回 false，旧回合于是**复活**。判断回合存活一律用**回合代次**
+3. **`session.cancelled` 是共享布尔值，不能当"这个回合还活着吗"用** —— 按 Esc 后再发一条，
+   协议层会把它置回 false，旧回合**复活**。判断回合存活一律用**回合代次**
    （`sessions.beginTurn` / `cancelSession` / `turnExpired`）。
-7. **桩模型的脚本游标是全局共享的** —— 任何后台回合（定时任务、`/init` 的 `void runTurn`）
-   都会偷走下一个用例的脚本，表现为"偶发失败"。用例之间要排空在途回合
-   （`engine.isTurnActive` + `afterEach` 轮询）。**确定性测时间竞态用 `Sleep(duration_ms)` 拉住回合。**
-8. **给自己的子进程套 shell 时别手拼 `cmd.exe /d /s /c "..."`** —— 带引号的可执行路径会被
-   cmd 的引号规则拆坏（报"不是内部或外部命令"）。用 `spawn(cmd, { shell })`。
-9. **用 shell 启动的子进程，超时不能只 `child.kill()`** —— 那只杀 shell，脚本进程活下来继续
-   占着 stdout 管道 → `close` 永不触发 → **整个回合挂死**。超时后要**不等 close 直接结算**
-   + `taskkill /T /F` 杀进程树。
-10. **模块加载时的快照会漏掉运行时注册的东西** —— `DEFERRED_TOOL_NAMES` 原来是常量，
-    MCP 工具注册进 `TOOL_SCHEMAS` 后**永远进不了延迟清单**。凡"运行时会长大的集合"，
-    导出**函数**不要导出快照。
-11. **`node:vm` 不是安全边界**（工作流脚本）：能挡住 `require`/`process`（靠不注入），
-    挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
-12. **断言要看"真正被消费的那份数据"** —— 工具结果只活在本次回合的 wire messages 里
-    （`role:'tool'`），**不进 `session.messages`**（那里只有 user/assistant）。
-13. **`ws?.readyState === ws.OPEN` 是假保护** —— 可选链只短路它自己那一段，右侧 `ws.OPEN`
-    照样求值，ws 为 null 时抛 TypeError。**可选链不等于空值检查。**
-14. **作用域要"每次调用重新解析"，不能在回合开头算一次** —— `EnterWorktree` 换掉
-    `session.workspaceRoot` 后，AsyncLocalStorage 里已进的那层不会自己更新，
-    同一回合里紧跟着的 Write 还写老树，而 EnterWorktree 自己报成功（用户完全看不出来）。
-    同理：钩子进程的 cwd **和** 钩子输入 JSON 里的 `cwd` 字段都必须在作用域内构造
-    （收**构造函数**而非收对象），否则"进程在新目录、stdin 读到的还是老目录"。
-15. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
-    `test/fixtures/`，把 MCP 桩服务当测试文件跑起来挂满超时（全套 15 分钟 → 21 秒）。
-16. **E2E 里"没测到"要记成"未触发"，不能记成失败** —— 走真实模型时，是否调工具、何时调都会抖动；
-    混在一起会把模型抖动误报成产品 bug，反而淹没真 bug。同理**提示词别给退路**
-    （写"如果没有未提交改动就…"，模型会理性地选另一条分支，被测路径压根没走到）。
+4. **作用域要"每次调用重新解析"，不能在回合开头算一次** —— `EnterWorktree` 换掉
+   `session.workspaceRoot` 后 AsyncLocalStorage 已进的那层不会更新，同一回合紧跟着的 Write
+   还写老树，而 EnterWorktree 自己报成功（用户完全看不出来）。钩子进程的 cwd **和** 钩子输入
+   JSON 的 `cwd` 都必须在作用域内构造（收**构造函数**而非收对象）。
+5. **模块加载时的快照会漏掉运行时注册的东西** —— `DEFERRED_TOOL_NAMES` 原是常量，
+   MCP 工具注册后**永远进不了延迟清单**。凡"运行时会长大的集合"，导出**函数**不要导出快照。
+6. **用 shell 启动的子进程，超时不能只 `child.kill()`** —— 那只杀 shell，脚本进程活下来占着
+   stdout 管道 → `close` 永不触发 → **整个回合挂死**。要**不等 close 直接结算** + 杀进程树。
+7. **`ws?.readyState === ws.OPEN` 是假保护** —— 可选链只短路它自己那一段，右侧 `ws.OPEN`
+   照样求值，ws 为 null 时抛 TypeError。**可选链不等于空值检查。**
+8. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
+   `test/fixtures/`，把 MCP 桩服务当测试文件跑（全套 15 分钟 → 21 秒）。
+9. **`node:vm` 不是安全边界**（工作流脚本）：挡得住 `require`/`process`（靠不注入），
+   挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
+10. **往"被 import 的目录"下新增文件 = 悄悄扩大类型检查面** —— `tsconfig.server.json` 的 include 是
+    `server/**/*.mjs`，但 `server/static.mjs` import 了 `../launcher/updater.mjs`，TS 顺 import 一起检查，
+    于是新加的 `launcher/` 直接让 typecheck 红了 5 个错。**加了新目录/新文件，一定要重跑 typecheck。**
+> 陷阱 9–15 的完整版（测试桩游标、断言对象、E2E 抖动、子进程 shell 引号…）
+> 见 `MEMORY-details.md` **附六**。
 
 ## 服务端模块地图（web/server/）
 单向依赖：paths → config/bus → sessions/security/workspace → interactions/toolindex →
 engine → commands → protocol → index。**新增模块别引入反向依赖**（要回调就用 `ctx` 注入）。
-
 - `sessions.mjs`：会话存储 + 落盘 + **回合代次** + 沙箱根字段。
-- 新模块：`hooks.mjs` / `mcp.mjs` / `workflow.mjs` / `insights.mjs` / `worktree.mjs`。
-  它们的宿主能力**一律经 `ctx` 注入**（`runSubAgent`/`callMcpTool`/`runWorkflow`…），
+- `hooks.mjs` / `mcp.mjs` / `workflow.mjs` / `insights.mjs` / `worktree.mjs` / `computer.mjs` /
+  `teams.mjs`。它们的宿主能力**一律经 `ctx` 注入**（`runSubAgent`/`callMcpTool`/`runWorkflow`…），
   **不要让 `tools.mjs` 反向 import 这些模块**（会成环）。
-- `static.mjs` 有一条 `/insights` 只读路由（文件名走白名单正则，不接受路径拼接）。
+- `static.mjs`：静态页 + 只读路由（`/insights` 文件名走白名单正则，不接受路径拼接）
+  + `GET /api/check-update` / `POST /api/update`。
 
 ## 接力提示
-**新 agent 上手**：① 读本文件 → ② 按需读 `MEMORY-details.md` → ③ 改 `web/` 前加载
-`limkenion-web-verify` 技能。CLI 相关技能（`limkenion-cli-fix-verify`）已随归档失效，
-CLI 源码只在 `archive/cli` 分支里，仅在用户明确要求回溯 CLI 历史时才去读。
-**用户偏好**：不要反复问他"选哪个"；说"继续"就是让我接着干。五项"要动安全边界/重做子系统"的
-事他已明确要求做过（见上表），愿意为真功能付代价；但**没被要求时不要擅自扩大权限边界**。
+**新 agent 上手**：① 读本文件 → ② 读 **`.workbuddy/HANDOFF.md`**（最新交接）→
+③ 按需读 `MEMORY-details.md` → ④ 改 `web/` 前加载 **`limkenion-web-verify`** 技能。
+CLI 技能已随归档失效；CLI 源码只在 `archive/cli` 分支，仅在用户明确要求回溯时才读。
+**用户偏好**：不要反复问"选哪个"；说"继续"就是接着干。愿意为真功能付代价（安全边界/子系统重做
+都已明确授权做过）；但**没被要求时不要擅自扩大权限边界**。
+**未提交**：桌面分发（launcher + 出包脚本 + .gitattributes 等）已暂存未 commit ——
+**动手前先问用户要不要先提交这批**，避免和后续改动混在一起。
+**下一任务（用户已安排）**：源码全量翻译 —— **动手前必须先确认目标语言与范围**
+（只注释？含 UI 文案/文档？标识符建议不动）。细节见 `HANDOFF.md` 第六节。

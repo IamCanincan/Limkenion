@@ -725,3 +725,54 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 `interactions.mjs`（`isDangerousTool` + hook 判定）、`static.mjs`（/insights 路由）、
 `commands.mjs`（`/hooks` `/mcp` `/insights` `/workflows`）、`index.mjs`（MCP 连接 + SessionEnd）、
 `sessions.mjs`（沙箱根字段）、`deepseek.mjs`（onDelta 默认值）。
+
+---
+
+## 附六：从 MEMORY.md 挪出的"关键陷阱"（第 9–13 条，为压体积）
+
+9. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
+   `test/fixtures/`，把 MCP 桩服务当测试文件跑起来挂满超时（全套 15 分钟 → 21 秒）。
+10. **断言要看"真正被消费的那份数据"** —— 工具结果只活在本次回合的 wire messages 里
+   （`role:'tool'`），**不进 `session.messages`**（那里只有 user/assistant）。
+11. **桩模型按脚本回放 → 断言不到"请求里少了什么"**。凡"某参数有没有真的发出去"的问题，
+   必须断言请求体（`stub.requests.at(-1)`）或打真实 API。
+   **桩模型的脚本游标是全局共享的** —— 任何后台回合（定时任务、`/init` 的 `void runTurn`）
+   都会偷走下一个用例的脚本，表现为"偶发失败"。用例之间要排空在途回合
+   （`engine.isTurnActive` + `afterEach` 轮询）。**确定性测时间竞态用 `Sleep(duration_ms)` 拉住回合。**
+12. **E2E 里"没测到"要记成"未触发"，不能记成失败** —— 走真实模型时，是否调工具、何时调都会抖动；
+   混在一起会把模型抖动误报成产品 bug，反而淹没真 bug。同理**提示词别给退路**
+   （写"如果没有未提交改动就…"，模型会理性地选另一条分支，被测路径压根没走到）。
+13. **前端有独立状态时，只测实时界面会漏掉"持久化/重载后"的 bug** —— web 验证脚本必须
+   加一次 `Page.reload` 再断言，且断言**服务端那份记录**。
+14. **`node:vm` 不是安全边界**（工作流脚本）：能挡住 `require`/`process`（靠不注入），
+   挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
+15. **给自己的子进程套 shell 时别手拼 `cmd.exe /d /s /c "..."`** —— 带引号的可执行路径会被
+   cmd 的引号规则拆坏（报"不是内部或外部命令"）。用 `spawn(cmd, { shell })`。
+
+---
+
+## 附七：注释中文化 —— 工作树收官记录（2026-09-19）
+
+**结论：`master` 工作树（`web/` + `scripts/`）的注释中文化已 100% 完成。**
+
+扫描脚本（都在 `.workbuddy-ai/i18n/`，已 gitignore）：
+- `_scan_all.mjs` —— 覆盖 mjs/ts/tsx/js/css/html/yml/json/sh，列出"仍含英文的注释行"
+- `_scan_ui.mjs` —— 列出前端英文 UI 文案（JSX 文本节点 / placeholder / title / aria-label）
+
+**修复后剩余 45 行"仍含英文的注释"，逐条核过，全部属于不该译的类别**：
+JSDoc 类型定义（`sessions.mjs` / `hooks.mjs` / `mcp.mjs` / `workflow.mjs` / `requestLog.mjs` /
+`deepseek.mjs` 的 `@typedef` 续行）、路径与用法示例（`package-release.mjs` 的目录树、
+`limkenion-web --help`）、`#!/bin/bash`、行内代码片段、`eslint-disable-next-line`、
+钩子事件名标记（`// ---- context-compact-after ----`）。
+前端 UI 只剩 5 处英文：品牌名 `Limkenion` ×3、术语 `token`/`Tokens` ×2（术语表规定保留）。
+
+**踩到的坑：第一次扫描漏了 `.css`。** 只扫 mjs/ts/tsx 时以为"只剩 10 行"，实际
+`web/src/styles.css` 还有 **15 处英文注释块**（文件头 + 14 个 `/* ---- Layout ---- */` 式分区标签）。
+**下次扫注释必须带上 `.css`。**
+
+**已过期的计划**：`COMMENT_I18N_PLAN.md`（2026-09-17）按 28 批覆盖 CLI 源码树
+（67,700 行英文注释），但 CLI 已于 2026-09-18 归档到 `archive/cli` 并从工作树删除
+→ **B2–B27 全部失效**，只剩 B1（web/）有效且已完成。
+`archive/cli` 分支现状：2113 个文件、1987 个 ts/tsx，**无 package.json / tsconfig，
+只能做语法级校验（esbuild transform），不能 typecheck 或构建**。
+要动这个分支必须先让用户明确点头，并另开 git worktree。
