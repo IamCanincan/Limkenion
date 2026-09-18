@@ -50,7 +50,7 @@ async function bgId(result) {
   return m[0]
 }
 
-describe('Bash run_in_background', () => {
+describe('Bash 后台运行（run_in_background）', () => {
   test('立即返回任务 ID，TaskOutput 轮询到输出与 done 状态', async () => {
     const s = sessions.createSession()
     const r = await tools.executeTool('Bash', { command: 'echo bg-hello', run_in_background: true }, { session: s })

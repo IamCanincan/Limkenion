@@ -128,7 +128,7 @@ async function manifestIsStale(manifest) {
 /** web 自身提供的命令（CLI 里没有）。 */
 const WEB_OWN_COMMAND = {
   name: 'web',
-  description: 'Start the Limkenion web UI server',
+  description: '启动 Limkenion Web 界面服务',
   aliases: [],
   argumentHint: undefined,
 }
@@ -839,7 +839,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       '6. 不要编造。\n' +
       '7. 文件开头固定为：\n\n' +
       '# LIMKENION.md\n\n' +
-      'This file provides guidance to Limkenion when working with code in this repository.\n\n' +
+      '本文件为 Limkenion 在此仓库中处理代码时提供指引。\n\n' +
       '先探查仓库（读 README、package.json 等），再写文件。'
 
     const userMessage = { id: newMessageId(), role: 'user', text: prompt, timestamp: Date.now() }

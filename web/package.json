@@ -1,6 +1,6 @@
 {
   "name": "limkenion-web",
-  "description": "Limkenion web UI: Vite + React chat client served by a local server, learned from deepseek-harness's web client architecture",
+  "description": "Limkenion Web 界面：Vite + React 聊天客户端，由本地 Node 服务同端口伺服，架构参考 deepseek-harness 的 web 客户端",
   "version": "0.5.0",
   "type": "module",
   "bin": {

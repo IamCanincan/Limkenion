@@ -1,33 +1,33 @@
-# Dependencies
+# 依赖
 node_modules/
 
-# Build output
+# 构建产物
 dist/
 web/release/
 *.tsbuildinfo
 
-# Logs
+# 日志
 *.log
 npm-debug.log*
 
-# Environment / secrets
+# 环境变量 / 密钥
 .env
 .env.*
 !.env.example
 
-# Editor & OS
+# 编辑器与操作系统
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Caches
+# 缓存
 .cache/
 *.tmp
 
-# Coverage
+# 覆盖率
 coverage/
 
-# WorkBuddy workspace data (keep memory notes so they travel with the repo)
+# WorkBuddy 工作区数据（记忆笔记例外 —— 让它随仓库一起走）
 .workbuddy-ai/*
 !.workbuddy-ai/memory/
