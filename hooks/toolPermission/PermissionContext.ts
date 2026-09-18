@@ -252,7 +252,7 @@ function createPermissionContext(
               decision.message || 'Permission denied by hook',
               {
                 type: 'hook',
-                hookName: 'PermissionRequest',
+                hookName: 'permission-request',
                 reason: decision.message,
               },
             )
@@ -331,7 +331,7 @@ function createPermissionContext(
         { input: finalInput, permissionPromptStartTimeMs },
       )
       return this.buildAllow(finalInput, {
-        decisionReason: { type: 'hook', hookName: 'PermissionRequest' },
+        decisionReason: { type: 'hook', hookName: 'permission-request' },
       })
     },
     pushToQueue(item: ToolUseConfirm) {

@@ -3985,7 +3985,7 @@ export function REPL({
     if (!isLoading) return null;
 
     // Find stop hook progress messages
-    const progressMsgs = messages.filter((m): m is ProgressMessage<HookProgress> => m.type === 'progress' && m.data.type === 'hook_progress' && (m.data.hookEvent === 'Stop' || m.data.hookEvent === 'SubagentStop'));
+    const progressMsgs = messages.filter((m): m is ProgressMessage<HookProgress> => m.type === 'progress' && m.data.type === 'hook_progress' && (m.data.hookEvent === 'turn-end' || m.data.hookEvent === 'agent-end'));
     if (progressMsgs.length === 0) return null;
 
     // Get the most recent stop hook execution
@@ -4002,7 +4002,7 @@ export function REPL({
     const completedCount = count(messages, m => {
       if (m.type !== 'attachment') return false;
       const attachment = m.attachment;
-      return 'hookEvent' in attachment && (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') && 'toolUseID' in attachment && attachment.toolUseID === currentToolUseID;
+      return 'hookEvent' in attachment && (attachment.hookEvent === 'turn-end' || attachment.hookEvent === 'agent-end') && 'toolUseID' in attachment && attachment.toolUseID === currentToolUseID;
     });
 
     // Check if any hook has a custom status message
@@ -4013,7 +4013,7 @@ export function REPL({
     }
 
     // Fall back to default behavior
-    const hookType = currentHooks[0]?.data.hookEvent === 'SubagentStop' ? 'subagent stop' : 'stop';
+    const hookType = currentHooks[0]?.data.hookEvent === 'agent-end' ? 'subagent stop' : 'stop';
     
     return total === 1 ? `running ${hookType} hook` : `running stop hooks… ${completedCount}/${total}`;
   }, [messages, isLoading]);

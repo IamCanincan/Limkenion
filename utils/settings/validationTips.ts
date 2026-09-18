@@ -82,7 +82,7 @@ const TIP_MATCHERS: TipMatcher[] = [
         // always has been). Users copied the tip's example and got the same validation
         // error again. See matchesPattern() in hooks.ts: matcher is exact-match,
         // pipe-separated ("Edit|Write"), or regex. Empty/"*" matches all.
-        'Hooks use a matcher + hooks array. The matcher is a string: a tool name ("Bash"), pipe-separated list ("Edit|Write"), or empty to match all. Example: {"PostToolUse": [{"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "echo Done"}]}]}',
+        'Hooks use a matcher + hooks array. The matcher is a string: a tool name ("Bash"), pipe-separated list ("Edit|Write"), or empty to match all. Example: {"tool-after": [{"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "echo Done"}]}]}',
     },
   },
   {

@@ -804,7 +804,7 @@ export function shouldRenderStatically(message: RenderableMessage, streamingTool
 
         // Check if there are any unresolved PostToolUse hooks for this tool use
         // If so, keep the message transient so the HookProgressMessage can update
-        if (hasUnresolvedHooksFromLookup(toolUseID, 'PostToolUse', lookups)) {
+        if (hasUnresolvedHooksFromLookup(toolUseID, 'tool-after', lookups)) {
           return false;
         }
         return every(siblingToolUseIDs, lookups.resolvedToolUseIDs);

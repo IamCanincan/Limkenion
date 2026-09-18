@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T05:40:42.087Z",
+  "generatedAt": "2026-09-18T09:05:33.419Z",
   "generator": "scripts/gen-command-manifest.mjs",
-  "sourceHash": "c418e25f9cf00be8",
+  "sourceHash": "8604073677833fca",
   "commandCount": 77,
   "dynamicFields": [
     {

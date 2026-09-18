@@ -23,7 +23,7 @@ export async function getSessionEnvDirPath(): Promise<string> {
 }
 
 export async function getHookEnvFilePath(
-  hookEvent: 'Setup' | 'SessionStart' | 'CwdChanged' | 'FileChanged',
+  hookEvent: 'setup' | 'session-open' | 'cwd-changed' | 'file-changed',
   hookIndex: number,
 ): Promise<string> {
   const prefix = hookEvent.toLowerCase()
@@ -144,7 +144,7 @@ export async function getSessionEnvironmentScript(): Promise<string | null> {
 }
 
 const HOOK_ENV_PRIORITY: Record<string, number> = {
-  setup: 0,
+  'setup': 0,
   sessionstart: 1,
   cwdchanged: 2,
   filechanged: 3,

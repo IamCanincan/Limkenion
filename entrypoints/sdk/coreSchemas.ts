@@ -351,33 +351,33 @@ export const PermissionModeSchema = lazySchema(() =>
 // ============================================================================
 
 export const HOOK_EVENTS = [
-  'PreToolUse',
-  'PostToolUse',
-  'PostToolUseFailure',
-  'Notification',
-  'UserPromptSubmit',
-  'SessionStart',
-  'SessionEnd',
-  'Stop',
-  'StopFailure',
-  'SubagentStart',
-  'SubagentStop',
-  'PreCompact',
-  'PostCompact',
-  'PermissionRequest',
-  'PermissionDenied',
-  'Setup',
-  'TeammateIdle',
-  'TaskCreated',
-  'TaskCompleted',
-  'Elicitation',
-  'ElicitationResult',
-  'ConfigChange',
-  'WorktreeCreate',
-  'WorktreeRemove',
-  'InstructionsLoaded',
-  'CwdChanged',
-  'FileChanged',
+  'tool-before',
+  'tool-after',
+  'tool-failed',
+  'notice',
+  'prompt-submit',
+  'session-open',
+  'session-close',
+  'turn-end',
+  'turn-failed',
+  'agent-start',
+  'agent-end',
+  'context-compact-before',
+  'context-compact-after',
+  'permission-request',
+  'permission-denied',
+  'setup',
+  'teammate-idle',
+  'task-created',
+  'task-completed',
+  'elicitation-request',
+  'elicitation-result',
+  'config-change',
+  'worktree-create',
+  'worktree-remove',
+  'instructions-loaded',
+  'cwd-changed',
+  'file-changed',
 ] as const
 
 export const HookEventSchema = lazySchema(() => z.enum(HOOK_EVENTS))
@@ -412,7 +412,7 @@ export const BaseHookInputSchema = lazySchema(() =>
 export const PreToolUseHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PreToolUse'),
+      hook_event_name: z.literal('tool-before'),
       tool_name: z.string(),
       tool_input: z.unknown(),
       tool_use_id: z.string(),
@@ -423,7 +423,7 @@ export const PreToolUseHookInputSchema = lazySchema(() =>
 export const PermissionRequestHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PermissionRequest'),
+      hook_event_name: z.literal('permission-request'),
       tool_name: z.string(),
       tool_input: z.unknown(),
       permission_suggestions: z.array(PermissionUpdateSchema()).optional(),
@@ -434,7 +434,7 @@ export const PermissionRequestHookInputSchema = lazySchema(() =>
 export const PostToolUseHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PostToolUse'),
+      hook_event_name: z.literal('tool-after'),
       tool_name: z.string(),
       tool_input: z.unknown(),
       tool_response: z.unknown(),
@@ -446,7 +446,7 @@ export const PostToolUseHookInputSchema = lazySchema(() =>
 export const PostToolUseFailureHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PostToolUseFailure'),
+      hook_event_name: z.literal('tool-failed'),
       tool_name: z.string(),
       tool_input: z.unknown(),
       tool_use_id: z.string(),
@@ -459,7 +459,7 @@ export const PostToolUseFailureHookInputSchema = lazySchema(() =>
 export const PermissionDeniedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PermissionDenied'),
+      hook_event_name: z.literal('permission-denied'),
       tool_name: z.string(),
       tool_input: z.unknown(),
       tool_use_id: z.string(),
@@ -471,7 +471,7 @@ export const PermissionDeniedHookInputSchema = lazySchema(() =>
 export const NotificationHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('Notification'),
+      hook_event_name: z.literal('notice'),
       message: z.string(),
       title: z.string().optional(),
       notification_type: z.string(),
@@ -482,7 +482,7 @@ export const NotificationHookInputSchema = lazySchema(() =>
 export const UserPromptSubmitHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('UserPromptSubmit'),
+      hook_event_name: z.literal('prompt-submit'),
       prompt: z.string(),
     }),
   ),
@@ -491,7 +491,7 @@ export const UserPromptSubmitHookInputSchema = lazySchema(() =>
 export const SessionStartHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('SessionStart'),
+      hook_event_name: z.literal('session-open'),
       source: z.enum(['startup', 'resume', 'clear', 'compact']),
       agent_type: z.string().optional(),
       model: z.string().optional(),
@@ -502,7 +502,7 @@ export const SessionStartHookInputSchema = lazySchema(() =>
 export const SetupHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('Setup'),
+      hook_event_name: z.literal('setup'),
       trigger: z.enum(['init', 'maintenance']),
     }),
   ),
@@ -511,7 +511,7 @@ export const SetupHookInputSchema = lazySchema(() =>
 export const StopHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('Stop'),
+      hook_event_name: z.literal('turn-end'),
       stop_hook_active: z.boolean(),
       last_assistant_message: z
         .string()
@@ -527,7 +527,7 @@ export const StopHookInputSchema = lazySchema(() =>
 export const StopFailureHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('StopFailure'),
+      hook_event_name: z.literal('turn-failed'),
       error: SDKAssistantMessageErrorSchema(),
       error_details: z.string().optional(),
       last_assistant_message: z.string().optional(),
@@ -538,7 +538,7 @@ export const StopFailureHookInputSchema = lazySchema(() =>
 export const SubagentStartHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('SubagentStart'),
+      hook_event_name: z.literal('agent-start'),
       agent_id: z.string(),
       agent_type: z.string(),
     }),
@@ -548,7 +548,7 @@ export const SubagentStartHookInputSchema = lazySchema(() =>
 export const SubagentStopHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('SubagentStop'),
+      hook_event_name: z.literal('agent-end'),
       stop_hook_active: z.boolean(),
       agent_id: z.string(),
       agent_transcript_path: z.string(),
@@ -567,7 +567,7 @@ export const SubagentStopHookInputSchema = lazySchema(() =>
 export const PreCompactHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PreCompact'),
+      hook_event_name: z.literal('context-compact-before'),
       trigger: z.enum(['manual', 'auto']),
       custom_instructions: z.string().nullable(),
     }),
@@ -577,7 +577,7 @@ export const PreCompactHookInputSchema = lazySchema(() =>
 export const PostCompactHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('PostCompact'),
+      hook_event_name: z.literal('context-compact-after'),
       trigger: z.enum(['manual', 'auto']),
       compact_summary: z
         .string()
@@ -589,7 +589,7 @@ export const PostCompactHookInputSchema = lazySchema(() =>
 export const TeammateIdleHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('TeammateIdle'),
+      hook_event_name: z.literal('teammate-idle'),
       teammate_name: z.string(),
       team_name: z.string(),
     }),
@@ -599,7 +599,7 @@ export const TeammateIdleHookInputSchema = lazySchema(() =>
 export const TaskCreatedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('TaskCreated'),
+      hook_event_name: z.literal('task-created'),
       task_id: z.string(),
       task_subject: z.string(),
       task_description: z.string().optional(),
@@ -612,7 +612,7 @@ export const TaskCreatedHookInputSchema = lazySchema(() =>
 export const TaskCompletedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('TaskCompleted'),
+      hook_event_name: z.literal('task-completed'),
       task_id: z.string(),
       task_subject: z.string(),
       task_description: z.string().optional(),
@@ -626,7 +626,7 @@ export const ElicitationHookInputSchema = lazySchema(() =>
   BaseHookInputSchema()
     .and(
       z.object({
-        hook_event_name: z.literal('Elicitation'),
+        hook_event_name: z.literal('elicitation-request'),
         mcp_server_name: z.string(),
         message: z.string(),
         mode: z.enum(['form', 'url']).optional(),
@@ -644,7 +644,7 @@ export const ElicitationResultHookInputSchema = lazySchema(() =>
   BaseHookInputSchema()
     .and(
       z.object({
-        hook_event_name: z.literal('ElicitationResult'),
+        hook_event_name: z.literal('elicitation-result'),
         mcp_server_name: z.string(),
         elicitation_id: z.string().optional(),
         mode: z.enum(['form', 'url']).optional(),
@@ -668,7 +668,7 @@ export const CONFIG_CHANGE_SOURCES = [
 export const ConfigChangeHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('ConfigChange'),
+      hook_event_name: z.literal('config-change'),
       source: z.enum(CONFIG_CHANGE_SOURCES),
       file_path: z.string().optional(),
     }),
@@ -693,7 +693,7 @@ export const INSTRUCTIONS_MEMORY_TYPES = [
 export const InstructionsLoadedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('InstructionsLoaded'),
+      hook_event_name: z.literal('instructions-loaded'),
       file_path: z.string(),
       memory_type: z.enum(INSTRUCTIONS_MEMORY_TYPES),
       load_reason: z.enum(INSTRUCTIONS_LOAD_REASONS),
@@ -707,7 +707,7 @@ export const InstructionsLoadedHookInputSchema = lazySchema(() =>
 export const WorktreeCreateHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('WorktreeCreate'),
+      hook_event_name: z.literal('worktree-create'),
       name: z.string(),
     }),
   ),
@@ -716,7 +716,7 @@ export const WorktreeCreateHookInputSchema = lazySchema(() =>
 export const WorktreeRemoveHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('WorktreeRemove'),
+      hook_event_name: z.literal('worktree-remove'),
       worktree_path: z.string(),
     }),
   ),
@@ -725,7 +725,7 @@ export const WorktreeRemoveHookInputSchema = lazySchema(() =>
 export const CwdChangedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('CwdChanged'),
+      hook_event_name: z.literal('cwd-changed'),
       old_cwd: z.string(),
       new_cwd: z.string(),
     }),
@@ -735,7 +735,7 @@ export const CwdChangedHookInputSchema = lazySchema(() =>
 export const FileChangedHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('FileChanged'),
+      hook_event_name: z.literal('file-changed'),
       file_path: z.string(),
       event: z.enum(['change', 'add', 'unlink']),
     }),
@@ -756,7 +756,7 @@ export const ExitReasonSchema = lazySchema(() => z.enum(EXIT_REASONS))
 export const SessionEndHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
-      hook_event_name: z.literal('SessionEnd'),
+      hook_event_name: z.literal('session-close'),
       reason: ExitReasonSchema(),
     }),
   ),
@@ -803,7 +803,7 @@ export const AsyncHookJSONOutputSchema = lazySchema(() =>
 
 export const PreToolUseHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('PreToolUse'),
+    hookEventName: z.literal('tool-before'),
     permissionDecision: PermissionBehaviorSchema().optional(),
     permissionDecisionReason: z.string().optional(),
     updatedInput: z.record(z.string(), z.unknown()).optional(),
@@ -813,14 +813,14 @@ export const PreToolUseHookSpecificOutputSchema = lazySchema(() =>
 
 export const UserPromptSubmitHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('UserPromptSubmit'),
+    hookEventName: z.literal('prompt-submit'),
     additionalContext: z.string().optional(),
   }),
 )
 
 export const SessionStartHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('SessionStart'),
+    hookEventName: z.literal('session-open'),
     additionalContext: z.string().optional(),
     initialUserMessage: z.string().optional(),
     watchPaths: z.array(z.string()).optional(),
@@ -829,21 +829,21 @@ export const SessionStartHookSpecificOutputSchema = lazySchema(() =>
 
 export const SetupHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('Setup'),
+    hookEventName: z.literal('setup'),
     additionalContext: z.string().optional(),
   }),
 )
 
 export const SubagentStartHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('SubagentStart'),
+    hookEventName: z.literal('agent-start'),
     additionalContext: z.string().optional(),
   }),
 )
 
 export const PostToolUseHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('PostToolUse'),
+    hookEventName: z.literal('tool-after'),
     additionalContext: z.string().optional(),
     updatedMCPToolOutput: z.unknown().optional(),
   }),
@@ -851,28 +851,28 @@ export const PostToolUseHookSpecificOutputSchema = lazySchema(() =>
 
 export const PostToolUseFailureHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('PostToolUseFailure'),
+    hookEventName: z.literal('tool-failed'),
     additionalContext: z.string().optional(),
   }),
 )
 
 export const PermissionDeniedHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('PermissionDenied'),
+    hookEventName: z.literal('permission-denied'),
     retry: z.boolean().optional(),
   }),
 )
 
 export const NotificationHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('Notification'),
+    hookEventName: z.literal('notice'),
     additionalContext: z.string().optional(),
   }),
 )
 
 export const PermissionRequestHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('PermissionRequest'),
+    hookEventName: z.literal('permission-request'),
     decision: z.union([
       z.object({
         behavior: z.literal('allow'),
@@ -890,14 +890,14 @@ export const PermissionRequestHookSpecificOutputSchema = lazySchema(() =>
 
 export const CwdChangedHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('CwdChanged'),
+    hookEventName: z.literal('cwd-changed'),
     watchPaths: z.array(z.string()).optional(),
   }),
 )
 
 export const FileChangedHookSpecificOutputSchema = lazySchema(() =>
   z.object({
-    hookEventName: z.literal('FileChanged'),
+    hookEventName: z.literal('file-changed'),
     watchPaths: z.array(z.string()).optional(),
   }),
 )
@@ -935,7 +935,7 @@ export const SyncHookJSONOutputSchema = lazySchema(() =>
 export const ElicitationHookSpecificOutputSchema = lazySchema(() =>
   z
     .object({
-      hookEventName: z.literal('Elicitation'),
+      hookEventName: z.literal('elicitation-request'),
       action: z.enum(['accept', 'decline', 'cancel']).optional(),
       content: z.record(z.string(), z.unknown()).optional(),
     })
@@ -947,7 +947,7 @@ export const ElicitationHookSpecificOutputSchema = lazySchema(() =>
 export const ElicitationResultHookSpecificOutputSchema = lazySchema(() =>
   z
     .object({
-      hookEventName: z.literal('ElicitationResult'),
+      hookEventName: z.literal('elicitation-result'),
       action: z.enum(['accept', 'decline', 'cancel']).optional(),
       content: z.record(z.string(), z.unknown()).optional(),
     })
@@ -959,7 +959,7 @@ export const ElicitationResultHookSpecificOutputSchema = lazySchema(() =>
 export const WorktreeCreateHookSpecificOutputSchema = lazySchema(() =>
   z
     .object({
-      hookEventName: z.literal('WorktreeCreate'),
+      hookEventName: z.literal('worktree-create'),
       worktreePath: z.string(),
     })
     .describe(

@@ -11,6 +11,7 @@ import type { z } from 'zod/v4'
 import type { Command } from './commands.js'
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
 import type { ThinkingConfig } from './utils/thinking.js'
+import { canonicalToolName } from './shared/naming.js'
 
 export type ToolInputJSONSchema = {
   [x: string]: unknown
@@ -347,7 +348,13 @@ export function toolMatchesName(
   tool: { name: string; aliases?: string[] },
   name: string,
 ): boolean {
-  return tool.name === name || (tool.aliases?.includes(name) ?? false)
+  const cname = canonicalToolName(name)
+  return (
+    tool.name === name ||
+    tool.name === cname ||
+    (tool.aliases?.includes(name) ?? false) ||
+    (tool.aliases?.includes(cname) ?? false)
+  )
 }
 
 /**

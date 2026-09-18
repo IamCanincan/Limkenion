@@ -384,7 +384,7 @@ function StopHookSummaryMessage(t0) {
   }
   let t13;
   if ($[34] !== hookErrors || $[35] !== message.hookLabel) {
-    t13 = hookErrors.length > 0 && hookErrors.map((err, idx_1) => <Text key={idx_1}><Text dimColor={true}>⎿  </Text>{message.hookLabel ?? "Stop"} hook 错误：{err}</Text>);
+    t13 = hookErrors.length > 0 && hookErrors.map((err, idx_1) => <Text key={idx_1}><Text dimColor={true}>⎿  </Text>{message.hookLabel ?? "turn-end"} hook 错误：{err}</Text>);
     $[34] = hookErrors;
     $[35] = message.hookLabel;
     $[36] = t13;

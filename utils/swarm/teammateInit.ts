@@ -98,7 +98,7 @@ export function initializeTeammateHooks(
   addFunctionHook(
     setAppState,
     sessionId,
-    'Stop',
+    'turn-end',
     '', // No matcher - applies to all Stop events
     async (messages, _signal) => {
       // Mark this teammate as idle in the team config (fire and forget)

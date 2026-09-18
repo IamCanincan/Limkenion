@@ -779,8 +779,8 @@ export function addToolContentEvent(
 /**
  * Start a hook execution span.
  * Only creates a span when beta tracing is enabled.
- * @param hookEvent The hook event type (e.g., 'PreToolUse', 'PostToolUse')
- * @param hookName The full hook name (e.g., 'PreToolUse:Write')
+ * @param hookEvent The hook event type (e.g., 'tool-before', 'tool-after')
+ * @param hookName The full hook name (e.g., 'tool-before:Write')
  * @param numHooks The number of hooks being executed
  * @param hookDefinitions JSON string of hook definitions for tracing
  * @returns The span (or a dummy span if tracing is disabled)

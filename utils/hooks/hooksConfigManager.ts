@@ -7,6 +7,7 @@ import {
   type IndividualHookConfig,
   sortMatchersByPriority,
 } from './hooksSettings.js'
+import { canonicalHookEvent } from '../../shared/naming.js'
 
 export type MatcherMetadata = {
   fieldToMatch: string
@@ -26,7 +27,7 @@ export type HookEventMetadata = {
 export const getHookEventMetadata = memoize(
   function (toolNames: string[]): Record<HookEvent, HookEventMetadata> {
     return {
-      PreToolUse: {
+      'tool-before': {
         summary: 'Before tool execution',
         description:
           'Input to command is JSON of tool call arguments.\nExit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to model and block tool call\nOther exit codes - show stderr to user only but continue with tool call',
@@ -35,7 +36,7 @@ export const getHookEventMetadata = memoize(
           values: toolNames,
         },
       },
-      PostToolUse: {
+      'tool-after': {
         summary: 'After tool execution',
         description:
           'Input to command is JSON with fields "inputs" (tool call arguments) and "response" (tool call response).\nExit code 0 - stdout shown in transcript mode (ctrl+o)\nExit code 2 - show stderr to model immediately\nOther exit codes - show stderr to user only',
@@ -44,7 +45,7 @@ export const getHookEventMetadata = memoize(
           values: toolNames,
         },
       },
-      PostToolUseFailure: {
+      'tool-failed': {
         summary: 'After tool execution fails',
         description:
           'Input to command is JSON with tool_name, tool_input, tool_use_id, error, error_type, is_interrupt, and is_timeout.\nExit code 0 - stdout shown in transcript mode (ctrl+o)\nExit code 2 - show stderr to model immediately\nOther exit codes - show stderr to user only',
@@ -53,16 +54,16 @@ export const getHookEventMetadata = memoize(
           values: toolNames,
         },
       },
-      PermissionDenied: {
+      'permission-denied': {
         summary: 'After auto mode classifier denies a tool call',
         description:
-          'Input to command is JSON with tool_name, tool_input, tool_use_id, and reason.\nReturn {"hookSpecificOutput":{"hookEventName":"PermissionDenied","retry":true}} to tell the model it may retry.\nExit code 0 - stdout shown in transcript mode (ctrl+o)\nOther exit codes - show stderr to user only',
+          'Input to command is JSON with tool_name, tool_input, tool_use_id, and reason.\nReturn {"hookSpecificOutput":{"hookEventName":"permission-denied","retry":true}} to tell the model it may retry.\nExit code 0 - stdout shown in transcript mode (ctrl+o)\nOther exit codes - show stderr to user only',
         matcherMetadata: {
           fieldToMatch: 'tool_name',
           values: toolNames,
         },
       },
-      Notification: {
+      'notice': {
         summary: 'When notifications are sent',
         description:
           'Input to command is JSON with notification message and type.\nExit code 0 - stdout/stderr not shown\nOther exit codes - show stderr to user only',
@@ -78,12 +79,12 @@ export const getHookEventMetadata = memoize(
           ],
         },
       },
-      UserPromptSubmit: {
+      'prompt-submit': {
         summary: 'When the user submits a prompt',
         description:
           'Input to command is JSON with original user prompt text.\nExit code 0 - stdout shown to Limkenion\nExit code 2 - block processing, erase original prompt, and show stderr to user only\nOther exit codes - show stderr to user only',
       },
-      SessionStart: {
+      'session-open': {
         summary: 'When a new session is started',
         description:
           'Input to command is JSON with session start source.\nExit code 0 - stdout shown to Limkenion\nBlocking errors are ignored\nOther exit codes - show stderr to user only',
@@ -92,12 +93,12 @@ export const getHookEventMetadata = memoize(
           values: ['startup', 'resume', 'clear', 'compact'],
         },
       },
-      Stop: {
+      'turn-end': {
         summary: 'Right before Limkenion concludes its response',
         description:
           'Exit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to model and continue conversation\nOther exit codes - show stderr to user only',
       },
-      StopFailure: {
+      'turn-failed': {
         summary: 'When the turn ends due to an API error',
         description:
           'Fires instead of Stop when an API error (rate limit, auth failure, etc.) ended the turn. Fire-and-forget — hook output and exit codes are ignored.',
@@ -114,7 +115,7 @@ export const getHookEventMetadata = memoize(
           ],
         },
       },
-      SubagentStart: {
+      'agent-start': {
         summary: 'When a subagent (Agent tool call) is started',
         description:
           'Input to command is JSON with agent_id and agent_type.\nExit code 0 - stdout shown to subagent\nBlocking errors are ignored\nOther exit codes - show stderr to user only',
@@ -123,7 +124,7 @@ export const getHookEventMetadata = memoize(
           values: [], // Will be populated with available agent types
         },
       },
-      SubagentStop: {
+      'agent-end': {
         summary:
           'Right before a subagent (Agent tool call) concludes its response',
         description:
@@ -133,7 +134,7 @@ export const getHookEventMetadata = memoize(
           values: [], // Will be populated with available agent types
         },
       },
-      PreCompact: {
+      'context-compact-before': {
         summary: 'Before conversation compaction',
         description:
           'Input to command is JSON with compaction details.\nExit code 0 - stdout appended as custom compact instructions\nExit code 2 - block compaction\nOther exit codes - show stderr to user only but continue with compaction',
@@ -142,7 +143,7 @@ export const getHookEventMetadata = memoize(
           values: ['manual', 'auto'],
         },
       },
-      PostCompact: {
+      'context-compact-after': {
         summary: 'After conversation compaction',
         description:
           'Input to command is JSON with compaction details and the summary.\nExit code 0 - stdout shown to user\nOther exit codes - show stderr to user only',
@@ -151,7 +152,7 @@ export const getHookEventMetadata = memoize(
           values: ['manual', 'auto'],
         },
       },
-      SessionEnd: {
+      'session-close': {
         summary: 'When a session is ending',
         description:
           'Input to command is JSON with session end reason.\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only',
@@ -160,7 +161,7 @@ export const getHookEventMetadata = memoize(
           values: ['clear', 'logout', 'prompt_input_exit', 'other'],
         },
       },
-      PermissionRequest: {
+      'permission-request': {
         summary: 'When a permission dialog is displayed',
         description:
           'Input to command is JSON with tool_name, tool_input, and tool_use_id.\nOutput JSON with hookSpecificOutput containing decision to allow or deny.\nExit code 0 - use hook decision if provided\nOther exit codes - show stderr to user only',
@@ -169,7 +170,7 @@ export const getHookEventMetadata = memoize(
           values: toolNames,
         },
       },
-      Setup: {
+      'setup': {
         summary: 'Repo setup hooks for init and maintenance',
         description:
           'Input to command is JSON with trigger (init or maintenance).\nExit code 0 - stdout shown to Limkenion\nBlocking errors are ignored\nOther exit codes - show stderr to user only',
@@ -178,22 +179,22 @@ export const getHookEventMetadata = memoize(
           values: ['init', 'maintenance'],
         },
       },
-      TeammateIdle: {
+      'teammate-idle': {
         summary: 'When a teammate is about to go idle',
         description:
           'Input to command is JSON with teammate_name and team_name.\nExit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to teammate and prevent idle (teammate continues working)\nOther exit codes - show stderr to user only',
       },
-      TaskCreated: {
+      'task-created': {
         summary: 'When a task is being created',
         description:
           'Input to command is JSON with task_id, task_subject, task_description, teammate_name, and team_name.\nExit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to model and prevent task creation\nOther exit codes - show stderr to user only',
       },
-      TaskCompleted: {
+      'task-completed': {
         summary: 'When a task is being marked as completed',
         description:
           'Input to command is JSON with task_id, task_subject, task_description, teammate_name, and team_name.\nExit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to model and prevent task completion\nOther exit codes - show stderr to user only',
       },
-      Elicitation: {
+      'elicitation-request': {
         summary: 'When an MCP server requests user input (elicitation)',
         description:
           'Input to command is JSON with mcp_server_name, message, and requested_schema.\nOutput JSON with hookSpecificOutput containing action (accept/decline/cancel) and optional content.\nExit code 0 - use hook response if provided\nExit code 2 - deny the elicitation\nOther exit codes - show stderr to user only',
@@ -202,7 +203,7 @@ export const getHookEventMetadata = memoize(
           values: [],
         },
       },
-      ElicitationResult: {
+      'elicitation-result': {
         summary: 'After a user responds to an MCP elicitation',
         description:
           'Input to command is JSON with mcp_server_name, action, content, mode, and elicitation_id.\nOutput JSON with hookSpecificOutput containing optional action and content to override the response.\nExit code 0 - use hook response if provided\nExit code 2 - block the response (action becomes decline)\nOther exit codes - show stderr to user only',
@@ -211,7 +212,7 @@ export const getHookEventMetadata = memoize(
           values: [],
         },
       },
-      ConfigChange: {
+      'config-change': {
         summary: 'When configuration files change during a session',
         description:
           'Input to command is JSON with source (user_settings, project_settings, local_settings, policy_settings, skills) and file_path.\nExit code 0 - allow the change\nExit code 2 - block the change from being applied to the session\nOther exit codes - show stderr to user only',
@@ -226,7 +227,7 @@ export const getHookEventMetadata = memoize(
           ],
         },
       },
-      InstructionsLoaded: {
+      'instructions-loaded': {
         summary: 'When an instruction file (LIMKENION.md or rule) is loaded',
         description:
           'Input to command is JSON with file_path, memory_type (User, Project, Local, Managed), load_reason (session_start, nested_traversal, path_glob_match, include, compact), globs (optional — the paths: frontmatter patterns that matched), trigger_file_path (optional — the file Limkenion touched that caused the load), and parent_file_path (optional — the file that @-included this one).\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only\nThis hook is observability-only and does not support blocking.',
@@ -241,22 +242,22 @@ export const getHookEventMetadata = memoize(
           ],
         },
       },
-      WorktreeCreate: {
+      'worktree-create': {
         summary: 'Create an isolated worktree for VCS-agnostic isolation',
         description:
           'Input to command is JSON with name (suggested worktree slug).\nStdout should contain the absolute path to the created worktree directory.\nExit code 0 - worktree created successfully\nOther exit codes - worktree creation failed',
       },
-      WorktreeRemove: {
+      'worktree-remove': {
         summary: 'Remove a previously created worktree',
         description:
           'Input to command is JSON with worktree_path (absolute path to worktree).\nExit code 0 - worktree removed successfully\nOther exit codes - show stderr to user only',
       },
-      CwdChanged: {
+      'cwd-changed': {
         summary: 'After the working directory changes',
         description:
           'Input to command is JSON with old_cwd and new_cwd.\nLIMKENION_ENV_FILE is set — write bash exports there to apply env to subsequent BashTool commands.\nHook output can include hookSpecificOutput.watchPaths (array of absolute paths) to register with the FileChanged watcher.\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only',
       },
-      FileChanged: {
+      'file-changed': {
         summary: 'When a watched file changes',
         description:
           'Input to command is JSON with file_path and event (change, add, unlink).\nLIMKENION_ENV_FILE is set — write bash exports there to apply env to subsequent BashTool commands.\nThe matcher field specifies filenames to watch in the current directory (e.g. ".envrc|.env").\nHook output can include hookSpecificOutput.watchPaths (array of absolute paths) to dynamically update the watch list.\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only',
@@ -272,33 +273,33 @@ export function groupHooksByEventAndMatcher(
   toolNames: string[],
 ): Record<HookEvent, Record<string, IndividualHookConfig[]>> {
   const grouped: Record<HookEvent, Record<string, IndividualHookConfig[]>> = {
-    PreToolUse: {},
-    PostToolUse: {},
-    PostToolUseFailure: {},
-    PermissionDenied: {},
-    Notification: {},
-    UserPromptSubmit: {},
-    SessionStart: {},
-    SessionEnd: {},
-    Stop: {},
-    StopFailure: {},
-    SubagentStart: {},
-    SubagentStop: {},
-    PreCompact: {},
-    PostCompact: {},
-    PermissionRequest: {},
-    Setup: {},
-    TeammateIdle: {},
-    TaskCreated: {},
-    TaskCompleted: {},
-    Elicitation: {},
-    ElicitationResult: {},
-    ConfigChange: {},
-    WorktreeCreate: {},
-    WorktreeRemove: {},
-    InstructionsLoaded: {},
-    CwdChanged: {},
-    FileChanged: {},
+    'tool-before': {},
+    'tool-after': {},
+    'tool-failed': {},
+    'permission-denied': {},
+    'notice': {},
+    'prompt-submit': {},
+    'session-open': {},
+    'session-close': {},
+    'turn-end': {},
+    'turn-failed': {},
+    'agent-start': {},
+    'agent-end': {},
+    'context-compact-before': {},
+    'context-compact-after': {},
+    'permission-request': {},
+    'setup': {},
+    'teammate-idle': {},
+    'task-created': {},
+    'task-completed': {},
+    'elicitation-request': {},
+    'elicitation-result': {},
+    'config-change': {},
+    'worktree-create': {},
+    'worktree-remove': {},
+    'instructions-loaded': {},
+    'cwd-changed': {},
+    'file-changed': {},
   }
 
   const metadata = getHookEventMetadata(toolNames)
@@ -323,7 +324,7 @@ export function groupHooksByEventAndMatcher(
   const registeredHooks = getRegisteredHooks()
   if (registeredHooks) {
     for (const [event, matchers] of Object.entries(registeredHooks)) {
-      const hookEvent = event as HookEvent
+      const hookEvent = canonicalHookEvent(event) as HookEvent
       const eventGroup = grouped[hookEvent]
       if (!eventGroup) continue
 

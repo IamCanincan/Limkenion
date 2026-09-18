@@ -212,7 +212,7 @@ export async function checkForAsyncHookResponses(): Promise<
       return {
         type: 'response' as const,
         processId: hook.processId,
-        isSessionStart: hook.hookEvent === 'SessionStart',
+        isSessionStart: hook.hookEvent === 'session-open',
         payload: {
           processId: hook.processId,
           response,

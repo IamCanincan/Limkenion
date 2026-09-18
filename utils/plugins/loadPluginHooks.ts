@@ -15,6 +15,7 @@ import {
 import type { PluginHookMatcher } from '../settings/types.js'
 import { jsonStringify } from '../slowOperations.js'
 import { clearPluginCache, loadAllPluginsCacheOnly } from './pluginLoader.js'
+import { canonicalHookEvent } from '../../shared/naming.js'
 
 // Track if hot reload subscription is set up
 let hotReloadSubscribed = false
@@ -29,33 +30,33 @@ function convertPluginHooksToMatchers(
   plugin: LoadedPlugin,
 ): Record<HookEvent, PluginHookMatcher[]> {
   const pluginMatchers: Record<HookEvent, PluginHookMatcher[]> = {
-    PreToolUse: [],
-    PostToolUse: [],
-    PostToolUseFailure: [],
-    PermissionDenied: [],
-    Notification: [],
-    UserPromptSubmit: [],
-    SessionStart: [],
-    SessionEnd: [],
-    Stop: [],
-    StopFailure: [],
-    SubagentStart: [],
-    SubagentStop: [],
-    PreCompact: [],
-    PostCompact: [],
-    PermissionRequest: [],
-    Setup: [],
-    TeammateIdle: [],
-    TaskCreated: [],
-    TaskCompleted: [],
-    Elicitation: [],
-    ElicitationResult: [],
-    ConfigChange: [],
-    WorktreeCreate: [],
-    WorktreeRemove: [],
-    InstructionsLoaded: [],
-    CwdChanged: [],
-    FileChanged: [],
+    'tool-before': [],
+    'tool-after': [],
+    'tool-failed': [],
+    'permission-denied': [],
+    'notice': [],
+    'prompt-submit': [],
+    'session-open': [],
+    'session-close': [],
+    'turn-end': [],
+    'turn-failed': [],
+    'agent-start': [],
+    'agent-end': [],
+    'context-compact-before': [],
+    'context-compact-after': [],
+    'permission-request': [],
+    'setup': [],
+    'teammate-idle': [],
+    'task-created': [],
+    'task-completed': [],
+    'elicitation-request': [],
+    'elicitation-result': [],
+    'config-change': [],
+    'worktree-create': [],
+    'worktree-remove': [],
+    'instructions-loaded': [],
+    'cwd-changed': [],
+    'file-changed': [],
   }
 
   if (!plugin.hooksConfig) {
@@ -64,7 +65,7 @@ function convertPluginHooksToMatchers(
 
   // Process each hook event - pass through all hook types with plugin context
   for (const [event, matchers] of Object.entries(plugin.hooksConfig)) {
-    const hookEvent = event as HookEvent
+    const hookEvent = canonicalHookEvent(event) as HookEvent
     if (!pluginMatchers[hookEvent]) {
       continue
     }
@@ -91,33 +92,33 @@ function convertPluginHooksToMatchers(
 export const loadPluginHooks = memoize(async (): Promise<void> => {
   const { enabled } = await loadAllPluginsCacheOnly()
   const allPluginHooks: Record<HookEvent, PluginHookMatcher[]> = {
-    PreToolUse: [],
-    PostToolUse: [],
-    PostToolUseFailure: [],
-    PermissionDenied: [],
-    Notification: [],
-    UserPromptSubmit: [],
-    SessionStart: [],
-    SessionEnd: [],
-    Stop: [],
-    StopFailure: [],
-    SubagentStart: [],
-    SubagentStop: [],
-    PreCompact: [],
-    PostCompact: [],
-    PermissionRequest: [],
-    Setup: [],
-    TeammateIdle: [],
-    TaskCreated: [],
-    TaskCompleted: [],
-    Elicitation: [],
-    ElicitationResult: [],
-    ConfigChange: [],
-    WorktreeCreate: [],
-    WorktreeRemove: [],
-    InstructionsLoaded: [],
-    CwdChanged: [],
-    FileChanged: [],
+    'tool-before': [],
+    'tool-after': [],
+    'tool-failed': [],
+    'permission-denied': [],
+    'notice': [],
+    'prompt-submit': [],
+    'session-open': [],
+    'session-close': [],
+    'turn-end': [],
+    'turn-failed': [],
+    'agent-start': [],
+    'agent-end': [],
+    'context-compact-before': [],
+    'context-compact-after': [],
+    'permission-request': [],
+    'setup': [],
+    'teammate-idle': [],
+    'task-created': [],
+    'task-completed': [],
+    'elicitation-request': [],
+    'elicitation-result': [],
+    'config-change': [],
+    'worktree-create': [],
+    'worktree-remove': [],
+    'instructions-loaded': [],
+    'cwd-changed': [],
+    'file-changed': [],
   }
 
   // Process each enabled plugin
@@ -199,7 +200,7 @@ export async function pruneRemovedPluginHooks(): Promise<void> {
       (m): m is PluginHookMatcher =>
         'pluginRoot' in m && enabledRoots.has(m.pluginRoot),
     )
-    if (kept.length > 0) survivors[event as HookEvent] = kept
+    if (kept.length > 0) survivors[canonicalHookEvent(event) as HookEvent] = kept
   }
 
   clearRegisteredPluginHooks()

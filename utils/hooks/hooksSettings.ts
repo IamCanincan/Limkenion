@@ -11,6 +11,7 @@ import {
 import type { HookCommand, HookMatcher } from '../settings/types.js'
 import { DEFAULT_HOOK_SHELL } from '../shell/shellProvider.js'
 import { getSessionHooks } from './sessionHooks.js'
+import { canonicalHookEvent } from '../../shared/naming.js'
 
 export type HookSource =
   | EditableSettingSource
@@ -130,7 +131,7 @@ export function getAllHooks(appState: AppState): IndividualHookConfig[] {
         for (const matcher of matchers as HookMatcher[]) {
           for (const hookCommand of matcher.hooks) {
             hooks.push({
-              event: event as HookEvent,
+              event: canonicalHookEvent(event) as HookEvent,
               config: hookCommand,
               matcher: matcher.matcher,
               source,
@@ -148,7 +149,7 @@ export function getAllHooks(appState: AppState): IndividualHookConfig[] {
     for (const matcher of matchers) {
       for (const hookCommand of matcher.hooks) {
         hooks.push({
-          event,
+          event: canonicalHookEvent(event) as HookEvent,
           config: hookCommand,
           matcher: matcher.matcher,
           source: 'sessionHook',

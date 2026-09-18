@@ -191,7 +191,7 @@ Hooks can return JSON to control behavior:
   "decision": "block",
   "reason": "Explanation for decision",
   "hookSpecificOutput": {
-    "hookEventName": "PostToolUse",
+    "hookEventName": "tool-after",
     "additionalContext": "Context injected back to model"
   }
 }
@@ -216,7 +216,7 @@ Hooks can return JSON to control behavior:
 \`\`\`json
 {
   "hooks": {
-    "PostToolUse": [{
+    "tool-after": [{
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "command",
@@ -231,7 +231,7 @@ Hooks can return JSON to control behavior:
 \`\`\`json
 {
   "hooks": {
-    "PreToolUse": [{
+    "tool-before": [{
       "matcher": "Bash",
       "hooks": [{
         "type": "command",
@@ -254,7 +254,7 @@ echo '{"systemMessage": "Session complete!"}'
 \`\`\`json
 {
   "hooks": {
-    "PostToolUse": [{
+    "tool-after": [{
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "command",
@@ -394,7 +394,7 @@ User: "Format my code after Limkenion writes it"
 \`\`\`json
 {
   "hooks": {
-    "PostToolUse": [{
+    "tool-after": [{
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "command",

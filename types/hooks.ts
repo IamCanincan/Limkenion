@@ -67,18 +67,18 @@ export const syncHookResponseSchema = lazySchema(() =>
     hookSpecificOutput: z
       .union([
         z.object({
-          hookEventName: z.literal('PreToolUse'),
+          hookEventName: z.literal('tool-before'),
           permissionDecision: permissionBehaviorSchema().optional(),
           permissionDecisionReason: z.string().optional(),
           updatedInput: z.record(z.string(), z.unknown()).optional(),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('UserPromptSubmit'),
+          hookEventName: z.literal('prompt-submit'),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('SessionStart'),
+          hookEventName: z.literal('session-open'),
           additionalContext: z.string().optional(),
           initialUserMessage: z.string().optional(),
           watchPaths: z
@@ -87,15 +87,15 @@ export const syncHookResponseSchema = lazySchema(() =>
             .optional(),
         }),
         z.object({
-          hookEventName: z.literal('Setup'),
+          hookEventName: z.literal('setup'),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('SubagentStart'),
+          hookEventName: z.literal('agent-start'),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('PostToolUse'),
+          hookEventName: z.literal('tool-after'),
           additionalContext: z.string().optional(),
           updatedMCPToolOutput: z
             .unknown()
@@ -103,19 +103,19 @@ export const syncHookResponseSchema = lazySchema(() =>
             .optional(),
         }),
         z.object({
-          hookEventName: z.literal('PostToolUseFailure'),
+          hookEventName: z.literal('tool-failed'),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('PermissionDenied'),
+          hookEventName: z.literal('permission-denied'),
           retry: z.boolean().optional(),
         }),
         z.object({
-          hookEventName: z.literal('Notification'),
+          hookEventName: z.literal('notice'),
           additionalContext: z.string().optional(),
         }),
         z.object({
-          hookEventName: z.literal('PermissionRequest'),
+          hookEventName: z.literal('permission-request'),
           decision: z.union([
             z.object({
               behavior: z.literal('allow'),
@@ -130,31 +130,31 @@ export const syncHookResponseSchema = lazySchema(() =>
           ]),
         }),
         z.object({
-          hookEventName: z.literal('Elicitation'),
+          hookEventName: z.literal('elicitation-request'),
           action: z.enum(['accept', 'decline', 'cancel']).optional(),
           content: z.record(z.string(), z.unknown()).optional(),
         }),
         z.object({
-          hookEventName: z.literal('ElicitationResult'),
+          hookEventName: z.literal('elicitation-result'),
           action: z.enum(['accept', 'decline', 'cancel']).optional(),
           content: z.record(z.string(), z.unknown()).optional(),
         }),
         z.object({
-          hookEventName: z.literal('CwdChanged'),
+          hookEventName: z.literal('cwd-changed'),
           watchPaths: z
             .array(z.string())
             .describe('Absolute paths to watch for FileChanged hooks')
             .optional(),
         }),
         z.object({
-          hookEventName: z.literal('FileChanged'),
+          hookEventName: z.literal('file-changed'),
           watchPaths: z
             .array(z.string())
             .describe('Absolute paths to watch for FileChanged hooks')
             .optional(),
         }),
         z.object({
-          hookEventName: z.literal('WorktreeCreate'),
+          hookEventName: z.literal('worktree-create'),
           worktreePath: z.string(),
         }),
       ])

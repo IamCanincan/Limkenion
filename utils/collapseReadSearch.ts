@@ -373,7 +373,7 @@ function isPreToolHookSummary(
   return (
     msg.type === 'system' &&
     msg.subtype === 'stop_hook_summary' &&
-    msg.hookLabel === 'PreToolUse'
+    msg.hookLabel === 'tool-before'
   )
 }
 

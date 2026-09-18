@@ -82,7 +82,7 @@ export function HooksConfigMenu(t0) {
   }
   useSettingsChange(t2);
   const mode = modeState.mode;
-  const selectedEvent = "event" in modeState ? modeState.event : "PreToolUse";
+  const selectedEvent = "event" in modeState ? modeState.event : "tool-before";
   const selectedMatcher = "matcher" in modeState ? modeState.matcher : null;
   const mcp = useAppState(_temp3);
   const appStateStore = useAppStateStore();

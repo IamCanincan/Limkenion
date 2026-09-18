@@ -898,7 +898,7 @@ export function reorderMessagesInUI(
     // Handle pre-tool-use hooks
     if (
       isHookAttachmentMessage(message) &&
-      message.attachment.hookEvent === 'PreToolUse'
+      message.attachment.hookEvent === 'tool-before'
     ) {
       const toolUseID = message.attachment.toolUseID
       if (!toolUseGroups.has(toolUseID)) {
@@ -934,7 +934,7 @@ export function reorderMessagesInUI(
     // Handle post-tool-use hooks
     if (
       isHookAttachmentMessage(message) &&
-      message.attachment.hookEvent === 'PostToolUse'
+      message.attachment.hookEvent === 'tool-after'
     ) {
       const toolUseID = message.attachment.toolUseID
       if (!toolUseGroups.has(toolUseID)) {
@@ -982,8 +982,8 @@ export function reorderMessagesInUI(
     // Check if this message is part of a tool use group
     if (
       isHookAttachmentMessage(message) &&
-      (message.attachment.hookEvent === 'PreToolUse' ||
-        message.attachment.hookEvent === 'PostToolUse')
+      (message.attachment.hookEvent === 'tool-before' ||
+        message.attachment.hookEvent === 'tool-after')
     ) {
       // Skip - already handled in tool use groups
       continue
@@ -4091,8 +4091,8 @@ You have exited auto mode. The user may now want to interact more directly. You 
       ]
     case 'hook_success':
       if (
-        attachment.hookEvent !== 'SessionStart' &&
-        attachment.hookEvent !== 'UserPromptSubmit'
+        attachment.hookEvent !== 'session-open' &&
+        attachment.hookEvent !== 'prompt-submit'
       ) {
         return []
       }

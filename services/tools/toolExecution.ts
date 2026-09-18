@@ -962,7 +962,7 @@ async function checkPermissionsAndCallTool(
   // Add message if permission was granted/denied by PermissionRequest hook
   if (
     permissionDecision.decisionReason?.type === 'hook' &&
-    permissionDecision.decisionReason.hookName === 'PermissionRequest' &&
+    permissionDecision.decisionReason.hookName === 'permission-request' &&
     permissionDecision.behavior !== 'ask'
   ) {
     resultingMessages.push({
@@ -970,7 +970,7 @@ async function checkPermissionsAndCallTool(
         type: 'hook_permission_decision',
         decision: permissionDecision.behavior,
         toolUseID,
-        hookEvent: 'PermissionRequest',
+        hookEvent: 'permission-request',
       }),
     })
   }
@@ -1540,9 +1540,9 @@ async function checkPermissionsAndCallTool(
         message: createAttachmentMessage({
           type: 'hook_stopped_continuation',
           message: stopReason || 'Execution stopped by hook',
-          hookName: `PreToolUse:${tool.name}`,
+          hookName: `tool-before:${tool.name}`,
           toolUseID: toolUseID,
-          hookEvent: 'PreToolUse',
+          hookEvent: 'tool-before',
         }),
       })
     }

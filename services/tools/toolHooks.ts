@@ -79,9 +79,9 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           yield {
             message: createAttachmentMessage({
               type: 'hook_cancelled',
-              hookName: `PostToolUse:${tool.name}`,
+              hookName: `tool-after:${tool.name}`,
               toolUseID,
-              hookEvent: 'PostToolUse',
+              hookEvent: 'tool-after',
             }),
           }
           continue
@@ -106,9 +106,9 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           yield {
             message: createAttachmentMessage({
               type: 'hook_blocking_error',
-              hookName: `PostToolUse:${tool.name}`,
+              hookName: `tool-after:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PostToolUse',
+              hookEvent: 'tool-after',
               blockingError: result.blockingError,
             }),
           }
@@ -121,9 +121,9 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
               type: 'hook_stopped_continuation',
               message:
                 result.stopReason || 'Execution stopped by PostToolUse hook',
-              hookName: `PostToolUse:${tool.name}`,
+              hookName: `tool-after:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PostToolUse',
+              hookEvent: 'tool-after',
             }),
           }
           return
@@ -135,9 +135,9 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
             message: createAttachmentMessage({
               type: 'hook_additional_context',
               content: result.additionalContexts,
-              hookName: `PostToolUse:${tool.name}`,
+              hookName: `tool-after:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PostToolUse',
+              hookEvent: 'tool-after',
             }),
           }
         }
@@ -178,9 +178,9 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           message: createAttachmentMessage({
             type: 'hook_error_during_execution',
             content: formatError(error),
-            hookName: `PostToolUse:${tool.name}`,
+            hookName: `tool-after:${tool.name}`,
             toolUseID: toolUseID,
-            hookEvent: 'PostToolUse',
+            hookEvent: 'tool-after',
           }),
         }
       }
@@ -234,9 +234,9 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           yield {
             message: createAttachmentMessage({
               type: 'hook_cancelled',
-              hookName: `PostToolUseFailure:${tool.name}`,
+              hookName: `tool-failed:${tool.name}`,
               toolUseID,
-              hookEvent: 'PostToolUseFailure',
+              hookEvent: 'tool-failed',
             }),
           }
           continue
@@ -258,9 +258,9 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           yield {
             message: createAttachmentMessage({
               type: 'hook_blocking_error',
-              hookName: `PostToolUseFailure:${tool.name}`,
+              hookName: `tool-failed:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PostToolUseFailure',
+              hookEvent: 'tool-failed',
               blockingError: result.blockingError,
             }),
           }
@@ -272,9 +272,9 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
             message: createAttachmentMessage({
               type: 'hook_additional_context',
               content: result.additionalContexts,
-              hookName: `PostToolUseFailure:${tool.name}`,
+              hookName: `tool-failed:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PostToolUseFailure',
+              hookEvent: 'tool-failed',
             }),
           }
         }
@@ -306,9 +306,9 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           message: createAttachmentMessage({
             type: 'hook_error_during_execution',
             content: formatError(hookError),
-            hookName: `PostToolUseFailure:${tool.name}`,
+            hookName: `tool-failed:${tool.name}`,
             toolUseID: toolUseID,
-            hookEvent: 'PostToolUseFailure',
+            hookEvent: 'tool-failed',
           }),
         }
       }
@@ -480,7 +480,7 @@ export async function* runPreToolUseHooks(
         }
         if (result.blockingError) {
           const denialMessage = getPreToolHookBlockingMessage(
-            `PreToolUse:${tool.name}`,
+            `tool-before:${tool.name}`,
             result.blockingError,
           )
           yield {
@@ -490,7 +490,7 @@ export async function* runPreToolUseHooks(
               message: denialMessage,
               decisionReason: {
                 type: 'hook',
-                hookName: `PreToolUse:${tool.name}`,
+                hookName: `tool-before:${tool.name}`,
                 reason: denialMessage,
               },
             },
@@ -513,7 +513,7 @@ export async function* runPreToolUseHooks(
           )
           const decisionReason: PermissionDecisionReason = {
             type: 'hook',
-            hookName: `PreToolUse:${tool.name}`,
+            hookName: `tool-before:${tool.name}`,
             hookSource: result.hookSource,
             reason: result.hookPermissionDecisionReason,
           }
@@ -534,7 +534,7 @@ export async function* runPreToolUseHooks(
                 updatedInput: result.updatedInput,
                 message:
                   result.hookPermissionDecisionReason ||
-                  `Hook PreToolUse:${tool.name} ${getRuleBehaviorDescription(result.permissionBehavior)} this tool`,
+                  `Hook tool-before:${tool.name} ${getRuleBehaviorDescription(result.permissionBehavior)} this tool`,
                 decisionReason,
               },
             }
@@ -546,7 +546,7 @@ export async function* runPreToolUseHooks(
                 behavior: result.permissionBehavior,
                 message:
                   result.hookPermissionDecisionReason ||
-                  `Hook PreToolUse:${tool.name} ${getRuleBehaviorDescription(result.permissionBehavior)} this tool`,
+                  `Hook tool-before:${tool.name} ${getRuleBehaviorDescription(result.permissionBehavior)} this tool`,
                 decisionReason,
               },
             }
@@ -570,9 +570,9 @@ export async function* runPreToolUseHooks(
               message: createAttachmentMessage({
                 type: 'hook_additional_context',
                 content: result.additionalContexts,
-                hookName: `PreToolUse:${tool.name}`,
+                hookName: `tool-before:${tool.name}`,
                 toolUseID,
-                hookEvent: 'PreToolUse',
+                hookEvent: 'tool-before',
               }),
             },
           }
@@ -592,9 +592,9 @@ export async function* runPreToolUseHooks(
             message: {
               message: createAttachmentMessage({
                 type: 'hook_cancelled',
-                hookName: `PreToolUse:${tool.name}`,
+                hookName: `tool-before:${tool.name}`,
                 toolUseID,
-                hookEvent: 'PreToolUse',
+                hookEvent: 'tool-before',
               }),
             },
           }
@@ -633,9 +633,9 @@ export async function* runPreToolUseHooks(
             message: createAttachmentMessage({
               type: 'hook_error_during_execution',
               content: formatError(error),
-              hookName: `PreToolUse:${tool.name}`,
+              hookName: `tool-before:${tool.name}`,
               toolUseID: toolUseID,
-              hookEvent: 'PreToolUse',
+              hookEvent: 'tool-before',
             }),
           },
         }

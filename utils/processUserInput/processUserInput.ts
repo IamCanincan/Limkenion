@@ -232,9 +232,9 @@ export async function processUserInput({
         createAttachmentMessage({
           type: 'hook_additional_context',
           content: hookResult.additionalContexts.map(applyTruncation),
-          hookName: 'UserPromptSubmit',
+          hookName: 'prompt-submit',
           toolUseID: `hook-${randomUUID()}`,
-          hookEvent: 'UserPromptSubmit',
+          hookEvent: 'prompt-submit',
         }),
       )
     }

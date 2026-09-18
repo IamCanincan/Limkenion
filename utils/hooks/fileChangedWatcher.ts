@@ -65,7 +65,7 @@ function resolveWatchPaths(
 }
 
 function startWatching(paths: string[]): void {
-  logForDebugging(`FileChanged: watching ${paths.length} paths`)
+  logForDebugging(`file-changed: watching ${paths.length} paths`)
   watcher = chokidar.watch(paths, {
     persistent: true,
     ignoreInitial: true,
@@ -81,7 +81,7 @@ function handleFileEvent(
   path: string,
   event: 'change' | 'add' | 'unlink',
 ): void {
-  logForDebugging(`FileChanged: ${event} ${path}`)
+  logForDebugging(`file-changed: ${event} ${path}`)
   void executeFileChangedHooks(path, event)
     .then(({ results, watchPaths, systemMessages }) => {
       if (watchPaths.length > 0) {

@@ -164,9 +164,9 @@ export async function processSessionStartHooks(
     const contextMessage = createAttachmentMessage({
       type: 'hook_additional_context',
       content: additionalContexts,
-      hookName: 'SessionStart',
-      toolUseID: 'SessionStart',
-      hookEvent: 'SessionStart',
+      hookName: 'session-open',
+      toolUseID: 'session-open',
+      hookEvent: 'session-open',
     })
     hookMessages.push(contextMessage)
   }
@@ -221,9 +221,9 @@ export async function processSetupHooks(
     const contextMessage = createAttachmentMessage({
       type: 'hook_additional_context',
       content: additionalContexts,
-      hookName: 'Setup',
-      toolUseID: 'Setup',
-      hookEvent: 'Setup',
+      hookName: 'setup',
+      toolUseID: 'setup',
+      hookEvent: 'setup',
     })
     hookMessages.push(contextMessage)
   }

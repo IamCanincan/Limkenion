@@ -218,8 +218,8 @@ export async function* handleStopHooks(
           const attachment = result.message.attachment
           if (
             'hookEvent' in attachment &&
-            (attachment.hookEvent === 'Stop' ||
-              attachment.hookEvent === 'SubagentStop')
+            (attachment.hookEvent === 'turn-end' ||
+              attachment.hookEvent === 'agent-end')
           ) {
             if (attachment.type === 'hook_non_blocking_error') {
               hookErrors.push(
@@ -273,9 +273,9 @@ export async function* handleStopHooks(
         yield createAttachmentMessage({
           type: 'hook_stopped_continuation',
           message: stopReason,
-          hookName: 'Stop',
+          hookName: 'turn-end',
           toolUseID: stopHookToolUseID,
-          hookEvent: 'Stop',
+          hookEvent: 'turn-end',
         })
       }
 
@@ -388,9 +388,9 @@ export async function* handleStopHooks(
             yield createAttachmentMessage({
               type: 'hook_stopped_continuation',
               message: teammateStopReason,
-              hookName: 'TaskCompleted',
+              hookName: 'task-completed',
               toolUseID: teammateHookToolUseID,
-              hookEvent: 'TaskCompleted',
+              hookEvent: 'task-completed',
             })
           }
           if (toolUseContext.abortController.signal.aborted) {
@@ -430,9 +430,9 @@ export async function* handleStopHooks(
           yield createAttachmentMessage({
             type: 'hook_stopped_continuation',
             message: teammateStopReason,
-            hookName: 'TeammateIdle',
+            hookName: 'teammate-idle',
             toolUseID: teammateHookToolUseID,
-            hookEvent: 'TeammateIdle',
+            hookEvent: 'teammate-idle',
           })
         }
         if (toolUseContext.abortController.signal.aborted) {

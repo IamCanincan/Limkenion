@@ -74,7 +74,7 @@ export function registerStructuredOutputEnforcement(
   addFunctionHook(
     setAppState,
     sessionId,
-    'Stop',
+    'turn-end',
     '', // No matcher - applies to all stops
     messages => hasSuccessfulToolCall(messages, SYNTHETIC_OUTPUT_TOOL_NAME),
     `You MUST call the ${SYNTHETIC_OUTPUT_TOOL_NAME} tool to complete this request. Call this tool now.`,

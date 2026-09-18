@@ -436,7 +436,7 @@ async function runPermissionRequestHooksForHeadlessAgent(
           updatedInput: finalInput,
           decisionReason: {
             type: 'hook',
-            hookName: 'PermissionRequest',
+            hookName: 'permission-request',
           },
         }
       }
@@ -452,7 +452,7 @@ async function runPermissionRequestHooksForHeadlessAgent(
           message: decision.message || 'Permission denied by hook',
           decisionReason: {
             type: 'hook',
-            hookName: 'PermissionRequest',
+            hookName: 'permission-request',
             reason: decision.message,
           },
         }

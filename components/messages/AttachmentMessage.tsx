@@ -267,7 +267,7 @@ export function AttachmentMessage({
     case 'async_hook_response':
       {
         // SessionStart hook completions are only shown in verbose mode
-        if (attachment.hookEvent === 'SessionStart' && !verbose) {
+        if (attachment.hookEvent === 'session-open' && !verbose) {
           return null;
         }
         // Generally hide async hook completion messages unless in verbose mode
@@ -281,7 +281,7 @@ export function AttachmentMessage({
     case 'hook_blocking_error':
       {
         // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
-        if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
+        if (attachment.hookEvent === 'turn-end' || attachment.hookEvent === 'agent-end') {
           return null;
         }
         // Show stderr to the user so they can understand why the hook blocked
@@ -296,7 +296,7 @@ export function AttachmentMessage({
     case 'hook_non_blocking_error':
       {
         // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
-        if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
+        if (attachment.hookEvent === 'turn-end' || attachment.hookEvent === 'agent-end') {
           return null;
         }
         // Full hook output is logged to debug log via hookEvents.ts
@@ -304,7 +304,7 @@ export function AttachmentMessage({
       }
     case 'hook_error_during_execution':
       // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
-      if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
+      if (attachment.hookEvent === 'turn-end' || attachment.hookEvent === 'agent-end') {
         return null;
       }
       // Full hook output is logged to debug log via hookEvents.ts
@@ -314,7 +314,7 @@ export function AttachmentMessage({
       return null;
     case 'hook_stopped_continuation':
       // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
-      if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
+      if (attachment.hookEvent === 'turn-end' || attachment.hookEvent === 'agent-end') {
         return null;
       }
       return <Line color="warning">

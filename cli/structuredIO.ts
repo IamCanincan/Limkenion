@@ -822,7 +822,7 @@ async function executePermissionRequestHooksForSDK(
           userModified: false,
           decisionReason: {
             type: 'hook',
-            hookName: 'PermissionRequest',
+            hookName: 'permission-request',
           },
         }
       } else {
@@ -833,7 +833,7 @@ async function executePermissionRequestHooksForSDK(
             decision.message || 'PermissionRequest 钩子拒绝了此操作权限',
           decisionReason: {
             type: 'hook',
-            hookName: 'PermissionRequest',
+            hookName: 'permission-request',
           },
         }
       }

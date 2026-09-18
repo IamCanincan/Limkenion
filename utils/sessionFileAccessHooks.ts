@@ -148,7 +148,7 @@ async function handleSessionFileAccess(
   _toolUseID: string | null,
   _signal: AbortSignal | undefined,
 ): Promise<HookJSONOutput> {
-  if (input.hook_event_name !== 'PostToolUse') return {}
+  if (input.hook_event_name !== 'tool-after') return {}
 
   const fileType = getSessionFileTypeFromInput(
     input.tool_name,
@@ -239,7 +239,7 @@ export function registerSessionFileAccessHooks(): void {
   }
 
   registerHookCallbacks({
-    PostToolUse: [
+    'tool-after': [
       { matcher: FILE_READ_TOOL_NAME, hooks: [hook] },
       { matcher: GREP_TOOL_NAME, hooks: [hook] },
       { matcher: GLOB_TOOL_NAME, hooks: [hook] },

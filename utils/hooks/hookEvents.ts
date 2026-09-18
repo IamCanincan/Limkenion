@@ -15,7 +15,7 @@ import { logForDebugging } from '../debug.js'
  * option. These are low-noise lifecycle events that were in the original
  * allowlist and are backwards-compatible.
  */
-const ALWAYS_EMITTED_HOOK_EVENTS = ['SessionStart', 'Setup'] as const
+const ALWAYS_EMITTED_HOOK_EVENTS = ['session-open', 'setup'] as const
 
 const MAX_PENDING_EVENTS = 100
 

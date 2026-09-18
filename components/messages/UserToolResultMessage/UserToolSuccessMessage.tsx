@@ -97,7 +97,7 @@ export function UserToolSuccessMessage({
               </MessageResponse> : null}
       </Box>
       <SentryErrorBoundary>
-        <HookProgressMessage hookEvent="PostToolUse" lookups={lookups} toolUseID={toolUseID} verbose={verbose} isTranscriptMode={isTranscriptMode} />
+        <HookProgressMessage hookEvent="tool-after" lookups={lookups} toolUseID={toolUseID} verbose={verbose} isTranscriptMode={isTranscriptMode} />
       </SentryErrorBoundary>
     </Box>;
 }

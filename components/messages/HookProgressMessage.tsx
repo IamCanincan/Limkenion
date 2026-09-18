@@ -34,7 +34,7 @@ export function HookProgressMessage(t0) {
   if (inProgressHookCount === 0) {
     return null;
   }
-  if (hookEvent === "PreToolUse" || hookEvent === "PostToolUse") {
+  if (hookEvent === "tool-before" || hookEvent === "tool-after") {
     if (isTranscriptMode) {
       let t2;
       if ($[4] !== inProgressHookCount) {

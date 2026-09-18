@@ -637,7 +637,7 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
       // worth defending against.
       const hasSessionStartHook = accumulatedLog.some(m => m.type === 'system' && (m.subtype === 'hook_started' || m.subtype === 'hook_progress' || m.subtype === 'hook_response') && (m as {
         hook_event?: string;
-      }).hook_event === 'SessionStart');
+      }).hook_event === 'session-open');
       const hasAssistantEvents = accumulatedLog.some(m => m.type === 'assistant');
       const sessionDone = task.isRemoteReview && (cachedReviewContent !== null || !hasSessionStartHook && stableIdle && hasAssistantEvents);
       const reviewTimedOut = task.isRemoteReview && Date.now() - task.pollStartedAt > REMOTE_REVIEW_TIMEOUT_MS;

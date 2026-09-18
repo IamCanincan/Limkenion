@@ -543,9 +543,9 @@ export async function* runAgent({
     const contextMessage = createAttachmentMessage({
       type: 'hook_additional_context',
       content: additionalContexts,
-      hookName: 'SubagentStart',
+      hookName: 'agent-start',
       toolUseID: randomUUID(),
-      hookEvent: 'SubagentStart',
+      hookEvent: 'agent-start',
     })
     initialMessages.push(contextMessage)
   }
