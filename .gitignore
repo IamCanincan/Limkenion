@@ -38,3 +38,6 @@ coverage/
 # WorkBuddy workspace data (keep memory notes so they travel with the repo)
 .workbuddy-ai/*
 !.workbuddy-ai/memory/
+
+# CLI 测试打包产物
+test-cli/.build/
