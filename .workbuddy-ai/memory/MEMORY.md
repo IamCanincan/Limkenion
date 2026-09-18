@@ -7,54 +7,47 @@
 ---
 
 ## 用户明确要求（最高优先级，别自作主张改）
-1. **CLI + Web 双端**都要，功能语义对齐。
+1. **只保留 web 界面**（2026-09-18 用户拍板）：CLI 已停止维护并从工作树删除，
+   完整源码在 git 分支 **`archive/cli`**。今后一切功能只做 web 端。
 2. **只依赖 Node**，不引入新运行时（不要 Bun/Deno/Python）。
 3. **以"高效编码"为目的** —— 取舍标准是写代码好不好用，不是功能多。
 4. **只支持 DeepSeek**，不做其他供应商。
 5. **尽量不要删功能；发现问题先提出来，不要擅自删。**
 6. 本地 agent：无云、无账号、**无网站、无邮箱**。
-7. **DeepSeek 模型/价格以官网实测为准，不要凭印象写死。**
+7. **DeepSeek 模型/价格以官网实测为准，不要凭印象写死**（且**不写死单价换算金额**——
+   2026-09-18 起计费层已整体删除，只展示 token/时长/行数）。
 8. **API key 由用户自己输入**（`/login` 已能录入并持久化）。
-9. **不要桌宠**（`buddy/` 与 `commands/buddy/` 已整块删除）。
+9. **不要桌宠**。
 
 ## 项目性质
-`D:\Github Repositories\Limkenion` = **CLI（React/ink REPL）+ web 界面** 的双端 agent harness。
-git 仓库，分支 `master`；备份在 `..\Limkenion_backup_2026-09-16.tar.gz`。
-
-- **CLI 侧**（仓库根）：fork 自 上游 CLI 原型，源码是 **react-compiler 编译产物**
-  （`.tsx` 带 `_c(N)`/`$[N]`）。**只能改文案/删整块/改小逻辑，不能重排结构。**
-  构建：`node scripts/build-cli.mjs` → `dist/cli.mjs`（约 27MB esbuild ESM bundle）。
-- **web 侧**（`web/`）：Vite + React 18 + 自研本地 Node 服务，**不引用 CLI 源码**
-  （只有 `web/test/drift.test.mjs` 按文件路径解析 `tools/*/`）。
+`D:\Github Repositories\Limkenion` = **纯 web 项目**。git 仓库，分支 `master`。
+- **web/**：Vite + React 18 + 自研本地 Node 服务，完全自包含（引擎/会话/工具/钩子/
+  定时任务），**零外部进程依赖**。
+- `web/server/data/cli-contract.json`、`commands-manifest.json` 是 CLI 时代的契约
+  **数据快照**，web 端仅作数据消费，仍有效；生成脚本已随 CLI 归档。
+- `web/test/drift.test.mjs` 自带 `HAS_CLI_SOURCE` 守卫，CLI 源码不在时自动跳过（预期）。
 
 ## 硬约束与每轮惯例
 - **无任何在线账号 / OAuth / 订阅 / 云供应商**。登录 = 设 `DEEPSEEK_API_KEY`
   （OpenAI 兼容端点，默认 `https://api.deepseek.com`）。
 - **模型只有两个**：`deepseek-flash`（默认/快/支持 Vision）与 `deepseek-v4-pro`（强/不支持图）。
-  `utils/model/configs.ts` 的 `ALL_MODEL_CONFIGS` 是唯一模型表。
-- **源码不得出现 `CC` / `上游兼容` / `内部代号`**。唯一例外是 `scripts/build-cli.mjs` 的
-  `BRAND_TOKENS` 清洗名单 —— **故意保留**（它就是用来从产物里抹掉它们的）。
 - **判断"是否 OpenAI 兼容模式"只许用 `isOpenAICompat()`**：**它恒返回 `true`，不是"检测"出来的**。
   "用哪套协议"和"有没有配 key"是两件事，绝不能混进同一个判断。**这个坑踩过两次。**
-- **CLI 每轮改完**：`node scripts/build-cli.mjs` 0 错误 → **冒烟** → `npm install -g .` → commit
-  （**不 push、不动 git config**）。
-- **web 每轮改完**：`npm run typecheck`（**前后端两套 tsc**）→ `npx vite build` →
-  `npm test`（`test/*.test.mjs`）→ `npm run test:e2e`（真实 API）。
+- **每轮改完**：`npm run typecheck`（**前后端两套 tsc**）→ `npx vite build` →
+  `npm test`（`test/*.test.mjs`）→ commit（**不 push、不动 git config**）。
+  改了 worktree / hooks / MCP / Workflow / 沙箱作用域 → 还要跑 `npm run test:e2e`（真实 API）。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾。
 
 ## 环境要点
 - 有 HTTP 代理：访问 localhost 必须 `curl --noproxy '*'`；**DuckDuckGo 超时，Bing 可用**。
-- **非交互跑 CLI 必须先设 `LIMKENION_GIT_BASH_PATH`**（路径见 details），否则报 "requires git-bash"
-  退出。**冒烟**：`limkenion -p "只回复两个字：收到" --no-session-persistence`。
 - 全局安装 npm 前必须 `export APPDATA='C:\Users\20653\AppData\Roaming'`。
+  全局命令 **`limkenion-web`** 是 web 启动入口（保留可用）。
 - Node：**测试/tsc/vite 用系统 v24**（`D:\nodejs\node.exe`）；**web 预览服务用托管 22.22.2**
   （`C:\Users\20653\.workbuddy\binaries\node\versions\22.22.2-3\node.exe web/server/index.mjs`）。
 - **web 服务的 API key 只从环境变量来**（没有配置文件）。重启服务时从这里取，**别问用户**：
   `~/.limkenion.json` 的 **`primaryApiKey`**。**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
   查活服务：取 `limkenion-token` → 连 WS 发 `{type:'run_command', command:'/status'}`
   （**类型是 `run_command`，不是 `command`**）。
-- 单测 CLI 源码模块要用 esbuild 打包 + 特定 banner/alias（见 details）；`NODE_ENV=test` 会让
-  `services/vcr.ts` 往 cwd 写 `fixtures/`，跑完清掉。
 - **服务端 JS 也在类型检查里了**（2026-09-18 起）：`web/tsconfig.server.json`
   （allowJs + checkJs + noEmit，覆盖 `server/**/*.mjs`）。档位：关 noImplicitAny 与
   useUnknownInCatchVariables，**开 strictNullChecks**。写服务端代码时三个反复踩的推断坑：
@@ -78,9 +71,8 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
 - **推理模式 + 强制 `tool_choice` 不可共存**（400）。适配器在"强制工具"时自动加 `reasoning_effort:'none'`。
 
 ## 当前状态
-**两端都能用，去痕迹工程已完成**（`CC`/`上游兼容`/`内部代号` 0 命中，残留见 details）。
-CLI：`limkenion` → `/login` 粘 key。Web：`cd web && node server/index.mjs`。
-CLI 侧已补：上下文 **1M**、最大输出 **384K**、图片输入打通、`/effort` 生效、新增 `/schedule`。
+**纯 web 项目（2026-09-18 起）**，CLI 已归档到分支 `archive/cli` 并从工作树删除。
+Web：`cd web && node server/index.mjs`（或全局 `limkenion-web`）。
 
 ### Web 端：已按「CLI 有的都搬过来」审过**三层**，并且五项"没搬的"已全部实现
 | 层 | 结果 |
@@ -164,10 +156,6 @@ CLI 侧已补：上下文 **1M**、最大输出 **384K**、图片输入打通、
     混在一起会把模型抖动误报成产品 bug，反而淹没真 bug。同理**提示词别给退路**
     （写"如果没有未提交改动就…"，模型会理性地选另一条分支，被测路径压根没走到）。
 
-## 承重的"半坏残留"（看着像死的，其实是活的，**别删**）
-`constants/oauth.ts`（被 12+ 处导入，删了断构建）、`utils/model/bedrock.ts`、
-`bun-bundle-stub.ts`（esbuild 的 `--alias:bun:bundle` 指向它）。**清单见 details。**
-
 ## 服务端模块地图（web/server/）
 单向依赖：paths → config/bus → sessions/security/workspace → interactions/toolindex →
 engine → commands → protocol → index。**新增模块别引入反向依赖**（要回调就用 `ctx` 注入）。
@@ -179,7 +167,8 @@ engine → commands → protocol → index。**新增模块别引入反向依赖
 - `static.mjs` 有一条 `/insights` 只读路由（文件名走白名单正则，不接受路径拼接）。
 
 ## 接力提示
-**新 agent 上手**：① 读本文件 → ② 按需读 `MEMORY-details.md` → ③ 按改动位置加载技能
-（`limkenion-cli-fix-verify` 改 CLI / `limkenion-web-verify` 改 `web/`）。
+**新 agent 上手**：① 读本文件 → ② 按需读 `MEMORY-details.md` → ③ 改 `web/` 前加载
+`limkenion-web-verify` 技能。CLI 相关技能（`limkenion-cli-fix-verify`）已随归档失效，
+CLI 源码只在 `archive/cli` 分支里，仅在用户明确要求回溯 CLI 历史时才去读。
 **用户偏好**：不要反复问他"选哪个"；说"继续"就是让我接着干。五项"要动安全边界/重做子系统"的
 事他已明确要求做过（见上表），愿意为真功能付代价；但**没被要求时不要擅自扩大权限边界**。
