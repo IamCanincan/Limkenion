@@ -976,7 +976,7 @@ async function toolSendUserMessage({ message, attachments, status }, ctx) {
 }
 
 // ---------------------------------------------------------------------------
-// 任务类工具（session 级任务表，镜像 CLI Task* 工具）
+// 任务类工具（会话级任务表，镜像 CLI Task* 工具）
 // ---------------------------------------------------------------------------
 
 function tasksOf(session) {

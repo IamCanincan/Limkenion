@@ -331,13 +331,13 @@ describe('子代理', () => {
     const s = sessions.createSession()
     setupClient()
     setScript([
-      // 主代理先派子代理
+      // 主 agent 先派子代理
       { toolCalls: [{ id: 'ag', name: 'Agent', args: { description: '看看种子文件', prompt: '读 seed.txt' } }] },
       // 子代理循环：读文件
       { toolCalls: [{ id: 'sr', name: 'Read', args: { file_path: 'seed.txt' } }] },
       // 子代理给结论
       { text: '文件内容是 seed。' },
-      // 主代理收尾
+      // 主 agent 收尾
       { text: '子代理说文件是 seed。' },
     ])
 
@@ -386,7 +386,7 @@ describe('撞到工具轮次上限时必须明说', () => {
     const s = sessions.createSession()
     setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
     setScript([
-      // 主代理派子代理
+      // 主 agent 派子代理
       { toolCalls: [{ id: 'ag', name: 'Agent', args: { description: '空转', prompt: '一直读' } }] },
       // 子代理永远只读 → 撞 MAX_SUBAGENT_ROUNDS
       { toolCalls: [{ id: 'sl', name: 'Read', args: { file_path: 'seed.txt' } }] },
