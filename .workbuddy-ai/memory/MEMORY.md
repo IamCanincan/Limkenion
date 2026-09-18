@@ -106,7 +106,10 @@ CLI 侧已补：上下文 **1M**、最大输出 **384K**、图片输入打通、
 
 **Web 端其它已做**：请求追踪面板、推理强度下拉、侧栏会话搜索 + 分叉、模型列表与 CLI 对齐、
 **回合代次**（同一会话不并发跑两个回合；定时任务撞上未结束的回合就跳过**并说明**）。
-**测试 296 项全过**（13 个文件：engine/commands/tools/security/settings/protocol/hooks/mcp/paths/insights/workflow/requestLog/drift）。
+**测试 299 项全过**（13 个文件：engine/commands/tools/security/settings/protocol/hooks/mcp/paths/insights/workflow/requestLog/drift）；
+真实 E2E **24/24**（`npm run test:e2e`，唯一走真实模型的集成测试）。
+**阶段 2 已落地**：对外概念重命名（钩子事件连字符 `tool-before` 等 + `PlanEnter`/`PlanExit`），
+旧名经 `clicontract.mjs` 的 `canonical*` 归一化兼容；权限模式名未改（用户未确认）。
 
 ### 仍未做的
 只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
