@@ -34,8 +34,9 @@ function getText(url) {
   return new Promise((resolve, reject) => {
     const get = url.startsWith('https') ? httpsGet : httpGet
     const req = get(url, res => {
+      const code = res.statusCode ?? 0
       // 跟随一次重定向（部分 CDN/Release 会 302）
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      if (code >= 300 && code < 400 && res.headers.location) {
         get(res.headers.location, res2 => {
           let data = ''
           res2.setEncoding('utf8')
@@ -58,11 +59,12 @@ function download(url, dest) {
   return new Promise((resolve, reject) => {
     const get = url.startsWith('https') ? httpsGet : httpGet
     const req = get(url, res => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      const code = res.statusCode ?? 0
+      if (code >= 300 && code < 400 && res.headers.location) {
         return download(res.headers.location, dest).then(resolve, reject)
       }
-      if (res.statusCode !== 200) {
-        reject(new Error(`下载更新包失败，HTTP ${res.statusCode}`))
+      if (code !== 200) {
+        reject(new Error(`下载更新包失败，HTTP ${code}`))
         return
       }
       const f = createWriteStream(dest)
@@ -126,7 +128,7 @@ async function unzip(archive, dest) {
     }
     execFile(cmd, { shell: true }, (err, _stdout, stderr) => {
       if (err) reject(new Error(stderr || String(err)))
-      else resolve()
+      else resolve(undefined)
     })
   })
 }

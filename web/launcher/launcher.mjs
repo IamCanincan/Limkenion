@@ -134,7 +134,7 @@ async function main() {
     try {
       child.kill('SIGTERM')
     } catch {
-      /* ignore */
+      /* 忽略：进程可能已退出 */
     }
     process.exit(0)
   }

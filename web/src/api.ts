@@ -1,9 +1,8 @@
 import type { ClientMessage, ServerMessage } from './types'
 
 /**
- * Thin WebSocket client with auto-reconnect and a subscribe API.
- * Kept dependency-free so the whole frontend rides React state alone
- * (no browser storage, no external stores).
+ * 轻量 WebSocket 客户端：自带自动重连 + 订阅式 API。
+ * 刻意零依赖 —— 整个前端只靠 React state 驱动（不用浏览器存储、不引入外部 store）。
  *
  * 握手需要一次性 token：生产模式由服务端注入 <meta name="limkenion-token">，
  * 开发模式（Vite 伺服页面）从 /ws-token 取。两者都拿不到就不连——服务端会拒。

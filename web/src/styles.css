@@ -1,4 +1,4 @@
-/* Limkenion web — dark theme with the CLI's signature warm orange. */
+/* Limkenion web —— 深色主题，沿用 CLI 那套标志性的暖橙色调。 */
 
 :root {
   --bg: #1a1816;
@@ -39,7 +39,7 @@ body {
   font-size: 14px;
 }
 
-/* ---- Layout ---- */
+/* ---- 整体布局 ---- */
 
 .app {
   display: grid;
@@ -58,7 +58,7 @@ body {
   min-width: 0;
 }
 
-/* ---- Sidebar ---- */
+/* ---- 侧栏 ---- */
 
 .sidebar {
   grid-area: sidebar;
@@ -188,7 +188,7 @@ body {
   color: var(--text-dim);
 }
 
-/* ---- Chat ---- */
+/* ---- 对话区 ---- */
 
 .chat-view {
   flex: 1;
@@ -304,7 +304,7 @@ code {
   color: var(--text-dim);
 }
 
-/* ---- Turn process / tool calls ---- */
+/* ---- 回合过程 / 工具调用 ---- */
 
 .turn-process {
   margin-bottom: 10px;
@@ -424,7 +424,7 @@ code {
   overflow-y: auto;
 }
 
-/* ---- Streaming indicator / spinner ---- */
+/* ---- 流式指示器 / 转圈 ---- */
 
 .streaming-indicator {
   max-width: 780px;
@@ -459,7 +459,7 @@ code {
   }
 }
 
-/* ---- Composer ---- */
+/* ---- 输入框 ---- */
 
 .composer {
   padding: 12px 24px 16px;
@@ -524,7 +524,7 @@ code {
   color: var(--on-accent);
 }
 
-/* ---- Status bar ---- */
+/* ---- 状态栏 ---- */
 
 .status-bar {
   grid-area: status;
@@ -569,7 +569,7 @@ code {
   color: var(--red);
 }
 
-/* ---- Scrollbars ---- */
+/* ---- 滚动条 ---- */
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -584,7 +584,7 @@ code {
   background: #4a443c;
 }
 
-/* ---- Chat header / model selector ---- */
+/* ---- 对话顶栏 / 模型选择器 ---- */
 
 .chat-header {
   display: flex;
@@ -680,7 +680,7 @@ code {
   color: var(--text-dim);
 }
 
-/* ---- Command palette ---- */
+/* ---- 命令面板 ---- */
 
 .command-palette {
   max-width: 780px;
@@ -758,7 +758,7 @@ code {
   margin-top: 4px;
 }
 
-/* ---- Session menu / rename / stats ---- */
+/* ---- 会话菜单 / 重命名 / 统计 ---- */
 
 .session-item {
   position: relative;
@@ -864,7 +864,7 @@ code {
   justify-content: space-between;
 }
 
-/* ---- Todo list ---- */
+/* ---- 待办列表 ---- */
 
 .todo-list {
   background: var(--bg-panel);
@@ -913,7 +913,7 @@ code {
   flex-shrink: 0;
 }
 
-/* ---- DeepSeek reasoning chain ---- */
+/* ---- DeepSeek 思考链 ---- */
 
 .reasoning {
   margin-bottom: 10px;
@@ -951,7 +951,7 @@ code {
   overflow-y: auto;
 }
 
-/* ---- Permission dialog ---- */
+/* ---- 权限弹窗 ---- */
 
 .permission-overlay {
   position: fixed;

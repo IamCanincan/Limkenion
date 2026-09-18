@@ -127,7 +127,7 @@ async function discoverEndpoints(url) {
     }
   } catch { /* 探测失败不致命，走下面的兜底 */ }
 
-  // 2) protected resource metadata → authorization_servers[0]
+  // 2) 受保护资源元数据 → authorization_servers[0]
   let asBase = null
   if (prmUrl) {
     try {
@@ -206,7 +206,7 @@ export async function startAuthorization(cfg) {
     throw new Error(`「${cfg.name}」既不支持动态注册，配置里也没给 auth.clientId`)
   }
 
-  // PKCE + state
+  // PKCE 校验值 + state（state 防 CSRF，且用于把回调对回本次待授权请求）
   const verifier = b64url(randomBytes(48))
   const challenge = b64url(createHash('sha256').update(verifier).digest())
   const state = b64url(randomBytes(16))

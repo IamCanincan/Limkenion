@@ -55,9 +55,13 @@ describe('Bash run_in_background', () => {
     const s = sessions.createSession()
     const r = await tools.executeTool('Bash', { command: 'echo bg-hello', run_in_background: true }, { session: s })
     const id = await bgId(r)
-    // 轮询最多 5 秒，等任务结束并出现输出
+    // 轮询最多 20 秒，等任务结束并出现输出。
+    // 预算刻意给得宽：`node --test` 会并行跑 13 个测试文件，满负载下
+    // cmd.exe 起进程 + close 事件可能超过 5 秒 —— 曾观察到约 1/7 的偶发失败
+    // （单独跑该文件 4/4 通过，只在全量并行时出现）。这是调度延迟，不是产品缺陷；
+    // 真的挂死仍会在 20 秒后失败（断言同时要求 done 与输出内容）。
     let out = ''
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 200; i++) {
       out = await tools.executeTool('TaskOutput', { taskId: id }, { session: s })
       if (out.includes('done') && out.includes('bg-hello')) break
       await sleep(100)
