@@ -88,8 +88,8 @@ after(async () => {
 
 describe('注册表完整性', () => {
   // 数字故意写死：改工具集时这里会红，提醒你确认是有意为之。
-  test('44 个工具，名称唯一，schema 结构合法', () => {
-    assert.equal(TOOL_SCHEMAS.length, 44)
+  test('47 个工具，名称唯一，schema 结构合法', () => {
+    assert.equal(TOOL_SCHEMAS.length, 47)
     const names = TOOL_SCHEMAS.map(s => s.function.name)
     assert.equal(new Set(names).size, names.length, '存在重名工具')
     for (const s of TOOL_SCHEMAS) {

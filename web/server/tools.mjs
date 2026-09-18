@@ -19,6 +19,7 @@
 import { readFile, writeFile, readdir, stat, mkdir } from 'node:fs/promises'
 import { execFile, execSync, spawn } from 'node:child_process'
 import { recordCheckpoint, snapshotWorkspace, commandLikelyMutating } from './checkpoints.mjs'
+import { screenshot as computerScreenshot, control as computerControl, computerAvailable } from './computer.mjs'
 import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
@@ -53,6 +54,9 @@ export const DANGEROUS_TOOLS = new Set([
   'CronCreate',
   // 取消定时任务会改变后续自动回合的行为，与 CronCreate 同等对待。
   'CronDelete',
+  // Computer Use：能操作用户整个桌面，是权限等级最高的工具，每次都要确认。
+  'ComputerScreenshot',
+  'ComputerControl',
   // worktree 改的是**会话的沙箱根**（不只是 cwd）：一次授权会把之后所有文件工具的
   // 作用范围换到另一棵树上，属于安全边界改变，所以要确认。
   'EnterWorktree',
@@ -835,6 +839,39 @@ async function toolWebSearch({ query, allowed_domains, blocked_domains }, ctx) {
  * McpAuth：为指定服务器发起 OAuth 授权（生成链接 + 自动开浏览器 + 回调换 token）。
  * 此前这里是一个失真的降级桩 —— OAuth 流程早在第 20 轮就实现了。
  */
+async function toolComputerScreenshot(input) {
+  if (!computerAvailable()) {
+    throw new Error(process.platform !== 'win32'
+      ? 'Computer Use 仅在 Windows 上可用（当前平台：' + process.platform + '）'
+      : 'Computer Use 未启用（需设置环境变量 LIMKENION_WEB_COMPUTER_USE=1）')
+  }
+  const r = await computerScreenshot({ maxWidth: Number(input?.maxWidth) || 1280 })
+  // 引擎识别这个前缀后，把图片以 user 消息注入模型上下文
+  return `@@SCREENSHOT@@${r.dataUrl}`
+}
+
+async function toolComputerControl(input) {
+  if (!computerAvailable()) {
+    throw new Error(process.platform !== 'win32'
+      ? 'Computer Use 仅在 Windows 上可用（当前平台：' + process.platform + '）'
+      : 'Computer Use 未启用（需设置环境变量 LIMKENION_WEB_COMPUTER_USE=1）')
+  }
+  return computerControl(input)
+}
+
+async function toolPreviewUrl(input, ctx) {
+  const url = requireText(input?.url, 'url', '本机页面地址，例如 {"url": "http://localhost:5173"}')
+  let u
+  try { u = new URL(url) } catch { throw new Error(`不是合法的 URL：${url}`) }
+  const host = u.hostname.toLowerCase()
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('仅支持 http/https')
+  if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]') {
+    throw new Error('仅支持预览本机地址（localhost / 127.0.0.1）—— 外部页面请让用户自己打开')
+  }
+  ctx?.emit?.({ type: 'preview_open', url })
+  return `已在预览面板打开：${url}`
+}
+
 async function toolMcpAuth(input, ctx) {
   const server = requireText(input?.server, 'server', 'MCP 服务器名，例如 {"server": "github"}')
   if (typeof ctx?.mcpAuthFlow !== 'function') throw new Error('当前服务端未挂载 MCP 授权执行器（ctx.mcpAuthFlow 缺失）')
@@ -2022,6 +2059,53 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'ComputerScreenshot',
+      description: '截取当前屏幕（缩放到最大宽 1280px）并以图片附入上下文，让你能看到用户的桌面。需要 Computer Use 总开关。',
+      parameters: {
+        type: 'object',
+        properties: {
+          maxWidth: { type: 'number', description: '截图最大宽度（默认 1280）' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'ComputerControl',
+      description: '控制用户桌面：移动鼠标、单击/双击/右键、滚轮、输入文字（支持中文）、按键（如 ctrl+s）。每次操作都会请求用户确认。',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', description: 'move / click / doubleClick / rightClick / scroll / type / press' },
+          x: { type: 'number', description: '目标横坐标（虚拟屏幕像素，move/click 类必填）' },
+          y: { type: 'number', description: '目标纵坐标' },
+          amount: { type: 'number', description: 'scroll 滚动量（正上负下）' },
+          text: { type: 'string', description: 'type 要输入的文字（支持中文）' },
+          key: { type: 'string', description: 'press 要按的键，如 enter / ctrl+s / alt+tab' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'PreviewUrl',
+      description: '在用户的预览面板中打开一个本机 URL（用于展示你刚启动的 dev server / 页面）。仅支持 localhost。',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'http://localhost:端口/...' },
+        },
+        required: ['url'],
+      },
+    },
+  },
 
   {
     type: 'function',
@@ -2258,6 +2342,9 @@ export async function executeTool(rawName, input, ctx) {
     case 'ListMcpResourcesTool': return toolListMcpResources(input, ctx)
     case 'ReadMcpResource': return toolReadMcpResource(input, ctx)
     case 'McpAuth': return toolMcpAuth(input, ctx)
+    case 'ComputerScreenshot': return toolComputerScreenshot(input)
+    case 'ComputerControl': return toolComputerControl(input)
+    case 'PreviewUrl': return toolPreviewUrl(input, ctx)
     case 'EnterWorktree': return toolEnterWorktree(input, session)
     case 'ExitWorktree': return toolExitWorktree(input, session)
     case 'Workflow': return toolWorkflow(input, ctx)

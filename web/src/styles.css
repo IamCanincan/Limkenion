@@ -1653,3 +1653,44 @@ code {
   color: var(--text-dim);
   font-size: 10.5px;
 }
+
+/* ---- 内置预览面板 ---- */
+.preview-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 46%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #111);
+  border-left: 1px solid var(--border, #333);
+  z-index: 60;
+}
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border, #333);
+}
+.preview-title { font-weight: 600; font-size: 12px; }
+.preview-url {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border, #333);
+  border-radius: 4px;
+  color: inherit;
+}
+.preview-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.preview-btn:hover { background: var(--border, #333); }
+.preview-frame { flex: 1; border: none; background: #fff; }

@@ -92,6 +92,7 @@ export type ServerMessage =
       escalate?: string | null
     }
   | { type: 'question_request'; sessionId: string; requestId: string; questions: AskQuestion[] }
+  | { type: 'preview_open'; sessionId: string; url: string }
   | { type: 'error'; message: string }
 
 // ---------------------------------------------------------------------------

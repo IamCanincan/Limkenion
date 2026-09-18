@@ -17,14 +17,14 @@ import { CORE_TOOL_NAMES, TOOL_SCHEMAS } from './tools.mjs'
  * 快照会让它们永远不出现在延迟清单里（ToolSearch 搜不到、模型也不知道它们存在）。
  */
 export function deferredToolNames() {
-  return TOOL_SCHEMAS.map(s => s.function.name).filter(n => !CORE_TOOL_NAMES.has(n))
+  return TOOL_SCHEMAS.map(s => s.function.name).filter(n => !CORE_TOOL_NAMES.has(n) && (process.env.LIMKENION_WEB_COMPUTER_USE === "1" || !n.startsWith("Computer")))
 }
 
 /** 取某会话当前应发送的 schema 列表。 */
 export function schemasFor(session) {
   const enabled = session?.enabledTools
   if (!enabled || enabled.size === 0) {
-    return TOOL_SCHEMAS.filter(s => CORE_TOOL_NAMES.has(s.function.name))
+    return TOOL_SCHEMAS.filter(s => CORE_TOOL_NAMES.has(s.function.name) && (process.env.LIMKENION_WEB_COMPUTER_USE === "1" || !s.function.name.startsWith("Computer")))
   }
   return TOOL_SCHEMAS.filter(
     s => CORE_TOOL_NAMES.has(s.function.name) || enabled.has(s.function.name),

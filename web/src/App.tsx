@@ -9,6 +9,7 @@ import { SettingsControls } from './components/SettingsControls'
 import { RequestLogPanel } from './components/RequestLogPanel'
 import { PermissionDialog, type PermissionRequest } from './components/PermissionDialog'
 import { QuestionDialog } from './components/QuestionDialog'
+import { PreviewPanel } from './components/PreviewPanel'
 import type {
   RequestLogEntry,
   RequestSummary,
@@ -51,6 +52,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -248,6 +250,10 @@ export function App() {
             escalate: msg.escalate ?? null,
           })
           break
+        case 'preview_open':
+          setPreviewUrl(msg.url)
+          break
+
         case 'question_request':
           setQuestionRequest({ requestId: msg.requestId, questions: msg.questions })
           break
@@ -383,6 +389,9 @@ export function App() {
           questions={questionRequest.questions}
           onRespond={onQuestionRespond}
         />
+      )}
+      {previewUrl && (
+        <PreviewPanel url={previewUrl} onClose={() => setPreviewUrl(null)} />
       )}
       <Sidebar
         sessions={sessions}
