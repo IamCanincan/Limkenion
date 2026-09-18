@@ -1,3 +1,0 @@
-const fs = require('fs')
-fs.appendFileSync(__dirname + '/.workbuddy-ai/memory/2026-09-18.md', '\r\n### 第 27 轮：预览面板 + Computer Use（已推送）\r\n\r\n- PreviewUrl 工具 + PreviewPanel 前端（iframe 仅 localhost）。\r\n- Computer Use（server/computer.mjs，Windows 零依赖，走系统自带 PowerShell + .NET）：\r\n  截屏（CopyFromScreen 缩放 1280 → data URL → 引擎以 user 消息注入模型，\r\n  tool 角色不支持图片）+ 键鼠（user32 P/Invoke + SendInput UNICODE 支持中文）。\r\n  总开关 LIMKENION_WEB_COMPUTER_USE=1 默认关；DANGEROUS_TOOLS 每次确认；\r\n  未启用时对模型不可见（toolindex 三处过滤）。\r\n- PS 坑：[Math]::Min(1, 0.39) 选 int 重载截成 0 → Bitmap(0,0)，必须 1.0 走 double。\r\n- 新测试 9 项（含真机截屏闭环）。337 测试 0 失败、typecheck 0、build 通过。\r\n')
-console.log('memory ok')
