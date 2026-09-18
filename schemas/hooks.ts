@@ -12,6 +12,7 @@ import { HOOK_EVENTS, type HookEvent } from 'src/entrypoints/agentSdkTypes.js'
 import { z } from 'zod/v4'
 import { lazySchema } from '../utils/lazySchema.js'
 import { SHELL_TYPES } from '../utils/shell/shellProvider.js'
+import { canonicalHookEvent } from '../shared/naming.js'
 
 // Shared schema for the `if` condition field.
 // Uses permission rule syntax (e.g., "Bash(git *)", "Read(*.ts)") to filter hooks
@@ -207,9 +208,34 @@ export const HookMatcherSchema = lazySchema(() =>
  * Schema for hooks configuration
  * The key is the hook event. The value is an array of matcher configurations.
  * Uses partialRecord since not all hook events need to be defined.
+ *
+ * **旧名兼容的落点**：键在**校验前**先过 `canonicalHookEvent`——用户
+ * settings.json / 插件 hooks 里写旧名（PreToolUse 等）会被归一化成
+ * 新契约名后再进校验。没有这一步，旧名键会触发 unrecognized_keys
+ * 让**整个 hooks 配置被拒**，下游的归一化层永远收不到它。
  */
 export const HooksSchema = lazySchema(() =>
-  z.partialRecord(z.enum(HOOK_EVENTS), z.array(HookMatcherSchema())),
+  z.preprocess(
+    (raw) => {
+      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+        return raw
+      }
+      const out: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+        const canonical = canonicalHookEvent(key)
+        // 同一事件的旧名+新名同时声明时**合并**而非覆盖——
+        // 否则用户混合写法会静默丢一半钩子
+        const existing = out[canonical]
+        if (Array.isArray(existing) && Array.isArray(value)) {
+          out[canonical] = [...existing, ...value]
+        } else {
+          out[canonical] = value
+        }
+      }
+      return out
+    },
+    z.partialRecord(z.enum(HOOK_EVENTS), z.array(HookMatcherSchema())),
+  ),
 )
 
 // Inferred types from schemas

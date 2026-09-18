@@ -32,3 +32,11 @@ export const markToolsSentToAPI = stub
 export const resetCachedMCState = stub
 export const checkProtectedNamespace = stub
 export const getCoordinatorUserContext = stub
+
+// query.ts 在 BG_SESSIONS 门控下每次工具结果后调用（`limkenion ps` 的任务摘要）。
+// 注意：require() 拿到的是模块命名空间，Proxy default 兜底救不了命名导出——
+// 少了这两个导出，print 模式一走到工具调用就抛
+// "shouldGenerateTaskSummary is not a function"（2026-09-18 实测踩中）。
+// stub 语义：不生成摘要（返回 false），生成器为空操作。
+export const shouldGenerateTaskSummary = () => false
+export const maybeGenerateTaskSummary = (_args: unknown) => undefined

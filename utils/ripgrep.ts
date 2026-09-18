@@ -1,5 +1,6 @@
 import type { ChildProcess, ExecFileException } from 'child_process'
 import { execFile, spawn } from 'child_process'
+import { existsSync } from 'fs'
 import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
 import * as path from 'path'
@@ -60,6 +61,17 @@ const getRipgrepConfig = memoize((): RipgrepConfig => {
     process.platform === 'win32'
       ? path.resolve(rgRoot, `${process.arch}-win32`, 'rg.exe')
       : path.resolve(rgRoot, `${process.arch}-${process.platform}`, 'rg')
+
+  // 内置二进制缺失时（本 fork 不在构建里打包 vendor ripgrep），
+  // 退回系统 rg——否则 Grep 工具在任何未预置 vendor 的机器上必挂
+  //（dist/vendor/.../rg.exe ENOENT，2026-09-18 print 模式实测踩中）。
+  if (!existsSync(command)) {
+    const { cmd: systemPath } = findExecutable('rg', [])
+    if (systemPath !== 'rg') {
+      logForDebugging('内置 ripgrep 缺失，回退到系统 rg')
+      return { mode: 'system', command: 'rg', args: [] }
+    }
+  }
 
   return { mode: 'builtin', command, args: [] }
 })
