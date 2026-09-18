@@ -16,6 +16,10 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', '.workbuddy', '.workb
 let started = false
 let pending = null
 let pendingPaths = new Map()
+/** 保险丝：file-changed 钩子可能自己改文件再触发监听 → 自激成环。 */
+const HOOK_COOLDOWN_MS = 2000
+let lastFireAt = 0
+let inFlight = 0
 
 function interesting(relPath) {
   const parts = relPath.split(sep)
@@ -26,10 +30,16 @@ function flush() {
   pending = null
   const batch = [...pendingPaths.entries()]
   pendingPaths = new Map()
+  // 保险丝：上一批钩子还在跑、或刚跑完没出冷却期，就丢弃本批 ——
+  // 宁可少触发（监听是尽力而为），也不能让「钩子改文件 → 再触发钩子」成环。
+  if (inFlight > 0 || Date.now() - lastFireAt < HOOK_COOLDOWN_MS) return
   for (const [relPath, change] of batch) {
-    void runEventHooks(HOOK_EVENT.FILE_CHANGED, {
+    inFlight++
+    runEventHooks(HOOK_EVENT.FILE_CHANGED, {
       hookInput: { session_id: '', path: relPath, change },
-    }).catch(() => {})
+    })
+      .catch(() => {})
+      .finally(() => { inFlight--; lastFireAt = Date.now() })
   }
 }
 

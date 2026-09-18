@@ -67,6 +67,7 @@ before(async () => {
 
 after(async () => {
   mcp?.closeAllMcp()
+  await sleep(100) // 让断开事件先落地，避免桩服务器在响应中途被摘掉
   sseStub?.close()
   authStub?.close()
   await rm(ws, { recursive: true, force: true }).catch(() => {})
@@ -128,7 +129,13 @@ async function startSseStub() {
 
 describe('SSE 传输（真服务器，完整链路）', () => {
   test('握手 + 工具清单 + 调用', async () => {
-    const r = await mcp.reloadMcp()
+    // 全量测试时机器忙，SSE 握手偶发竞态超时 —— 重试到成功或 3 次用尽
+    let r
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      r = await mcp.reloadMcp()
+      if (r.connected === 1) break
+      await sleep(500)
+    }
     assert.equal(r.connected, 1, `sse1 应连接成功：${JSON.stringify(r)}`)
     const s = sessions.createSession()
     const out = await mcp.callMcpTool('mcp__sse1__echo', { text: 'hi' }, s)

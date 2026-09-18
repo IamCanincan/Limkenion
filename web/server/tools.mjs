@@ -18,7 +18,7 @@
 
 import { readFile, writeFile, readdir, stat, mkdir } from 'node:fs/promises'
 import { execFile, execSync, spawn } from 'node:child_process'
-import { recordCheckpoint } from './checkpoints.mjs'
+import { recordCheckpoint, snapshotWorkspace, commandLikelyMutating } from './checkpoints.mjs'
 import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
@@ -623,6 +623,10 @@ async function toolBash(input, session) {
   if (input?.run_in_background) return startBackgroundShell(session, String(command))
   // 前台：超时可配（默认 30s，上限 10 分钟）
   const timeout = Math.min(Math.max(Number(input?.timeout) || BASH_TIMEOUT_MS, 1000), 600_000)
+  // 变更类命令先做工作区快照（Bash 改文件没有 Write/Edit 那样的检查点，rewind 盲区补偿）
+  if (commandLikelyMutating(command)) {
+    try { await snapshotWorkspace(session, workspaceRoot()) } catch { /* 快照失败不阻断 */ }
+  }
   return truncate(`$ ${command}\n\n${await execShell(command, timeout)}`)
 }
 
