@@ -160,11 +160,11 @@ describe('配置解析与 /hooks 摘要', () => {
     assert.equal(usable.length, 2, `应当有 2 个生效：${JSON.stringify(usable)}`)
     assert.deepEqual(
       usable.map(h => h.event).sort(),
-      ['PreToolUse', 'UserPromptSubmit'],
+      ['prompt-submit', 'tool-before'],
     )
     const reasons = unusable.map(h => `${h.event}:${h.reason}`)
     assert.ok(reasons.some(r => /prompt/.test(r)), `prompt 类型应标为不生效：${reasons}`)
-    assert.ok(reasons.some(r => /PreCompact.*未接线/.test(r)), `未接线事件应标出来：${reasons}`)
+    assert.ok(reasons.some(r => /context-compact-before.*未接线/.test(r)), `未接线事件应标出来：${reasons}`)
     assert.ok(reasons.some(r => /if/.test(r)), `if 条件未实现应标出来：${reasons}`)
 
     const summary = hooks.hooksSummary()
@@ -207,7 +207,7 @@ describe('PreToolUse 钩子（端到端：引擎 + 桩模型）', () => {
     assert.ok(existsSync(join(ws.dir, 'allowed.txt')), '工具应当真的执行了')
 
     const got = await lastHookInput()
-    assert.equal(got.hook_event_name, 'PreToolUse')
+    assert.equal(got.hook_event_name, 'tool-before')
     assert.equal(got.tool_name, 'Write')
     assert.equal(got.tool_input.file_path, 'allowed.txt', '要把工具输入原样交给钩子')
     assert.ok(got.session_id, '要带 session_id')
@@ -351,10 +351,10 @@ describe('PostToolUse / UserPromptSubmit / 事件钩子', () => {
     await engine.runTurn(s, '写个文件', 'msg_hook_post')
     const text = lastToolResultText()
     assert.match(text, /CTX-FROM-HOOK/, '钩子附加的上下文要进回灌内容')
-    assert.match(text, /PostToolUse 钩子附加/)
+    assert.match(text, /tool-after 钩子附加/)
 
     const got = await lastHookInput()
-    assert.equal(got.hook_event_name, 'PostToolUse')
+    assert.equal(got.hook_event_name, 'tool-after')
     assert.ok(String(got.tool_result ?? '').includes('post.txt'), '要把工具结果也交给钩子')
   })
 
@@ -398,7 +398,7 @@ describe('PostToolUse / UserPromptSubmit / 事件钩子', () => {
 
     const raw = await readFile(stdinLogPath, 'utf8')
     const events = raw.trim().split('\n').filter(Boolean).map(l => JSON.parse(l).hook_event_name)
-    assert.deepEqual(events, ['SessionStart', 'Stop'], `实际跑了：${events}`)
+    assert.deepEqual(events, ['session-open', 'turn-end'], `实际跑了：${events}`)
 
     // 第二个回合不该再触发 SessionStart
     await writeFile(stdinLogPath, '', 'utf8')
@@ -406,7 +406,7 @@ describe('PostToolUse / UserPromptSubmit / 事件钩子', () => {
     await engine.runTurn(s, '再来', 'msg_hook_events2')
     const raw2 = await readFile(stdinLogPath, 'utf8')
     const events2 = raw2.trim().split('\n').filter(Boolean).map(l => JSON.parse(l).hook_event_name)
-    assert.deepEqual(events2, ['Stop'], `第二回合不该再有 SessionStart：${events2}`)
+    assert.deepEqual(events2, ['turn-end'], `第二回合不该再有 SessionStart：${events2}`)
   })
 
   test('UserPromptSubmit：附加上下文只影响本次请求，不写进会话记录', async () => {

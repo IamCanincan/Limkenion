@@ -4,8 +4,8 @@
  * CLI 的 `utils/hooks/` 是 17 个文件 / 3600 行、27 种事件、4 种执行方式
  * （command / prompt / agent / http）的子系统。web 端这里实现的是**能真用起来的子集**：
  *
- *   ✅ 事件：PreToolUse / PostToolUse / PostToolUseFailure / UserPromptSubmit /
- *           SessionStart / SessionEnd / Stop / SubagentStop
+ *   ✅ 事件：tool-before / tool-after / tool-failed / prompt-submit /
+ *           session-open / session-close / turn-end / agent-end
  *   ✅ 执行方式：command（本地跑命令，stdin 收 JSON、stdout 回 JSON）
  *   ❌ 其余 19 种事件、prompt / agent / http 三种执行方式 —— **如实列出来，不假装支持**
  *
@@ -20,7 +20,7 @@
  *   { continue?: false, stopReason?, systemMessage?,
  *     decision?: 'approve'|'block', reason?,
  *     hookSpecificOutput?: {
- *       hookEventName: 'PreToolUse',
+ *       hookEventName: 'tool-before',
  *       permissionDecision?: 'allow'|'deny'|'ask',
  *       permissionDecisionReason?, updatedInput?, additionalContext? } }
  * 退出码：
@@ -30,7 +30,7 @@
  *
  * ## 与权限系统的优先级（重要，别改乱）
  *
- *   1. PreToolUse 钩子**先跑**（这样审计类钩子能看到每一次调用，包括之后被拒的）
+ *   1. tool-before 钩子**先跑**（这样审计类钩子能看到每一次调用，包括之后被拒的）
  *   2. 设置文件 `permissions.deny` 硬拦截 —— **钩子的 allow 不能覆盖它**
  *   3. shell 守卫硬拦截（灾难性命令）
  *   4. 钩子的 deny → 直接拒绝
@@ -44,40 +44,56 @@ import { settingsSources } from './settings.mjs'
 import { workspaceRoot } from './paths.mjs'
 import {
   ALL_HOOK_EVENTS,
+  canonicalHookEvent,
   unknownAgainstContract,
 } from './clicontract.mjs'
 
 /**
- * web 端**真正接线**了的钩子事件。
+ * 钩子事件名（**Limkenion 自己的命名**，连字符的「对象-动作」）。
  *
- * 这个清单是 web 自己的事实（实现了就是实现了），不能从 CLI 推出来，所以手写。
- * 但下面会拿它去和共享契约比对 —— 拼错了、或 CLI 改了名，启动时就能发现。
+ * 对外契约、配置、传给钩子进程的 hook_event_name 一律用这些名字。
+ * 用户的 settings.json 里若仍写 CC 的旧名（PreToolUse 等），
+ * 会在 readConfigs() 里归一化过来 —— 老配置不用改就能继续工作。
+ *
+ * 定义成常量而不是散落的字符串字面量：拼错一个字母，钩子就永远不触发
+ * 而且没有任何报错 —— 这正是下面那个启动自检要挡的事。
  */
-export const HOOK_EVENTS_SUPPORTED = [
-  'PreToolUse',
-  'PostToolUse',
-  'PostToolUseFailure',
-  'UserPromptSubmit',
-  'SessionStart',
-  'SessionEnd',
-  'Stop',
-  'SubagentStop',
-]
+export const HOOK_EVENT = {
+  TOOL_BEFORE: 'tool-before',
+  TOOL_AFTER: 'tool-after',
+  TOOL_FAILED: 'tool-failed',
+  PROMPT_SUBMIT: 'prompt-submit',
+  SESSION_OPEN: 'session-open',
+  SESSION_CLOSE: 'session-close',
+  TURN_END: 'turn-end',
+  AGENT_END: 'agent-end',
+}
 
 /**
- * CLI 有定义、但 web 端没接线的事件。
+ * web 端**真正接线**了的事件。
  *
- * **不再手写**：从共享契约里的全量事件减去已支持的那些自动算出来。
- * 以前这里手抄了 19 个名字，CLI 加一个事件 web 就漏一个 —— 而漏了既不报错
- * 也不提示，用户只会觉得"我配的钩子怎么没反应"。
+ * 这是 web 自己的事实（实现了就是实现了），不能从 CLI 推出来，所以手写。
+ * 但下面会拿它去和共享契约比对 —— 拼错了、或 CLI 改了名，启动时就能发现。
  */
-export const HOOK_EVENTS_UNSUPPORTED = ALL_HOOK_EVENTS.filter(e => !HOOK_EVENTS_SUPPORTED.includes(e))
+export const HOOK_EVENTS_SUPPORTED = Object.values(HOOK_EVENT)
 
-// 启动自检：web 声明支持的事件名，必须都在 CLI 契约里。
+/** CLI 定义的全部事件，归一化成新名。 */
+const ALL_HOOK_EVENTS_NEW = ALL_HOOK_EVENTS.map(canonicalHookEvent)
+
+/**
+ * CLI 有定义、但 web 端没接线的事件 —— **算出来的**，不再手抄。
+ * 以前这里手抄了 19 个名字，CLI 加一个事件 web 就漏一个 —— 而漏了既不报错
+ * 也不提示，用户只会觉得「我配的钩子怎么没反应」。
+ */
+export const HOOK_EVENTS_UNSUPPORTED = ALL_HOOK_EVENTS_NEW.filter(
+  e => !HOOK_EVENTS_SUPPORTED.includes(e),
+)
+
+// 启动自检：web 声明支持的事件名，必须都在（归一化后的）CLI 契约里。
 // 对不上只有两种可能 —— 这边拼错了，或 CLI 改名了。两种都值得立刻停下来看一眼，
 // 否则用户配了个钩子却永远不触发，而且没有任何提示。
 {
-  const unknown = unknownAgainstContract('钩子事件', HOOK_EVENTS_SUPPORTED, ALL_HOOK_EVENTS)
+  const unknown = unknownAgainstContract('钩子事件', HOOK_EVENTS_SUPPORTED, ALL_HOOK_EVENTS_NEW)
   if (unknown.length > 0) {
     console.warn(
       `HOOK_EVENTS_SUPPORTED 里有 CLI 契约中不存在的事件名：${unknown.join('、')}\n` +
@@ -123,8 +139,16 @@ function readConfigs() {
   for (const { source, path, data } of settingsSources()) {
     const hooks = data?.hooks
     if (!hooks || typeof hooks !== 'object') continue
-    for (const [event, groups] of Object.entries(hooks)) {
+    // 同一个事件的新旧名都写了一遍时，归一化后会撞成同一个键 ——
+    // 不合并的话钩子会**跑两次**（用户完全看不出为什么执行了两遍）。
+    const byEvent = new Map()
+    for (const [rawEvent, groups] of Object.entries(hooks)) {
       if (!Array.isArray(groups)) continue
+      const event = canonicalHookEvent(rawEvent)
+      if (!byEvent.has(event)) byEvent.set(event, [])
+      byEvent.get(event).push(...groups)
+    }
+    for (const [event, groups] of byEvent) {
       for (const group of groups) {
         const entries = Array.isArray(group?.hooks) ? group.hooks : []
         for (const entry of entries) {
@@ -480,7 +504,7 @@ export async function runEventHooks(event, { toolName = '', hookInput, cwd = wor
   return acc
 }
 
-/** 组装 PreToolUse / PostToolUse 的输入（字段名与 CLI 一致）。 */
+/** 组装 tool-before / tool-after 的输入（字段名与 CLI 一致）。 */
 export function toolHookInput(session, toolName, toolInput, extra = {}) {
   return {
     session_id: session?.id ?? '',

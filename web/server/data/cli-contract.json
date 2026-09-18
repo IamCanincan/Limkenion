@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T05:47:03.207Z",
+  "generatedAt": "2026-09-18T06:24:53.425Z",
   "generator": "scripts/gen-shared-contract.mjs",
   "hookEvents": [
     "PreToolUse",
@@ -37,5 +37,45 @@
     "default",
     "dontAsk",
     "plan"
-  ]
+  ],
+  "hookEventAliases": {
+    "PreToolUse": "tool-before",
+    "PostToolUse": "tool-after",
+    "PostToolUseFailure": "tool-failed",
+    "Notification": "notice",
+    "UserPromptSubmit": "prompt-submit",
+    "SessionStart": "session-open",
+    "SessionEnd": "session-close",
+    "Stop": "turn-end",
+    "StopFailure": "turn-failed",
+    "SubagentStart": "agent-start",
+    "SubagentStop": "agent-end",
+    "PreCompact": "context-compact-before",
+    "PostCompact": "context-compact-after",
+    "PermissionRequest": "permission-request",
+    "PermissionDenied": "permission-denied",
+    "Setup": "setup",
+    "TeammateIdle": "teammate-idle",
+    "TaskCreated": "task-created",
+    "TaskCompleted": "task-completed",
+    "Elicitation": "elicitation-request",
+    "ElicitationResult": "elicitation-result",
+    "ConfigChange": "config-change",
+    "WorktreeCreate": "worktree-create",
+    "WorktreeRemove": "worktree-remove",
+    "InstructionsLoaded": "instructions-loaded",
+    "CwdChanged": "cwd-changed",
+    "FileChanged": "file-changed"
+  },
+  "permissionModeAliases": {
+    "default": "default",
+    "acceptEdits": "acceptEdits",
+    "plan": "plan",
+    "bypassPermissions": "bypassPermissions",
+    "dontAsk": "dontAsk"
+  },
+  "toolNameAliases": {
+    "EnterPlanMode": "PlanEnter",
+    "ExitPlanMode": "PlanExit"
+  }
 }

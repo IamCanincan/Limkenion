@@ -13,6 +13,7 @@ import { broadcast } from './bus.mjs'
 import { settingsFor } from './config.mjs'
 import { ruleDecision } from './settings.mjs'
 import { isDangerousTool } from './tools.mjs'
+import { canonicalToolName } from './clicontract.mjs'
 
 const pendingPermissions = new Map()
 const pendingQuestions = new Map()
@@ -26,7 +27,7 @@ const QUESTION_TIMEOUT_MS = 300_000
 const PLAN_MODE_ALLOWED = new Set([
   'Read', 'Grep', 'Glob', 'LS', 'WebFetch', 'WebSearch',
   'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskList', 'TaskUpdate', 'TaskOutput',
-  'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion', 'Skill', 'ToolSearch', 'Config', 'Sleep',
+  'PlanEnter', 'PlanExit', 'AskUserQuestion', 'Skill', 'ToolSearch', 'Config', 'Sleep',
 ])
 
 /**
@@ -35,9 +36,10 @@ const PLAN_MODE_ALLOWED = new Set([
  * @param {string} toolName
  * @param {{escalate?: string, input?: object, hook?: 'allow'|'ask'}} [opts]
  *   escalate 非空表示强制确认（无视权限模式与「总是允许」）；
- *   hook 是 PreToolUse 钩子的判定（`allow` 免确认、`ask` 强制确认）。
+ *   hook 是 tool-before 钩子的判定（`allow` 免确认、`ask` 强制确认）。
  */
 export function needsPermission(session, toolName, opts = {}) {
+  toolName = canonicalToolName(toolName)
   const mode = settingsFor(session).permissionMode
 
   // 计划模式：只读放行，其余一律拒绝（由 requestPermission 直接返回 deny）
@@ -74,7 +76,7 @@ export function needsPermission(session, toolName, opts = {}) {
 
 /** 计划模式下的拒绝理由。 */
 export function planModeDenial() {
-  return '当前处于计划模式，禁止执行有副作用的操作。请先用 ExitPlanMode 提交方案并等待批准。'
+  return '当前处于计划模式，禁止执行有副作用的操作。请先用 PlanExit 提交方案并等待批准。'
 }
 
 /**
@@ -82,6 +84,7 @@ export function planModeDenial() {
  * @returns {Promise<'allow'|'always'|'deny'>}
  */
 export function requestPermission(session, toolName, input, opts = {}) {
+  toolName = canonicalToolName(toolName)
   const mode = settingsFor(session).permissionMode
   if (mode === 'plan' && !PLAN_MODE_ALLOWED.has(toolName)) return Promise.resolve('deny')
 

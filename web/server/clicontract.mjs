@@ -44,7 +44,32 @@ export const ALL_HOOK_EVENTS = contract.hookEvents
 /** CLI 定义的全部（对外）权限模式名。 */
 export const ALL_PERMISSION_MODES = contract.permissionModes ?? []
 
-export const CONTRACT_GENERATED_AT = contract.generatedAt
+/**
+ * 把任意写法（新名或旧名）归一化成新名。
+ *
+ * 这是「旧名自动兼容」的落点：用户 settings.json 里写 `PreToolUse` 也能继续工作，
+ * 但**内部一律用新名**。不认识的名字原样返回 —— 交给调用方报错，这里不擅自吞掉，
+ * 否则用户把事件名拼错了只会得到一个"没触发"，永远查不出原因。
+ */
+function makeCanonicalizer(aliases) {
+  const index = new Map()
+  for (const [oldName, newName] of Object.entries(aliases ?? {})) {
+    index.set(oldName, newName)
+    index.set(newName, newName)
+  }
+  return name => (typeof name === 'string' ? (index.get(name) ?? name) : name)
+}
+
+export const canonicalHookEvent = makeCanonicalizer(contract.hookEventAliases)
+export const canonicalPermissionMode = makeCanonicalizer(contract.permissionModeAliases)
+export const canonicalToolName = makeCanonicalizer(contract.toolNameAliases)
+
+/** 新名清单（文档 / UI 展示用）。 */
+export const HOOK_EVENTS_NEW = [...new Set(Object.values(contract.hookEventAliases ?? {}))]
+export const PERMISSION_MODES_NEW = [...new Set(Object.values(contract.permissionModeAliases ?? {}))]
+
+/** 旧名 → 新名映射（给迁移提示用，例如"EnterPlanMode 已改名为 PlanEnter"）。 */
+export const TOOL_NAME_ALIASES = contract.toolNameAliases ?? {}
 
 /**
  * 校验 web 自己声明的子集确实在契约内。

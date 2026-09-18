@@ -19,10 +19,14 @@ const ROOT = process.cwd()
 const OUT_DIR = join(ROOT, 'web', 'server', 'data')
 const OUT = join(OUT_DIR, 'cli-contract.json')
 
-/** 要提取的常量：文件 → 导出的常量名 → 契约里的键。 */
+/** 要提取的常量：文件 → 导出的常量名 → 契约里的键 → 提取方式。 */
 const TARGETS = [
-  { file: 'entrypoints/sdk/coreTypes.ts', exportName: 'HOOK_EVENTS', key: 'hookEvents' },
-  { file: 'types/permissions.ts', exportName: 'EXTERNAL_PERMISSION_MODES', key: 'permissionModes' },
+  { file: 'entrypoints/sdk/coreTypes.ts', exportName: 'HOOK_EVENTS', key: 'hookEvents', kind: 'array' },
+  { file: 'types/permissions.ts', exportName: 'EXTERNAL_PERMISSION_MODES', key: 'permissionModes', kind: 'array' },
+  // Limkenion 自己的命名 + 旧名映射（shared/naming.ts 是唯一定义处）
+  { file: 'shared/naming.ts', exportName: 'HOOK_EVENT_ALIASES', key: 'hookEventAliases', kind: 'record' },
+  { file: 'shared/naming.ts', exportName: 'PERMISSION_MODE_ALIASES', key: 'permissionModeAliases', kind: 'record' },
+  { file: 'shared/naming.ts', exportName: 'TOOL_NAME_ALIASES', key: 'toolNameAliases', kind: 'record' },
 ]
 
 /** 剥掉 `as const` / `as X` / `satisfies X` / `(...)`。 */
@@ -40,27 +44,49 @@ function unwrap(node) {
 }
 
 /**
- * 找 `export const NAME = [ ... ]`，返回字符串字面量元素。
- * 数组里只要有一个元素不是字符串字面量就整段放弃 —— 宁可不给，也不要给错的。
+ * 找 `export const NAME = { k: 'v', ... }`，返回键值对象。
+ * 键允许标识符或字符串，值必须是字符串字面量 —— 否则整段放弃。
  */
-function extractStringArray(sourceFile, exportName) {
+function extractStringRecord(sourceFile, exportName) {
+  const init = findExportedInitializer(sourceFile, exportName)
+  if (!init || !ts.isObjectLiteralExpression(init)) return null
+  const out = {}
+  for (const prop of init.properties) {
+    if (!ts.isPropertyAssignment(prop)) return null
+    const key = prop.name && (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name))
+      ? prop.name.text
+      : undefined
+    const val = unwrap(prop.initializer)
+    if (!key || !val || !ts.isStringLiteral(val)) return null
+    out[key] = val.text
+  }
+  return out
+}
+
+/** 找 `export const NAME = <expr>` 的初始化器（剥掉 as const 一类包装）。 */
+function findExportedInitializer(sourceFile, exportName) {
   for (const stmt of sourceFile.statements) {
     if (!ts.isVariableStatement(stmt)) continue
     if (!stmt.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) continue
     for (const decl of stmt.declarationList.declarations) {
-      if (!ts.isIdentifier(decl.name) || decl.name.text !== exportName) continue
-      const init = unwrap(decl.initializer)
-      if (!init || !ts.isArrayLiteralExpression(init)) continue
-      const out = []
-      for (const el of init.elements) {
-        const e = unwrap(el)
-        if (!e || !ts.isStringLiteral(e)) return null
-        out.push(e.text)
+      if (ts.isIdentifier(decl.name) && decl.name.text === exportName && decl.initializer) {
+        return unwrap(decl.initializer)
       }
-      return out
     }
   }
   return null
+}
+
+function extractStringArray(sourceFile, exportName) {
+  const init = findExportedInitializer(sourceFile, exportName)
+  if (!init || !ts.isArrayLiteralExpression(init)) return null
+  const out = []
+  for (const el of init.elements) {
+    const e = unwrap(el)
+    if (!e || !ts.isStringLiteral(e)) return null
+    out.push(e.text)
+  }
+  return out
 }
 
 function main() {
@@ -75,9 +101,14 @@ function main() {
     }
     const src = readFileSync(file, 'utf8')
     const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-    const values = extractStringArray(sf, t.exportName)
+    const values = t.kind === 'record'
+      ? extractStringRecord(sf, t.exportName)
+      : extractStringArray(sf, t.exportName)
     if (!values) {
-      problems.push(`${t.file} 里找不到 export const ${t.exportName} = [字符串数组]`)
+      problems.push(
+        `${t.file} 里找不到 export const ${t.exportName} = ` +
+          (t.kind === 'record' ? '{字符串键值}' : '[字符串数组]'),
+      )
       continue
     }
     contract[t.key] = values
@@ -99,7 +130,10 @@ function main() {
 
   console.log(`已生成 ${relative(ROOT, OUT)}`)
   for (const t of TARGETS) {
-    if (contract[t.key]) console.log(`  ${t.key}: ${contract[t.key].length} 项`)
+    const v = contract[t.key]
+    if (v == null) continue
+    const n = Array.isArray(v) ? `${v.length} 项` : `${Object.keys(v).length} 个键`
+    console.log(`  ${t.key}: ${n}`)
   }
 }
 

@@ -38,7 +38,7 @@ import {
   persistNow,
   STATE_FILE,
 } from './sessions.mjs'
-import { hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
+import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 import { createHttpServer } from './static.mjs'
 
 // 会话被删除时清理它的定时器（sessions 不反向依赖 engine，用钩子通知）
@@ -100,13 +100,13 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
     shuttingDown = true
     clearAllCrons()
     closeAllMcp()
-    // SessionEnd 钩子：给用户一个"服务要关了"的通知/清理点。
+    // session-close 钩子：给用户一个"服务要关了"的通知/清理点。
     // 必须**限时**（2s）：钩子是用户脚本，卡住的钩子不能把服务关不掉。
     const ending = hooksEnabled()
       ? Promise.race([
           (async () => {
             for (const s of allSessions()) {
-              const r = await runEventHooks('SessionEnd', { hookInput: sessionHookInput(s, { reason: sig }) })
+              const r = await runEventHooks(HOOK_EVENT.SESSION_CLOSE, { hookInput: sessionHookInput(s, { reason: sig }) })
               for (const m of r.messages) console.warn('[hooks] SessionEnd:', m)
             }
           })(),

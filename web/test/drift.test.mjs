@@ -15,6 +15,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { TOOL_SCHEMAS } from '../server/tools.mjs'
+import { canonicalToolName } from '../server/clicontract.mjs'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const CLI_TOOLS_DIR = join(REPO_ROOT, 'tools')
@@ -129,10 +130,12 @@ function readCliSchemas() {
 
 let cli
 let cliNames
+let cliNewNames
 
 before(() => {
   cli = HAS_CLI_SOURCE ? readCliSchemas() : new Map()
   cliNames = HAS_CLI_SOURCE ? readCliToolNames() : new Set()
+  cliNewNames = new Set([...cliNames].map(canonicalToolName))
 })
 
 describe('schema 与 CLI 源码对齐', () => {
@@ -229,13 +232,13 @@ describe('schema 与 CLI 源码对齐', () => {
     ])
     const missing = TOOL_SCHEMAS
       .map(s => s.function.name)
-      .filter(n => !WEB_ONLY.has(n) && !cliNames.has(n))
+      .filter(n => !WEB_ONLY.has(n) && !cliNewNames.has(n))
     assert.deepEqual(missing, [], `这些工具在 CLI tools/ 里找不到：${missing.join(', ')}`)
 
     // 反向：CLI 有但镜像没有（漏镜像）
     const mirrored = new Set(TOOL_SCHEMAS.map(s => s.function.name))
     const notMirrored = [...cliNames].filter(
-      n => !NOT_A_TOOL.has(n) && !FEATURE_GATED.has(n) && !mirrored.has(n),
+      n => !NOT_A_TOOL.has(n) && !FEATURE_GATED.has(n) && !mirrored.has(canonicalToolName(n)),
     )
     assert.deepEqual(notMirrored, [], `CLI 有这些工具但镜像里没有：${notMirrored.join(', ')}`)
   })

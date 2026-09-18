@@ -7,7 +7,7 @@
  *   网络类   WebFetch / WebSearch
  *   协作类   Agent / TeamCreate / TeamDelete / SendMessage / SendUserMessage
  *   任务类   TodoWrite / TaskCreate / TaskGet / TaskList / TaskUpdate / TaskStop / TaskOutput
- *   流程类   EnterPlanMode / ExitPlanMode / AskUserQuestion / Sleep / CronCreate
+ *   流程类   PlanEnter / PlanExit / AskUserQuestion / Sleep / CronCreate
  *            / EnterWorktree / ExitWorktree
  *   配置类   Config / Skill / ToolSearch / StructuredOutput
  *   降级类   LSP / MCPTool / ListMcpResourcesTool / ReadMcpResource / McpAuth / RemoteTrigger
@@ -31,6 +31,7 @@ import {
 } from './paths.mjs'
 import { collectFiles, invalidateFileIndex } from './workspace.mjs'
 import { MAX_DIFF_CHARS } from './config.mjs'
+import { canonicalToolName } from './clicontract.mjs'
 import { markUntrusted, wrapUntrusted } from './security.mjs'
 import { enterWorktree, exitWorktree } from './worktree.mjs'
 
@@ -69,7 +70,7 @@ export const CORE_TOOL_NAMES = new Set([
   'Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'LS',
   'TodoWrite', 'TaskCreate', 'TaskList', 'TaskUpdate',
   'WebFetch', 'WebSearch', 'Agent', 'AskUserQuestion',
-  'EnterPlanMode', 'ExitPlanMode', 'Skill', 'ToolSearch', 'Config',
+  'PlanEnter', 'PlanExit', 'Skill', 'ToolSearch', 'Config',
 ])
 
 // ---------------------------------------------------------------------------
@@ -894,17 +895,17 @@ async function toolTodoWrite({ todos }, session) {
 // 流程类工具
 // ---------------------------------------------------------------------------
 
-async function toolEnterPlanMode(_input, ctx) {
+async function toolPlanEnter(_input, ctx) {
   const session = ctx.session
   session.planMode = true
   ctx.emit({ type: 'plan_mode_changed', active: true })
   return (
     '已进入计划模式。请只做只读探查（Glob / Grep / Read / WebFetch），' +
-    '不要修改文件或执行有副作用的命令；设计好方案后用 ExitPlanMode 提交给用户批准。'
+    '不要修改文件或执行有副作用的命令；设计好方案后用 PlanExit 提交给用户批准。'
   )
 }
 
-async function toolExitPlanMode({ plan }, ctx) {
+async function toolPlanExit({ plan }, ctx) {
   const session = ctx.session
   session.planMode = false
   const text = String(plan ?? '').trim()
@@ -1546,16 +1547,16 @@ export const TOOL_SCHEMAS = [
   {
     type: 'function',
     function: {
-      name: 'EnterPlanMode',
+      name: 'PlanEnter',
       description:
-        '进入计划模式：只做只读探查并设计方案，不改文件、不执行有副作用的命令，完成后用 ExitPlanMode 提交计划等待批准。',
+        '进入计划模式：只做只读探查并设计方案，不改文件、不执行有副作用的命令，完成后用 PlanExit 提交计划等待批准。',
       parameters: { type: 'object', properties: {}, required: [] },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'ExitPlanMode',
+      name: 'PlanExit',
       description: '退出计划模式并把实现方案提交给用户批准。批准后即可开始实施。',
       parameters: {
         type: 'object',
@@ -2005,14 +2006,18 @@ export const TOOL_SCHEMAS = [
 
 /**
  * 执行一次工具调用。
- * @param {string} name 工具名
+ * @param {string} rawName 工具名（可能是改名前的旧名，内部归一化成新名）
  * @param {object} input 已解析的输入
  * @param {object} ctx 执行上下文：{ session, emit, requestPermission, askQuestions, runSubAgent,
  *                      summarize, scheduleCron, applySetting }
  * @returns {Promise<string | { text: string, diff?: string }>}
  */
-export async function executeTool(name, input, ctx) {
+export async function executeTool(rawName, input, ctx) {
   const session = ctx?.session
+  // 工具名归一化：**唯一**的入口就在这里。
+  // 改名过的工具（EnterPlanMode → PlanEnter、ExitPlanMode → PlanExit）无论模型输出旧名、还是权限规则里
+  // 写着旧名，都在这里统一折成新名，后面的 switch 只需要认新名。
+  const name = canonicalToolName(rawName)
   // MCP 工具是**运行时发现**的，名字形如 mcp__<服务器>__<工具>，进不了静态 switch。
   // 认前缀分派；危险工具判定那类地方也按前缀放行（见 DANGEROUS_TOOLS 的说明）。
   if (name.startsWith('mcp__')) {
@@ -2052,8 +2057,8 @@ export async function executeTool(name, input, ctx) {
     case 'TaskStop': return toolTaskStop(input, session)
     case 'TaskOutput': return toolTaskOutput(input, session)
     // 流程类
-    case 'EnterPlanMode': return toolEnterPlanMode(input, ctx)
-    case 'ExitPlanMode': return toolExitPlanMode(input, ctx)
+    case 'PlanEnter': return toolPlanEnter(input, ctx)
+    case 'PlanExit': return toolPlanExit(input, ctx)
     case 'AskUserQuestion': return toolAskUserQuestion(input, ctx)
     case 'Sleep': return toolSleep(input)
     case 'CronCreate': return toolCronCreate(input, ctx)
@@ -2115,9 +2120,9 @@ export function summarizeToolInput(name, input) {
       return input.description ?? ''
     case 'AskUserQuestion':
       return (input.questions ?? []).map(q => q.header ?? q.question).join(' / ').slice(0, 80)
-    case 'EnterPlanMode':
+    case 'PlanEnter':
       return '进入计划模式'
-    case 'ExitPlanMode':
+    case 'PlanExit':
       return (input.plan ?? '').split('\n')[0].slice(0, 80)
     case 'TaskCreate':
       return input.subject ?? ''
