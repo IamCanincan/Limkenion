@@ -14,6 +14,7 @@ import { settingsFor } from './config.mjs'
 import { ruleDecision } from './settings.mjs'
 import { isDangerousTool } from './tools.mjs'
 import { canonicalToolName } from './clicontract.mjs'
+import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 
 const pendingPermissions = new Map()
 const pendingQuestions = new Map()
@@ -99,6 +100,13 @@ export function requestPermission(session, toolName, input, opts = {}) {
         clearTimeout(timer)
         pendingPermissions.delete(requestId)
         resolvePermission(decision)
+        // permission-denied 钩子：用户拒绝 / 超时自动拒都会到这
+        if (decision === 'deny' && hooksEnabled()) {
+          void runEventHooks(HOOK_EVENT.PERMISSION_DENIED, {
+            toolName,
+            hookInput: sessionHookInput(session, { tool_name: toolName, decision }),
+          })
+        }
       },
     })
     broadcast({
@@ -111,6 +119,14 @@ export function requestPermission(session, toolName, input, opts = {}) {
       // 升级确认时把原因一并告诉前端，用户才知道为什么又被问了
       escalate: opts.escalate ?? null,
     })
+
+    // permission-request 钩子：fire-and-forget，拒绝/放行的主流程不等它
+    if (hooksEnabled()) {
+      void runEventHooks(HOOK_EVENT.PERMISSION_REQUEST, {
+        toolName,
+        hookInput: sessionHookInput(session, { tool_name: toolName, kind: opts.escalate ? 'escalate' : 'confirm' }),
+      })
+    }
   })
 }
 

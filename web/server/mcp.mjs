@@ -28,10 +28,12 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { settingsSources } from './settings.mjs'
+import { settingsFor } from './config.mjs'
 import { workspaceRoot } from './paths.mjs'
-import { bearerFor, startAuthorization, onAuthorized } from './mcpOAuth.mjs'
+import { bearerFor, forceRefresh, startAuthorization, onAuthorized } from './mcpOAuth.mjs'
 import { requestQuestions } from './interactions.mjs'
 import { broadcast } from './bus.mjs'
+import { pathToFileURL } from 'node:url'
 
 /** 与 CLI 一致的工具名前缀。 */
 export const MCP_TOOL_PREFIX = 'mcp__'
@@ -265,6 +267,24 @@ function createHttpTransport(cfg) {
         body: JSON.stringify(msg),
         signal: AbortSignal.timeout(timeoutMs),
       })
+      if (res.status === 401 && token) {
+        // 先试一次续期（可能只是 token 过期，不用麻烦用户重新走浏览器）
+        const fresh = await forceRefresh(cfg.name)
+        if (fresh && fresh !== token) {
+          const retry = await fetch(cfg.url, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              accept: 'application/json, text/event-stream',
+              authorization: `Bearer ${fresh}`,
+              ...cfg.headers,
+            },
+            body: JSON.stringify(msg),
+            signal: AbortSignal.timeout(timeoutMs),
+          })
+          if (retry.ok) return parseHttpResponse(retry)
+        }
+      }
       if (res.status === 401) {
         void triggerAuthFlow(cfg)
         throw new Error(`需要授权（401）。已在聊天里生成「${cfg.name}」的授权链接，完成后再重连。`)
@@ -272,15 +292,7 @@ function createHttpTransport(cfg) {
       if (!res.ok) {
         throw new Error(`HTTP ${res.status} ${res.statusText}`)
       }
-      const ctype = res.headers.get('content-type') ?? ''
-      const text = await res.text()
-      if (!text.trim()) return []
-      if (ctype.includes('text/event-stream')) return parseSse(text)
-      try {
-        return [JSON.parse(text)]
-      } catch {
-        return parseSse(text)
-      }
+      return parseHttpResponse(res)
     },
     onMessage() {},
     get closedReason() {
@@ -291,6 +303,18 @@ function createHttpTransport(cfg) {
   }
 }
 
+/** HTTP 响应体 → JSON-RPC 报文数组（json 或 SSE 文本都吃）。 */
+async function parseHttpResponse(res) {
+  const ctype = res.headers.get('content-type') ?? ''
+  const text = await res.text()
+  if (!text.trim()) return []
+  if (ctype.includes('text/event-stream')) return parseSse(text)
+  try {
+    return [JSON.parse(text)]
+  } catch {
+    return parseSse(text)
+  }
+}
 // ---------------------------------------------------------------------------
 // 传输：SSE（旧版双端点 HTTP+SSE，大量存量 MCP 服务器只认这个）
 // ---------------------------------------------------------------------------
@@ -562,6 +586,25 @@ class McpConnection {
       this.handleElicitation(msg)
       return
     }
+    if (msg.id !== undefined && msg.method === 'sampling/createMessage') {
+      // sampling：服务器借我们的模型生成内容
+      this.serverRequests++
+      this.handleSampling(msg)
+      return
+    }
+    if (msg.id !== undefined && msg.method === 'roots/list') {
+      // roots：把当前沙箱根告诉服务器
+      this.serverRequests++
+      try {
+        const sent = this.transport.send({
+          jsonrpc: "2.0",
+          id: msg.id,
+          result: { roots: [{ uri: pathToFileURL(workspaceRoot()).href, name: "workspace" }] },
+        })
+        if (sent && typeof sent.catch === 'function') sent.catch(() => {})
+      } catch { /* 连接已断 */ }
+      return
+    }
     if (msg.id !== undefined && msg.method) {
       // 其余反向请求（sampling / roots）：明确回"未支持"。
       // **不能挂着不回** —— 服务器会一直等，表现为"工具调用卡住"，最难查。
@@ -624,6 +667,46 @@ class McpConnection {
         respond(any ? { action: 'accept', content } : { action: 'cancel' })
       })
       .catch(() => respond({ action: 'cancel' }))
+  }
+
+  /**
+   * sampling/createMessage：服务器请求用我们的模型生成内容。
+   * 把 MCP sampling 消息映射成一次无工具的 chatCompletion。
+   */
+  handleSampling(msg) {
+    const params = msg.params ?? {}
+    const maxTokens = typeof params.maxTokens === "number" ? params.maxTokens : 1024
+    const model = this.activeSession ? settingsFor(this.activeSession).model : "deepseek-flash"
+    const respondOk = result => {
+      try {
+        const sent = this.transport.send({ jsonrpc: "2.0", id: msg.id, result })
+        if (sent && typeof sent.catch === 'function') sent.catch(() => {})
+      } catch { /* 连接已断 */ }
+    }
+    const respondErr = message => {
+      try {
+        const sent = this.transport.send({ jsonrpc: "2.0", id: msg.id, error: { code: -32603, message } })
+        if (sent && typeof sent.catch === 'function') sent.catch(() => {})
+      } catch { /* 连接已断 */ }
+    }
+    const msgs = (params.messages ?? []).map(m => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: typeof m.content === "object" && m.content !== null && m.content.type === "text" ? m.content.text : String(m.content ?? ""),
+    }))
+    if (msgs.length === 0) {
+      respondErr("sampling 请求没有消息")
+      return
+    }
+    chatCompletion({ model, messages: msgs, maxTokens })
+      .then(r => {
+        respondOk({
+          role: "assistant",
+          model,
+          content: { type: "text", text: r.text ?? "" },
+          stopReason: "endTurn",
+        })
+      })
+      .catch(err => respondErr(String(err?.message ?? err)))
   }
 
   /** 建连 + 握手 + 拉工具/资源清单。 */

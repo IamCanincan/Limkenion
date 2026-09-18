@@ -582,6 +582,15 @@ function startBackgroundShell(session, command) {
   return `已在后台启动（任务 ID：${id}）\n命令：${command}\n用 TaskOutput {"taskId":"${id}"} 查看输出；TaskStop {"taskId":"${id}"} 终止。`
 }
 
+/** 服务退出时终止全部后台任务（防孤儿进程占着端口/管道）。 */
+export function stopAllBackgroundShells() {
+  let n = 0
+  for (const [id, t] of bgTasks) {
+    if (t.done) continue
+    try { stopBackgroundShell(id); n++ } catch { /* 尽力而为 */ }
+  }
+  return n
+}
 function stopBackgroundShell(id) {
   const task = bgTasks.get(id)
   if (!task) throw new Error(`后台任务不存在：${id}（任务结束并输出完会被回收）`)

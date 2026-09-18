@@ -244,6 +244,16 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (expired()) break
 
+    // 回合内硬上限：软阈值（回合末自动压缩）之上再留一道墙。
+    // 上一轮请求已烧到极限时，继续请求只会换来 API 报错 —— 主动收束本轮，
+    // 让回合末的自动压缩接手，用户发条消息就能从摘要继续任务。
+    if (lastInputTokens >= autoCompactThreshold() + 24_000) {
+      emit({ type: 'notice', text: `上下文已达上限（${lastInputTokens} tokens），本轮提前收束；历史将自动压缩。` })
+      answer += '\n\n（上下文达到上限，本轮到此为止。历史已自动压缩，请发一条消息继续任务。）'
+      finishedNaturally = true
+      break
+    }
+
     // 记录这次模型请求的耗时/状态/token —— 供 Web 端的「请求追踪」面板查看。
     // 成功与失败都记：排查"为什么卡住"时，失败那条往往是关键。
     const requestAt = Date.now()
@@ -808,7 +818,9 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     // ---- 自动压缩：上下文逼近上限时的自我保护（上游 CLI 原型 同款）----
     // 判据用「最后一轮请求的输入 tokens」—— 它就是模型实际看到的上下文大小，
     // 比自己数消息靠谱得多。压缩失败不能影响本回合已产出的结果，只如实播报。
-    if (!expired() && (usage.lastInputTokens ?? 0) >= autoCompactThreshold() && session.messages.length > 10) {
+    const overSoft = (usage.lastInputTokens ?? 0) >= autoCompactThreshold()
+    const overHard = (usage.lastInputTokens ?? 0) >= autoCompactThreshold() + 24_000
+    if (!expired() && overSoft && (session.messages.length > 10 || overHard)) {
       try {
         emit({ type: 'notice', text: `上下文已用到约 ${usage.lastInputTokens} tokens（阈值 ${autoCompactThreshold()}），自动压缩历史…` })
         const r = await compactSession(session, { emit, reason: '上下文接近上限，自动压缩' })
@@ -824,6 +836,12 @@ export async function runTurn(session, text, messageId = newMessageId()) {
     }
   } catch (err) {
     broadcast({ type: 'error', message: `回合执行失败：${String(err)}` })
+    // turn-failed 钩子：回合异常收尾（区别于正常的 turn-end）
+    if (hooksEnabled()) {
+      void runEventHooks(HOOK_EVENT.TURN_FAILED, {
+        hookInput: sessionHookInput(session, { error: String(err?.message ?? err) }),
+      })
+    }
   } finally {
     activeTurns.delete(session.id)
   }

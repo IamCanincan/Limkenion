@@ -23,6 +23,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { toPosix, workspaceRoot } from './paths.mjs'
+import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 
 const GIT_TIMEOUT_MS = 60_000
 
@@ -153,6 +154,11 @@ export async function enterWorktree(session, name) {
   session.workspaceRoot = path
 
   const base = session.worktree.base ?? root
+  if (hooksEnabled()) {
+    void runEventHooks(HOOK_EVENT.WORKTREE_CREATE, {
+      hookInput: sessionHookInput(session, { path: toPosix(path), branch }),
+    })
+  }
   return {
     worktreePath: toPosix(path),
     worktreeBranch: branch,
@@ -239,6 +245,11 @@ export async function exitWorktree(session, remove, discardChanges = false) {
         if (!del.ok) notes.push(`分支 ${current.branch} 未删除：${del.stderr || del.error}`)
       } else {
         notes.push(`目录未移除（git worktree remove 失败）：${rm.stderr || rm.error}`)
+      }
+      if (action === 'remove' && hooksEnabled()) {
+        void runEventHooks(HOOK_EVENT.WORKTREE_REMOVE, {
+          hookInput: sessionHookInput(session, { path: toPosix(current.path), branch: current.branch }),
+        })
       }
     }
   }

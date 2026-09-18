@@ -191,8 +191,9 @@ describe('stdio 连接（真的子进程）', () => {
     }
     assert.ok(raw, '桩服务器应当收到我们对反向请求的回应')
     const answer = JSON.parse(raw)
-    assert.equal(answer.error?.code, -32601, `应当明确回"未实现"：${raw}`)
-    assert.match(answer.error.message, /未实现服务端反向请求/)
+    // sampling 已实现：空 messages → -32603『sampling 请求没有消息』（不再回 -32601）
+    assert.equal(answer.error?.code, -32603, `应有明确错误：${raw}`)
+    assert.match(answer.error.message, /sampling 请求没有消息/)
   })
 })
 

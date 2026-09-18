@@ -153,23 +153,24 @@ describe('配置解析与 /hooks 摘要', () => {
       Stop: [{ hooks: [{ type: 'command', command: hookCommand('allow'), if: 'Bash(git *)' }] }],
       UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'no-such-binary-xyz' }] }],
       PermissionRequest: [{ hooks: [{ type: 'command', command: hookCommand('allow') }] }],
+      ConfigChange: [{ hooks: [{ type: 'command', command: hookCommand('allow') }] }],
     })
     const all = hooks.configuredHooks()
     const usable = all.filter(h => h.usable)
     const unusable = all.filter(h => !h.usable)
 
-    assert.equal(usable.length, 3, `应当有 3 个生效：${JSON.stringify(usable)}`)
+    assert.equal(usable.length, 4, `应当有 4 个生效：${JSON.stringify(usable)}`)
     assert.deepEqual(
       usable.map(h => h.event).sort(),
-      ['context-compact-before', 'prompt-submit', 'tool-before'],
+      ['context-compact-before', 'permission-request', 'prompt-submit', 'tool-before'],
     )
     const reasons = unusable.map(h => `${h.event}:${h.reason}`)
     assert.ok(reasons.some(r => /prompt/.test(r)), `prompt 类型应标为不生效：${reasons}`)
-    assert.ok(reasons.some(r => /permission-request.*未接线/.test(r)), `未接线事件应标出来：${reasons}`)
+    assert.ok(reasons.some(r => /config-change.*未接线/.test(r)), `未接线事件应标出来：${reasons}`)
     assert.ok(reasons.some(r => /if/.test(r)), `if 条件未实现应标出来：${reasons}`)
 
     const summary = hooks.hooksSummary()
-    assert.match(summary, /生效 3 个/)
+    assert.match(summary, /生效 4 个/)
     assert.match(summary, /不会生效的/)
     assert.match(summary, /只支持 command/)
   })

@@ -26,6 +26,7 @@ import { HOST, PORT, SERVER_VERSION } from './config.mjs'
 import { loadCommandRegistry } from './commands.mjs'
 import { clearAllCrons, clearCronsForSession } from './engine.mjs'
 import { closeAllMcp, connectAll, hasMcpConfig, mcpStatusLine, mcpToolSchemas, onMcpToolsChanged } from './mcp.mjs'
+import { stopAllBackgroundShells } from './tools.mjs'
 import { attachWebSocket } from './protocol.mjs'
 import { securityBanner } from './security.mjs'
 import { loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
@@ -100,6 +101,8 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
     shuttingDown = true
     clearAllCrons()
     closeAllMcp()
+    const killed = stopAllBackgroundShells()
+    if (killed > 0) console.warn(`[shutdown] 终止了 ${killed} 个后台任务`)
     // session-close 钩子：给用户一个"服务要关了"的通知/清理点。
     // 必须**限时**（2s）：钩子是用户脚本，卡住的钩子不能把服务关不掉。
     const ending = hooksEnabled()

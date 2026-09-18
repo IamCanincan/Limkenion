@@ -72,6 +72,11 @@ export const HOOK_EVENT = {
   CONTEXT_COMPACT_BEFORE: 'context-compact-before',
   CONTEXT_COMPACT_AFTER: 'context-compact-after',
   AGENT_START: 'agent-start',
+  PERMISSION_REQUEST: 'permission-request',
+  PERMISSION_DENIED: 'permission-denied',
+  TURN_FAILED: 'turn-failed',
+  WORKTREE_CREATE: 'worktree-create',
+  WORKTREE_REMOVE: 'worktree-remove',
 }
 
 /**

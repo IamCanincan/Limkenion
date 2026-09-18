@@ -11,7 +11,12 @@
  *
  * 依赖方向：只被 tools.mjs / commands.mjs import，自身不 import 任何服务端模块。
  */
-import { writeFile, readFile, rm } from 'node:fs/promises'
+import { writeFile, readFile, mkdir, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { STATE_DIR } from './sessions.mjs'
+
+/** 会话内自增序号：防抖落盘的定时器句柄。 */
+const saveTimers = new Map()
 
 /** sessionId -> entries[]；entry: { msgSeq, path, prev, at }，prev === null 表示当时文件不存在。 */
 const store = new Map()
@@ -31,6 +36,7 @@ export function recordCheckpoint(session, absolutePath, prev) {
   arr.push({ msgSeq: session.messages?.length ?? 0, path: absolutePath, prev, at: Date.now() })
   if (arr.length > MAX_ENTRIES_PER_SESSION) arr.shift()
   store.set(session.id, arr)
+  scheduleSave(session.id)
 }
 
 /**
@@ -40,6 +46,7 @@ export function recordCheckpoint(session, absolutePath, prev) {
  * @returns {Promise<{restored:number, failed:number, remaining:number}>}
  */
 export async function restoreCheckpoints(session, keepMsgCount) {
+  await loadIfEmpty(session.id)
   const arr = store.get(session.id) ?? []
   const toRoll = arr.filter(e => e.msgSeq >= keepMsgCount)
   let restored = 0
@@ -67,5 +74,59 @@ export function checkpointCount(sessionId) {
 
 /** 会话清空 / 删除时清掉它的快照桶。 */
 export function clearCheckpoints(sessionId) {
+  store.delete(sessionId)
+  const t = saveTimers.get(sessionId)
+  if (t) { clearTimeout(t); saveTimers.delete(sessionId) }
+  rm(ckptFile(sessionId), { force: true }).catch(() => {})
+}
+
+
+// ---------------------------------------------------------------------------
+// 持久化：每会话一个 JSON 文件（STATE_DIR/checkpoints/<id>.json），防抖落盘。
+// 服务重启后 /rewind 的文件回滚能力不再丢失 —— restoreCheckpoints 发现内存桶
+// 空但文件存在时会先加载。总大小超限的会话停止记录（宁缺勿滥，如实报告）。
+// ---------------------------------------------------------------------------
+const MAX_PERSIST_BYTES = 8 * 1024 * 1024
+let approxBytes = 0 // 启动后新写入的近似字节数（含全部会话），粗略即可
+
+function ckptFile(sessionId) {
+  return join(STATE_DIR, 'checkpoints', encodeURIComponent(sessionId) + '.json')
+}
+
+function scheduleSave(sessionId) {
+  if (saveTimers.has(sessionId)) return
+  const t = setTimeout(() => {
+    saveTimers.delete(sessionId)
+    persist(sessionId).catch(() => {})
+  }, 500)
+  if (typeof t.unref === "function") t.unref()
+  saveTimers.set(sessionId, t)
+}
+
+async function persist(sessionId) {
+  const arr = store.get(sessionId)
+  try {
+    await mkdir(join(STATE_DIR, "checkpoints"), { recursive: true })
+    if (!arr || arr.length === 0) {
+      await rm(ckptFile(sessionId), { force: true })
+      return
+    }
+    const json = JSON.stringify(arr)
+    if (json.length > MAX_PERSIST_BYTES) return // 太大：不落盘，重启后如实退化为仅对话回退
+    approxBytes += json.length
+    if (approxBytes > 64 * 1024 * 1024) return // 全局写入预算兜底
+    await writeFile(ckptFile(sessionId), json, "utf8")
+  } catch { /* 磁盘问题不阻断工具流程 */ }
+}
+
+async function loadIfEmpty(sessionId) {
+  if ((store.get(sessionId)?.length ?? 0) > 0) return
+  try {
+    const arr = JSON.parse(await readFile(ckptFile(sessionId), "utf8"))
+    if (Array.isArray(arr) && arr.length > 0) store.set(sessionId, arr)
+  } catch { /* 没有存档，正常 */ }
+}
+
+function dropMemoryOnly(sessionId) {
   store.delete(sessionId)
 }

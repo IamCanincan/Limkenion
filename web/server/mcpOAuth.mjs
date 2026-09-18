@@ -43,6 +43,30 @@ async function saveTokens() {
   await writeFile(TOKEN_FILE, JSON.stringify(tokensCache, null, 1), 'utf8')
 }
 
+/**
+ * 强制续期（不等自然过期）：401 重试路径用。
+ * @returns {Promise<string|null>} 新的 access_token；没法续（无 refresh_token / 刷新失败）→ null
+ */
+export async function forceRefresh(name) {
+  const tokens = await loadTokens()
+  const t = tokens[name]
+  if (!t?.refresh_token) return null
+  try {
+    const refreshed = await exchangeToken(t.token_url, {
+      grant_type: "refresh_token",
+      refresh_token: t.refresh_token,
+      client_id: t.client_id,
+    })
+    t.access_token = refreshed.access_token
+    t.expires_at = Date.now() + (refreshed.expires_in ?? 3600) * 1000
+    if (refreshed.refresh_token) t.refresh_token = refreshed.refresh_token
+    await saveTokens()
+    return t.access_token
+  } catch {
+    return null
+  }
+}
+
 /** 服务器是否正在等用户完成浏览器授权。 */
 export function isAuthorizationPending(name) {
   for (const p of pendingAuth.values()) if (p.cfg.name === name) return true
