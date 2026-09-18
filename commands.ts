@@ -15,7 +15,6 @@ import commitPushPr from './commands/commit-push-pr.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
 import { context, contextNonInteractive } from './commands/context/index.js'
-import cost from './commands/cost/index.js'
 import diff from './commands/diff/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
 import doctor from './commands/doctor/index.js'
@@ -257,7 +256,6 @@ const COMMANDS = memoize((): Command[] => [
   desktop,
   context,
   contextNonInteractive,
-  cost,
   diff,
   doctor,
   effort,
@@ -609,7 +607,6 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   theme, // 更换终端主题
   color, // 更换 agent 配色
   vim, // 切换 vim 模式
-  cost, // 显示会话成本（本地成本统计）
   usage, // 显示用量信息
   copy, // 复制上一条消息
   btw, // 快速笔记
@@ -637,7 +634,6 @@ export const BRIDGE_SAFE_COMMANDS: Set<Command> = new Set(
   [
     compact, // 压缩上下文 —— 用手机在会话中途操作很有用
     clear, // 清空 transcript
-    cost, // 显示会话成本
     summary, // 总结对话
     releaseNotes, // 显示更新日志
     files, // 列出被跟踪的文件

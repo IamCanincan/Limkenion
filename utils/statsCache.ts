@@ -316,7 +316,6 @@ export function mergeCacheWithNewStats(
           usage.cacheCreationInputTokens,
         webSearchRequests:
           modelUsage[model]!.webSearchRequests + usage.webSearchRequests,
-        costUSD: modelUsage[model]!.costUSD + usage.costUSD,
         contextWindow: Math.max(
           modelUsage[model]!.contextWindow,
           usage.contextWindow,

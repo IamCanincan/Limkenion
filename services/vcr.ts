@@ -165,8 +165,8 @@ function addCachedCostToTotalSessionCost(
   }
   const model = message.message.model
   const usage = message.message.usage
-  const costUSD = 0
-  addToTotalSessionCost(costUSD, usage, model)
+
+  addToTotalSessionCost(0, usage, model)
 }
 
 function mapMessages(
@@ -294,7 +294,6 @@ function dehydrateValue(s: unknown): unknown {
   let s1 = s
     .replace(/num_files="\d+"/g, 'num_files="[NUM]"')
     .replace(/duration_ms="\d+"/g, 'duration_ms="[DURATION]"')
-    .replace(/cost_usd="\d+"/g, 'cost_usd="[COST]"')
     // Note: We intentionally don't replace all forward slashes with path.sep here.
     // That would corrupt XML-like tags (e.g., </system-reminder> -> <\system-reminder>).
     // The [CONFIG_HOME] and [CWD] replacements below handle path normalization.

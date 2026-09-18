@@ -1796,7 +1796,6 @@ async function* queryModel(
   let partialMessage: BetaMessage | undefined = undefined
   const contentBlocks: (BetaContentBlock | ConnectorTextBlock)[] = []
   let usage: NonNullableUsage = EMPTY_USAGE
-  let costUSD = 0
   let stopReason: BetaStopReason | null = null
   let didFallBackToNonStreaming = false
   let fallbackMessage: AssistantMessage | undefined
@@ -2262,13 +2261,8 @@ async function* queryModel(
               lastMsg.message.stop_reason = stopReason
             }
 
-            // Update cost
-            const costUSDForPart = 0
-            costUSD += addToTotalSessionCost(
-              costUSDForPart,
-              usage,
-              options.model,
-            )
+            // 记录 token 用量（本 fork 不计费，成本恒为 0）
+            addToTotalSessionCost(0, usage, options.model)
 
             const refusalMessage = getErrorMessageIfRefusal(
               part.delta.stop_reason,
@@ -2830,12 +2824,8 @@ async function* queryModel(
       const fallbackUsage = fallbackMessage.message.usage
       usage = updateUsage(EMPTY_USAGE, fallbackUsage)
       stopReason = fallbackMessage.message.stop_reason
-      const fallbackCost = 0
-      costUSD += addToTotalSessionCost(
-        fallbackCost,
-        fallbackUsage,
-        options.model,
-      )
+      // 记录 token 用量（本 fork 不计费，成本恒为 0）
+      addToTotalSessionCost(0, fallbackUsage, options.model)
     }
   }
 
@@ -2880,7 +2870,6 @@ async function* queryModel(
       didFallBackToNonStreaming,
       querySource: options.querySource,
       headers: responseHeaders,
-      costUSD,
       queryTracking: options.queryTracking,
       permissionMode: permissionContext.mode,
       // Pass newMessages for beta tracing - extraction happens in logging.ts

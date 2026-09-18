@@ -407,7 +407,6 @@ function logAPISuccess({
   ttftMs,
   requestId,
   stopReason,
-  costUSD,
   didFallBackToNonStreaming,
   querySource,
   gateway,
@@ -433,7 +432,7 @@ function logAPISuccess({
   ttftMs: number | null
   requestId: string | null
   stopReason: BetaStopReason | null
-  costUSD: number
+
   didFallBackToNonStreaming: boolean
   querySource: string
   gateway?: KnownGateway
@@ -501,8 +500,7 @@ function logAPISuccess({
     stop_reason:
       (stopReason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS) ??
       undefined,
-    costUSD,
-    didFallBackToNonStreaming,
+      didFallBackToNonStreaming,
     isNonInteractiveSession,
     print: hasPrintFlag,
     isTTY: process.stdout.isTTY ?? false,
@@ -593,7 +591,6 @@ export function logAPISuccessAndDuration({
   didFallBackToNonStreaming,
   querySource,
   headers,
-  costUSD,
   queryTracking,
   permissionMode,
   newMessages,
@@ -619,7 +616,7 @@ export function logAPISuccessAndDuration({
   didFallBackToNonStreaming: boolean
   querySource: string
   headers?: globalThis.Headers
-  costUSD: number
+
   queryTracking?: QueryChainTracking
   permissionMode?: PermissionMode
   /** 来自响应的助手消息 —— 用于在启用 beta 追踪时提取 model_output 和 thinking_output */
@@ -698,8 +695,7 @@ export function logAPISuccessAndDuration({
     ttftMs,
     requestId,
     stopReason,
-    costUSD,
-    didFallBackToNonStreaming,
+      didFallBackToNonStreaming,
     querySource,
     gateway,
     queryTracking,
@@ -720,7 +716,6 @@ export function logAPISuccessAndDuration({
     output_tokens: String(usage.output_tokens),
     cache_read_tokens: String(usage.cache_read_input_tokens),
     cache_creation_tokens: String(usage.cache_creation_input_tokens),
-    cost_usd: String(costUSD),
     duration_ms: String(durationMs),
     speed: fastMode ? 'fast' : 'normal',
   })

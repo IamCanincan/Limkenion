@@ -165,7 +165,6 @@ export function saveCurrentSessionCosts(fpsMetrics?: FpsMetrics): void {
           cacheReadInputTokens: usage.cacheReadInputTokens,
           cacheCreationInputTokens: usage.cacheCreationInputTokens,
           webSearchRequests: usage.webSearchRequests,
-          costUSD: usage.costUSD,
         },
       ]),
     ),
@@ -194,7 +193,6 @@ function formatModelUsage(): string {
         cacheReadInputTokens: 0,
         cacheCreationInputTokens: 0,
         webSearchRequests: 0,
-        costUSD: 0,
         contextWindow: 0,
         maxOutputTokens: 0,
       }
@@ -205,7 +203,7 @@ function formatModelUsage(): string {
     accumulated.cacheReadInputTokens += usage.cacheReadInputTokens
     accumulated.cacheCreationInputTokens += usage.cacheCreationInputTokens
     accumulated.webSearchRequests += usage.webSearchRequests
-    accumulated.costUSD += usage.costUSD
+
   }
 
   let result = 'Usage by model:'
@@ -249,7 +247,7 @@ function addToTotalModelUsage(
     cacheReadInputTokens: 0,
     cacheCreationInputTokens: 0,
     webSearchRequests: 0,
-    costUSD: 0,
+
     contextWindow: 0,
     maxOutputTokens: 0,
   }
@@ -260,7 +258,6 @@ function addToTotalModelUsage(
   modelUsage.cacheCreationInputTokens += usage.cache_creation_input_tokens ?? 0
   modelUsage.webSearchRequests +=
     usage.server_tool_use?.web_search_requests ?? 0
-  modelUsage.costUSD += cost
   modelUsage.contextWindow = getContextWindowForModel(model, getSdkBetas())
   modelUsage.maxOutputTokens = getModelMaxOutputTokens(model).default
   return modelUsage
@@ -302,7 +299,7 @@ export function addToTotalSessionCost(
       cache_read_input_tokens: advisorUsage.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens:
         advisorUsage.cache_creation_input_tokens ?? 0,
-      cost_usd_micros: Math.round(advisorCost * 1_000_000),
+
     })
     totalCost += addToTotalSessionCost(
       advisorCost,

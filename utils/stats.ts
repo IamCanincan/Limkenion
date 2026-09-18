@@ -322,7 +322,6 @@ async function processSessionFiles(
                 cacheReadInputTokens: 0,
                 cacheCreationInputTokens: 0,
                 webSearchRequests: 0,
-                costUSD: 0,
                 contextWindow: 0,
                 maxOutputTokens: 0,
               }
@@ -492,7 +491,6 @@ function cacheToStats(
             usage.cacheCreationInputTokens,
           webSearchRequests:
             modelUsage[model]!.webSearchRequests + usage.webSearchRequests,
-          costUSD: modelUsage[model]!.costUSD + usage.costUSD,
           contextWindow: Math.max(
             modelUsage[model]!.contextWindow,
             usage.contextWindow,

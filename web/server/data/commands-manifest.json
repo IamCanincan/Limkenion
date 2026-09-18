@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T09:33:52.461Z",
+  "generatedAt": "2026-09-18T12:05:26.795Z",
   "generator": "scripts/gen-command-manifest.mjs",
-  "sourceHash": "a9e8597e1a1ec3f1",
-  "commandCount": 77,
+  "sourceHash": "76c26490cecf7d0f",
+  "commandCount": 76,
   "dynamicFields": [
     {
       "command": "branch",
@@ -151,13 +151,6 @@
       "aliases": [],
       "type": "local-jsx",
       "source": "commands/copy/index.ts"
-    },
-    {
-      "name": "cost",
-      "description": "显示当前会话的总成本与时长",
-      "aliases": [],
-      "type": "local",
-      "source": "commands/cost/index.ts"
     },
     {
       "name": "desktop",

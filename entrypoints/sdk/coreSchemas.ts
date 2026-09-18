@@ -21,7 +21,7 @@ export const ModelUsageSchema = lazySchema(() =>
     cacheReadInputTokens: z.number(),
     cacheCreationInputTokens: z.number(),
     webSearchRequests: z.number(),
-    costUSD: z.number(),
+
     contextWindow: z.number(),
     maxOutputTokens: z.number(),
   }),
@@ -1410,7 +1410,7 @@ export const SDKResultSuccessSchema = lazySchema(() =>
     num_turns: z.number(),
     result: z.string(),
     stop_reason: z.string().nullable(),
-    total_cost_usd: z.number(),
+
     usage: NonNullableUsagePlaceholder(),
     modelUsage: z.record(z.string(), ModelUsageSchema()),
     permission_denials: z.array(SDKPermissionDenialSchema()),
@@ -1435,7 +1435,6 @@ export const SDKResultErrorSchema = lazySchema(() =>
     is_error: z.boolean(),
     num_turns: z.number(),
     stop_reason: z.string().nullable(),
-    total_cost_usd: z.number(),
     usage: NonNullableUsagePlaceholder(),
     modelUsage: z.record(z.string(), ModelUsageSchema()),
     permission_denials: z.array(SDKPermissionDenialSchema()),

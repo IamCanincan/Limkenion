@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-18T08:36:10.642Z",
+  "generatedAt": "2026-09-18T12:05:35.444Z",
   "generator": "scripts/gen-shared-contract.mjs",
   "hookEvents": [
     "tool-before",

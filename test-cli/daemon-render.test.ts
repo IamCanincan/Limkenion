@@ -67,19 +67,17 @@ describe('daemon renderSdkMessage', () => {
     assert.equal(out, null)
   })
 
-  it('result：轮数/耗时/费用摘要 + 结果文本截断', () => {
+  it('result：轮数/耗时摘要 + 结果文本截断', () => {
     const longText = 'x'.repeat(600)
     const out = renderSdkMessage({
       type: 'result',
       subtype: 'success',
       num_turns: 3,
       duration_ms: 1234,
-      total_cost_usd: 0.0123,
       result: longText,
     })
     assert.ok(out!.includes('轮数 3'))
     assert.ok(out!.includes('1.2s'))
-    assert.ok(out!.includes('0.0123'))
     // 400 字符 + 省略号
     assert.ok(out!.includes('…'))
     assert.ok(out!.length < longText.length)

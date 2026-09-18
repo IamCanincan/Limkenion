@@ -150,7 +150,6 @@ export function renderSdkMessage(msg: Record<string, unknown>): string | null {
     const bits: string[] = ['✔ 回合完成']
     if (typeof msg['num_turns'] === 'number') bits.push(`轮数 ${msg['num_turns']}`)
     if (typeof msg['duration_ms'] === 'number') bits.push(`耗时 ${Math.round(msg['duration_ms'] / 100) / 10}s`)
-    if (typeof msg['total_cost_usd'] === 'number') bits.push(`$${msg['total_cost_usd'].toFixed(4)}`)
     const resultText = typeof msg['result'] === 'string' ? String(msg['result']) : ''
     const tail = resultText ? `\n${resultText.slice(0, 400)}${resultText.length > 400 ? '…' : ''}` : ''
     return bits.join(' · ') + tail
