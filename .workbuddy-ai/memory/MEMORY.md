@@ -111,6 +111,13 @@ CLI 侧已补：上下文 **1M**、最大输出 **384K**、图片输入打通、
 **阶段 2 已落地**：对外概念重命名（钩子事件连字符 `tool-before` 等 + `PlanEnter`/`PlanExit`），
 旧名经 `clicontract.mjs` 的 `canonical*` 归一化兼容；权限模式名未改（用户未确认）。
 
+**阶段 3 已落地（2026-09-18）**：CLI 侧 27 个 hook-event 旧名 + `EnterPlanMode`/`ExitPlanMode`
+工具名也按同一契约迁移到 `shared/naming.ts` 新名，并在 `Tool.ts`/`hooksSettings.ts`/
+`hooksConfigManager.ts`/`loadPluginHooks.ts` 加 `canonicalHookEvent`/`canonicalToolName`
+归一化，老配置/老调用继续兼容。生成 `cli-contract.json` + `commands-manifest.json`。
+验证：`node scripts/build-cli.mjs` 0 错误、`npm install -g .` 冒烟、`web` typecheck + build + test
+通过；E2E 里 `【C】PreToolUse 钩子拦截` 仍用旧名配置，经兼容路径通过。
+
 ### 仍未做的
 只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
 
