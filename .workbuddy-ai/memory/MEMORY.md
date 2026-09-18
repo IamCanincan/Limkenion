@@ -54,6 +54,9 @@ git 仓库，分支 `master`；备份在 `..\Limkenion_backup_2026-09-16.tar.gz`
   （**类型是 `run_command`，不是 `command`**）。
 - 单测 CLI 源码模块要用 esbuild 打包 + 特定 banner/alias（见 details）；`NODE_ENV=test` 会让
   `services/vcr.ts` 往 cwd 写 `fixtures/`，跑完清掉。
+- **真实模型的 E2E 只有一份**：`web/e2e/e2e.mjs`（`npm run test:e2e`，24 项，跑一次 1~2 分钟、
+  会花真 token）。改完 **worktree / hooks / MCP / Workflow / 沙箱作用域** 后必须跑它 ——
+  单测覆盖不到"模型真的会怎么调"，而这几个功能的 bug 恰恰只在真实调用序列里现形。
 - Windows：`rm` 会被安全策略拦 → 用 `mv` 移出仓库；`taskkill //F` 报错 → 用 `Stop-Process -Id`；
   **找端口占用用 `netstat -ano | grep LISTENING`**（`Get-NetTCPConnection` 在这台机器上返回空）。
 
@@ -131,6 +134,18 @@ CLI 侧已补：上下文 **1M**、最大输出 **384K**、图片输入打通、
     挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
 12. **断言要看"真正被消费的那份数据"** —— 工具结果只活在本次回合的 wire messages 里
     （`role:'tool'`），**不进 `session.messages`**（那里只有 user/assistant）。
+13. **`ws?.readyState === ws.OPEN` 是假保护** —— 可选链只短路它自己那一段，右侧 `ws.OPEN`
+    照样求值，ws 为 null 时抛 TypeError。**可选链不等于空值检查。**
+14. **作用域要"每次调用重新解析"，不能在回合开头算一次** —— `EnterWorktree` 换掉
+    `session.workspaceRoot` 后，AsyncLocalStorage 里已进的那层不会自己更新，
+    同一回合里紧跟着的 Write 还写老树，而 EnterWorktree 自己报成功（用户完全看不出来）。
+    同理：钩子进程的 cwd **和** 钩子输入 JSON 里的 `cwd` 字段都必须在作用域内构造
+    （收**构造函数**而非收对象），否则"进程在新目录、stdin 读到的还是老目录"。
+15. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
+    `test/fixtures/`，把 MCP 桩服务当测试文件跑起来挂满超时（全套 15 分钟 → 21 秒）。
+16. **E2E 里"没测到"要记成"未触发"，不能记成失败** —— 走真实模型时，是否调工具、何时调都会抖动；
+    混在一起会把模型抖动误报成产品 bug，反而淹没真 bug。同理**提示词别给退路**
+    （写"如果没有未提交改动就…"，模型会理性地选另一条分支，被测路径压根没走到）。
 
 ## 承重的"半坏残留"（看着像死的，其实是活的，**别删**）
 `constants/oauth.ts`（被 12+ 处导入，删了断构建）、`utils/model/bedrock.ts`、
