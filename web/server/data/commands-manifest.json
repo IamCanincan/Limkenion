@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-18T05:40:42.087Z",
+  "generator": "scripts/gen-command-manifest.mjs",
+  "sourceHash": "c418e25f9cf00be8",
+  "commandCount": 77,
+  "dynamicFields": [
+    {
+      "command": "branch",
+      "field": "aliases",
+      "file": "commands/branch/index.ts"
+    },
+    {
+      "command": "login",
+      "field": "description",
+      "file": "commands/login/index.ts"
+    },
+    {
+      "command": "terminal-setup",
+      "field": "description",
+      "file": "commands/terminalSetup/index.ts"
+    },
+    {
+      "command": "terminal-setup",
+      "field": "isHidden",
+      "file": "commands/terminalSetup/index.ts"
+    }
+  ],
+  "skippedStubs": [
+    "commands/assistant/index.ts",
+    "commands/force-snip.ts",
+    "commands/fork/index.ts",
+    "commands/peers/index.ts",
+    "commands/proactive.ts",
+    "commands/subscribe-pr.ts",
+    "commands/torch.ts"
+  ],
+  "commands": [
+    {
+      "name": "add-dir",
+      "description": "添加新的工作目录",
+      "aliases": [],
+      "argumentHint": "<path>",
+      "type": "local-jsx",
+      "source": "commands/add-dir/index.ts"
+    },
+    {
+      "name": "advisor",
+      "description": "配置顾问模型",
+      "aliases": [],
+      "argumentHint": "[<model>|off]",
+      "type": "local",
+      "source": "commands/advisor.ts"
+    },
+    {
+      "name": "agents",
+      "description": "管理智能体（Agent）配置",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/agents/index.ts"
+    },
+    {
+      "name": "branch",
+      "description": "在当前会话的此处分叉出一个分支",
+      "aliases": [],
+      "argumentHint": "[name]",
+      "type": "local-jsx",
+      "source": "commands/branch/index.ts"
+    },
+    {
+      "name": "brief",
+      "description": "切换仅简报模式",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/brief.ts"
+    },
+    {
+      "name": "btw",
+      "description": "在不打断主对话的情况下快速提出一个旁路问题",
+      "aliases": [],
+      "argumentHint": "<question>",
+      "type": "local-jsx",
+      "source": "commands/btw/index.ts"
+    },
+    {
+      "name": "chrome",
+      "description": "Limkenion 浏览器（Beta）设置",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/chrome/index.ts"
+    },
+    {
+      "name": "clear",
+      "description": "清除对话历史并释放上下文",
+      "aliases": [
+        "reset",
+        "new"
+      ],
+      "type": "local",
+      "source": "commands/clear/index.ts"
+    },
+    {
+      "name": "color",
+      "description": "设置当前会话的提示栏颜色",
+      "aliases": [],
+      "argumentHint": "<color|default>",
+      "type": "local-jsx",
+      "source": "commands/color/index.ts"
+    },
+    {
+      "name": "commit",
+      "description": "创建一次 Git 提交",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/commit.ts"
+    },
+    {
+      "name": "commit-push-pr",
+      "description": "提交、推送并打开拉取请求（PR）",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/commit-push-pr.ts"
+    },
+    {
+      "name": "compact",
+      "description": "清除对话历史但保留上下文摘要。可选：/compact [摘要指令]",
+      "aliases": [],
+      "argumentHint": "<可选的自定义总结指令>",
+      "type": "local",
+      "source": "commands/compact/index.ts"
+    },
+    {
+      "name": "config",
+      "description": "打开配置面板",
+      "aliases": [
+        "settings"
+      ],
+      "type": "local-jsx",
+      "source": "commands/config/index.ts"
+    },
+    {
+      "name": "context",
+      "description": "以彩色网格可视化当前上下文占用",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/context/index.ts"
+    },
+    {
+      "name": "copy",
+      "description": "将 Limkenion 的最后一条回复复制到剪贴板（或 /copy N 复制倒数第 N 条）",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/copy/index.ts"
+    },
+    {
+      "name": "cost",
+      "description": "显示当前会话的总成本与时长",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/cost/index.ts"
+    },
+    {
+      "name": "desktop",
+      "description": "在 Limkenion 桌面端继续当前会话",
+      "aliases": [
+        "app"
+      ],
+      "type": "local-jsx",
+      "source": "commands/desktop/index.ts"
+    },
+    {
+      "name": "diff",
+      "description": "查看未提交的更改与每轮差异",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/diff/index.ts"
+    },
+    {
+      "name": "doctor",
+      "description": "诊断并校验你的 Limkenion 安装与配置",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/doctor/index.ts"
+    },
+    {
+      "name": "effort",
+      "description": "设置模型使用的努力等级",
+      "aliases": [],
+      "argumentHint": "[low|medium|high|max|auto]",
+      "type": "local-jsx",
+      "source": "commands/effort/index.ts"
+    },
+    {
+      "name": "exit",
+      "description": "退出 REPL",
+      "aliases": [
+        "quit"
+      ],
+      "type": "local-jsx",
+      "source": "commands/exit/index.ts"
+    },
+    {
+      "name": "export",
+      "description": "将当前对话导出到文件或剪贴板",
+      "aliases": [],
+      "argumentHint": "[filename]",
+      "type": "local-jsx",
+      "source": "commands/export/index.ts"
+    },
+    {
+      "name": "extra-usage",
+      "description": "配置额外用量，在触达限制后仍可继续使用",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/extra-usage/index.ts"
+    },
+    {
+      "name": "fast",
+      "description": "",
+      "aliases": [],
+      "argumentHint": "[on|off]",
+      "type": "local-jsx",
+      "source": "commands/fast/index.ts"
+    },
+    {
+      "name": "feedback",
+      "description": "提交关于 Limkenion 的反馈",
+      "aliases": [
+        "bug"
+      ],
+      "argumentHint": "[report]",
+      "type": "local-jsx",
+      "source": "commands/feedback/index.ts"
+    },
+    {
+      "name": "files",
+      "description": "列出当前上下文中的所有文件",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/files/index.ts"
+    },
+    {
+      "name": "heapdump",
+      "description": "将 JS 堆转储到 ~/Desktop",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/heapdump/index.ts"
+    },
+    {
+      "name": "help",
+      "description": "显示帮助与可用命令",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/help/index.ts"
+    },
+    {
+      "name": "hooks",
+      "description": "查看工具事件的 hook 配置",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/hooks/index.ts"
+    },
+    {
+      "name": "ide",
+      "description": "管理 IDE 集成并显示状态",
+      "aliases": [],
+      "argumentHint": "[open]",
+      "type": "local-jsx",
+      "source": "commands/ide/index.ts"
+    },
+    {
+      "name": "init",
+      "description": "",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/init.ts"
+    },
+    {
+      "name": "init-verifiers",
+      "description": "为代码变更的自动化验证创建 verifier 技能",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/init-verifiers.ts"
+    },
+    {
+      "name": "insights",
+      "description": "生成一份分析你 Limkenion 会话的报告",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/insights.ts"
+    },
+    {
+      "name": "install-github-app",
+      "description": "为仓库配置 Limkenion GitHub Actions",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/install-github-app/index.ts"
+    },
+    {
+      "name": "install-slack-app",
+      "description": "安装 Limkenion Slack 应用",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/install-slack-app/index.ts"
+    },
+    {
+      "name": "keybindings",
+      "description": "打开或创建你的快捷键配置文件",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/keybindings/index.ts"
+    },
+    {
+      "name": "login",
+      "description": "",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/login/index.ts"
+    },
+    {
+      "name": "logout",
+      "description": "退出你的 Limkenion 账号",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/logout/index.ts"
+    },
+    {
+      "name": "mcp",
+      "description": "管理 MCP 服务器",
+      "aliases": [],
+      "argumentHint": "[enable|disable [server-name]]",
+      "type": "local-jsx",
+      "source": "commands/mcp/index.ts"
+    },
+    {
+      "name": "memory",
+      "description": "编辑 Limkenion 记忆文件",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/memory/index.ts"
+    },
+    {
+      "name": "mobile",
+      "description": "显示下载 Limkenion 移动应用的二维码",
+      "aliases": [
+        "ios",
+        "android"
+      ],
+      "type": "local-jsx",
+      "source": "commands/mobile/index.ts"
+    },
+    {
+      "name": "model",
+      "description": "",
+      "aliases": [],
+      "argumentHint": "[模型 | low | medium | high]",
+      "type": "local-jsx",
+      "source": "commands/model/index.ts"
+    },
+    {
+      "name": "output-style",
+      "description": "已废弃：请使用 /config 更改输出样式",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/output-style/index.ts"
+    },
+    {
+      "name": "passes",
+      "description": "",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/passes/index.ts"
+    },
+    {
+      "name": "permissions",
+      "description": "管理允许与拒绝的工具权限规则",
+      "aliases": [
+        "allowed-tools"
+      ],
+      "type": "local-jsx",
+      "source": "commands/permissions/index.ts"
+    },
+    {
+      "name": "plan",
+      "description": "启用计划模式或查看当前会话计划",
+      "aliases": [],
+      "argumentHint": "[open|<description>]",
+      "type": "local-jsx",
+      "source": "commands/plan/index.ts"
+    },
+    {
+      "name": "pr-comments",
+      "description": "获取 GitHub 拉取请求的评论",
+      "aliases": [],
+      "source": "commands/pr_comments/index.ts"
+    },
+    {
+      "name": "privacy-settings",
+      "description": "查看并更新你的隐私设置",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/privacy-settings/index.ts"
+    },
+    {
+      "name": "rate-limit-options",
+      "description": "在触达速率限制时显示选项",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/rate-limit-options/index.ts"
+    },
+    {
+      "name": "release-notes",
+      "description": "查看发布说明",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/release-notes/index.ts"
+    },
+    {
+      "name": "reload-plugins",
+      "description": "在当前会话中激活待生效的插件更改",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/reload-plugins/index.ts"
+    },
+    {
+      "name": "remote-env",
+      "description": "配置 teleport 会话的默认远程环境",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/remote-env/index.ts"
+    },
+    {
+      "name": "rename",
+      "description": "重命名当前对话",
+      "aliases": [],
+      "argumentHint": "[name]",
+      "type": "local-jsx",
+      "source": "commands/rename/index.ts"
+    },
+    {
+      "name": "resume",
+      "description": "恢复之前的对话",
+      "aliases": [
+        "continue"
+      ],
+      "argumentHint": "[会话 ID 或搜索词]",
+      "type": "local-jsx",
+      "source": "commands/resume/index.ts"
+    },
+    {
+      "name": "review",
+      "description": "审查拉取请求（PR）",
+      "aliases": [],
+      "type": "prompt",
+      "source": "commands/review.ts"
+    },
+    {
+      "name": "rewind",
+      "description": "将代码和/或对话恢复到之前的状态",
+      "aliases": [
+        "checkpoint"
+      ],
+      "argumentHint": "",
+      "type": "local",
+      "source": "commands/rewind/index.ts"
+    },
+    {
+      "name": "sandbox",
+      "description": "",
+      "aliases": [],
+      "argumentHint": "排除 \"命令模式\"",
+      "type": "local-jsx",
+      "source": "commands/sandbox-toggle/index.ts"
+    },
+    {
+      "name": "schedule",
+      "description": "查看与管理本地定时任务",
+      "aliases": [],
+      "argumentHint": "[remove <id>]",
+      "type": "local",
+      "source": "commands/schedule/index.ts"
+    },
+    {
+      "name": "security-review",
+      "description": "对当前分支的待确认更改执行一次安全审查",
+      "aliases": [],
+      "source": "commands/security-review.ts"
+    },
+    {
+      "name": "session",
+      "description": "显示远程会话 URL 与二维码",
+      "aliases": [
+        "remote"
+      ],
+      "type": "local-jsx",
+      "source": "commands/session/index.ts"
+    },
+    {
+      "name": "skills",
+      "description": "列出可用技能",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/skills/index.ts"
+    },
+    {
+      "name": "stats",
+      "description": "显示你的 Limkenion 用量统计与活动",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/stats/index.ts"
+    },
+    {
+      "name": "status",
+      "description": "显示 Limkenion 状态（包括版本、模型、账号、API 连接与工具状态）",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/status/index.ts"
+    },
+    {
+      "name": "stickers",
+      "description": "订购 Limkenion 贴纸",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/stickers/index.ts"
+    },
+    {
+      "name": "tag",
+      "description": "在当前会话上切换可搜索的标签",
+      "aliases": [],
+      "argumentHint": "<tag-name>",
+      "type": "local-jsx",
+      "source": "commands/tag/index.ts"
+    },
+    {
+      "name": "tasks",
+      "description": "列出并管理后台任务",
+      "aliases": [
+        "bashes"
+      ],
+      "type": "local-jsx",
+      "source": "commands/tasks/index.ts"
+    },
+    {
+      "name": "terminal-setup",
+      "description": "",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/terminalSetup/index.ts"
+    },
+    {
+      "name": "theme",
+      "description": "更改主题",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/theme/index.ts"
+    },
+    {
+      "name": "think-back",
+      "description": "你的 2025 年 Limkenion 年度回顾",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/thinkback/index.ts"
+    },
+    {
+      "name": "thinkback-play",
+      "description": "播放 thinkback 动画",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/thinkback-play/index.ts"
+    },
+    {
+      "name": "upgrade",
+      "description": "Limkenion 为纯本地 DeepSeek 工具，无在线套餐",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/upgrade/index.ts"
+    },
+    {
+      "name": "usage",
+      "description": "显示套餐用量限制",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/usage/index.ts"
+    },
+    {
+      "name": "version",
+      "description": "打印当前会话运行的版本（而非自动更新下载的版本）",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/version.ts"
+    },
+    {
+      "name": "vim",
+      "description": "在 Vim 与普通编辑模式之间切换",
+      "aliases": [],
+      "type": "local",
+      "source": "commands/vim/index.ts"
+    },
+    {
+      "name": "web",
+      "description": "启动 Limkenion Web UI 服务器并在浏览器中打开",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/web/index.ts"
+    },
+    {
+      "name": "web-setup",
+      "description": "在 Web 上设置 Limkenion（需要连接你的 GitHub 账号）",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/remote-setup/index.ts"
+    },
+    {
+      "name": "workflows",
+      "description": "查看并管理动态工作流运行",
+      "aliases": [],
+      "type": "local-jsx",
+      "source": "commands/workflows/index.ts"
+    }
+  ]
+}

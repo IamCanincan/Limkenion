@@ -10,7 +10,7 @@
  */
 
 import { readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { existsSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
 import {
@@ -54,13 +54,113 @@ import { formatRun, loadRun, workflowsSummary } from './workflow.mjs'
 import { worktreeSummary } from './worktree.mjs'
 
 // ---------------------------------------------------------------------------
-// 命令注册表（静态扫描 CLI 源码，不执行任何 CLI 代码）
+// 命令注册表
 // ---------------------------------------------------------------------------
 
 /**
- * 扫描 commands 目录下 index.ts 提取 name / description / aliases / argumentHint。
+ * 命令清单：由 CLI 侧 `scripts/gen-command-manifest.mjs` 用 **TypeScript AST**
+ * 生成，提交在仓库里。web 端直接读它 —— 既不依赖 CLI 构建，也不再解析 CLI 源码。
+ *
+ * 为什么不自己扫源码：原来这里用正则扫 `commands/` 下的 .ts 文本，靠
+ * "取缩进最浅的那个 `name:`" 猜命令名。只要文件里别处出现一个 name 字段就会误判，
+ * 真的出过事：`commands/insights.ts` 里报告分节的 `name: 'project_areas'`（缩进 4）
+ * 盖过了真正的命令名 `insights`（缩进 2，在 1600 行之后），注册表里于是多了一个
+ * 不存在的命令、少了一个真实命令，而且毫无报错。
+ * AST 只取导出对象字面量的**直接属性**，嵌套字段天然不会被误取。
  */
+const MANIFEST_PATH = new URL('./data/commands-manifest.json', import.meta.url)
+
+/** 读清单。读不到（文件缺失 / 格式不对）返回 null，由调用方降级。 */
+async function readCommandManifest() {
+  try {
+    const raw = await readFile(MANIFEST_PATH, 'utf8')
+    const m = JSON.parse(raw)
+    if (m?.version !== 1 || !Array.isArray(m.commands)) return null
+    return m
+  } catch {
+    return null
+  }
+}
+
+/**
+ * CLI 源码在侧时，重算一遍内容哈希与清单比对。
+ * 目的：发现"命令改了但清单没重新生成"——这种漂移是静默的，不比对根本看不出来。
+ */
+async function manifestIsStale(manifest) {
+  if (!HAS_CLI_SOURCE || !manifest?.sourceHash) return false
+  try {
+    // 收集规则与哈希输入必须与生成器的 collectFiles() **完全一致**，否则每次启动
+    // 都会误报"清单过期"。两个易错点：① 目录只在真的有 index.ts 时才计入；
+    // ② 哈希用的是**相对 CLI 根**的路径（生成器里是 relative(ROOT, ...)），
+    //    不是相对 commands/ —— 前缀不同哈希就永远对不上。
+    const files = []
+    for (const entry of await readdir(COMMANDS_DIR, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        const p = join(COMMANDS_DIR, entry.name, 'index.ts')
+        if (existsSync(p)) files.push(p)
+      } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
+        files.push(join(COMMANDS_DIR, entry.name))
+      }
+    }
+    files.sort()
+    const { createHash } = await import('node:crypto')
+    const hash = createHash('sha256')
+    for (const file of files) {
+      hash.update(relative(CLI_ROOT, file).replace(/\\/g, '/'))
+      hash.update('\0')
+      try {
+        hash.update(await readFile(file))
+      } catch {
+        // 读不到的文件按空内容计入 —— 哈希不一致正好提示清单该重新生成了
+      }
+      hash.update('\0')
+    }
+    return hash.digest('hex').slice(0, 16) !== manifest.sourceHash
+  } catch {
+    return false // 比不出来就别吓唬人
+  }
+}
+
+/** web 自身提供的命令（CLI 里没有）。 */
+const WEB_OWN_COMMAND = {
+  name: 'web',
+  description: 'Start the Limkenion web UI server',
+  aliases: [],
+  argumentHint: undefined,
+}
+
 export async function loadCommandRegistry() {
+  // ---- 主路径：读生成的清单 ----
+  const manifest = await readCommandManifest()
+  if (manifest) {
+    if (await manifestIsStale(manifest)) {
+      console.warn(
+        '命令清单已过期：CLI 的 commands/ 有改动，但 web/server/data/commands-manifest.json 没重新生成。\n' +
+          '  在仓库根执行：node scripts/gen-command-manifest.mjs',
+      )
+    }
+    const commands = manifest.commands.map(c => ({
+      // 描述是运行时才拼出来的那几个（如 /fast、/model），清单里是空的 ——
+      // 给个占位，免得界面上出现一片空白又看不出原因。
+      name: c.name,
+      description: c.description || '（描述在运行时生成）',
+      aliases: c.aliases ?? [],
+      argumentHint: c.argumentHint,
+    }))
+    commands.push(WEB_OWN_COMMAND)
+    commands.sort((a, b) => a.name.localeCompare(b.name))
+    return commands
+  }
+
+  // ---- 降级：清单缺失时退回扫描源码（比没有强，但已知不可靠）----
+  console.warn('未找到命令清单（web/server/data/commands-manifest.json），退回扫描 CLI 源码 —— 该方式不可靠。')
+  return await scanCommandsFromSource()
+}
+
+/**
+ * @deprecated 仅作降级路径。会误判嵌套字段，见上面 loadCommandRegistry 的说明。
+ */
+async function scanCommandsFromSource() {
   const commands = []
   const scanSource = (src, fallbackName) => {
     // name 取**缩进最浅**的那个匹配，而不是第一个匹配。
@@ -118,8 +218,7 @@ export async function loadCommandRegistry() {
     console.warn('若要在 CLI 源码树里工作，请设置 LIMKENION_CLI_ROOT，或在该仓库目录下启动。')
   }
 
-  // web 自身的命令
-  commands.push({ name: 'web', description: 'Start the Limkenion web UI server', aliases: [], argumentHint: undefined })
+  commands.push(WEB_OWN_COMMAND)
   commands.sort((a, b) => a.name.localeCompare(b.name))
   return commands
 }

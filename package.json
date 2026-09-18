@@ -10,8 +10,9 @@
     "build": "node --experimental-vm-modules node_modules/esbuild/bin/esbuild main.tsx --bundle --platform=node --format=esm --outfile=dist/limkenion.js --external:sharp",
     "dev": "node --watch main.tsx",
     "test:drift": "node web/test/drift.test.mjs",
-    "build:cli": "node scripts/build-cli.mjs",
-    "restore:missing": "node scripts/restore-missing-files.mjs --from \"D:/下载/agent/upstream-ref-impl/src\""
+    "build:cli": "node scripts/build-cli.mjs && node scripts/gen-command-manifest.mjs",
+    "restore:missing": "node scripts/restore-missing-files.mjs --from \"D:/下载/agent/upstream-ref-impl/src\"",
+    "gen:manifest": "node scripts/gen-command-manifest.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock": "^3.1133.0",
