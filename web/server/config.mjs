@@ -8,6 +8,7 @@
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'node:fs'
+import { ALL_PERMISSION_MODES, unknownAgainstContract } from './clicontract.mjs'
 import { DEEPSEEK_MODELS, getApiKey } from './deepseek.mjs'
 import { CLI_ROOT, DEFAULT_WORKSPACE_ROOT, workspaceRoot } from './paths.mjs'
 import { broadcast } from './bus.mjs'
@@ -42,7 +43,24 @@ export { CLI_ROOT, DEFAULT_WORKSPACE_ROOT, workspaceRoot }
 /** 模型目录（取自 deepseek-harness packages/llm/llm-deepseek DEFAULT_MODELS）。 */
 export const MODELS = DEEPSEEK_MODELS
 
-export const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions']
+/**
+ * 权限模式。**从 CLI 共享契约读，不再手抄一份** —— 手抄的两份必然漂移：
+ * CLI 加了模式或改了名，web 这边毫无察觉，还会把用户按新模式写的配置判成无效。
+ *
+ * 契约里还有 web 未实现的 `dontAsk`，这里如实过滤掉并说明，不假装支持。
+ */
+export const PERMISSION_MODES = ALL_PERMISSION_MODES.filter(m => m !== 'dontAsk')
+export const PERMISSION_MODES_UNSUPPORTED = ALL_PERMISSION_MODES.filter(m => m === 'dontAsk')
+
+{
+  const unknown = unknownAgainstContract('权限模式', PERMISSION_MODES, ALL_PERMISSION_MODES)
+  if (unknown.length > 0) {
+    console.warn(
+      `权限模式里有 CLI 契约中不存在的：${unknown.join('、')}\n` +
+        '  重新生成契约：node scripts/gen-shared-contract.mjs',
+    )
+  }
+}
 export const THEMES = ['dark', 'light', 'system']
 
 /**

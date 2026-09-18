@@ -42,8 +42,17 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { settingsSources } from './settings.mjs'
 import { workspaceRoot } from './paths.mjs'
+import {
+  ALL_HOOK_EVENTS,
+  unknownAgainstContract,
+} from './clicontract.mjs'
 
-/** web 端已接线的钩子事件。 */
+/**
+ * web 端**真正接线**了的钩子事件。
+ *
+ * 这个清单是 web 自己的事实（实现了就是实现了），不能从 CLI 推出来，所以手写。
+ * 但下面会拿它去和共享契约比对 —— 拼错了、或 CLI 改了名，启动时就能发现。
+ */
 export const HOOK_EVENTS_SUPPORTED = [
   'PreToolUse',
   'PostToolUse',
@@ -55,28 +64,27 @@ export const HOOK_EVENTS_SUPPORTED = [
   'SubagentStop',
 ]
 
-/** CLI 有定义、但 web 端没接线的钩子事件（如实列出，`/hooks` 会显示）。 */
-export const HOOK_EVENTS_UNSUPPORTED = [
-  'Notification',
-  'StopFailure',
-  'SubagentStart',
-  'PreCompact',
-  'PostCompact',
-  'PermissionRequest',
-  'PermissionDenied',
-  'Setup',
-  'TeammateIdle',
-  'TaskCreated',
-  'TaskCompleted',
-  'Elicitation',
-  'ElicitationResult',
-  'ConfigChange',
-  'WorktreeCreate',
-  'WorktreeRemove',
-  'InstructionsLoaded',
-  'CwdChanged',
-  'FileChanged',
-]
+/**
+ * CLI 有定义、但 web 端没接线的事件。
+ *
+ * **不再手写**：从共享契约里的全量事件减去已支持的那些自动算出来。
+ * 以前这里手抄了 19 个名字，CLI 加一个事件 web 就漏一个 —— 而漏了既不报错
+ * 也不提示，用户只会觉得"我配的钩子怎么没反应"。
+ */
+export const HOOK_EVENTS_UNSUPPORTED = ALL_HOOK_EVENTS.filter(e => !HOOK_EVENTS_SUPPORTED.includes(e))
+
+// 启动自检：web 声明支持的事件名，必须都在 CLI 契约里。
+// 对不上只有两种可能 —— 这边拼错了，或 CLI 改名了。两种都值得立刻停下来看一眼，
+// 否则用户配了个钩子却永远不触发，而且没有任何提示。
+{
+  const unknown = unknownAgainstContract('钩子事件', HOOK_EVENTS_SUPPORTED, ALL_HOOK_EVENTS)
+  if (unknown.length > 0) {
+    console.warn(
+      `HOOK_EVENTS_SUPPORTED 里有 CLI 契约中不存在的事件名：${unknown.join('、')}\n` +
+        '  要么是这边拼错了，要么是 CLI 改了名。重新生成契约：node scripts/gen-shared-contract.mjs',
+    )
+  }
+}
 
 /** 已支持的执行方式 / 未支持的执行方式。 */
 export const HOOK_TYPES_SUPPORTED = ['command']

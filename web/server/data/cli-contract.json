@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-18T05:47:03.207Z",
+  "generator": "scripts/gen-shared-contract.mjs",
+  "hookEvents": [
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "Notification",
+    "UserPromptSubmit",
+    "SessionStart",
+    "SessionEnd",
+    "Stop",
+    "StopFailure",
+    "SubagentStart",
+    "SubagentStop",
+    "PreCompact",
+    "PostCompact",
+    "PermissionRequest",
+    "PermissionDenied",
+    "Setup",
+    "TeammateIdle",
+    "TaskCreated",
+    "TaskCompleted",
+    "Elicitation",
+    "ElicitationResult",
+    "ConfigChange",
+    "WorktreeCreate",
+    "WorktreeRemove",
+    "InstructionsLoaded",
+    "CwdChanged",
+    "FileChanged"
+  ],
+  "permissionModes": [
+    "acceptEdits",
+    "bypassPermissions",
+    "default",
+    "dontAsk",
+    "plan"
+  ]
+}
