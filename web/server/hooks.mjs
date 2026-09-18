@@ -53,7 +53,7 @@ import { settingsFor } from './config.mjs'
  * 钩子事件名（**Limkenion 自己的命名**，连字符的「对象-动作」）。
  *
  * 对外契约、配置、传给钩子进程的 hook_event_name 一律用这些名字。
- * 用户的 settings.json 里若仍写 CC 的旧名（PreToolUse 等），
+ * 用户的 settings.json 里若仍写 旧版事件名（PreToolUse 等），
  * 会在 readConfigs() 里归一化过来 —— 老配置不用改就能继续工作。
  *
  * 定义成常量而不是散落的字符串字面量：拼错一个字母，钩子就永远不触发

@@ -214,11 +214,11 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 `UNSUPPORTED_UPSTREAM_FEATURES` 里 → 返回 true。真正没的只是 `/schedule` 命令入口。
 
 ## 八、与参照实现的差距：API 接入层几乎无差别（实测）
-`D:\下载\agent\upstream-ref-impl` 接 DeepSeek 用 **上游 端点**
-（`src/server/config/providerPresets.json`：`baseUrl: https://api.deepseek.com/上游兼容`、
+`D:\下载\agent\upstream-ref-impl` 接 DeepSeek 用 **上游兼容端点**
+（`src/server/config/providerPresets.json`：`baseUrl: https://api.deepseek.com/上游兼容路径`、
 `apiFormat: 上游兼容`、`main: deepseek-v4-pro[1m]`）；我们走 OpenAI 端点。
 
-| 能力 | OpenAI 端点（我们） | 上游 端点（upstream-ref-impl） |
+| 能力 | OpenAI 端点（我们） | 上游兼容端点（upstream-ref-impl） |
 |---|---|---|
 | 思考模式 | 默认开启，`reasoning_content` | 默认开启，`thinking` 块 |
 | 思考签名 | ❌ 无 | ✅ 有 `signature` |
@@ -232,7 +232,7 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
    **换端点并不能解决它。**
 2. **提示缓存在两个端点上都能拿到命中数**，只是字段名不同。我们并没有"缺缓存"。
 
-**唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮时可原样传回；
+**唯一实质差异**：上游兼容端点的 thinking 块带 `signature`，多轮时可原样传回；
 我们这条路径拿不到签名，所以 `toOpenAIMessages` 直接丢弃 thinking
 （OpenAI 协议本来也不该回传 `reasoning_content`）。
 
@@ -576,7 +576,7 @@ CLI 的 `utils/hooks/` 是 4 种钩子类型（command / prompt / http / agent�
 ### DeepSeek 两端点差异（原最后一条）
 
 两套端点实测几乎等价（思考都默认开、缓存命中数都能拿到，字段名不同）。
-**唯一实质差异**：上游 端点的 thinking 块带 `signature`，多轮可原样传回。
+**唯一实质差异**：上游兼容端点的 thinking 块带 `signature`，多轮可原样传回。
 
 ---
 
