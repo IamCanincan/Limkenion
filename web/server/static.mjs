@@ -14,6 +14,7 @@ import { extname, join, normalize, sep } from 'node:path'
 import { DIST_DIR } from './config.mjs'
 import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN } from './security.mjs'
 import { latestReport, readReport } from './insights.mjs'
+import { handleMcpOAuthCallback } from './mcpOAuth.mjs'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -98,6 +99,13 @@ export function createHttpServer() {
     // /insights 报告（CLI 那边给的是 file:// 链接，web 端用 HTTP 提供）。
     // 名字必须过 insights.mjs 的白名单（严格的文件名正则 + 落在目录内），
     // 这里不做任何路径拼接的自由发挥。
+    // MCP OAuth 回调：浏览器授权后落地在这里，code 换 token 存盘后自动重连。
+    if (urlPath === '/mcp/oauth/callback') {
+      const u = new URL(req.url, `http://${req.headers.host ?? '127.0.0.1'}`)
+      const html = await handleMcpOAuthCallback(u.searchParams)
+      respond(res, 200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' }, html)
+      return
+    }
     if (urlPath === '/insights' || urlPath === '/insights/') {
       const name = await latestReport()
       if (!name) {

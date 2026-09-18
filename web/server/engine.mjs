@@ -223,7 +223,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     enableTools: names => enableTools(session, names),
     runSubAgent: ({ description, prompt }) => runSubAgent(session, prompt, description, emit, expired),
     // MCP：发现的工具经这里执行（tools.mjs 不反向 import mcp.mjs）。
-    callMcpTool: (name, args) => callMcpTool(name, args),
+    callMcpTool: (name, args) => callMcpTool(name, args, session),
     listMcpResources: server => listMcpResources(server),
     readMcpResource: (server, uri) => readMcpResource(server, uri),
     // 动态工作流：脚本里的每个 agent() 派一个**只读子代理**（与 Agent 工具同一套机制，

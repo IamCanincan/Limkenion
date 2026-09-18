@@ -93,7 +93,7 @@ function stubServer(extraArgs = []) {
 }
 
 describe('配置解析与可用性判定', () => {
-  test('三种传输类型都能解析出来，sse 被标为不实现', async () => {
+  test('三种传输类型都能解析出来，sse 已转正（2026-09-18 实现）', async () => {
     await setServers({
       a: { command: 'npx', args: ['-y', 'x'] },
       b: { type: 'http', url: 'https://example.test/mcp' },
@@ -103,8 +103,8 @@ describe('配置解析与可用性判定', () => {
     assert.equal(cfgs.length, 3)
     assert.equal(cfgs.find(c => c.name === 'a').transport, 'stdio', '没写 type 时按有无 url 推断')
     assert.equal(cfgs.find(c => c.name === 'b').transport, 'http')
-    assert.equal(mcp.configProblem(cfgs.find(c => c.name === 'c')), null === null ? mcp.configProblem(cfgs.find(c => c.name === 'c')) : '')
-    assert.match(mcp.configProblem(cfgs.find(c => c.name === 'c')), /HTTP\+SSE.*未实现/)
+    // sse 曾被列为不支持；实现后 configProblem 必须放行（否则合法配置连不上）
+    assert.equal(mcp.configProblem(cfgs.find(c => c.name === 'c')), null)
   })
 
   test('缺 command / 缺 url 的配置给出具体原因', () => {

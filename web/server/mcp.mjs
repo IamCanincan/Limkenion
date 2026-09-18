@@ -29,6 +29,9 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { settingsSources } from './settings.mjs'
 import { workspaceRoot } from './paths.mjs'
+import { bearerFor, startAuthorization, onAuthorized } from './mcpOAuth.mjs'
+import { requestQuestions } from './interactions.mjs'
+import { broadcast } from './bus.mjs'
 
 /** 与 CLI 一致的工具名前缀。 */
 export const MCP_TOOL_PREFIX = 'mcp__'
@@ -57,8 +60,9 @@ export function mcpInfoFromString(toolString) {
   return { serverName, toolName: rest.length > 0 ? rest.join('__') : undefined }
 }
 
-export const MCP_SUPPORTED_TRANSPORTS = ['stdio', 'http']
-export const MCP_UNSUPPORTED_TRANSPORTS = ['sse']
+export const MCP_SUPPORTED_TRANSPORTS = ['stdio', 'http', 'sse']
+// 曾经不支持、后来接上的旧传输——留在 git 历史里提醒「清单是算出来的」这回事
+export const MCP_UNSUPPORTED_TRANSPORTS = []
 
 const INIT_TIMEOUT_MS = 20_000
 const LIST_TIMEOUT_MS = 20_000
@@ -109,7 +113,7 @@ export function configProblem(cfg) {
   if (cfg.transport === 'stdio') {
     if (!cfg.command.trim()) return 'stdio 服务器缺 command'
   } else if (!/^https?:\/\//.test(cfg.url)) {
-    return 'http 服务器缺合法的 url'
+    return `${cfg.transport} 服务器缺合法的 url`
   }
   return null
 }
@@ -249,16 +253,22 @@ function createHttpTransport(cfg) {
     kind: 'http',
     start() {},
     async send(msg, timeoutMs = CALL_TIMEOUT_MS) {
+      const token = await bearerFor(cfg.name)
       const res = await fetch(cfg.url, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           accept: 'application/json, text/event-stream',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
           ...cfg.headers,
         },
         body: JSON.stringify(msg),
         signal: AbortSignal.timeout(timeoutMs),
       })
+      if (res.status === 401) {
+        void triggerAuthFlow(cfg)
+        throw new Error(`需要授权（401）。已在聊天里生成「${cfg.name}」的授权链接，完成后再重连。`)
+      }
       if (!res.ok) {
         throw new Error(`HTTP ${res.status} ${res.statusText}`)
       }
@@ -278,6 +288,172 @@ function createHttpTransport(cfg) {
     },
     stderrText: () => '',
     close() {},
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 传输：SSE（旧版双端点 HTTP+SSE，大量存量 MCP 服务器只认这个）
+// ---------------------------------------------------------------------------
+
+/**
+ * 旧版 SSE 传输：GET url 建长连接收服务端推送，POST 到 endpoint 发消息。
+ * 连接建立后服务器先推一个 `event: endpoint`（data 是 POST 目标地址，可能是相对路径），
+ * 之后所有 JSON-RPC 报文都走 `event: message`。请求的响应用 pending 表等（和 stdio 一样），
+ * send 本身不等待。
+ */
+function createSseTransport(cfg) {
+  const listeners = new Set()
+  let abort = null
+  let endpoint = null
+  let closedReason = null
+  let onClosed
+  const closedPromise = new Promise(resolve => { onClosed = resolve })
+  const stderrTail = []
+
+  function handleBlock(block) {
+    const lines = block.split('\n')
+    const eventLine = lines.find(l => l.startsWith('event:'))
+    const eventName = eventLine ? eventLine.slice(6).trim() : 'message'
+    const dataLines = lines.filter(l => l.startsWith('data:')).map(l => l.slice(5).trim())
+    if (dataLines.length === 0) return
+    const payload = dataLines.join('\n')
+    if (eventName === 'endpoint') {
+      endpoint = new URL(payload, cfg.url).toString()
+      return
+    }
+    let msg
+    try {
+      msg = JSON.parse(payload)
+    } catch {
+      stderrTail.push(payload.slice(0, 200))
+      return
+    }
+    for (const fn of listeners) fn(msg)
+  }
+
+  function endpointReady(timeoutMs) {
+    if (endpoint) return Promise.resolve()
+    if (closedReason) return Promise.reject(new Error(closedReason))
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        clearInterval(poll)
+        clearTimeout(timer)
+      }
+      const poll = setInterval(() => {
+        if (endpoint) {
+          cleanup()
+          resolve()
+        } else if (closedReason) {
+          cleanup()
+                    reject(new Error(closedReason))
+        }
+      }, 50)
+      const timer = setTimeout(() => {
+        cleanup()
+        reject(new Error(`SSE endpoint 未就绪（${timeoutMs}ms 内没收到 endpoint 事件）`))
+      }, timeoutMs)
+    })
+  }
+
+  return {
+    kind: 'sse',
+    start() {
+      abort = new AbortController()
+      ;(async () => {
+        try {
+          const res = await fetch(cfg.url, {
+            headers: { accept: 'text/event-stream', ...(cfg.headers ?? {}) },
+            signal: abort.signal,
+          })
+          if (res.status === 401) {
+            void triggerAuthFlow(cfg)
+          }
+          if (!res.ok || !res.body) {
+            closedReason = `SSE 连接失败：HTTP ${res.status} ${res.statusText}`
+            onClosed(closedReason)
+            return
+          }
+          const reader = res.body.getReader()
+          const decoder = new TextDecoder()
+          let buf = ''
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buf += decoder.decode(value, { stream: true })
+            let idx
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+              const block = buf.slice(0, idx)
+              buf = buf.slice(idx + 2)
+              handleBlock(block)
+            }
+          }
+          closedReason = closedReason ?? 'SSE 流结束'
+          onClosed(closedReason)
+        } catch (err) {
+          closedReason = closedReason ?? `SSE 中断：${String(err?.message ?? err)}`
+          onClosed(closedReason)
+        }
+      })()
+    },
+    async send(msg, timeoutMs = CALL_TIMEOUT_MS) {
+      await endpointReady(INIT_TIMEOUT_MS)
+      const token = await bearerFor(cfg.name)
+      let res
+      try {
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json, text/event-stream',
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+            ...(cfg.headers ?? {}),
+          },
+          body: JSON.stringify(msg),
+          signal: AbortSignal.timeout(timeoutMs),
+        })
+      } catch (err) {
+        // close 竞态：连接已被我们主动关掉，报错没有意义（应答永远来不了了）
+        if (closedReason) return []
+        throw err
+      }
+      if (res.status === 401) {
+        void triggerAuthFlow(cfg)
+        throw new Error(`需要授权（401）。已在聊天里生成「${cfg.name}」的授权链接，完成后再重连。`)
+      }
+      if (!res.ok) throw new Error(`SSE POST 失败：HTTP ${res.status}`)
+      // 响应会从 SSE 流里回来
+      return []
+    },
+    onMessage(fn) {
+      listeners.add(fn)
+    },
+    get closedReason() {
+      return closedReason
+    },
+    stderrText: () => stderrTail.join('').trim().slice(-2000),
+    close() {
+      try {
+        abort?.abort()
+      } catch { /* 已断 */ }
+    },
+  }
+}
+
+
+/**
+ * 每个服务器只允许同时跑一个授权流程（多次 401 会重复弹浏览器）。
+ * 失败也如实播报 —— 静默失败会让用户以为「点了链接没反应」。
+ */
+const authFlowRunning = new Set()
+async function triggerAuthFlow(cfg) {
+  if (authFlowRunning.has(cfg.name)) return
+  authFlowRunning.add(cfg.name)
+  try {
+    await startAuthorization(cfg)
+  } catch (err) {
+    broadcast({ type: 'notice', text: `MCP 服务器「${cfg.name}」授权流程启动失败：${String(err?.message ?? err)}` })
+  } finally {
+    authFlowRunning.delete(cfg.name)
   }
 }
 
@@ -311,7 +487,11 @@ class McpConnection {
    * @returns {Transport}
    */
   get transport() {
-    if (!this._t) this._t = this.transportName === 'stdio' ? createStdioTransport(this.cfg) : createHttpTransport(this.cfg)
+    if (!this._t) {
+      if (this.transportName === 'stdio') this._t = createStdioTransport(this.cfg)
+      else if (this.transportName === 'sse') this._t = createSseTransport(this.cfg)
+      else this._t = createHttpTransport(this.cfg)
+    }
     return /** @type {Transport} */ (this._t)
   }
 
@@ -347,7 +527,9 @@ class McpConnection {
       waiting.reject(new Error(`${method} 超时（${timeoutMs}ms）`))
     }, timeoutMs)
     try {
-      t.send(payload)
+      // sse 的 send 是异步的：落单的拒绝（如 close 竞态）必须就地接住，否则 unhandledRejection
+      const sent = t.send(payload)
+      if (sent && typeof sent.catch === 'function') sent.catch(() => {})
       return await promise
     } finally {
       clearTimeout(timer)
@@ -360,6 +542,9 @@ class McpConnection {
     const t = this.transport
     if (t.kind === 'stdio') {
       t.send({ jsonrpc: '2.0', method, params })
+    } else if (t.kind === 'sse') {
+      const p = t.send({ jsonrpc: '2.0', method, params })
+      if (p && typeof p.catch === 'function') p.catch(() => {})
     }
   }
 
@@ -372,8 +557,13 @@ class McpConnection {
       else p.resolve(msg.result)
       return
     }
+    if (msg.id !== undefined && msg.method === 'elicitation/create') {
+      // 服务端反问：转成前端问答弹窗（不回话服务器会一直等，表现为工具卡住）
+      this.handleElicitation(msg)
+      return
+    }
     if (msg.id !== undefined && msg.method) {
-      // 服务端反向请求（elicitation / sampling / roots）：明确回"未支持"。
+      // 其余反向请求（sampling / roots）：明确回"未支持"。
       // **不能挂着不回** —— 服务器会一直等，表现为"工具调用卡住"，最难查。
       this.serverRequests++
       try {
@@ -386,6 +576,54 @@ class McpConnection {
         if (sent && typeof sent.catch === 'function') sent.catch(() => {})
       } catch { /* 连接已断，忽略 */ }
     }
+  }
+
+  /**
+   * 服务端反问（elicitation/create）：把 requestedSchema 的字段转成前端问答弹窗，
+   * 答完按字段类型做强制转换回传。超时/全空 → cancel（服务器自己会处理取消分支）。
+   */
+  handleElicitation(msg) {
+    this.serverRequests++
+    const params = msg.params ?? {}
+    const schema = params.requestedSchema ?? {}
+    const fields = Object.entries(schema.properties ?? {}).slice(0, 6)
+    const message = params.message ?? 'MCP 工具需要你补充信息'
+    const questions = fields.map(([name, spec]) => {
+      const title = spec.title ?? name
+      const desc = spec.description ? `（${spec.description}）` : ''
+      const q = {
+        question: `${message} —— ${title}${desc}`,
+        header: name.slice(0, 12),
+        options: [],
+      }
+      if (Array.isArray(spec.enum) && spec.enum.length > 0) {
+        q.options = spec.enum.map(v => ({ label: String(v), description: '' }))
+      } else if (spec.type === 'boolean') {
+        q.options = [{ label: '是', description: 'true' }, { label: '否', description: 'false' }]
+      }
+      return q
+    })
+    const respond = result => {
+      try {
+        const sent = this.transport.send({ jsonrpc: '2.0', id: msg.id, result })
+        if (sent && typeof sent.catch === 'function') sent.catch(() => {})
+      } catch { /* 连接已断，忽略 */ }
+    }
+    requestQuestions(this.activeSession ?? null, questions)
+      .then(answers => {
+        const content = {}
+        let any = false
+        for (const [i, [name, spec]] of fields.entries()) {
+          const a = String(answers[i]?.answer ?? '').trim()
+          if (!a) continue
+          any = true
+          if (spec.type === 'boolean') content[name] = a === '是' || a.toLowerCase() === 'true'
+          else if (spec.type === 'number' || spec.type === 'integer') content[name] = Number(a)
+          else content[name] = a
+        }
+        respond(any ? { action: 'accept', content } : { action: 'cancel' })
+      })
+      .catch(() => respond({ action: 'cancel' }))
   }
 
   /** 建连 + 握手 + 拉工具/资源清单。 */
@@ -402,6 +640,9 @@ class McpConnection {
       t.start()
       t.onMessage(msg => this.handleMessage(msg))
 
+      const closedFailure = (t.closedPromise ?? new Promise(() => {})).then(reason => {
+        throw new Error(`连接中断：${reason}`)
+      })
       const init = await Promise.race([
         this.request(
           'initialize',
@@ -418,10 +659,10 @@ class McpConnection {
         ),
         // 子进程要是压根起不来（命令拼错之类），进程一退出就立刻失败，
         // 不用干等 20 秒超时 —— 那种"没反应"最难查。
-        (t.closedPromise ?? new Promise(() => {})).then(reason => {
-          throw new Error(`连接中断：${reason}`)
-        }),
+        closedFailure,
       ])
+      // 防浮动拒绝：race 已经出结果后，closed 分支再拒绝就没人接了
+      closedFailure.catch(() => {})
       this.serverInfo = init?.serverInfo ?? null
       this.capabilities = init?.capabilities ?? null
       this.notify('notifications/initialized', {})
@@ -566,7 +807,8 @@ function normalizeSchema(schema) {
 }
 
 /** 执行一个 MCP 工具（名字是 `mcp__server__tool`）。 */
-export async function callMcpTool(fullName, args) {
+export async function callMcpTool(fullName, args, session = null) {
+  // 记下是哪个会话在调工具：服务端反问（elicitation）要弹到这个会话的界面上
   const info = mcpInfoFromString(fullName)
   if (!info?.toolName) throw new Error(`不是合法的 MCP 工具名：${fullName}`)
   const conn = [...connections.values()].find(c => normalizeNameForMCP(c.name) === info.serverName)
@@ -586,6 +828,7 @@ export async function callMcpTool(fullName, args) {
         `（它有的是：${conn.tools.map(t => normalizeNameForMCP(t.name)).join('、') || '（无）'}）`,
     )
   }
+  conn.activeSession = session
   const res = await conn.callTool(real.name, args)
   return formatToolResult(res)
 }
@@ -700,6 +943,12 @@ export async function reloadMcp() {
   const r = await connectAll()
   return r
 }
+
+// OAuth 授权在浏览器里完成后，自动把刚授权的服务器重新连上
+onAuthorized(cfg => {
+  broadcast({ type: 'notice', text: `「${cfg.name}」授权完成，正在重新连接…` })
+  void reloadMcp()
+})
 
 /** 服务退出时关闭全部连接。 */
 export function closeAllMcp() {
