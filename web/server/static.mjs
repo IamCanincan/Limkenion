@@ -12,7 +12,7 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 import { DIST_DIR } from './config.mjs'
-import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN } from './security.mjs'
+import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN, httpGate, gatePage } from './security.mjs'
 import { latestReport, readReport } from './insights.mjs'
 import { handleMcpOAuthCallback } from './mcpOAuth.mjs'
 
@@ -73,6 +73,26 @@ export function createHttpServer() {
       return
     }
     // 反斜杠在 Windows 上也是分隔符，统一成正斜杠再判断
+
+    // 局域网暴露（非环回绑定）时：所有页面先过 HTTP 闸门。OAuth 回调豁免
+    // （授权提供方跳转回来时不保证已带 cookie；回调页本身无敏感内容）。
+    if (urlPath !== '/mcp/oauth/callback') {
+      const gate = httpGate(req)
+      if (!gate.ok) {
+        const u = new URL(req.url, `http://${req.headers.host ?? "127.0.0.1"}`)
+        const qt = u.searchParams.get('token')
+        if (qt === WS_TOKEN) {
+          // 凭据正确 → 下发 cookie 并重定向到目标页（URL 上不留 token）
+          respond(res, 302, {
+            'set-cookie': `limkenion-auth=${WS_TOKEN}; HttpOnly; Path=/; SameSite=Lax`,
+            location: urlPath,
+          }, '')
+          return
+        }
+        respond(res, 401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }, gatePage())
+        return
+      }
+    }
     urlPath = urlPath.split('\\').join('/')
 
     // 开发模式（Vite 5173 伺服页面）拿不到注入的 meta，改从这条路取 token。

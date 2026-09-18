@@ -56,6 +56,43 @@ export function checkHandshake({ origin, token, host }) {
   return null
 }
 
+/**
+ * 服务是否只绑定在环回地址。环回绑定 = 单用户场景，页面直接放行（token 由注入的
+ * meta 提供）；绑定到 0.0.0.0 等非环回地址 = 局域网暴露，HTTP 层也要求凭据，
+ * 否则 index.html 里的注入等于把 WS token 主动发给同网段任何人。
+ */
+export function isLoopbackBinding() {
+  const h = String(process.env.LIMKENION_WEB_HOST ?? '')
+  return h === '' || h === '127.0.0.1' || h === 'localhost' || h === '::1'
+}
+
+/**
+ * HTTP 层访问闸门（只在非环回绑定时生效）：cookie 里带有效凭据才放行。
+ * 首次访问走 `/` 的 token 查询参数换取 cookie（见 static.mjs 的闸门分支）。
+ * @returns {{ok: boolean}}
+ */
+export function httpGate(req) {
+  if (isLoopbackBinding()) return { ok: true }
+  const cookie = String(req.headers.cookie ?? '')
+  const m = cookie.match(/(?:^|;\s*)limkenion-auth=([^;]+)/)
+  if (m && m[1] === WS_TOKEN) return { ok: true }
+  return { ok: false }
+}
+
+/** 局域网模式下的凭据输入页（GET 表单，token 作查询参数换取 cookie）。 */
+export function gatePage() {
+  return [
+    '<!doctype html><meta charset="utf-8"><title>Limkenion 访问验证</title>',
+    '<div style="font-family:system-ui;max-width:420px;margin:15vh auto;text-align:center">',
+    '<h2>Limkenion 需要访问凭据</h2>',
+    '<p style="color:#888">该服务暴露在局域网。请输入访问令牌（服务端启动时打印的 WS token）。</p>',
+    '<form method="get" action="/">',
+    '<input name="token" style="width:100%;padding:8px" placeholder="访问令牌" autofocus />',
+    '<button style="margin-top:12px;padding:8px 24px">进入</button>',
+    '</form></div>',
+  ].join('')
+}
+
 /** 给 index.html 注入 token（前端读出来拼到 WS URL 上）。 */
 export function injectToken(html) {
   const tag = `<meta name="limkenion-token" content="${WS_TOKEN}" />`

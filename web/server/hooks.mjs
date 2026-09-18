@@ -77,6 +77,15 @@ export const HOOK_EVENT = {
   TURN_FAILED: 'turn-failed',
   WORKTREE_CREATE: 'worktree-create',
   WORKTREE_REMOVE: 'worktree-remove',
+
+  // ---- 第 22 轮：剩余可接线事件全部接上 ----
+  NOTICE: 'notice',
+  TASK_CREATED: 'task-created',
+  TASK_COMPLETED: 'task-completed',
+  ELICITATION_REQUEST: 'elicitation-request',
+  ELICITATION_RESULT: 'elicitation-result',
+  CONFIG_CHANGE: 'config-change',
+  FILE_CHANGED: 'file-changed',
 }
 
 /**

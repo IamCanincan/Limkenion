@@ -30,8 +30,10 @@ stages:
             npm install --no-audit --no-fund
             echo '== typecheck =='
             npm run typecheck
-            echo '== unit tests =='
+            echo '== server tests =='
             npm test
+            echo '== ui tests =='
+            npm run test:ui
             echo '== build =='
             npm run build
             echo '== CI GREEN =='

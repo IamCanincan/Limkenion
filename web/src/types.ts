@@ -199,6 +199,8 @@ export interface AskQuestion {
   header: string
   multiSelect?: boolean
   options: { label: string; description: string; preview?: string }[]
+  /** 非空表示这是 MCP elicitation 的结构化表单（一次渲染全部字段）。 */
+  form?: ElicitForm
 }
 
 /** 用户对单个问题的作答。 */
@@ -245,4 +247,18 @@ export interface RequestSummary {
   maxMs: number
   inputTokens: number
   outputTokens: number
+}
+
+
+/** MCP elicitation 的结构化表单（MCP requestedSchema 的前端投影）。 */
+export interface ElicitField {
+  name: string
+  label: string
+  type: 'string' | 'number' | 'boolean' | 'enum'
+  description?: string
+  options?: string[]
+  required?: boolean
+}
+export interface ElicitForm {
+  fields: ElicitField[]
 }

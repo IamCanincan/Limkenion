@@ -10,6 +10,7 @@
 
 export const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com'
 export const API_KEY_ENV = 'DEEPSEEK_API_KEY'
+import { fetch as guardedFetch } from './egress.mjs'
 
 /**
  * 模型目录。
@@ -98,7 +99,7 @@ export async function chatCompletion({ model, messages, tools, onDelta, signal, 
 
   let response
   try {
-    response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    response = await guardedFetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

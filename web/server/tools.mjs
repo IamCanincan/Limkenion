@@ -19,6 +19,7 @@
 import { readFile, writeFile, readdir, stat, mkdir } from 'node:fs/promises'
 import { execFile, execSync, spawn } from 'node:child_process'
 import { recordCheckpoint } from './checkpoints.mjs'
+import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import vm from 'node:vm'
@@ -605,7 +606,12 @@ function stopBackgroundShell(id) {
       try { process.kill(-task.proc.pid) } catch { task.proc.kill('SIGKILL') }
     }
   } catch (err) {
-    task.proc.kill('SIGKILL')
+    // taskkill 失败常见于竞态：进程已自己退出、close 事件还没到（task.done 未置位）。
+    // 先探活：已死就不用再报"终止"，如实说明即可。
+    let alive = true
+    try { alive = task.proc.kill(0) } catch { alive = false }
+    if (!alive) return `后台任务 ${id} 已结束（进程已自行退出）。`
+    try { task.proc.kill('SIGKILL') } catch { /* 彻底没了 */ }
     return `已发送终止信号（${String(err.message ?? err)}）：${id}`
   }
   return `已终止后台任务 ${id}。`
@@ -878,6 +884,9 @@ let taskSeq = 0
 
 async function toolTaskCreate({ subject, description, activeForm, metadata }, session) {
   requireText(subject, 'subject', '一句话的任务标题，例如 {"subject": "修掉登录页的抖动"}')
+  const _taskCreatedHook = () => void runEventHooks(HOOK_EVENT.TASK_CREATED, {
+    hookInput: { session_id: session?.id ?? '', task_subject: subject },
+  }).catch(() => {})
   const tasks = tasksOf(session)
   const task = {
     id: String(++taskSeq),
@@ -943,6 +952,11 @@ async function toolTaskUpdate(input, session) {
     }
   }
   task.updatedAt = Date.now()
+  if (status === 'completed') {
+    void runEventHooks(HOOK_EVENT.TASK_COMPLETED, {
+      hookInput: { session_id: session?.id ?? '', task_id: String(task.id ?? id), task_subject: task.subject },
+    }).catch(() => {})
+  }
   return `已更新任务 #${task.id}（${changed.join('、') || '无字段变更'}）：${task.subject} [${task.status}]`
 }
 

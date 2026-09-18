@@ -571,7 +571,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       : '已退出计划模式。'
   }
   if (name === 'output-style') {
-    return `当前输出风格：${settings.outputStyle}（web 端渲染统一为 Markdown，风格仅记录在设置里）`
+    return `当前输出风格：${settings.outputStyle ?? 'default'}（内置 default/concise/explanatory/learning，其他值作为自定义指令注入系统提示；用 /style 切换或设置面板选择）`
   }
   if (name === 'effort') {
     const cur = settings.effortLevel ?? null

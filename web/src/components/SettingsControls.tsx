@@ -3,7 +3,7 @@ import type { EffortLevel, PermissionMode, Settings, ThemeMode } from '../types'
 
 interface Props {
   settings: Settings | null
-  onSet: (key: 'theme' | 'permissionMode' | 'effortLevel', value: string | null) => void
+  onSet: (key: 'theme' | 'permissionMode' | 'effortLevel' | 'outputStyle', value: string | null) => void
 }
 
 const PERMISSION_LABEL: Record<PermissionMode, string> = {
@@ -41,12 +41,27 @@ const EFFORT_DESC: Record<EffortLevel, string> = {
   max: '最深的思考链（仅 deepseek-v4-pro）',
 }
 
+/** 输出风格 —— 内置四种；服务端会把非内置值当作自定义指令原文注入系统提示。 */
+const OUTPUT_STYLE_LABEL: Record<string, string> = {
+  default: '默认',
+  concise: '简洁',
+  explanatory: '讲解',
+  learning: '学习',
+}
+
+const OUTPUT_STYLE_DESC: Record<string, string> = {
+  default: '标准回答风格',
+  concise: '直给结论和代码，少铺垫',
+  explanatory: '附简要原因和关键取舍',
+  learning: '分步骤讲解，提示常见坑',
+}
+
 /**
  * 顶栏设置：权限模式 + 主题 + 推理强度
  * （对齐 CLI 的 /permissions、/theme、/effort）。
  */
 export function SettingsControls({ settings, onSet }: Props) {
-  const [open, setOpen] = useState<'permission' | 'theme' | 'effort' | null>(null)
+  const [open, setOpen] = useState<'permission' | 'theme' | 'effort' | 'style' | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,6 +73,7 @@ export function SettingsControls({ settings, onSet }: Props) {
   }, [])
 
   const mode: PermissionMode = settings?.permissionMode ?? 'default'
+  const style = settings?.outputStyle ?? 'default'
   const theme: ThemeMode = settings?.theme ?? 'dark'
   const effort: EffortLevel | null = settings?.effortLevel ?? null
   // max 在当前模型上会被降级 —— 按钮上标出来，避免用户以为没生效
@@ -86,6 +102,32 @@ export function SettingsControls({ settings, onSet }: Props) {
               >
                 <span className="setting-name">{PERMISSION_LABEL[m]}</span>
                 <span className="setting-desc">{PERMISSION_DESC[m]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="setting-group">
+        <button
+          className="setting-btn"
+          onClick={() => setOpen(open === 'style' ? null : 'style')}
+          title="输出风格（/style）—— 影响模型的回答方式"
+        >
+          风格 · {OUTPUT_STYLE_LABEL[style] ?? '自定义'}
+        </button>
+        {open === 'style' && (
+          <div className="setting-menu">
+            {Object.keys(OUTPUT_STYLE_LABEL).map(k => (
+              <button
+                key={k}
+                className={k === style ? 'active' : ''}
+                onClick={() => {
+                  onSet('outputStyle', k)
+                  setOpen(null)
+                }}
+              >
+                <span className="setting-name">{OUTPUT_STYLE_LABEL[k]}</span>
+                <span className="setting-desc">{OUTPUT_STYLE_DESC[k]}</span>
               </button>
             ))}
           </div>

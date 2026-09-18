@@ -27,6 +27,7 @@ import { loadCommandRegistry } from './commands.mjs'
 import { clearAllCrons, clearCronsForSession } from './engine.mjs'
 import { closeAllMcp, connectAll, hasMcpConfig, mcpStatusLine, mcpToolSchemas, onMcpToolsChanged } from './mcp.mjs'
 import { stopAllBackgroundShells } from './tools.mjs'
+import { startFileWatcher } from './fileWatcher.mjs'
 import { attachWebSocket } from './protocol.mjs'
 import { securityBanner } from './security.mjs'
 import { loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
@@ -95,6 +96,8 @@ httpServer.listen(PORT, HOST, () => {
 
 // 退出前落盘并清理定时器
 let shuttingDown = false
+startFileWatcher()
+
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => {
     if (shuttingDown) return

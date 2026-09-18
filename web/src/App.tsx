@@ -344,7 +344,7 @@ export function App() {
   }, [])
 
   const onSetSetting = useCallback(
-    (key: 'theme' | 'permissionMode' | 'effortLevel', value: string | null) => {
+    (key: 'theme' | 'permissionMode' | 'effortLevel' | 'outputStyle', value: string | null) => {
       connectionRef.current.send({
         type: 'set_setting',
         key,

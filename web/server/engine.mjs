@@ -10,6 +10,7 @@
  */
 
 import { chatCompletion, getApiKey } from './deepseek.mjs'
+import { outputStylePrompt } from './outputStyle.mjs'
 import { broadcast } from './bus.mjs'
 import {
   applySessionSetting,
@@ -36,6 +37,13 @@ import {
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { additionalDirectories, deniedBy } from './settings.mjs'
 import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './hooks.mjs'
+
+/** notice 类钩子：只播报、不参与决策 —— 派出去就不管，失败静默。 */
+function fireNoticeHooks(text) {
+  void runEventHooks(HOOK_EVENT.NOTICE, {
+    hookInput: { session_id: '', cwd: undefined, message: text },
+  }).catch(() => {})
+}
 import { autoCompactThreshold, compactSession } from './compact.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
@@ -64,7 +72,7 @@ export function isTurnActive(sessionId) {
   return activeTurns.has(sessionId)
 }
 
-function baseSystemPrompt() {
+function baseSystemPrompt(session) {
   return (
     '你是 Limkenion，一个高效的中文编程助手，工作区为当前项目目录。' +
     '需要文件内容、搜索、执行命令时先调用工具，再基于结果回答。' +
@@ -72,7 +80,10 @@ function baseSystemPrompt() {
     '多步任务用 TodoWrite 维护清单；非平凡的实现任务可先用 PlanEnter 设计方案再实施。\n\n' +
     UNTRUSTED_NOTE +
     '\n\n' +
-    deferredHint()
+    deferredHint() +
+    // 输出风格（outputStyle）真正生效：default 时不追加任何内容
+    outputStylePrompt(session?.settings?.outputStyle)
+
   )
 }
 
@@ -84,7 +95,7 @@ function baseSystemPrompt() {
  */
 export function sessionToWireMessages(session) {
   /** @type {import('./deepseek.mjs').WireMessage[]} */
-  const messages = [{ role: 'system', content: baseSystemPrompt() }]
+  const messages = [{ role: 'system', content: baseSystemPrompt(session) }]
   for (const m of session.messages) {
     if (m.role === 'user') {
       // 图片输入：走多模态 content parts
@@ -209,7 +220,10 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     settings,
     summarize: makeSummarizer(session),
     markUntrusted: undefined, // 由 tools 直接调用 security.markUntrusted
-    notifyUntrusted: msg => emit({ type: 'notice', text: msg }),
+    notifyUntrusted: msg => {
+      emit({ type: 'notice', text: msg })
+      fireNoticeHooks(msg)
+    },
     askQuestions: questions => requestQuestions(session, questions),
     scheduleCron: entry => scheduleCron(session, entry),
     // 定时任务的查看与取消 —— 与 scheduleCron 一样经 ctx 注入，
@@ -236,7 +250,10 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
         args,
         maxAgents,
         sessionId: session.id,
-        emit: msg => emit({ type: 'notice', text: msg }),
+        emit: msg => {
+          emit({ type: 'notice', text: msg })
+          fireNoticeHooks(msg)
+        },
         runAgent: (prompt, description) => runSubAgent(session, prompt, description, emit, expired),
       }),
   }
@@ -249,6 +266,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     // 让回合末的自动压缩接手，用户发条消息就能从摘要继续任务。
     if (lastInputTokens >= autoCompactThreshold() + 24_000) {
       emit({ type: 'notice', text: `上下文已达上限（${lastInputTokens} tokens），本轮提前收束；历史将自动压缩。` })
+    fireNoticeHooks(`上下文已达上限（${lastInputTokens} tokens），本轮提前收束`)
       answer += '\n\n（上下文达到上限，本轮到此为止。历史已自动压缩，请发一条消息继续任务。）'
       finishedNaturally = true
       break
@@ -565,7 +583,10 @@ async function runSubAgent(session, prompt, description, emit, expired) {
     emit,
     settings: settingsFor(session),
     summarize: makeSummarizer(session),
-    notifyUntrusted: msg => emit({ type: 'notice', text: msg }),
+    notifyUntrusted: msg => {
+      emit({ type: 'notice', text: msg })
+      fireNoticeHooks(msg)
+    },
     // 子代理内不允许反问/定时/改设置/再派子代理
     askQuestions: undefined,
     scheduleCron: undefined,

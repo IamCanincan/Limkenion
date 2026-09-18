@@ -42,10 +42,10 @@ before(async () => {
   bus = await import('../server/bus.mjs')
   client = fakeClient({
     onQuestion: msg => {
-      // 模拟用户在弹窗里选「红」（按问题头字段定位）
+      // 模拟用户作答：新契约是「一次弹窗 = 结构化表单」，答案序列化成 JSON
       questionsAnswered.push(msg.requestId)
       const { resolveQuestions } = interactions
-      resolveQuestions(msg.requestId, msg.questions.map(q => ({ question: q.question, answer: q.header === 'color' ? '红' : '随便' })))
+      resolveQuestions(msg.requestId, msg.questions.map(q => ({ question: q.question, answer: q.form ? JSON.stringify({ color: '红' }) : '随便' })))
       return []
     },
   })

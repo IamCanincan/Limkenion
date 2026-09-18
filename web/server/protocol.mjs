@@ -17,6 +17,7 @@ import {
   settingsFor,
   startedAt,
 } from './config.mjs'
+import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { runCommand, exportSessionMarkdown } from './commands.mjs'
 import { newMessageId, runTurn } from './engine.mjs'
 import { resolvePermission, resolveQuestions } from './interactions.mjs'
@@ -230,6 +231,9 @@ async function handleClientMessageInner(ws, msg, registry) {
     }
 
     case 'set_setting': {
+      void runEventHooks(HOOK_EVENT.CONFIG_CHANGE, {
+        hookInput: { session_id: msg.sessionId ?? '', key: String(msg.key ?? ''), value: String(msg.value ?? '') },
+      }).catch(() => {})
       const s = getSession(msg.sessionId)
       if (!applySessionSetting(s ?? null, msg.key, msg.value)) {
         send(ws, { type: 'error', message: `无法设置 ${msg.key} = ${msg.value}` })

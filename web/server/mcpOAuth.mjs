@@ -13,6 +13,7 @@
  * 依赖方向：只 import sessions（STATE_DIR）/bus，谁都不反向依赖它。
  */
 import { createHash, randomBytes } from 'node:crypto'
+import { fetch as guardedFetch } from './egress.mjs'
 import { spawn } from 'node:child_process'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -118,7 +119,7 @@ async function discoverEndpoints(url) {
   // 1) 主动请求一次，看 401 的 WWW-Authenticate 里有没有 resource_metadata
   let prmUrl = null
   try {
-    const probe = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) })
+    const probe = await guardedFetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) })
     if (probe.status === 401) {
       const www = probe.headers.get('www-authenticate') ?? ''
       const m = www.match(/resource_metadata="([^"]+)"/)
@@ -130,7 +131,9 @@ async function discoverEndpoints(url) {
   let asBase = null
   if (prmUrl) {
     try {
-      const prm = await (await fetch(prmUrl, { signal: AbortSignal.timeout(10_000) })).json()
+      const prm = /** @type {{authorization_servers?: string[]}} */ (
+        await (await guardedFetch(prmUrl, { signal: AbortSignal.timeout(10_000) })).json()
+      )
       asBase = Array.isArray(prm.authorization_servers) ? prm.authorization_servers[0] : null
     } catch { /* 兜底 */ }
   }
@@ -147,7 +150,9 @@ async function discoverEndpoints(url) {
   }
   for (const c of candidates) {
     try {
-      const meta = await (await fetch(c, { signal: AbortSignal.timeout(10_000) })).json()
+      const meta = /** @type {{authorization_endpoint?: string, token_endpoint?: string, registration_endpoint?: string, scopes_supported?: string[]}} */ (
+        await (await guardedFetch(c, { signal: AbortSignal.timeout(10_000) })).json()
+      )
       if (meta.authorization_endpoint && meta.token_endpoint) return meta
     } catch { /* 试下一个 */ }
   }
@@ -160,9 +165,10 @@ async function discoverEndpoints(url) {
  */
 export async function startAuthorization(cfg) {
   const userAuth = cfg.auth ?? {}
+  /** @type {{authorization_endpoint?: string, token_endpoint?: string, registration_endpoint?: string, scopes_supported?: string[]} | null} */
   let endpoints = null
   if (userAuth.authorizationUrl && userAuth.tokenUrl) {
-    endpoints = { authorization_endpoint: userAuth.authorizationUrl, token_endpoint: userAuth.tokenUrl }
+    endpoints = /** @type {NonNullable<typeof endpoints>} */ ({ authorization_endpoint: userAuth.authorizationUrl, token_endpoint: userAuth.tokenUrl })
   } else {
     endpoints = await discoverEndpoints(cfg.url)
   }
@@ -172,13 +178,14 @@ export async function startAuthorization(cfg) {
         '{ authorizationUrl, tokenUrl, clientId?, scopes? }',
     )
   }
+  const ep = /** @type {NonNullable<typeof endpoints>} */ (endpoints)
 
   // 动态注册客户端（服务器支持时）；否则必须配置里给 clientId
   let clientId = userAuth.clientId
-  if (!clientId && endpoints.registration_endpoint) {
+  if (!clientId && ep.registration_endpoint) {
     const redirectUri = redirectUriFor(cfg)
     const reg = await (
-      await fetch(endpoints.registration_endpoint, {
+      await guardedFetch(ep.registration_endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -191,8 +198,9 @@ export async function startAuthorization(cfg) {
         signal: AbortSignal.timeout(10_000),
       })
     ).json()
-    clientId = reg.client_id
-    if (clientId && reg.client_secret) userAuth.clientSecret = reg.client_secret
+    const regBody = /** @type {{client_id?: string, client_secret?: string}} */ (reg)
+    clientId = regBody.client_id
+    if (clientId && regBody.client_secret) userAuth.clientSecret = regBody.client_secret
   }
   if (!clientId) {
     throw new Error(`「${cfg.name}」既不支持动态注册，配置里也没给 auth.clientId`)
@@ -203,10 +211,10 @@ export async function startAuthorization(cfg) {
   const challenge = b64url(createHash('sha256').update(verifier).digest())
   const state = b64url(randomBytes(16))
   const redirectUri = redirectUriFor(cfg)
-  pendingAuth.set(state, { cfg, verifier, redirectUri, clientId, tokenUrl: endpoints.token_endpoint })
+  pendingAuth.set(state, { cfg, verifier, redirectUri, clientId, tokenUrl: ep.token_endpoint })
 
-  const scope = userAuth.scopes ?? (Array.isArray(endpoints.scopes_supported) ? endpoints.scopes_supported.join(' ') : undefined)
-  const u = new URL(endpoints.authorization_endpoint)
+  const scope = userAuth.scopes ?? (Array.isArray(ep.scopes_supported) ? ep.scopes_supported.join(' ') : undefined)
+  const u = new URL(/** @type {string} */ (ep.authorization_endpoint))
   u.searchParams.set('response_type', 'code')
   u.searchParams.set('client_id', clientId)
   u.searchParams.set('redirect_uri', redirectUri)
@@ -232,7 +240,7 @@ function redirectUriFor(cfg) {
 
 function openBrowser(url) {
   try {
-    const opts = { detached: true, stdio: 'ignore' }
+    const opts = /** @type {import('node:child_process').SpawnOptions} */ ({ detached: true, stdio: 'ignore' })
     if (process.platform === 'win32') {
       spawn('cmd.exe', ['/c', 'start', '', url], opts).unref()
     } else if (process.platform === 'darwin') {
@@ -249,7 +257,7 @@ function openBrowser(url) {
  * @returns {Promise<{access_token: string, refresh_token?: string, expires_in?: number, [k:string]: unknown}>}
  */
 async function exchangeToken(tokenUrl, params) {
-  const res = await fetch(tokenUrl, {
+  const res = await guardedFetch(tokenUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(params),

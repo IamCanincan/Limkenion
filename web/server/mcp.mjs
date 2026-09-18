@@ -8,7 +8,7 @@
  *   ✅ 传输：`stdio`（本地子进程）+ `http`（Streamable HTTP：POST JSON-RPC，
  *           响应体是 JSON 或 SSE 流两种都认）
  *   ✅ 能力：tools/list + tools/call、resources/list + resources/read
- *   ❌ `sse`（旧版双端点 HTTP+SSE）、OAuth（`McpAuth`）、elicitation / sampling /
+ *   ✅ `sse`（旧版双端点 HTTP+SSE）、OAuth（`McpAuth`）、elicitation / sampling /
  *      roots 这类**服务端反向请求**、prompt 模板、registry
  *
  * 三条刻意的设计：
@@ -29,6 +29,9 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { settingsSources } from './settings.mjs'
 import { settingsFor } from './config.mjs'
+import { chatCompletion } from './deepseek.mjs'
+import { fetch as guardedFetch } from './egress.mjs'
+import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { workspaceRoot } from './paths.mjs'
 import { bearerFor, forceRefresh, startAuthorization, onAuthorized } from './mcpOAuth.mjs'
 import { requestQuestions } from './interactions.mjs'
@@ -256,7 +259,7 @@ function createHttpTransport(cfg) {
     start() {},
     async send(msg, timeoutMs = CALL_TIMEOUT_MS) {
       const token = await bearerFor(cfg.name)
-      const res = await fetch(cfg.url, {
+      const res = await guardedFetch(cfg.url, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -271,7 +274,7 @@ function createHttpTransport(cfg) {
         // 先试一次续期（可能只是 token 过期，不用麻烦用户重新走浏览器）
         const fresh = await forceRefresh(cfg.name)
         if (fresh && fresh !== token) {
-          const retry = await fetch(cfg.url, {
+          const retry = await guardedFetch(cfg.url, {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
@@ -366,7 +369,7 @@ function createSseTransport(cfg) {
       const poll = setInterval(() => {
         if (endpoint) {
           cleanup()
-          resolve()
+          resolve(undefined)
         } else if (closedReason) {
           cleanup()
                     reject(new Error(closedReason))
@@ -385,7 +388,7 @@ function createSseTransport(cfg) {
       abort = new AbortController()
       ;(async () => {
         try {
-          const res = await fetch(cfg.url, {
+          const res = await guardedFetch(cfg.url, {
             headers: { accept: 'text/event-stream', ...(cfg.headers ?? {}) },
             signal: abort.signal,
           })
@@ -424,7 +427,7 @@ function createSseTransport(cfg) {
       const token = await bearerFor(cfg.name)
       let res
       try {
-        res = await fetch(endpoint, {
+        res = await guardedFetch(endpoint, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
@@ -501,6 +504,8 @@ class McpConnection {
     this.seq = 0
     /** 服务端反向请求（elicitation / sampling / roots）的次数，供 /mcp 展示。 */
     this.serverRequests = 0
+    /** 发起调用的会话（elicitation 弹窗路由 / sampling 用模型）。由引擎在调工具前赋值。 */
+    this.activeSession = /** @type {object|null} */ (null)
   }
 
   /**
@@ -552,7 +557,7 @@ class McpConnection {
     }, timeoutMs)
     try {
       // sse 的 send 是异步的：落单的拒绝（如 close 竞态）必须就地接住，否则 unhandledRejection
-      const sent = t.send(payload)
+      const sent = /** @type {any} */ (t.send(payload))
       if (sent && typeof sent.catch === 'function') sent.catch(() => {})
       return await promise
     } finally {
@@ -563,7 +568,7 @@ class McpConnection {
 
   /** 通知（不需要回应）。 */
   notify(method, params) {
-    const t = this.transport
+    const t = /** @type {any} */ (this.transport)
     if (t.kind === 'stdio') {
       t.send({ jsonrpc: '2.0', method, params })
     } else if (t.kind === 'sse') {
@@ -628,25 +633,39 @@ class McpConnection {
   handleElicitation(msg) {
     this.serverRequests++
     const params = msg.params ?? {}
+    void runEventHooks(HOOK_EVENT.ELICITATION_REQUEST, {
+      hookInput: { session_id: this.activeSession?.id ?? '', server: this.name, message: params.message ?? '' },
+    }).catch(() => {})
     const schema = params.requestedSchema ?? {}
-    const fields = Object.entries(schema.properties ?? {}).slice(0, 6)
+    const fields = Object.entries(schema.properties ?? {}).slice(0, 8)
+    const required = Array.isArray(schema.required) ? schema.required.map(String) : []
     const message = params.message ?? 'MCP 工具需要你补充信息'
-    const questions = fields.map(([name, spec]) => {
-      const title = spec.title ?? name
-      const desc = spec.description ? `（${spec.description}）` : ''
-      const q = {
-        question: `${message} —— ${title}${desc}`,
-        header: name.slice(0, 12),
-        options: [],
-      }
-      if (Array.isArray(spec.enum) && spec.enum.length > 0) {
-        q.options = spec.enum.map(v => ({ label: String(v), description: '' }))
-      } else if (spec.type === 'boolean') {
-        q.options = [{ label: '是', description: 'true' }, { label: '否', description: 'false' }]
-      }
-      return q
-    })
+    // 原生表单：一次弹窗渲染全部字段（类型化控件），不再一字段一问
+    const formFields = fields.map(([name, spec]) => ({
+      name,
+      label: spec.title ?? name,
+      type: spec.type === 'boolean' ? 'boolean'
+        : (spec.type === 'number' || spec.type === 'integer') ? 'number'
+        : Array.isArray(spec.enum) ? 'enum'
+        : 'string',
+      description: spec.description ?? '',
+      options: Array.isArray(spec.enum) ? spec.enum.map(String) : undefined,
+      required: required.includes(name),
+    }))
+    const questions = [{
+      question: message,
+      header: this.name.slice(0, 12),
+      options: /** @type {{label: string, description: string}[]} */ ([]),
+      form: { fields: formFields },
+    }]
     const respond = result => {
+      void runEventHooks(HOOK_EVENT.ELICITATION_RESULT, {
+        hookInput: {
+          session_id: this.activeSession?.id ?? '',
+          server: this.name,
+          action: result?.action ?? 'unknown',
+        },
+      }).catch(() => {})
       try {
         const sent = this.transport.send({ jsonrpc: '2.0', id: msg.id, result })
         if (sent && typeof sent.catch === 'function') sent.catch(() => {})
@@ -656,13 +675,31 @@ class McpConnection {
       .then(answers => {
         const content = {}
         let any = false
-        for (const [i, [name, spec]] of fields.entries()) {
-          const a = String(answers[i]?.answer ?? '').trim()
-          if (!a) continue
-          any = true
-          if (spec.type === 'boolean') content[name] = a === '是' || a.toLowerCase() === 'true'
-          else if (spec.type === 'number' || spec.type === 'integer') content[name] = Number(a)
-          else content[name] = a
+        // 原生表单：前端把整个表单序列化成 JSON 放在唯一一题的 answer 里
+        const raw = String(answers[0]?.answer ?? '').trim()
+        let values = null
+        try { values = raw.startsWith('{') ? JSON.parse(raw) : null } catch { values = null }
+        if (values && typeof values === 'object') {
+          for (const [name, spec] of fields) {
+            const v = values[name]
+            if (v === undefined || v === null || v === '') continue
+            any = true
+            if (spec.type === 'boolean') content[name] = v === true || v === 'true'
+            else if (spec.type === 'number' || spec.type === 'integer') {
+              const n = Number(v)
+              if (Number.isFinite(n)) content[name] = n
+            } else content[name] = String(v)
+          }
+        } else {
+          // 兜底：旧前端/纯文本作答，按字段逐个填（原逻辑）
+          for (const [i, [name, spec]] of fields.entries()) {
+            const a = String(answers[i]?.answer ?? '').trim()
+            if (!a) continue
+            any = true
+            if (spec.type === 'boolean') content[name] = a === '是' || a.toLowerCase() === 'true'
+            else if (spec.type === 'number' || spec.type === 'integer') content[name] = Number(a)
+            else content[name] = a
+          }
         }
         respond(any ? { action: 'accept', content } : { action: 'cancel' })
       })
@@ -697,7 +734,7 @@ class McpConnection {
       respondErr("sampling 请求没有消息")
       return
     }
-    chatCompletion({ model, messages: msgs, maxTokens })
+    chatCompletion({ model, messages: msgs })
       .then(r => {
         respondOk({
           role: "assistant",
