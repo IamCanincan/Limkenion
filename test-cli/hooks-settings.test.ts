@@ -27,7 +27,9 @@ writeFileSync(join(tmpConfig, 'settings.json'), JSON.stringify({
       { hooks: [{ type: 'command', command: 'echo start' }] },
     ],
     'tool-before': [
-      { matcher: 'Write', hooks: [{ type: 'command', command: 'echo new-name' }] },
+      // 同事件（tool-before）用新名再声明一次，matcher 相同但命令不同，
+      // 用于验证旧名 + 新名同事件声明会被 MERGE 而非静默丢弃。
+      { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo new-name' }] },
     ],
   },
 }), 'utf8')
@@ -68,6 +70,22 @@ describe('hooksSettings 旧名归一化（集成）', () => {
     const newName = hooks.find(h => (h.config as { command?: string }).command === 'echo new-name')
     assert.ok(newName, '新名配置直通不受影响')
     assert.equal(newName!.event, 'tool-before')
+  })
+
+  it('同事件用旧名 + 新名各声明一次 → 两条钩子都保留（MERGE，不静默丢弃）', () => {
+    const fakeAppState = { sessionHooks: new Map() }
+    const hooks = getAllHooks(fakeAppState as never)
+    const bashHooks = hooks.filter(
+      h => h.event === 'tool-before' && h.matcher === 'Bash',
+    )
+    const commands = bashHooks.map(h => (h.config as { command?: string }).command)
+    assert.ok(commands.includes('echo pre'), '旧名 PreToolUse 声明必须保留')
+    assert.ok(commands.includes('echo new-name'), '新名 tool-before 声明必须保留')
+    assert.equal(
+      bashHooks.length,
+      2,
+      '同事件旧名+新名两条声明都应出现在结果里，不能因 schema 拒绝旧键而整段丢弃',
+    )
   })
 
   it('isHookEqual：命令内容相同则相等；shell / if 条件参与身份判定', () => {
