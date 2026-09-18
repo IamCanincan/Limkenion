@@ -13,6 +13,8 @@ import { readFile, readdir } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { existsSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
+import { compactSession } from './compact.mjs'
+import { clearCheckpoints, restoreCheckpoints } from './checkpoints.mjs'
 import {
   applySessionSetting,
   CLI_ROOT,
@@ -386,14 +388,21 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     session.usage = { inputTokens: 0, outputTokens: 0 }
     session.turnCount = 0
     session.toolCallCount = 0
+    clearCheckpoints(session.id)
     broadcastSessions()
-    return '会话已清空（消息、待办、任务、改动记录、用量计数）。'
+    return '会话已清空（消息、待办、任务、改动记录、用量计数、文件检查点）。'
   }
   if (name === 'compact') {
-    const count = session.messages.length
-    session.messages = []
-    broadcastSessions()
-    return `已压缩：清空 ${count} 条历史消息。新对话从干净上下文开始（会话列表与用量计数保留）。`
+    // 真压缩：把历史交给模型总结成摘要，用一条摘要消息替换全部历史。
+    // （2026-09-18 之前是直接清空 —— 模型彻底失忆，和压缩不是一回事。）
+    try {
+      const r = await compactSession(session, { reason: arg || '手动压缩' })
+      broadcastSessions()
+      if (!r.ok) return `未压缩：${r.skipped}`
+      return `已压缩：${r.removed} 条消息 → 1 条摘要（${r.summaryChars} 字）。上下文从摘要重新开始，模型仍记得目标和进度。`
+    } catch (err) {
+      return '压缩失败：' + String(err.message ?? err) + '（历史消息保留未动）'
+    }
   }
   if (name === 'rename') {
     if (arg) {
@@ -457,7 +466,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
           })
           .join('\n') +
         '\n\n用法：/rewind <保留条数> —— 例如 /rewind 4 表示只保留前 4 条。\n' +
-        '注意：只回退**对话**，不会回滚已经写进磁盘的文件改动。'
+        '注意：会回退**对话**，并把保留窗口之后 Write/Edit 的文件改动一并回滚（文件检查点在内存中，服务重启后丢失）。'
       )
     }
     const keep = Number.parseInt(arg, 10)
@@ -465,10 +474,12 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       return `参数无效：${arg}。用法：/rewind <保留条数>（0 表示清空对话）`
     }
     const { removed, kept } = rewindSession(session, keep)
+    // 文件回滚：保留窗口之后发生的 Write/Edit 改动全部还原
+    const cp = await restoreCheckpoints(session, kept)
     broadcastSessions()
     return (
       `已回退：删掉 ${removed} 条消息，保留 ${kept} 条。\n` +
-      '注意：只回退了**对话**；已经写进磁盘的文件改动没有回滚。'
+      `文件检查点：回滚了 ${cp.restored} 个文件的改动${cp.failed ? `，${cp.failed} 个失败` : ``}；服务重启后新增的改动不在快照里。`
     )
   }
 

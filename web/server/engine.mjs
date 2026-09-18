@@ -36,6 +36,7 @@ import {
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { additionalDirectories, deniedBy } from './settings.mjs'
 import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './hooks.mjs'
+import { autoCompactThreshold, compactSession } from './compact.mjs'
 import { analyzeShellCommand, hasUntrusted, UNTRUSTED_NOTE, untrustedInfo } from './security.mjs'
 import { deferredHint, enableTools, schemasFor } from './toolindex.mjs'
 import { callMcpTool, listMcpResources, readMcpResource } from './mcp.mjs'
@@ -194,6 +195,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
   // 写进去的话之后每一轮都会重复带上，越滚越长。
   if (hookContext) attachHookContext(messages, hookContext)
   let totalUsage = { inputTokens: 0, outputTokens: 0 }
+  let lastInputTokens = 0 // 最后一轮请求的输入量 —— 这才是「当前上下文有多大」的真信号
   let answer = ''
   let reasoning = ''
   // 循环是因为"模型不再调工具"而正常结束，还是撞到了轮次上限？
@@ -288,6 +290,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
     })
     totalUsage.inputTokens += usage.inputTokens
     totalUsage.outputTokens += usage.outputTokens
+    lastInputTokens = usage.inputTokens
 
     // 无工具调用 → 本轮即最终回答
     if (!toolCalls || toolCalls.length === 0) {
@@ -512,7 +515,7 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
   }
 
   session.lastReasoning = reasoning
-  return totalUsage
+  return { ...totalUsage, lastInputTokens }
 }
 
 /**
@@ -520,6 +523,16 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
  * 内部工具调用以 `Agent·<工具>` 的形式冒泡到界面，保持过程可见。
  */
 async function runSubAgent(session, prompt, description, emit, expired) {
+  // agent-start：与 agent-end 成对。原来只有 end 没有 start，
+  // 用户配的「子代理启动」钩子永远不触发且无任何提示。
+  if (hooksEnabled()) {
+    try {
+      const start = await runEventHooks(HOOK_EVENT.AGENT_START, {
+        hookInput: sessionHookInput(session, { description: description ?? '', prompt }),
+      })
+      for (const m of start.messages) emit({ type: 'notice', text: m })
+    } catch { /* 钩子失败不拦子代理 */ }
+  }
   if (!getApiKey()) {
     return `（mock 引擎）子代理「${description ?? 'task'}」无法执行：未设置 DEEPSEEK_API_KEY。`
   }
@@ -791,6 +804,18 @@ export async function runTurn(session, text, messageId = newMessageId()) {
         timestamp: Date.now(),
       })
       broadcast({ type: 'turn_complete', sessionId: session.id, messageId, usage })
+    }
+    // ---- 自动压缩：上下文逼近上限时的自我保护（上游 CLI 原型 同款）----
+    // 判据用「最后一轮请求的输入 tokens」—— 它就是模型实际看到的上下文大小，
+    // 比自己数消息靠谱得多。压缩失败不能影响本回合已产出的结果，只如实播报。
+    if (!expired() && (usage.lastInputTokens ?? 0) >= autoCompactThreshold() && session.messages.length > 10) {
+      try {
+        emit({ type: 'notice', text: `上下文已用到约 ${usage.lastInputTokens} tokens（阈值 ${autoCompactThreshold()}），自动压缩历史…` })
+        const r = await compactSession(session, { emit, reason: '上下文接近上限，自动压缩' })
+        if (!r.ok) emit({ type: 'notice', text: `自动压缩未执行：${r.skipped}` })
+      } catch (err) {
+        emit({ type: 'notice', text: '自动压缩失败（不影响本回合结果）：' + String(err.message ?? err) })
+      }
     }
     // ---- Stop：回合正常结束后的钩子（日志、通知、检查清单之类）----
     if (hooksEnabled() && !expired()) {

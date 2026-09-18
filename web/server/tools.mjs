@@ -17,7 +17,8 @@
  */
 
 import { readFile, writeFile, readdir, stat, mkdir } from 'node:fs/promises'
-import { execFile } from 'node:child_process'
+import { execFile, execSync, spawn } from 'node:child_process'
+import { recordCheckpoint } from './checkpoints.mjs'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import vm from 'node:vm'
@@ -259,10 +260,13 @@ async function toolRead({ file_path, offset, limit, pages }) {
   return truncate(`文件：${rel(p)}（${lines.length} 行）${pageNote}\n\n${numbered}`)
 }
 
-async function toolWrite({ file_path, content }) {
+async function toolWrite(input, session) {
+  const { file_path, content } = input ?? {}
   const p = safePath(file_path)
   const existed = existsSync(p)
   const before = existed ? await readFile(p, 'utf8') : ''
+  // 检查点：写入前快照旧内容（文件当时不存在则记 null，回滚时删除）
+  recordCheckpoint(session, p, existed ? before : null)
   // 父目录不存在时自动创建（否则模型无法在新目录下建文件）
   await mkdir(dirname(p), { recursive: true })
   await writeFile(p, content, 'utf8')
@@ -273,12 +277,15 @@ async function toolWrite({ file_path, content }) {
   }
 }
 
-async function toolEdit({ file_path, old_string, new_string, replace_all }) {
+async function toolEdit(input, session) {
+  const { file_path, old_string, new_string, replace_all } = input ?? {}
   const p = safePath(file_path)
   const content = await readFile(p, 'utf8')
   if (!content.includes(old_string)) {
     throw new Error('old_string 未在文件中找到（要求精确匹配）')
   }
+  // 检查点：编辑前快照整个文件
+  recordCheckpoint(session, p, content)
   const occurrences = content.split(old_string).length - 1
   if (occurrences > 1 && !replace_all) {
     throw new Error(`old_string 出现 ${occurrences} 次，不唯一；请提供更多上下文，或传 replace_all: true 全部替换`)
@@ -524,10 +531,86 @@ function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
   })
 }
 
-async function toolBash({ command }) {
-  requireText(command, 'command', 'Bash 需要一条要执行的命令，例如 {"command": "ls -la"}')
-  return truncate(`$ ${command}\n\n${await execShell(command)}`)
+// ---------------------------------------------------------------------------
+// Bash 后台任务：run_in_background=true 时立即返回任务 ID，输出驻留内存
+// （每任务上限 64KB），用 TaskOutput(taskId) 轮询、TaskStop(taskId) 终止。
+// 与待办类 TaskOutput/TaskStop 共用工具名，靠 bg- 前缀区分。
+// ---------------------------------------------------------------------------
+const BG_MAX_BYTES = 64 * 1024
+const bgTasks = new Map() // id -> task
+let bgSeq = 0
+
+function bgAppend(task, chunk) {
+  task.bytes += chunk.length
+  task.chunks.push(chunk)
+  let size = task.chunks.reduce((n, x) => n + x.length, 0)
+  while (size > BG_MAX_BYTES && task.chunks.length > 1) size -= task.chunks.shift().length
 }
+
+function bgSnapshot(task) {
+  const status = task.killed
+    ? 'stopped'
+    : task.done
+      ? `done（退出码 ${task.exitCode ?? '?'}）`
+      : 'running'
+  const out = task.chunks.join('') || task.error || '（暂无输出）'
+  const secs = Math.round((Date.now() - task.startedAt) / 1000)
+  return `后台任务 ${task.id}：${status}\n命令：${task.command}\n已运行 ${secs}s\n输出：\n${out}`
+}
+
+function startBackgroundShell(session, command) {
+  const id = `bg-${++bgSeq}`
+  const isWin = process.platform === 'win32'
+  const file = isWin ? 'cmd.exe' : '/bin/sh'
+  const args = isWin ? ['/d', '/s', '/c', command] : ['-c', command]
+  const proc = spawn(file, args, { cwd: workspaceRoot(), windowsHide: true, detached: !isWin })
+  const task = {
+    id, sessionId: session?.id ?? '', command, startedAt: Date.now(),
+    chunks: [], bytes: 0, done: false, killed: false, exitCode: /** @type {number|null} */ (null), error: /** @type {string|null} */ (null), proc,
+  }
+  proc.stdout.on('data', d => bgAppend(task, d))
+  proc.stderr.on('data', d => bgAppend(task, d))
+  proc.on('error', err => { task.error = String(err.message ?? err); task.done = true })
+  proc.on('close', code => { task.done = true; task.exitCode = code })
+  bgTasks.set(id, task)
+  // 防泄漏：超过 30 个时淘汰已结束的旧任务
+  if (bgTasks.size > 30) {
+    for (const [k, t] of bgTasks) {
+      if (t.done && bgTasks.size > 30) bgTasks.delete(k)
+    }
+  }
+  return `已在后台启动（任务 ID：${id}）\n命令：${command}\n用 TaskOutput {"taskId":"${id}"} 查看输出；TaskStop {"taskId":"${id}"} 终止。`
+}
+
+function stopBackgroundShell(id) {
+  const task = bgTasks.get(id)
+  if (!task) throw new Error(`后台任务不存在：${id}（任务结束并输出完会被回收）`)
+  if (task.done) return `后台任务 ${id} 已结束（退出码 ${task.exitCode ?? '?'}），无需停止。`
+  task.killed = true
+  const isWin = process.platform === 'win32'
+  try {
+    if (isWin) {
+      // 套着 cmd.exe 的进程树要连根杀：只 kill 直接子进程会留下孤儿占着 stdout
+      execSync(`taskkill /T /F /PID ${task.proc.pid}`, { stdio: 'ignore' })
+    } else {
+      try { process.kill(-task.proc.pid) } catch { task.proc.kill('SIGKILL') }
+    }
+  } catch (err) {
+    task.proc.kill('SIGKILL')
+    return `已发送终止信号（${String(err.message ?? err)}）：${id}`
+  }
+  return `已终止后台任务 ${id}。`
+}
+
+async function toolBash(input, session) {
+  const command = input?.command
+  requireText(command, 'command', 'Bash 需要一条要执行的命令，例如 {"command": "ls -la"}')
+  if (input?.run_in_background) return startBackgroundShell(session, String(command))
+  // 前台：超时可配（默认 30s，上限 10 分钟）
+  const timeout = Math.min(Math.max(Number(input?.timeout) || BASH_TIMEOUT_MS, 1000), 600_000)
+  return truncate(`$ ${command}\n\n${await execShell(command, timeout)}`)
+}
+
 
 async function toolPowerShell({ command }) {
   requireText(command, 'command', 'PowerShell 需要一条要执行的命令，例如 {"command": "Get-ChildItem"}')
@@ -856,6 +939,8 @@ async function toolTaskUpdate(input, session) {
 
 async function toolTaskStop(input, session) {
   const id = requireTaskId(input)
+  // 后台 shell 任务（bg- 前缀）走独立的注册表
+  if (String(id).startsWith('bg-')) return stopBackgroundShell(String(id))
   const task = tasksOf(session).find(t => t.id === id)
   if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   task.status = 'stopped'
@@ -865,6 +950,12 @@ async function toolTaskStop(input, session) {
 
 async function toolTaskOutput(input, session) {
   const id = requireTaskId(input)
+  // 后台 shell 任务（bg- 前缀）：返回状态 + 输出快照
+  if (String(id).startsWith('bg-')) {
+    const t = bgTasks.get(String(id))
+    if (!t) throw new Error(`后台任务不存在：${id}（任务结束且被回收后即查不到）`)
+    return bgSnapshot(t)
+  }
   const task = tasksOf(session).find(t => t.id === id)
   if (!task) throw new Error(`任务不存在：#${id}（用 TaskList 看现有编号）`)
   return JSON.stringify(task, null, 2)
@@ -1376,10 +1467,14 @@ export const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'Bash',
-      description: '在工作区执行 shell 命令（30 秒超时）。危险操作，需用户确认。',
+      description: '在工作区执行 shell 命令（默认 30 秒超时，可配）。危险操作，需用户确认。',
       parameters: {
         type: 'object',
-        properties: { command: { type: 'string', description: '要执行的命令' } },
+        properties: {
+          command: { type: 'string', description: '要执行的命令' },
+          timeout: { type: 'number', description: '超时毫秒数（前台模式），默认 30000，上限 600000' },
+          run_in_background: { type: 'boolean', description: 'true 时立即返回任务 ID 不等待完成；输出用 TaskOutput(taskId) 轮询，TaskStop(taskId) 终止' },
+        },
         required: ['command'],
       },
     },
@@ -2029,14 +2124,14 @@ export async function executeTool(rawName, input, ctx) {
   switch (name) {
     // 文件类
     case 'Read': return toolRead(input)
-    case 'Write': return toolWrite(input)
-    case 'Edit': return toolEdit(input)
+    case 'Write': return toolWrite(input, ctx?.session)
+    case 'Edit': return toolEdit(input, ctx?.session)
     case 'NotebookEdit': return toolNotebookEdit(input)
     case 'Grep': return toolGrep(input)
     case 'Glob': return toolGlob(input)
     case 'LS': return toolLS(input)
     // 执行类
-    case 'Bash': return toolBash(input)
+    case 'Bash': return toolBash(input, ctx?.session)
     case 'PowerShell': return toolPowerShell(input)
     case 'REPL': return toolREPL(input)
     // 网络类

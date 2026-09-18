@@ -255,7 +255,7 @@ describe('/branch 会话分叉', () => {
 })
 
 describe('/rewind 对话回退', () => {
-  test('无参时列出可回退点，且说明不会回滚文件', async () => {
+  test('无参时列出可回退点，并说明文件检查点会一并回滚', async () => {
     const r = makeRunner([
       { id: '1', role: 'user', text: '一' },
       { id: '2', role: 'assistant', text: '二' },
@@ -263,7 +263,7 @@ describe('/rewind 对话回退', () => {
     ])
     const out = await r.run('/rewind')
     assert.match(out, /共 3 条消息/)
-    assert.match(out, /不会回滚/)
+    assert.match(out, /一并回滚/)
   })
 
   test('/rewind <n> 截断到前 n 条', async () => {

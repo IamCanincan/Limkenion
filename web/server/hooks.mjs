@@ -67,6 +67,11 @@ export const HOOK_EVENT = {
   SESSION_CLOSE: 'session-close',
   TURN_END: 'turn-end',
   AGENT_END: 'agent-end',
+
+  // ---- 2026-09-18 新接线：压缩前后 + 子代理启动（契约里原有，一直没接）----
+  CONTEXT_COMPACT_BEFORE: 'context-compact-before',
+  CONTEXT_COMPACT_AFTER: 'context-compact-after',
+  AGENT_START: 'agent-start',
 }
 
 /**
