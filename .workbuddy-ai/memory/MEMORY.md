@@ -110,6 +110,11 @@ Web：`cd web && node server/index.mjs`（或全局 `limkenion-web`）。
 验证：`node scripts/build-cli.mjs` 0 错误、`npm install -g .` 冒烟、`web` typecheck + build + test
 通过；E2E 里 `【C】PreToolUse 钩子拦截` 仍用旧名配置，经兼容路径通过。
 
+
+**2026-09-18 晚补齐**：真压缩+auto-compact、Bash 后台/超时、文件检查点（/rewind 连文件回滚）、
+钩子 11 事件、MCP 三传输（stdio/http/sse）+ elicitation + OAuth 2.1。
+**明确不做**（CC 生态专属，用户拍板）：插件/技能市场、Agent Teams 可视化面板。
+
 ### 仍未做的
 只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
 
