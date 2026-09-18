@@ -636,7 +636,7 @@ export const ElicitationHookInputSchema = lazySchema(() =>
       }),
     )
     .describe(
-      'Elicitation 事件的钩子输入。当 MCP 服务器请求用户输入时触发。钩子可以自动响应（接受/拒绝），而无需显示对话框。',
+      'elicitation-request 事件的钩子输入。当 MCP 服务器请求用户输入时触发。钩子可以自动响应（接受/拒绝），而无需显示对话框。',
     ),
 )
 
@@ -653,7 +653,7 @@ export const ElicitationResultHookInputSchema = lazySchema(() =>
       }),
     )
     .describe(
-      'ElicitationResult 事件的钩子输入。在用户响应 MCP 询问后触发。钩子可以在响应发送到服务器之前观察或覆盖该响应。',
+      'elicitation-result 事件的钩子输入。在用户响应 MCP 询问后触发。钩子可以在响应发送到服务器之前观察或覆盖该响应。',
     ),
 )
 
@@ -940,7 +940,7 @@ export const ElicitationHookSpecificOutputSchema = lazySchema(() =>
       content: z.record(z.string(), z.unknown()).optional(),
     })
     .describe(
-      'Elicitation 事件的钩子专属输出。返回此值可通过编程方式接受或拒绝 MCP 询问请求。',
+      'elicitation-request 事件的钩子专属输出。返回此值可通过编程方式接受或拒绝 MCP 询问请求。',
     ),
 )
 
@@ -952,7 +952,7 @@ export const ElicitationResultHookSpecificOutputSchema = lazySchema(() =>
       content: z.record(z.string(), z.unknown()).optional(),
     })
     .describe(
-      'ElicitationResult 事件的钩子专属输出。返回此值可在响应发送到 MCP 服务器之前覆盖动作或内容。',
+      'elicitation-result 事件的钩子专属输出。返回此值可在响应发送到 MCP 服务器之前覆盖动作或内容。',
     ),
 )
 
@@ -963,7 +963,7 @@ export const WorktreeCreateHookSpecificOutputSchema = lazySchema(() =>
       worktreePath: z.string(),
     })
     .describe(
-      'WorktreeCreate 事件的钩子专属输出。提供所创建 worktree 目录的绝对路径。命令钩子则改为在 stdout 上打印该路径。',
+      'worktree-create 事件的钩子专属输出。提供所创建 worktree 目录的绝对路径。命令钩子则改为在 stdout 上打印该路径。',
     ),
 )
 

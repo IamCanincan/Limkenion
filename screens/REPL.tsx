@@ -2417,7 +2417,7 @@ export function REPL({
           case 'hooks_start':
             setSpinnerColor('limkenionBlue_FOR_SYSTEM_SPINNER');
             setSpinnerShimmerColor('limkenionBlueShimmer_FOR_SYSTEM_SPINNER');
-            setSpinnerMessage(event.hookType === 'pre_compact' ? 'Running PreCompact hooks\u2026' : event.hookType === 'post_compact' ? 'Running PostCompact hooks\u2026' : 'Running SessionStart hooks\u2026');
+            setSpinnerMessage(event.hookType === 'pre_compact' ? 'Running context-compact-before hooks\u2026' : event.hookType === 'post_compact' ? 'Running context-compact-after hooks\u2026' : 'Running session-open hooks\u2026');
             break;
           case 'compact_start':
             setSpinnerMessage('Compacting conversation');

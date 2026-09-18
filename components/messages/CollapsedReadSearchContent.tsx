@@ -235,7 +235,7 @@ export function CollapsedReadSearchContent({
       })}
         {message.hookInfos && message.hookInfos.length > 0 && <>
             <Text dimColor>
-              {'  ⎿  '}运行了 {message.hookCount} 个 PreToolUse{' '}
+              {'  ⎿  '}运行了 {message.hookCount} 个 tool-before{' '}
               {message.hookCount === 1 ? 'hook' : 'hooks'} (
               {formatSecondsShort(message.hookTotalMs ?? 0)})
             </Text>
@@ -474,7 +474,7 @@ export function CollapsedReadSearchContent({
           </Box>
         </Box>}
       {message.hookTotalMs !== undefined && message.hookTotalMs > 0 && <Text dimColor>
-          {'  ⎿  '}运行了 {message.hookCount} 个 PreToolUse{' '}
+          {'  ⎿  '}运行了 {message.hookCount} 个 tool-before{' '}
           {message.hookCount === 1 ? 'hook' : 'hooks'} (
           {formatSecondsShort(message.hookTotalMs)})
         </Text>}

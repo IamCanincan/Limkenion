@@ -84,7 +84,7 @@ const NEW_INIT_PROMPT = `为当前仓库搭建一份精简的 LIMKENION.md（并
   - 每个选项都配一个 \`preview\`，内容为完整的 markdown 提案。"Looks good — proceed" 选项的 preview 展示全部内容；逐项移除的选项其 preview 展示移除后剩余的内容。
   - **保持 preview 紧凑——预览框会被截断且无法滚动。** 每项一行、项间无空行、无标题。示例 preview 内容：
 
-    • **Format-on-edit hook** (automatic) — \`ruff format <file>\` via PostToolUse
+    • **Format-on-edit hook** (automatic) — \`ruff format <file>\` via tool-after
     • **/verify skill** (on-demand) — \`make lint && make typecheck && make test\`
     • **LIMKENION.md note** (guideline) — "run lint/typecheck/test before marking done"
 
@@ -198,15 +198,15 @@ description: <what the skill does and when to use it>
   1. 目标文件：依据阶段 1 的 LIMKENION.md 选择取默认值——项目 → \`.limkenion/settings.json\`（团队共享、需提交）；个人 → \`.limkenion/settings.local.json\`。仅当用户在阶段 1 选择了"both"或偏好存在歧义时才询问。一次性询问全部 hooks，而不是逐个问。
 
   2. 从偏好中挑选事件与 matcher：
-     - "after every edit" → 使用 matcher 为 \`Write|Edit\` 的 \`PostToolUse\`
-     - "when Limkenion finishes" / "before I review" → \`Stop\` 事件（在每一轮结束时触发——包括只读轮）
-     - "before running bash" → 使用 matcher 为 \`Bash\` 的 \`PreToolUse\`
-     - "before committing"（字面意义的 git-commit 门禁）→ **不是 hooks.json 里的 hook。** Matcher 无法按命令内容过滤 Bash，因此无法只针对 \`git commit\`。应把它引导到 git pre-commit 钩子（\`.git/hooks/pre-commit\`、husky、pre-commit 框架）——并提出帮忙编写。若用户实际想表达的是"在我审阅并提交 Limkenion 的输出之前"，那属于 \`Stop\`——请追问以消除歧义。
+     - "after every edit" → 使用 matcher 为 \`Write|Edit\` 的 \`tool-after\`
+     - "when Limkenion finishes" / "before I review" → \`turn-end\` 事件（在每一轮结束时触发——包括只读轮）
+     - "before running bash" → 使用 matcher 为 \`Bash\` 的 \`tool-before\`
+     - "before committing"（字面意义的 git-commit 门禁）→ **不是 hooks.json 里的 hook。** Matcher 无法按命令内容过滤 Bash，因此无法只针对 \`git commit\`。应把它引导到 git pre-commit 钩子（\`.git/hooks/pre-commit\`、husky、pre-commit 框架）——并提出帮忙编写。若用户实际想表达的是"在我审阅并提交 Limkenion 的输出之前"，那属于 \`turn-end\`——请追问以消除歧义。
      若偏好存在歧义，请追问。
 
-  3. **加载 hook 参考**（每次 \`/init\` 只一次，在首个 hook 之前）：以 \`skill: 'update-config'\` 调用 Skill 工具，args 以 \`[hooks-only]\` 开头，后跟一行概括你要构建的内容——例如 \`[hooks-only] Constructing a PostToolUse/Write|Edit format hook for .limkenion/settings.json using ruff\`。这把 hooks schema 与校验流程加载进上下文。后续 hooks 复用即可——不要重复调用。
+  3. **加载 hook 参考**（每次 \`/init\` 只一次，在首个 hook 之前）：以 \`skill: 'update-config'\` 调用 Skill 工具，args 以 \`[hooks-only]\` 开头，后跟一行概括你要构建的内容——例如 \`[hooks-only] Constructing a tool-after/Write|Edit format hook for .limkenion/settings.json using ruff\`。这把 hooks schema 与校验流程加载进上下文。后续 hooks 复用即可——不要重复调用。
 
-  4. 遵循该 skill 的 **"Constructing a Hook"** 流程：去重检查 → 为当前项目构造 → 用 pipe-test 验证原始内容 → 包装 → 写 JSON → 用 \`jq -e\` 校验 → 实机验证（针对可触发 matcher 的 \`Pre|PostToolUse\`）→ 清理 → 交接。目标文件与事件/matcher 来自上面的第 1–2 步。
+  4. 遵循该 skill 的 **"Constructing a Hook"** 流程：去重检查 → 为当前项目构造 → 用 pipe-test 验证原始内容 → 包装 → 写 JSON → 用 \`jq -e\` 校验 → 实机验证（针对可触发 matcher 的 \`tool-before|tool-after\`）→ 清理 → 交接。目标文件与事件/matcher 来自上面的第 1–2 步。
 
 每个"是"都要先落地再继续。
 

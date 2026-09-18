@@ -830,7 +830,7 @@ async function executePermissionRequestHooksForSDK(
         return {
           behavior: 'deny',
           message:
-            decision.message || 'PermissionRequest 钩子拒绝了此操作权限',
+            decision.message || 'permission-request 钩子拒绝了此操作权限',
           decisionReason: {
             type: 'hook',
             hookName: 'permission-request',

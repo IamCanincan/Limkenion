@@ -864,7 +864,7 @@ async function checkPermissionsAndCallTool(
   getStatsStore()?.observe('pre_tool_hook_duration_ms', preToolHookDurationMs)
   if (preToolHookDurationMs >= SLOW_PHASE_LOG_THRESHOLD_MS) {
     logForDebugging(
-      `Slow PreToolUse hooks: ${preToolHookDurationMs}ms for ${tool.name} (${preToolHookInfos.length} hooks)`,
+      `Slow tool-before hooks: ${preToolHookDurationMs}ms for ${tool.name} (${preToolHookInfos.length} hooks)`,
       { level: 'info' },
     )
   }
@@ -1006,7 +1006,7 @@ async function checkPermissionsAndCallTool(
     let errorMessage = permissionDecision.message
     // Only use generic "Execution stopped" message if we don't have a detailed hook message
     if (shouldPreventContinuation && !errorMessage) {
-      errorMessage = `Execution stopped by PreToolUse hook${stopReason ? `: ${stopReason}` : ''}`
+      errorMessage = `Execution stopped by tool-before hook${stopReason ? `: ${stopReason}` : ''}`
     }
 
     // Build top-level content: tool_result (text-only for is_error compatibility) + images alongside
@@ -1515,7 +1515,7 @@ async function checkPermissionsAndCallTool(
     const postToolHookDurationMs = Date.now() - postToolHookStart
     if (postToolHookDurationMs >= SLOW_PHASE_LOG_THRESHOLD_MS) {
       logForDebugging(
-        `Slow PostToolUse hooks: ${postToolHookDurationMs}ms for ${tool.name} (${postToolHookInfos.length} hooks)`,
+        `Slow tool-after hooks: ${postToolHookDurationMs}ms for ${tool.name} (${postToolHookInfos.length} hooks)`,
         { level: 'info' },
       )
     }
