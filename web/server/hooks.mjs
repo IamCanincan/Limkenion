@@ -86,6 +86,12 @@ export const HOOK_EVENT = {
   ELICITATION_RESULT: 'elicitation-result',
   CONFIG_CHANGE: 'config-change',
   FILE_CHANGED: 'file-changed',
+
+  // ---- 第 24 轮：宿主功能补齐后接线（此前 web 没有事件源）----
+  SETUP: 'setup',
+  TEAMMATE_IDLE: 'teammate-idle',
+  INSTRUCTIONS_LOADED: 'instructions-loaded',
+  CWD_CHANGED: 'cwd-changed',
 }
 
 /**

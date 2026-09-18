@@ -10,7 +10,7 @@
  */
 
 import { readFile, readdir } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
 import { compactSession } from './compact.mjs'
@@ -48,6 +48,8 @@ import {
 } from './sessions.mjs'
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
 import { enableTools, toolsOverview } from './toolindex.mjs'
+import { DEFAULT_WORKSPACE_ROOT, isInsideWorkspace, workspaceRoot as scopeRoot } from './paths.mjs'
+import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { fileIndexStatus, listIndexedFiles } from './workspace.mjs'
 import { hooksSummary, refreshHooks } from './hooks.mjs'
 import { mcpSummary, reloadMcp } from './mcp.mjs'
@@ -336,6 +338,7 @@ export const WEB_IMPLEMENTED = [
   'init',        // 生成 LIMKENION.md
   'schedule',    // 与 /cron 同一实现（CLI 叫 /schedule）
   'workflows',   // 动态工作流运行（web 端未挂载该工具，如实说明）
+  'cwd',         // 切换工作区根（收窄到子目录；触发 cwd-changed 钩子）
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
@@ -558,6 +561,34 @@ export async function runCommand(session, rawName, argString, ws, registry) {
           '  尤其是 deny 规则 —— 别以为它在这里挡住了什么。'
         : '')
     )
+  }
+  if (name === 'cwd') {
+    const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
+    if (!arg) {
+      return (
+      `当前工作区根：${base}\n` +
+      '用法：/cwd <当前根内的子目录> —— 工具沙箱随之收窄到该子目录；\n' +
+      '/cwd . —— 重置回默认根。'
+    )
+    }
+    const fireCwdHook = (from, to) => void runEventHooks(HOOK_EVENT.CWD_CHANGED, {
+      hookInput: { session_id: session?.id ?? '', from, to },
+    }).catch(() => {})
+    if (arg === '.' || arg === 'reset') {
+      const from = base
+      session.workspaceRoot = null
+      fireCwdHook(from, DEFAULT_WORKSPACE_ROOT)
+      return `工作区根已重置：${from} → ${DEFAULT_WORKSPACE_ROOT}`
+    }
+    const target = resolve(join(base, arg))
+    if (target === base) return `目标与当前根相同：${target}`
+    if (!isInsideWorkspace(target)) {
+      return `拒绝：目标必须位于当前根内部（防逃逸）。当前根：${base}`
+    }
+    if (!existsSync(target)) return `目录不存在：${target}`
+    session.workspaceRoot = target
+    fireCwdHook(base, target)
+    return `工作区根已切换：${base} → ${target}`
   }
   if (name === 'config') {
     return `当前设置（本会话）：\n${Object.entries(publicSettings(session)).map(([k, v]) => `- ${k}：${v}`).join('\n')}\n\n用 /model /theme /permissions 修改。`

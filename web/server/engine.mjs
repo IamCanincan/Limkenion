@@ -11,6 +11,7 @@
 
 import { chatCompletion, getApiKey } from './deepseek.mjs'
 import { outputStylePrompt } from './outputStyle.mjs'
+import { ensureInstructions, instructionsCached } from './instructions.mjs'
 import { broadcast } from './bus.mjs'
 import {
   applySessionSetting,
@@ -34,7 +35,7 @@ import {
   schedulePersist,
   turnExpired,
 } from './sessions.mjs'
-import { scopeForSession, withWorkspace } from './paths.mjs'
+import { scopeForSession, withWorkspace, workspaceRoot } from './paths.mjs'
 import { additionalDirectories, deniedBy } from './settings.mjs'
 import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput, toolHookInput } from './hooks.mjs'
 
@@ -72,6 +73,12 @@ export function isTurnActive(sessionId) {
   return activeTurns.has(sessionId)
 }
 
+/** 项目指令块：无指令时返回空串。 */
+function instructionsBlock() {
+  const t = instructionsCached()
+  return t ? `\n\n[项目指令（LIMKENION.md / AGENTS.md）]\n${t}` : ''
+}
+
 function baseSystemPrompt(session) {
   return (
     '你是 Limkenion，一个高效的中文编程助手，工作区为当前项目目录。' +
@@ -82,7 +89,9 @@ function baseSystemPrompt(session) {
     '\n\n' +
     deferredHint() +
     // 输出风格（outputStyle）真正生效：default 时不追加任何内容
-    outputStylePrompt(session?.settings?.outputStyle)
+    outputStylePrompt(session?.settings?.outputStyle) +
+    // 项目指令（LIMKENION.md / AGENTS.md，回合开头已由 ensureInstructions 加载）
+    instructionsBlock()
 
   )
 }
@@ -788,8 +797,18 @@ export async function runTurn(session, text, messageId = newMessageId()) {
   activeTurns.add(session.id)
   try {
     const usage = await withWorkspace(sessionScope(session), async () => {
+      // ---- 项目指令：LIMKENION.md / AGENTS.md（mtime 缓存；/init 承诺过的行为）----
+      try { await ensureInstructions(workspaceRoot()) } catch { /* 指令失败不拦回合 */ }
+      if (hooksEnabled() && session.turnCount === 0) {
+        // setup：比 session-open 更早的"开工准备"事件（CLI 同款顺序）
+        try {
+          const setup = await runEventHooks(HOOK_EVENT.SETUP, {
+            hookInput: sessionHookInput(session, { phase: 'web-session' }),
+          })
+          for (const m of setup.messages) emit({ type: 'notice', text: m })
+        } catch { /* setup 失败不拦启动 */ }
+      }
       // ---- session-open：只在本会话的第一个回合之前跑一次 ----
-      // （CLI 在"新建/恢复会话"时触发；web 端没有独立的会话启动点，用首回合近似。）
       if (hooksEnabled() && session.turnCount === 0) {
         const start = await runEventHooks(HOOK_EVENT.SESSION_OPEN, {
           hookInput: sessionHookInput(session, { source: 'web' }),

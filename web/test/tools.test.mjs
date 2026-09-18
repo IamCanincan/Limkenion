@@ -300,8 +300,12 @@ describe('任务与协作工具', () => {
 
   test('Team 创建/发消息/解散', async () => {
     const { ctx } = makeCtx()
+    // SendMessage 现在会真派活（teammate-idle 的宿主功能）：给 ctx 挂子代理执行器
+    ctx.runSubAgent = async ({ description }) => `（${description}）结论 OK`
     assert.match(await executeTool('TeamCreate', { team_name: 'r', members: ['a', 'b'] }, ctx), /2 个/)
-    assert.match(await executeTool('SendMessage', { to: 'a', message: 'hi' }, ctx), /已投递/)
+    const sent = await executeTool('SendMessage', { to: 'a', message: 'hi' }, ctx)
+    assert.match(sent, /已完成/, `应真派活并报告完成：${sent}`)
+    assert.match(sent, /结论 OK/)
     assert.match(await executeTool('SendMessage', { to: 'zzz', message: 'hi' }, ctx), /不在团队中/)
     assert.match(await executeTool('TeamDelete', {}, ctx), /已解散/)
   })

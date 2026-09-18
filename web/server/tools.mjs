@@ -834,7 +834,7 @@ async function toolTeamCreate({ team_name, name, description, agent_type, member
   team.name = teamName
   team.description = description ? String(description) : undefined
   team.members = Array.isArray(members)
-    ? members.map(m => (typeof m === 'string' ? { name: m, role: agent_type ?? 'agent' } : m))
+    ? members.map(m => (typeof m === 'string' ? { name: m, role: agent_type ?? 'agent', status: 'idle' } : { status: 'idle', ...m }))
     : []
   return (
     `已创建团队「${team.name}」${team.description ? `（${team.description}）` : ''}，` +
@@ -849,20 +849,38 @@ async function toolTeamDelete(_input, session) {
   return `已解散团队（移除 ${n} 个成员）。`
 }
 
-async function toolSendMessage({ to, message, summary }, session) {
+async function toolSendMessage(input, ctx) {
+  const { to, message, summary } = input ?? {}
   requireText(to, 'to', '收件成员名，例如 {"to": "reviewer", "message": "帮我看一下 diff"}')
   requireText(message, 'message', '要发的内容')
+  const session = ctx?.session
   const team = teamOf(session)
   const entry = { to: String(to), message: String(message), summary, at: Date.now() }
   team.log.push(entry)
   if (team.members.length === 0) {
     return `已记录消息（当前无团队成员，web 端不承载真实多进程协作）：\n→ ${entry.to}：${entry.message.slice(0, 200)}`
   }
-  const known = team.members.some(m => m.name === entry.to)
-  return known
-    ? `已投递给成员「${entry.to}」：${entry.message.slice(0, 200)}`
-    : `成员「${entry.to}」不在团队中（现有：${team.members.map(m => m.name).join('、')}）。消息已记录。`
+  const member = team.members.find(m => m.name === entry.to)
+  if (!member) {
+    return `成员「${entry.to}」不在团队中（现有：${team.members.map(m => m.name).join('、')}）。消息已记录。`
+  }
+  // 真派活：成员置 busy → 跑子代理 → 置回 idle 并触发 teammate-idle。
+  // 这就是 teammate-idle 的事件源：此前 web 的成员只是名单，没有「干活→空闲」生命周期。
+  if (typeof ctx?.runSubAgent !== 'function') {
+    return `已投递给成员「${entry.to}」（子代理执行器未挂载，暂未执行）：${entry.message.slice(0, 200)}`
+  }
+  member.status = 'busy'
+  try {
+    const result = await ctx.runSubAgent({ description: `队友「${member.name}」处理消息`, prompt: entry.message })
+    return `队友「${member.name}」已完成：\n${result}`
+  } finally {
+    member.status = 'idle'
+    void runEventHooks(HOOK_EVENT.TEAMMATE_IDLE, {
+      hookInput: { session_id: session?.id ?? '', team: team.name ?? '', member: member.name },
+    }).catch(() => {})
+  }
 }
+
 
 /** SendUserMessage（CLI BriefTool）：把一条提示直接推到界面。 */
 async function toolSendUserMessage({ message, attachments, status }, ctx) {
@@ -2168,7 +2186,7 @@ export async function executeTool(rawName, input, ctx) {
     case 'Agent': return toolAgent(input, ctx)
     case 'TeamCreate': return toolTeamCreate(input, session)
     case 'TeamDelete': return toolTeamDelete(input, session)
-    case 'SendMessage': return toolSendMessage(input, session)
+    case 'SendMessage': return toolSendMessage(input, ctx)
     case 'SendUserMessage': return toolSendUserMessage(input, ctx)
     // 任务类
     case 'TodoWrite': return toolTodoWrite(input, session)
