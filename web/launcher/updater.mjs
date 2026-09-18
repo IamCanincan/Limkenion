@@ -76,7 +76,8 @@ function download(url, dest) {
   })
 }
 
-function compareSemver(a, b) {
+/** 语义化版本比较（只比 major.minor.patch，缺失段按 0 处理）。导出供测试。 */
+export function compareSemver(a, b) {
   const pa = String(a).split('.').map(Number)
   const pb = String(b).split('.').map(Number)
   for (let i = 0; i < 3; i++) {
@@ -133,8 +134,14 @@ async function unzip(archive, dest) {
   })
 }
 
-/** 解压产物里是否应跳过（保留内置 Node 不被更新覆盖）。 */
-function skipNodePath(relParts) {
+/**
+ * 解压产物里是否应跳过（保留内置 Node 不被更新覆盖）。导出供测试。
+ *
+ * 注意第一段必须是**整段相等** `'node'`，不能用 `startsWith('node')` ——
+ * 否则会把 `node_modules/` 也一起跳过，而更新包里的 `node_modules/ws`
+ * 是应用运行必需的依赖，跳过它等于更新后服务起不来。
+ */
+export function skipNodePath(relParts) {
   if (relParts[0] === 'node') return true // 顶层 node/（win/linux 内置）
   if (
     relParts[0] === 'Limkenion.app' &&
