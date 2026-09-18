@@ -1,0 +1,37 @@
+version: '1.0'
+name: limkenion-ci
+displayName: Limkenion CI（typecheck + 测试 + 构建）
+
+# push 到 master 时自动触发
+triggers:
+  push:
+    branches:
+      precise:
+        - master
+  pr:
+    branches:
+      precise:
+        - master
+
+stages:
+  - stage: ci
+    displayName: 静态检查 + 单测 + 构建
+    strategy: naturally
+    trigger: auto
+    steps:
+      - step: build@nodejs
+        name: ci-web
+        displayName: web — typecheck / test / build
+        nodeVersion: '20'
+        commands:
+          - |
+            set -e
+            cd web
+            npm install --no-audit --no-fund
+            echo '== typecheck =='
+            npm run typecheck
+            echo '== unit tests =='
+            npm test
+            echo '== build =='
+            npm run build
+            echo '== CI GREEN =='
