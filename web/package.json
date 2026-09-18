@@ -25,7 +25,8 @@
     "typecheck:server": "tsc -p tsconfig.server.json",
     "test": "node --test test/*.test.mjs",
     "test:e2e": "node e2e/e2e.mjs",
-    "test:ui": "vitest run"
+    "test:ui": "vitest run",
+    "release": "node ../scripts/package-release.mjs"
   },
   "engines": {
     "node": ">=20.11"

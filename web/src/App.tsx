@@ -52,6 +52,7 @@ export function App() {
   const [requestSummary, setRequestSummary] = useState<RequestSummary | null>(null)
   const [showRequests, setShowRequests] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [updateMsg, setUpdateMsg] = useState('')
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -88,6 +89,25 @@ export function App() {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }, [])
+
+  /** 检查更新：先询问服务端是否有新版，有则触发应用（服务端会下载覆盖并重启）。 */
+  const onCheckUpdate = useCallback(async () => {
+    try {
+      setUpdateMsg('检查中…')
+      const r = await (await fetch('/api/check-update')).json()
+      if (!r.available) {
+        setUpdateMsg(`已是最新 (${r.current})`)
+        setTimeout(() => setUpdateMsg(''), 3000)
+        return
+      }
+      setUpdateMsg(`更新到 ${r.latest} 中…`)
+      await fetch('/api/update')
+      setUpdateMsg('正在重启以完成更新…')
+    } catch {
+      setUpdateMsg('更新检查失败')
+      setTimeout(() => setUpdateMsg(''), 3000)
+    }
   }, [])
 
   const handleServerMessage = useCallback(
@@ -442,6 +462,9 @@ export function App() {
             title="查看每次模型请求的耗时与状态"
           >
             请求追踪{requestSummary && requestSummary.failed > 0 ? ` (${requestSummary.failed} 失败)` : ''}
+          </button>
+          <button className="update-btn" onClick={onCheckUpdate} title="检查并安装更新">
+            {updateMsg || '检查更新'}
           </button>
           <span className="chat-header-hint">键入 / 浏览 {commands.length} 个命令</span>
         </header>

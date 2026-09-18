@@ -15,6 +15,7 @@ import { DIST_DIR } from './config.mjs'
 import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN, httpGate, gatePage } from './security.mjs'
 import { latestReport, readReport } from './insights.mjs'
 import { handleMcpOAuthCallback } from './mcpOAuth.mjs'
+import { checkUpdate, applyUpdate } from '../launcher/updater.mjs'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -108,6 +109,41 @@ export function createHttpServer() {
         { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
         JSON.stringify({ token: WS_TOKEN }),
       )
+      return
+    }
+
+    // 更新接口：检查 / 应用（应用会下载覆盖并重启本进程，故先回 ack 再延时执行）。
+    if (urlPath === '/api/check-update') {
+      const r = await checkUpdate()
+      respond(
+        res,
+        200,
+        { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+        JSON.stringify(r),
+      )
+      return
+    }
+    if (urlPath === '/api/update') {
+      const r = await checkUpdate()
+      if (!r.available) {
+        respond(
+          res,
+          200,
+          { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+          JSON.stringify({ ok: false, reason: '无可用更新' }),
+        )
+        return
+      }
+      respond(
+        res,
+        200,
+        { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+        JSON.stringify({ ok: true, restarting: true }),
+      )
+      // 给响应一点时间落盘后再覆盖重启
+      setTimeout(() => {
+        applyUpdate(r.assetUrl).catch(e => console.error('[update] 应用失败：', String(e)))
+      }, 600)
       return
     }
 

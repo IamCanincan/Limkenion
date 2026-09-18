@@ -1,0 +1,5 @@
+# Launcher 脚本跨平台：统一 LF，避免 Windows 的 autocrlf 把 .sh / macOS 启动脚本转成 CRLF 导致在类 Unix 上无法执行。
+web/launcher/** text eol=lf
+web/launcher/limkenion.vbs text eol=crlf
+# 出包脚本可能在任意平台 CI 上运行，强制 LF。
+scripts/** text eol=lf

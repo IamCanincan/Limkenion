@@ -1540,6 +1540,21 @@ code {
   color: var(--accent);
 }
 
+.update-btn {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.update-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
 .request-log-filters {
   display: flex;
   gap: 6px;
