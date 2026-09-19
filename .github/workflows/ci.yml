@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  web:
+    name: typecheck / test / build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      # 用 setup-node 而不是自己下 Node：Gitee Go 那个 build@nodejs 的
+      # nodeVersion 字段不可信（官方只列到 15.12，写 22 时环境里根本没 node），
+      # 当时只能自己 curl 下载。GitHub Actions 这里直接可靠。
+      #
+      # 版本 22.22.2 与本地验证时一致：vitest 5 要 ^22.12 || ^24 || >=26
+      #（依赖 require(ESM)），低了会 ERR_REQUIRE_ESM。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+
+      - name: 环境
+        run: |
+          node -v
+          npm -v
+
+      - name: install
+        run: npm install --no-audit --no-fund
+
+      - name: typecheck
+        run: npm run typecheck
+
+      # build 必须在 test **之前**：`npm test` 里有静态服务相关的用例
+      #（SPA 回退返回 index.html、目录穿越被拒、no-store 响应头），它们需要
+      # dist/ 存在。CI 是全新检出没有 dist —— 放在测试后面就等于必红。
+      - name: build
+        run: npm run build
+
+      - name: server tests
+        run: npm test
+
+      - name: ui tests
+        run: npm run test:ui
