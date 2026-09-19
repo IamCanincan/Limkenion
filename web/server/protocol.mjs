@@ -389,7 +389,13 @@ async function handleClientMessageInner(ws, msg, registry) {
         send(ws, { type: 'error', message: '定时任务的内容不能为空' })
         break
       }
-      scheduleCron(s, { everyMs, prompt: text })
+      try {
+        // 周期上限在 scheduleCron 里把住（超过定时器上限会被 setInterval 当成 1ms）
+        scheduleCron(s, { everyMs, prompt: text })
+      } catch (err) {
+        send(ws, { type: 'error', message: `创建定时任务失败：${String(err?.message ?? err)}` })
+        break
+      }
       send(ws, { type: 'crons', crons: cronList() })
       break
     }

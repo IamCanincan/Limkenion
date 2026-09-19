@@ -1029,7 +1029,21 @@ const crons = new Map()
  * 用户中断一次之后如果不重置，所有后续定时触发都会被静默丢掉。
  * 每次触发前显式重置为 false，让定时任务独立于上一次中断。
  */
+/** Node 定时器的 delay 上限（2^31-1，约 24.8 天）。 */
+export const MAX_TIMER_MS = 2_147_483_647
+
 export function scheduleCron(session, { everyMs, prompt }) {
+  // 登记定时任务唯一的口子，挡在这里就能覆盖所有调用方（模型 CronCreate / 界面 / 工作流）。
+  //
+  // 为什么必须有上限：setInterval 对**大于 2^31-1 的 delay 会当成 1ms**，
+  // 于是填一个很大的毫秒数（界面允许直接填）会变成「每毫秒起一个回合」——
+  // 相当于把自己打挂。宁可明说不支持，也不能默默变成疯跑。
+  if (!Number.isFinite(everyMs) || everyMs > MAX_TIMER_MS) {
+    throw new Error(
+      `周期 ${everyMs}ms 超过定时器上限（${MAX_TIMER_MS}ms，约 ${Math.round(MAX_TIMER_MS / 86_400_000)} 天）；` +
+        '请改用更小的周期。更长的周期需要「触发后重新排下一次」的实现，暂不支持。',
+    )
+  }
   const id = 'cron_' + ++cronSeq
   const timer = setInterval(() => {
     // 会话已被删除（从 store 里消失）则自停，避免往孤儿会话里塞消息
