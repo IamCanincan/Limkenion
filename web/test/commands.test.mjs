@@ -533,6 +533,20 @@ describe('命令注册表扫描', () => {
     }
   })
 
+  test('所有已实现的命令都在注册表里（否则命令面板里根本看不见）', async () => {
+    // 注册表是从 CLI 命令清单生成的，web 自己造的命令不在里面 ——
+    // 实测缺过 7 个（cost/todos/summary/env/tools/cron/cwd）：
+    // 手打能用，但界面上不存在，等于没有。已在 loadCommandRegistry 里补上。
+    const registry = await mod.loadCommandRegistry()
+    const names = new Set((registry.commands ?? registry).map(c => c.name))
+    const invisible = mod.WEB_IMPLEMENTED.filter(n => !names.has(n))
+    assert.deepStrictEqual(
+      invisible,
+      [],
+      '这些命令已实现却不在注册表（要在 WEB_ONLY_COMMANDS 里补）：' + invisible.join('、'),
+    )
+  })
+
   test('实现过的命令不在三张「会让实现失效」的清单里', () => {
     // 踩过两次的坑：/doctor 被 COMMAND_ALIASES 改名成 status、/init-verifiers 留在
     // TERMINAL_ONLY 里 —— 两种情况都是「代码写了、功能根本不生效」。

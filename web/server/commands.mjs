@@ -135,6 +135,23 @@ const WEB_OWN_COMMAND = {
   argumentHint: undefined,
 }
 
+/**
+ * web 端自建、CLI 清单里**没有**的命令。
+ *
+ * 注册表是从 CLI 命令清单生成的，web 自己加的命令不在里面 —— 不补的话
+ * 它们在命令面板/补全里**根本看不见**（手打能用，但用户不知道有这几个）。
+ * 实测缺的就是下面 7 个。
+ */
+const WEB_ONLY_COMMANDS = [
+  { name: 'cost', description: '会话数与 token 用量统计' },
+  { name: 'todos', description: '当前会话的待办清单' },
+  { name: 'summary', description: '当前会话的摘要（消息/回合/待办/改动文件）' },
+  { name: 'env', description: '查看服务端实际生效的环境变量' },
+  { name: 'tools', description: '查看与启停可用的工具' },
+  { name: 'cron', description: '定时任务：列表 / 创建 / 删除' },
+  { name: 'cwd', description: '切换工作区根（收窄到子目录）' },
+]
+
 export async function loadCommandRegistry() {
   // ---- 主路径：读生成的清单 ----
   const manifest = await readCommandManifest()
@@ -154,6 +171,12 @@ export async function loadCommandRegistry() {
       argumentHint: c.argumentHint,
     }))
     commands.push(WEB_OWN_COMMAND)
+    // 补上 web 自建的命令（清单里没有 → 面板里看不见）。按名字去重，
+    // 免得哪天清单里也有了就重复出现两条。
+    const have = new Set(commands.map(c => c.name))
+    for (const c of WEB_ONLY_COMMANDS) {
+      if (!have.has(c.name)) commands.push({ ...c, aliases: c.aliases ?? [], argumentHint: c.argumentHint })
+    }
     commands.sort((a, b) => a.name.localeCompare(b.name))
     return commands
   }
