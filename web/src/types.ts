@@ -27,6 +27,22 @@ export type ClientMessage =
   | { type: 'list_files' }
   | { type: 'permission_response'; requestId: string; decision: 'allow' | 'always' | 'deny' }
   | { type: 'question_response'; requestId: string; answers: QuestionAnswer[] }
+  /** 全局搜索：跨会话消息 + 文件名 + 会话标题。 */
+  | { type: 'search'; query: string; limit?: number }
+
+/** 全局搜索里的一条命中。 */
+export type SearchHit =
+  | {
+      kind: 'message'
+      sessionId: string
+      sessionTitle: string
+      messageId: string
+      role: 'user' | 'assistant' | 'system'
+      timestamp: number | null
+      snippet: string
+    }
+  | { kind: 'file'; path: string }
+  | { kind: 'session'; sessionId: string; sessionTitle: string }
 
 /** 服务端 → 客户端消息。 */
 export type ServerMessage =
@@ -78,6 +94,11 @@ export type ServerMessage =
   | { type: 'stats'; stats: UsageStats }
   | { type: 'requests'; requests: RequestLogEntry[]; summary: RequestSummary; cleared?: number }
   | { type: 'files'; files: string[] }
+  /**
+   * 搜索结果。`complete=false` 表示命中数触顶被截断（学 codex file-search 的
+   * 增量快照语义），前端可以先渲染这批，不必假装它是全部。
+   */
+  | { type: 'search_results'; query: string; hits: SearchHit[]; complete: boolean; truncated: boolean }
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_export'; sessionId: string; filename: string; markdown: string }

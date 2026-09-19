@@ -11,6 +11,7 @@ import { PermissionDialog, type PermissionRequest } from './components/Permissio
 import { QuestionDialog } from './components/QuestionDialog'
 import { PreviewPanel } from './components/PreviewPanel'
 import { TeamPanel } from './components/TeamPanel'
+import { SearchPanel } from './components/SearchPanel'
 import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
@@ -21,6 +22,7 @@ import type {
   ImageAttachment,
   ModelInfo,
   QuestionAnswer,
+  SearchHit,
   ServerMessage,
   SessionInfo,
   Settings,
@@ -60,6 +62,12 @@ export function App() {
   const [teamOpen, setTeamOpen] = useState(false)
   const [teamData, setTeamData] = useState<TeamInfo | null>(null)
   const [teamStreams, setTeamStreams] = useState<Record<string, Record<string, unknown>[]>>({})
+  // 全局搜索：面板开关、结果、以及"跳转过来的那条消息"的高亮 id
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchHits, setSearchHits] = useState<SearchHit[]>([])
+  const [searchComplete, setSearchComplete] = useState(true)
+  const [searchTruncated, setSearchTruncated] = useState(false)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -124,6 +132,11 @@ export function App() {
           break
         case 'sessions_changed':
           setSessions(msg.sessions)
+          break
+        case 'search_results':
+          setSearchHits(msg.hits)
+          setSearchComplete(msg.complete)
+          setSearchTruncated(msg.truncated)
           break
         case 'session_messages':
           setActiveSessionId(msg.sessionId)
@@ -415,6 +428,60 @@ export function App() {
     connectionRef.current.send({ type: 'question_response', requestId, answers })
   }, [])
 
+  // ---- 全局搜索 ----
+
+  // Cmd+K / Ctrl+K 开关搜索面板
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setShowSearch(v => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const onSearchQuery = useCallback((query: string) => {
+    if (query.trim().length === 0) {
+      setSearchHits([])
+      return
+    }
+    connectionRef.current.send({ type: 'search', query })
+  }, [])
+
+  /** 选中一条命中：切到对应会话（必要时），并定位到那条消息。 */
+  const onSearchPick = useCallback((hit: SearchHit) => {
+    setShowSearch(false)
+    if (hit.kind === 'file') {
+      // 文件路径目前只展示（要插入输入框得把 Composer 的输入状态提到 App，留作后续）
+      return
+    }
+    const target = hit.sessionId
+    if (target !== activeSessionIdRef.current) {
+      connectionRef.current.send({ type: 'select_session', sessionId: target })
+      activeSessionIdRef.current = target
+      setActiveSessionId(target)
+    }
+    if (hit.kind === 'message') setHighlightId(hit.messageId)
+  }, [])
+
+  // 命中消息：等该会话的消息渲染出来后滚动过去并闪一下
+  useEffect(() => {
+    if (!highlightId) return
+    const t = setTimeout(() => {
+      document
+        .querySelector(`[data-message-id="${highlightId}"]`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 60)
+    // 闪完就撤，避免一直高亮
+    const clear = setTimeout(() => setHighlightId(null), 2000)
+    return () => {
+      clearTimeout(t)
+      clearTimeout(clear)
+    }
+  }, [highlightId, messages])
+
   return (
     <div className="app">
       {permissionRequest && (
@@ -484,7 +551,21 @@ export function App() {
             onClose={() => setShowRequests(false)}
           />
         )}
-        <ChatView messages={messages} streaming={streamingMessageId !== null} />
+        {showSearch && (
+          <SearchPanel
+            hits={searchHits}
+            complete={searchComplete}
+            truncated={searchTruncated}
+            onQuery={onSearchQuery}
+            onPick={onSearchPick}
+            onClose={() => setShowSearch(false)}
+          />
+        )}
+        <ChatView
+          messages={messages}
+          streaming={streamingMessageId !== null}
+          highlightId={highlightId}
+        />
         <Composer
           commands={commands}
           files={files}

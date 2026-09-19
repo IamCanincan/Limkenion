@@ -1741,3 +1741,75 @@ code {
 .team-input-row { display: flex; gap: 8px; margin-top: 8px; }
 .team-input { flex: 1; padding: 8px; background: transparent; border: 1px solid var(--border, #333); border-radius: 4px; color: inherit; }
 .team-session-hint { color: var(--text-dim, #666); font-size: 10px; margin-top: 6px; }
+
+/* ---- 全局搜索面板（Cmd+K / Ctrl+K）---- */
+.search-panel {
+  max-width: 780px;
+  margin: 0 auto 8px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated, #2a2622);
+  border: 1px solid var(--border, #3a352f);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border, #3a352f);
+  color: var(--text, #ece7e0);
+  font-size: 14px;
+  outline: none;
+}
+.search-input::placeholder { color: var(--text-dim, #9a938a); }
+.search-results { overflow-y: auto; flex: 1; }
+.search-empty { color: var(--text-dim, #9a938a); padding: 14px; text-align: center; font-size: 13px; }
+.search-row {
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border, #3a352f);
+}
+.search-row.selected { background: var(--bg-panel, #211e1b); box-shadow: inset 2px 0 0 var(--accent, #d97757); }
+.search-row-title {
+  font-size: 13px;
+  color: var(--text, #ece7e0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-row-detail {
+  font-size: 12px;
+  color: var(--text-dim, #9a938a);
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.search-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 14px;
+  border-top: 1px solid var(--border, #3a352f);
+  font-size: 11px;
+  color: var(--text-dim, #9a938a);
+}
+.search-hint { opacity: 0.8; }
+
+/* 搜索跳转过来的那条消息：闪一下提示位置 */
+.msg-flash { animation: msg-flash 1.6s ease-out 1; border-radius: 6px; }
+@keyframes msg-flash {
+  0%,
+  60% {
+    background: color-mix(in srgb, var(--accent, #d97757) 22%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}

@@ -36,6 +36,7 @@ import {
 } from './sessions.mjs'
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { listIndexedFiles } from './workspace.mjs'
+import { searchAll } from './search.mjs'
 
 /** 单条客户端消息的最大长度（防超大帧打爆内存）。 */
 const MAX_FRAME_BYTES = 8 * 1024 * 1024
@@ -309,6 +310,19 @@ async function handleClientMessageInner(ws, msg, registry) {
         filename: `${s.title || 'session'}.md`,
         markdown: exportSessionMarkdown(s),
       })
+      break
+    }
+
+    // 全局搜索：跨会话消息 + 文件名 + 会话标题。
+    // 纯内存/索引扫描，不做任何写操作，也不碰文件系统权限之外的东西。
+    case 'search': {
+      try {
+        const q = String(msg.query ?? '')
+        const r = await searchAll(q, { limit: Number(msg.limit) || undefined })
+        send(ws, { type: 'search_results', ...r })
+      } catch (err) {
+        send(ws, { type: 'error', message: `搜索失败：${String(err)}` })
+      }
       break
     }
 

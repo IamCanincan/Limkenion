@@ -4,9 +4,11 @@ import { MessageItem } from './MessageItem'
 interface Props {
   messages: ChatMessage[]
   streaming: boolean
+  /** 搜索跳转过来要高亮的那条消息（短暂闪烁提示）。 */
+  highlightId?: string | null
 }
 
-export function ChatView({ messages, streaming }: Props) {
+export function ChatView({ messages, streaming, highlightId }: Props) {
   return (
     <div className="chat-view">
       {messages.length === 0 && (
@@ -17,7 +19,10 @@ export function ChatView({ messages, streaming }: Props) {
         </div>
       )}
       {messages.map(m => (
-        <MessageItem key={m.id} message={m} />
+        // data-message-id：全局搜索命中后据此定位并滚动到这条消息
+        <div key={m.id} data-message-id={m.id} className={m.id === highlightId ? 'msg-flash' : undefined}>
+          <MessageItem message={m} />
+        </div>
       ))}
       {streaming && (
         <div className="streaming-indicator">
