@@ -450,3 +450,90 @@ describe('命令注册表扫描', () => {
     }
   })
 })
+
+// ---------------------------------------------------------------------------
+// /add-dir：追加额外可访问目录
+// ---------------------------------------------------------------------------
+
+describe('/add-dir 追加额外可访问目录', () => {
+  test('追加工作区外的目录：写入 workspaceAdditions 且作用域真的带上它', async () => {
+    const outside = await mkdtemp(join(tmpdir(), 'limkenion-outside-'))
+    const { session, run } = makeRunner()
+    const out = await run('/add-dir ' + outside)
+
+    assert.match(out, /已追加额外目录/, '输出应说明已追加，实际：' + out)
+    assert.ok(
+      session.workspaceAdditions.includes(outside),
+      'workspaceAdditions 应包含该目录（这是此前唯一没被写入过的字段）',
+    )
+    // 闭环：作用域必须真的带上它 —— 否则只是改了个没人读的字段
+    const { scopeForSession } = await import('../server/paths.mjs')
+    const scope = scopeForSession(session)
+    assert.ok(
+      scope.additions.includes(outside),
+      '作用域的 additions 应包含它，实际：' + JSON.stringify(scope.additions),
+    )
+    await rm(outside, { recursive: true, force: true })
+  })
+
+  test('追加不存在的路径 → 明确报错', async () => {
+    const { session, run } = makeRunner()
+    const out = await run('/add-dir /definitely-not-exist-xyz')
+    assert.match(out, /目录不存在/)
+    assert.equal(session.workspaceAdditions.length, 0)
+  })
+
+  test('追加一个文件（不是目录）→ 拒绝', async () => {
+    const fs = await import('node:fs/promises')
+    const file = join(stateDir, 'a-file.txt')
+    await fs.writeFile(file, 'x')
+    const { session, run } = makeRunner()
+    const out = await run('/add-dir ' + file)
+    assert.match(out, /不是目录/)
+    assert.equal(session.workspaceAdditions.length, 0)
+  })
+
+  test('追加工作区内的目录 → 提示本来就可达，不重复加', async () => {
+    const fs = await import('node:fs/promises')
+    const inside = join(stateDir, 'inside-dir')
+    await fs.mkdir(inside, { recursive: true })
+    const { session, run } = makeRunner()
+    const out = await run('/add-dir ' + inside)
+    assert.match(out, /本来就可访问|无需追加/)
+    assert.equal(session.workspaceAdditions.length, 0)
+  })
+
+  test('追加父目录 → 明确警告"范围被扩大"（否则等于悄悄把沙箱边界往外挪）', async () => {
+    // stateDir 是 tmpdir() 下的子目录，所以 tmpdir() 就是它的上级目录
+    const { session, run } = makeRunner()
+    const out = await run('/add-dir ' + tmpdir())
+    assert.ok(
+      /扩大/.test(out) && /⚠️/.test(out),
+      '追加父目录必须给出扩大范围的警告，实际：' + out,
+    )
+    assert.ok(session.workspaceAdditions.includes(tmpdir()))
+  })
+
+  test('重复追加 → 提示已在清单，不产生重复项', async () => {
+    const outside = await mkdtemp(join(tmpdir(), 'limkenion-dup-'))
+    const { session, run } = makeRunner()
+    await run('/add-dir ' + outside)
+    const out = await run('/add-dir ' + outside)
+    assert.match(out, /已在清单里/)
+    assert.equal(session.workspaceAdditions.filter(p => p === outside).length, 1)
+    await rm(outside, { recursive: true, force: true })
+  })
+
+  test('--remove 能移除，无参时列出当前清单', async () => {
+    const outside = await mkdtemp(join(tmpdir(), 'limkenion-rm-'))
+    const { session, run } = makeRunner()
+    await run('/add-dir ' + outside)
+    const out = await run('/add-dir --remove ' + outside)
+    assert.match(out, /已移除额外目录/)
+    assert.equal(session.workspaceAdditions.length, 0)
+
+    const list = await run('/add-dir')
+    assert.match(list, /额外可访问目录（0）/)
+    await rm(outside, { recursive: true, force: true })
+  })
+})

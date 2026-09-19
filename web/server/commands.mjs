@@ -10,8 +10,8 @@
  */
 
 import { readFile, readdir } from 'node:fs/promises'
-import { join, relative, resolve } from 'node:path'
-import { existsSync } from 'node:fs'
+import { isAbsolute, join, relative, resolve } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
 import { compactSession } from './compact.mjs'
 import { clearCheckpoints, restoreCheckpoints } from './checkpoints.mjs'
@@ -44,6 +44,7 @@ import {
   collectStats,
   forkSession,
   rewindSession,
+  schedulePersist,
   sessionCount,
 } from './sessions.mjs'
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
@@ -245,7 +246,7 @@ const TERMINAL_ONLY = {
   'remote-env': '远端环境属于 CLI 托管能力',
   'remote-setup': '远端配置属于 CLI 托管能力',
   'remote-control-server': '远端控制服务属于 CLI 托管能力',
-  'add-dir': '追加目录暂未实现；web 端用 /cwd 收窄工作区根',
+  // 注意：/add-dir **不在这里** —— 它已于 2026-09-19 在 web 实现（追加额外可访问目录）。
   // 注意：这个命令在 commands/sandbox-toggle/index.ts 里，但 name 是 'sandbox'。
   // 原来这里只写了 'sandbox-toggle'，键名对不上，于是 /sandbox 会落到
   // 兜底的"CLI 终端专属（描述）"上，说明不够准确。两个键都留着。
@@ -336,6 +337,7 @@ export const WEB_IMPLEMENTED = [
   'schedule',    // 与 /cron 同一实现（CLI 叫 /schedule）
   'workflows',   // 动态工作流运行（web 端未挂载该工具，如实说明）
   'cwd',         // 切换工作区根（收窄到子目录；触发 cwd-changed 钩子）
+  'add-dir',     // 追加额外可访问目录（写入 session.workspaceAdditions）
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
@@ -577,7 +579,7 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       fireCwdHook(from, DEFAULT_WORKSPACE_ROOT)
       return `工作区根已重置：${from} → ${DEFAULT_WORKSPACE_ROOT}`
     }
-    const target = resolve(join(base, arg))
+    const target = resolve(base, arg)
     if (target === base) return `目标与当前根相同：${target}`
     if (!isInsideWorkspace(target)) {
       return `拒绝：目标必须位于当前根内部（防逃逸）。当前根：${base}`
@@ -587,6 +589,68 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     fireCwdHook(base, target)
     return `工作区根已切换：${base} → ${target}`
   }
+
+  if (name === 'add-dir') {
+    // 追加「额外可访问目录」：paths.mjs / engine.mjs 早就支持 additions，
+    // 但此前**没有任何入口能往里写** —— 这个字段一直是死的。这里就是那个入口。
+    const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
+    const additions = (session.workspaceAdditions ??= [])
+
+    const show = () =>
+      `当前工作区根：${base}\n` +
+      `额外可访问目录（${additions.length}）：\n` +
+      (additions.length ? additions.map(p => `  - ${p}`).join('\n') : '  （无）') +
+      '\n\n用法：/add-dir <路径> 追加 · /add-dir --remove <路径> 移除 · /add-dir 查看列表'
+
+    if (!arg) return show()
+
+    if (arg.startsWith('--remove')) {
+      const raw = arg.replace(/^--remove\s*/, '').trim()
+      if (!raw) return show()
+      const target = resolve(base, raw)
+      const i = additions.indexOf(target)
+      if (i < 0) return `不在额外目录清单里：${target}\n\n${show()}`
+      additions.splice(i, 1)
+      session.updatedAt = Date.now()
+      schedulePersist()
+      return `已移除额外目录：${target}\n\n${show()}`
+    }
+
+    const target = resolve(base, arg)
+    if (!existsSync(target)) return `目录不存在：${target}`
+    let st
+    try {
+      st = statSync(target)
+    } catch {
+      return `无法读取该路径：${target}`
+    }
+    if (!st.isDirectory()) return `这不是目录（只有目录能被追加）：${target}`
+    if (target === base) return `这就是当前工作区根，无需追加：${target}`
+    if (isInsideWorkspace(target)) {
+      return `该目录已在工作区根内部，本来就可访问，无需追加：${target}`
+    }
+    if (additions.includes(target)) return `已在清单里：${target}\n\n${show()}`
+
+    additions.push(target)
+    session.updatedAt = Date.now()
+    schedulePersist()
+
+    // 追加**父目录**会把沙箱范围整体放大（根变成它的子目录）—— 必须说清楚，
+    // 否则用户以为只是多加了一个目录，实际是把边界往外挪了一层。
+    // relative(target, base) 不以上级(..)开头且不是绝对路径 ⇒ base 在 target 里面
+    const rel = relative(target, base)
+    const widens = !!rel && !rel.startsWith('..') && !isAbsolute(rel)
+    if (widens) {
+      return (
+        `已追加额外目录：${target}\n\n` +
+        `⚠️ 注意：它是当前工作区根（${base}）的**上级目录**，\n` +
+        `文件工具的可达范围实际上从 ${base} 扩大到了 ${target}。\n` +
+        `如果这不是你的本意，用 /add-dir --remove ${target} 撤掉。\n\n${show()}`
+      )
+    }
+    return `已追加额外目录：${target}\n\n${show()}`
+  }
+
   if (name === 'config') {
     return `当前设置（本会话）：\n${Object.entries(publicSettings(session)).map(([k, v]) => `- ${k}：${v}`).join('\n')}\n\n用 /model /theme /permissions 修改。`
   }
