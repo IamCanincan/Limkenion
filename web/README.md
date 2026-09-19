@@ -17,7 +17,7 @@ web/
 │   ├── sessions.mjs      # 会话存储 + 磁盘持久化
 │   ├── workspace.mjs     # 工作区文件索引（带缓存）
 │   ├── interactions.mjs  # 权限确认 / 问答通道
-│   ├── tools.mjs         # CLI 工具集镜像（47 个）
+│   ├── tools.mjs         # CLI 工具集镜像（45 个）
 │   ├── toolindex.mjs     # 工具延迟加载
 │   ├── engine.mjs        # 回合循环、子代理、定时任务
 │   ├── commands.mjs      # 斜杠命令语义
@@ -39,7 +39,7 @@ web/
 │   └── netproxy.mjs      # shell 出网白名单代理（纯 Node，无原生依赖）
 ├── bin/
 │   └── limkenion-web.mjs # npm bin 入口
-├── test/                 # 自动化测试（node:test，45 个文件 / 452 个用例）
+├── test/                 # 自动化测试（node:test，46 个文件 / 451 个用例）
 └── src/
     ├── main.tsx / App.tsx / api.ts / types.ts / styles.css
     └── components/       # 21 个组件（见下）
@@ -78,7 +78,7 @@ web/
 | 聊天/流式回复 | REPL | 聊天视图 |
 | 思维链展示 | 折叠块 | 「思考中…」折叠块（`reasoning_content`） |
 | 工具调用展示 | 转录流 | 回合过程折叠 + 展开 |
-| **工具集** | `tools/` 目录 | **47 个镜像**（`LS` / `CronList` / `CronDelete` / `Workflow` 等为 web 补充） |
+| **工具集** | `tools/` 目录 | **45 个镜像**（`LS` / `CronList` / `CronDelete` / `Workflow` 等为 web 补充） |
 | 权限确认 | 危险工具提示 | 弹窗（允许一次/本会话总是/拒绝，升级确认时隐藏「总是允许」） |
 | 权限模式 | `/permissions` | 顶栏选择器 + `/permissions`（default / acceptEdits / plan / bypassPermissions） |
 | 计划模式 | EnterPlanMode / ExitPlanMode | `/plan` + 顶栏横幅 + 工具门控 |
@@ -87,7 +87,7 @@ web/
 | TodoWrite 任务清单 | 待办面板 | 消息内常驻清单 |
 | 任务跟踪 | Task* 工具 | Task* 工具 + `/tasks` |
 | 子代理 | Agent 工具 | Agent 工具（只读子代理，过程可见为 `Agent·<工具>`）+ **具名子代理**（可预配模型与只读工具子集） |
-| 斜杠命令 | 命令补全 | 命令面板（注册表 77 条，31 条有真实语义） |
+| 斜杠命令 | 命令补全 | 命令面板（注册表 77 条，其中 42 条在 web 有真实语义） |
 | @ 文件引用 | @ 补全 | @ 补全（服务端索引工作区文件） |
 | 图片输入 | 粘贴图片 | 粘贴/选择图片（base64 → 多模态 content parts） |
 | 模型切换 | `/model` | 顶栏模型选择器 + `/model` |
@@ -111,7 +111,7 @@ web/
 | **shell 出网 allowlist** | `LIMKENION_WEB_SHELL_NET=allowlist` 时起本进程内 HTTP 代理，按 `LIMKENION_EGRESS_ALLOWLIST` 放行（详见下方安全边界） |
 | **钩子输出上下文预算** | 钩子要进上下文的输出超 8000 字即落盘到 `hook_outputs/`，只留截断版 + 指针，防止话多的钩子撑爆上下文 |
 
-### 工具集（47 个）
+### 工具集（45 个）
 
 | 分类 | 工具 |
 | --- | --- |
