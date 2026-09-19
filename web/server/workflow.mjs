@@ -46,6 +46,8 @@ const SYNC_TIMEOUT_MS = 5000
 
 /** 内存里的运行记录（`/workflows` 实时看进度用；落盘的那份是 journal）。 */
 const runs = new Map()
+/** 内存里保留的运行记录上限（超了淘汰最旧的；journal 在盘上，不丢数据）。 */
+const MAX_RUNS_IN_MEMORY = 50
 
 function newRunId() {
   return 'wf-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-' + Math.random().toString(36).slice(2, 6)
@@ -188,6 +190,12 @@ export async function runWorkflow({
     tokensUsed: 0,
   }
   runs.set(runId, run)
+  // 内存里的运行记录要有上限：长驻服务会跑很多次工作流，只增不删就成了泄漏。
+  // 淘汰最旧的**只从内存移除** —— journal 已落盘，loadRun() 会回退读盘，数据不丢。
+  if (runs.size > MAX_RUNS_IN_MEMORY) {
+    const oldest = [...runs.keys()].slice(0, runs.size - MAX_RUNS_IN_MEMORY)
+    for (const k of oldest) runs.delete(k)
+  }
 
   // ---- 复用上次运行里已完成的 agent（按 prompt 匹配），模拟 CLI 的断点续跑 ----
   const reusable = new Map()

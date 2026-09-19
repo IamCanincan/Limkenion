@@ -651,6 +651,8 @@ function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
 // 与待办类 TaskOutput/TaskStop 共用工具名，靠 bg- 前缀区分。
 // ---------------------------------------------------------------------------
 const BG_MAX_BYTES = 64 * 1024
+/** 同时在跑的后台任务上限（超过就拒绝启动，防 map 与子进程无限增长）。 */
+const BG_MAX_RUNNING = 30
 const bgTasks = new Map() // id -> task
 let bgSeq = 0
 
@@ -697,6 +699,23 @@ function startBackgroundShell(session, command) {
     for (const [k, t] of bgTasks) {
       if (t.done && bgTasks.size > 30) bgTasks.delete(k)
     }
+  }
+  // 只淘汰「已结束」的是不够的：若 30 个**全在跑**，一个都淘汰不掉，
+  // map 与子进程数会无限增长（每个任务最多还占 64KB 输出）。这里对正在跑的
+  // 任务也设硬上限，超了就明确拒绝并给出可操作的提示 —— 静默失败最糟。
+  let runningNow = 0
+  for (const t of bgTasks.values()) if (!t.done) runningNow++
+  if (runningNow > BG_MAX_RUNNING) {
+    bgTasks.delete(id)
+    try {
+      task.proc?.kill('SIGKILL')
+    } catch {
+      /* 刚起的，杀不掉就算了 */
+    }
+    return (
+      `后台任务已达并发上限（同时在跑 ${runningNow - 1} 个，上限 ${BG_MAX_RUNNING}）。` +
+      `请先用 TaskStop 结束掉一些，或改用前台 Bash。命令未启动：${command}`
+    )
   }
   return `已在后台启动（任务 ID：${id}）\n命令：${command}\n用 TaskOutput {"taskId":"${id}"} 查看输出；TaskStop {"taskId":"${id}"} 终止。`
 }
