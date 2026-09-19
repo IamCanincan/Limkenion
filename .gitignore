@@ -31,3 +31,6 @@ coverage/
 # WorkBuddy 工作区数据（记忆笔记例外 —— 让它随仓库一起走）
 .workbuddy-ai/*
 !.workbuddy-ai/memory/
+
+# 另一个运行时留下的目录（本项目记忆统一在 .workbuddy-ai/memory/，不要往那边写）
+.workbuddy/

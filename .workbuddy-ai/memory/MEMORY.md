@@ -133,9 +133,10 @@ engine → commands → protocol → index。**新增模块别引入反向依赖
   + `GET /api/check-update` / `POST /api/update`。
 
 ## 接力提示
-**新 agent 上手**：① 读本文件 → ② 读 **`.workbuddy/HANDOFF.md`**（最新交接）→
+**新 agent 上手**：① 读本文件 → ② 读 **`HANDOFF.md`**（同目录，最新交接）→
 ③ 按需读 `MEMORY-details.md` → ④ 改 `web/` 前加载 **`limkenion-web-verify`** 技能。
-CLI 技能已随归档失效；CLI 源码只在 `archive/cli` 分支，仅在用户明确要求回溯时才读。
+CLI 技能已随归档失效；CLI 源码已从本机与远程彻底删除（bundle 在仓库外，见 details 附八），
+仅在用户明确要求回溯时才去恢复。
 **用户偏好**：不要反复问"选哪个"；说"继续"就是接着干。愿意为真功能付代价（安全边界/子系统重做
 都已明确授权做过）；但**没被要求时不要擅自扩大权限边界**。
 **未提交**：桌面分发（launcher + 出包脚本 + .gitattributes 等）已暂存未 commit ——
