@@ -4,6 +4,8 @@ node_modules/
 # 构建产物
 dist/
 *.tsbuildinfo
+# 出包产物（桌面分发的 release 脚本已删，这是历史遗留；仓库里不存在时这条无害）
+web/release/
 
 # 日志
 *.log
