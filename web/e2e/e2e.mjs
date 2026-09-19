@@ -349,8 +349,44 @@ console.log('\n【D】worktree：切沙箱根')
   }
 
   // 退出之后应当回到原根（否则会话会"卡"在刚被删掉的目录上）
-  await sendAndWait(c, '用 Write 在工作区根目录创建 back-in-main.txt，内容写 "back"。完成后只回复两个字：完成', { timeoutMs: 120000 })
-  record('D7 退出后写入回到原根', existsSync(join(REPO, 'back-in-main.txt')), existsSync(join(REPO, 'back-in-main.txt')) ? '' : '原根里没找到文件')
+  // 退出之后应当回到原根（否则会话会"卡"在刚被删掉的目录上）。
+  //
+  // 这里必须区分两种「原根里没有文件」，否则会把模型的不确定性当成回归：
+  //   - 模型压根没调 Write → 这条路径本轮没走到，按 D6 的惯例 **skip**（不是失败）；
+  //   - 模型调了 Write 但文件不在原根 → 这才是真回归（沙箱根没还原 / 写错根）。
+  // 实测 D7 有约两成抖动，全部来自「模型没调 Write」；把「没走到」记成失败会
+  // 污染回归判定（曾为此白跑 9 轮对照）。
+  let backEvents = await sendAndWait(
+    c,
+    '用 Write 在工作区根目录创建 back-in-main.txt，内容写 "back"。完成后只回复两个字：完成',
+    { timeoutMs: 120000 },
+  )
+  let wroteBack = backEvents.some(e => e.type === 'tool_call' && e.toolCall?.name === 'Write')
+  if (!wroteBack) {
+    // 再给一次明确的机会（挑明"必须调工具"），仍不写才判未触发
+    backEvents = await sendAndWait(
+      c,
+      '请立刻调用 Write 工具（不要只用文字回复）：路径 back-in-main.txt，内容写 "back"。',
+      { timeoutMs: 120000 },
+    )
+    wroteBack = backEvents.some(e => e.type === 'tool_call' && e.toolCall?.name === 'Write')
+  }
+  const backInMain = existsSync(join(REPO, 'back-in-main.txt'))
+  if (!wroteBack && !backInMain) {
+    skip('D7 退出后写入回到原根', '模型本轮没有调用 Write，这条路径未走到')
+  } else {
+    // 写错到 worktree 是最有价值的线索，单独指出来
+    const inWt = existsSync(join(wtDir, 'back-in-main.txt'))
+    record(
+      'D7 退出后写入回到原根',
+      backInMain,
+      backInMain
+        ? ''
+        : inWt
+          ? `文件落在 worktree（${wtDir}）而不是原根 —— 沙箱根没还原，这是真回归`
+          : '模型调用了 Write，但原根里没找到文件（沙箱根没还原 / 写错根）',
+    )
+  }
 }
 
 // =============== 场景 E：MCP ===============
