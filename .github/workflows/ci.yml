@@ -43,18 +43,23 @@ jobs:
       - name: build
         run: npm run build
 
-      # 失败时把「哪几条用例挂了」打出来：node --test 的完整输出有几千行
-      #（本地全绿时根本看不到 CI 的失败点），没有这个摘要就只能干瞪眼。
+      # 失败时把「哪几条用例挂了」写进 **$GITHUB_STEP_SUMMARY**。
+      # 只 echo 到日志是不够的 —— 日志是动态加载的，外部抓不到，
+      # 而 step summary 会显示在 run 页面摘要区，看得见。
       - name: server tests
         run: |
           set -o pipefail
           npm test 2>&1 | tee server-tests.log
           code=$?
           if [ "$code" -ne 0 ]; then
-            echo "===== 失败的用例（前 40 条）====="
-            grep -E "^✖|^not ok" server-tests.log | head -40
-            echo "===== 汇总 ====="
-            grep -E "^ℹ (tests|pass|fail|skipped)" server-tests.log | tail -8
+            {
+              echo '### server tests 失败'
+              echo '```'
+              grep -E "^✖|^not ok|AssertionError" server-tests.log | head -40
+              echo '--- 日志末尾 ---'
+              tail -40 server-tests.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
           exit $code
 
