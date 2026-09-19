@@ -199,6 +199,19 @@ export async function enterWorktree(session, name, branch) {
     if (!add.ok) {
       throw new Error(`git worktree add 失败：${add.stderr || add.error}`)
     }
+  } else {
+    // 目录已存在：必须确认它**真的在我们要的分支上**。
+    // 否则会出现最难受的一种错：同名 worktree 之前建在别的分支上，这里跳过创建、
+    // 静默把用户带进那个分支，而 session 里记的却是本次请求的分支 ——
+    // 用户以为自己在 feature-b，实际改的是 feature-a。宁可报错也不要静默给错。
+    const cur = await git(['-C', path, 'rev-parse', '--abbrev-ref', 'HEAD'], repoRoot)
+    const onBranch = String(cur.stdout ?? '').trim()
+    if (cur.ok && onBranch && onBranch !== target) {
+      throw new Error(
+        `worktree 目录已存在（${path}），且它当前在分支 ${onBranch} 上，` +
+          `与请求的 ${target} 不一致 —— 换一个目录名，或先清理旧的 worktree。`,
+      )
+    }
   }
 
   session.worktree = { path, branch: target, base: session.workspaceRoot ?? null }

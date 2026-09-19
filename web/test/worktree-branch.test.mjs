@@ -98,3 +98,30 @@ test('分支名校验：挡住参数注入 / 非法字符', async () => {
   // 校验失败时不能把会话弄成"半进 worktree"的状态
   assert.strictEqual(s.worktree ?? null, null, '校验失败不该改动会话')
 })
+
+test('同名 worktree 请求另一个分支：必须报错（不能静默给错分支）', async () => {
+  // 用**全新**的分支：git 不允许同一个分支被多个 worktree 同时检出，
+  // 复用上面用例用过的分支会直接撞在这条 git 限制上，测不到我们要测的东西。
+  git(['branch', 'wt/one'], ws)
+  git(['branch', 'wt/two'], ws)
+
+  const s1 = sessions.createSession()
+  await worktree.enterWorktree(s1, 'dup-name', 'wt/one')
+  assert.strictEqual(s1.worktree.branch, 'wt/one')
+
+  // 同一个目录名、换一个分支：目录已存在，若直接复用就会把用户带进 wt/one，
+  // 而 session 里记的却是 wt/two —— 静默给错分支，最难查的那种。
+  const s2 = sessions.createSession()
+  await assert.rejects(
+    () => worktree.enterWorktree(s2, 'dup-name', 'wt/two'),
+    /不一致|已存在/,
+    '同名 worktree 换分支必须报错，不能静默复用',
+  )
+  // 失败的会话不能处于"半进 worktree"的状态
+  assert.strictEqual(s2.worktree ?? null, null)
+
+  // 同目录名 + **同一个分支**则允许：幂等复用，不该报错
+  const s3 = sessions.createSession()
+  const r = await worktree.enterWorktree(s3, 'dup-name', 'wt/one')
+  assert.strictEqual(r.worktreeBranch, 'wt/one', '同分支应可复用（幂等）')
+})
