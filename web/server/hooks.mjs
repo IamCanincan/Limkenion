@@ -38,6 +38,10 @@
 
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
+import { STATE_DIR } from './sessions.mjs'
 import { settingsSources } from './settings.mjs'
 import { workspaceRoot } from './paths.mjs'
 import {
@@ -135,6 +139,19 @@ export const HOOK_TYPES_UNSUPPORTED = []
 const DEFAULT_TIMEOUT_MS = 60_000
 const MAX_TIMEOUT_MS = 600_000
 const MAX_OUTPUT_CHARS = 12_000
+
+/**
+ * 钩子往**上下文**里塞的内容（systemMessage / additionalContext）的字符预算。
+ *
+ * MAX_OUTPUT_CHARS 管的是原始输出；但那些要进上下文的文本原先没有预算 ——
+ * 一个话多的钩子能把上下文撑爆。超过预算就落盘，只留截断版 + 指针
+ * （学 codex 的 output_spill）。用字符数而不是真 token 数：估算便宜且够用
+ * （中文按 1 字 ≈ 1 token 反而更保守）。
+ *
+ * 可用 LIMKENION_WEB_HOOK_CONTEXT_CHARS 覆盖（测试里调小就能强制触发落盘）。
+ */
+const HOOK_CONTEXT_CHAR_LIMIT = Number(process.env.LIMKENION_WEB_HOOK_CONTEXT_CHARS) || 8000
+const HOOK_OUTPUTS_DIR = join(STATE_DIR, 'hook_outputs')
 
 /**
  * 跑钩子用的 shell（返回 shell 可执行文件路径，交给 `spawn(cmd, { shell })`）。
@@ -612,7 +629,11 @@ function mergeResult(acc, hook, res) {
  *   stopReason:string|null, messages:string[], ran:number}>}
  */
 export async function runEventHooks(event, { toolName = '', hookInput, cwd = workspaceRoot() } = {}) {
-  const acc = {
+  // 必须显式标注类型：字面量 `[]` 会被推成 never[]、`null` 推成字面量 null，
+  // 后面重新赋值（messages = string[] / additionalContext = string）就会报 TS2322。
+  const acc = /** @type {{event:string, decision:'allow'|'ask'|'deny'|null, reason:string|null,
+    updatedInput:object|null, additionalContext:string|null, preventContinuation:boolean,
+    stopReason:string|null, messages:string[], ran:number}} */ ({
     event,
     decision: null,
     reason: null,
@@ -622,14 +643,52 @@ export async function runEventHooks(event, { toolName = '', hookInput, cwd = wor
     stopReason: null,
     messages: [],
     ran: 0,
-  }
+  })
   const hooks = runnableHooks(event, toolName)
   for (const hook of hooks) {
     acc.ran++
     const res = await runHook(hook, { ...hookInput, hook_event_name: event }, { cwd })
     mergeResult(acc, hook, res)
   }
+  // 上下文预算：统一在这里后处理，覆盖**所有事件**、也覆盖 messages 与
+  // additionalContext 两个来源（放在调用点容易漏）。正常输出不会触发任何 I/O。
+  if (acc.messages.length > 0) {
+    acc.messages = await Promise.all(acc.messages.map(m => spillIfOversized(m, '钩子消息')))
+  }
+  if (acc.additionalContext) {
+    acc.additionalContext = await spillIfOversized(acc.additionalContext, '附加上下文')
+  }
   return acc
+}
+
+/**
+ * 超预算就落盘，只回截断版 + 指针路径。
+ *
+ * 落盘失败（权限/磁盘满）不能把钩子搞挂 —— 那就退回纯截断，照样不撑爆上下文。
+ *
+ * @param {string} text
+ * @param {string} label 用于提示文案（"钩子消息" / "附加上下文"）
+ * @returns {Promise<string>}
+ */
+async function spillIfOversized(text, label) {
+  const s = String(text ?? '')
+  if (s.length <= HOOK_CONTEXT_CHAR_LIMIT) return s
+  // 保留长度**跟着预算走**，不能写死一个值：否则预算调小时"截断"会名不副实
+  // （比如预算 120、却仍留 2000 字）。给 note 预留 200 字，保证 head+note ≈ 预算。
+  const keep = Math.max(100, HOOK_CONTEXT_CHAR_LIMIT - 200)
+  const head = s.slice(0, keep)
+  try {
+    await mkdir(HOOK_OUTPUTS_DIR, { recursive: true })
+    const file = join(HOOK_OUTPUTS_DIR, `${Date.now()}-${randomUUID().slice(0, 8)}.txt`)
+    await writeFile(file, s, 'utf8')
+    return (
+      `${head}\n…（${label}共 ${s.length} 字，超出上下文预算 ${HOOK_CONTEXT_CHAR_LIMIT} 字已截断；` +
+      `完整内容已落盘：${file}）`
+    )
+  } catch {
+    // 兜底的兜底：落不了盘也要保证不撑爆上下文
+    return `${head}\n…（${label}共 ${s.length} 字，已截断；完整内容落盘失败）`
+  }
 }
 
 /** 组装 tool-before / tool-after 的输入（字段名与 CLI 一致）。 */
