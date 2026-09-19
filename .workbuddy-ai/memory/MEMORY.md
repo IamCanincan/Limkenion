@@ -139,7 +139,9 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
    stdout 管道 → `close` 永不触发 → **整个回合挂死**。要**不等 close 直接结算** + 杀进程树。
 7. **`ws?.readyState === ws.OPEN` 是假保护** —— 可选链只短路它自己那一段，右侧 `ws.OPEN`
    照样求值，ws 为 null 时抛 TypeError。**可选链不等于空值检查。**
-8. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
+8. **协议测试一律用 `startServer({ port: 0 })`**（`helpers.mjs` 会从启动日志解析并
+   返回实际端口）—— 硬编码端口在 CI 上可能 EADDRINUSE，那种失败跟代码无关且最难查。
+9. **`npm test` 必须显式写 `node --test test/*.test.mjs`** —— 只写 `node --test` 会 glob 到
    `test/fixtures/`，把 MCP 桩服务当测试文件跑（全套 15 分钟 → 21 秒）。
 9. **`node:vm` 不是安全边界**（工作流脚本）：挡得住 `require`/`process`（靠不注入），
    挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
