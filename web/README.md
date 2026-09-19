@@ -39,7 +39,7 @@ web/
 │   └── netproxy.mjs      # shell 出网白名单代理（纯 Node，无原生依赖）
 ├── bin/
 │   └── limkenion-web.mjs # npm bin 入口
-├── test/                 # 自动化测试（node:test，46 个文件 / 483 个用例）
+├── test/                 # 自动化测试（node:test，46 个文件 / 484 个用例）
 └── src/
     ├── main.tsx / App.tsx / api.ts / types.ts / styles.css
     └── components/       # 21 个组件（见下）

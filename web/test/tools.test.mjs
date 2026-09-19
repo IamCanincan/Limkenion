@@ -133,6 +133,33 @@ describe('文件工具', () => {
     )
   })
 
+  test('Read 读"区内软链"被拒（软链指向区外 —— 工具层也要挡住）', async () => {
+    // 路径层的测试在 paths.test.mjs；这条走**完整的工具分派**，
+    // 确认 Read 真的调到了 safePath，而不是自己另算了一套路径。
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { symlinkSync } = await import('node:fs')
+    const { join } = await import('node:path')
+
+    const out = await mkdtemp(join(tmpdir(), 'lk-tools-out-'))
+    const secret = join(out, 'secret.txt')
+    await writeFile(secret, 'TOP-SECRET')
+    const link = join(safePath('.'), 'innocent.txt')
+    try {
+      symlinkSync(secret, link)
+    } catch {
+      await rm(out, { recursive: true, force: true })
+      return // 这台机器建不了软链
+    }
+
+    await assert.rejects(
+      () => executeTool('Read', { file_path: 'innocent.txt' }, makeCtx().ctx),
+      /越界/,
+      '软链指向区外，Read 必须拒绝',
+    )
+    await rm(out, { recursive: true, force: true })
+  })
+
   test('Write 返回 diff 并写入磁盘', async () => {
     const { ctx } = makeCtx()
     const r = await executeTool('Write', { file_path: 'new/created.txt', content: 'a\nb\n' }, ctx)
