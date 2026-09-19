@@ -15,7 +15,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -53,6 +53,45 @@ test('不得使用 import.meta.dirname（Node 20.11+ 才有，CI 上会炸）', 
     '以下文件用了 import.meta.dirname：' +
       hits.join('、') +
       ' —— 请改用 dirname(fileURLToPath(import.meta.url))',
+  )
+})
+
+test('相对导入的文件名大小写必须与磁盘一致（Linux 区分大小写）', () => {
+  // 经典 CI 杀手：Windows 文件系统不区分大小写，`import './helpers.mjs'` 即使磁盘上
+  // 叫 `Helpers.mjs` 也能跑；Linux 上直接 ERR_MODULE_NOT_FOUND。本地 Windows 永远绿。
+  const files = [
+    ...collect(join(ROOT, 'server')),
+    ...collect(join(ROOT, 'src')),
+    ...collect(join(ROOT, 'test')),
+  ].filter(f => f !== SELF)
+
+  const RE = /(?:from|require\(|import\()\s*['"](\.[^'"]*)['"]/g
+  const bad = []
+  for (const f of files) {
+    for (const m of readFileSync(f, 'utf8').matchAll(RE)) {
+      const spec = m[1]
+      const target = resolve(dirname(f), spec)
+      const parent = dirname(target)
+      const base = target.slice(parent.length + 1)
+      let entries = []
+      try {
+        entries = readdirSync(parent)
+      } catch {
+        continue
+      }
+      // 精确命中，或命中「同名 + 扩展名」（省略扩展名的写法）
+      if (entries.includes(base) || entries.some(e => e.startsWith(`${base}.`))) continue
+      // 大小写不同才算问题
+      const ci = entries.find(
+        e => e.toLowerCase() === base.toLowerCase() || e.toLowerCase().startsWith(`${base.toLowerCase()}.`),
+      )
+      if (ci) bad.push(`${spec}（磁盘上是 ${ci}）@ ${f}`)
+    }
+  }
+  assert.deepStrictEqual(
+    bad,
+    [],
+    '以下相对导入大小写与磁盘不一致，Linux（CI）上会 ERR_MODULE_NOT_FOUND：\n' + bad.join('\n'),
   )
 })
 
