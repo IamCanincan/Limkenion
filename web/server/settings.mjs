@@ -39,6 +39,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve, dirname } from 'node:path'
 import { globToRegExp, toPosix, DEFAULT_WORKSPACE_ROOT, workspaceRoot } from './paths.mjs'
+import { canonicalToolName } from './clicontract.mjs'
 
 /** 文件类工具：specifier 按 glob 匹配 file_path（与 CLI 的 filePatternTools 对齐）。 */
 const FILE_PATTERN_TOOLS = new Set(['Read', 'Write', 'Edit', 'Glob', 'NotebookRead', 'NotebookEdit'])
@@ -141,15 +142,21 @@ function matchFileSpecifier(specifier, input) {
 export function matchRule(rule, toolName, input) {
   const parsed = parseRule(rule)
   if (!parsed) return 'no-match'
-  if (parsed.tool !== toolName) return 'no-match'
+  // **两边都要归一化**：规则里写的名字和调用时的名字可能一个是 CLI 契约里的旧名
+  // （EnterPlanMode / ExitPlanMode），一个是 web 内部的规范名（PlanEnter / PlanExit）。
+  // 不做归一化的话，用户照着 CLI 文档写一条 deny 规则会**静默不生效** ——
+  // 那就是「以为挡住了其实没挡」，比不写还危险。
+  const ruleTool = canonicalToolName(parsed.tool)
+  const callTool = canonicalToolName(toolName)
+  if (ruleTool !== callTool) return 'no-match'
   if (parsed.specifier === null) return 'match'
 
   // 命令类 / 文件类的裸 specifier 语义是确定的，优先按老行为处理。
   // 注意顺序：这也避免把 `Edit(C:\foo\*)` 这类 Windows 路径误读成 key 形式。
-  if (BASH_PREFIX_TOOLS.has(toolName)) {
+  if (BASH_PREFIX_TOOLS.has(callTool)) {
     return matchCommandSpecifier(parsed.specifier, input?.command) ? 'match' : 'no-match'
   }
-  if (FILE_PATTERN_TOOLS.has(toolName)) {
+  if (FILE_PATTERN_TOOLS.has(callTool)) {
     return matchFileSpecifier(parsed.specifier, input) ? 'match' : 'no-match'
   }
   // 其它工具：只认**显式的 key:pattern**；裸 specifier 依旧不猜（见 matchKeySpecifier 注释）。
