@@ -35,6 +35,7 @@ import {
 import { collectFiles, invalidateFileIndex } from './workspace.mjs'
 import { MAX_DIFF_CHARS } from './config.mjs'
 import { canonicalToolName } from './clicontract.mjs'
+import { shellNetEnvFor } from './netproxy.mjs'
 import { markUntrusted, wrapUntrusted } from './security.mjs'
 import { enterWorktree, exitWorktree } from './worktree.mjs'
 
@@ -758,13 +759,17 @@ function stopBackgroundShell(id) {
   return `已终止后台任务 ${id}。`
 }
 
+/**
+ * 子进程的网络开关，三档：
+ *   - 不设置 → 不管（行为不变）
+ *   - `off`  → 指向死端口，全断
+ *   - `allowlist` → 走本进程内的白名单代理，按 LIMKENION_EGRESS_ALLOWLIST 放行
+ * 详见 netproxy.mjs —— 那里写清了局限（只管得住守规矩的客户端）。
+ */
 function shellNetEnv() {
-  // 尽力而为的网络开关：LIMKENION_WEB_SHELL_NET=off 时给子进程一个
-  // 指向死端口的代理 —— curl/npm/pip 这类守规矩的 CLI 会立即失败。
-  // 局限：不走代理的原始 socket / 自定义 DNS 拦不住（OS 级沙箱才能根治）。
-  if (process.env.LIMKENION_WEB_SHELL_NET !== "off") return {}
-  const dead = "http://127.0.0.1:9"
-  return { HTTP_PROXY: dead, HTTPS_PROXY: dead, ALL_PROXY: dead, http_proxy: dead, https_proxy: dead, all_proxy: dead }
+  const mode = process.env.LIMKENION_WEB_SHELL_NET
+  if (mode !== 'off' && mode !== 'allowlist') return {}
+  return shellNetEnvFor(mode)
 }
 
 async function toolBash(input, session) {

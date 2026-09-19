@@ -9,6 +9,20 @@
  */
 const allowRaw = process.env.LIMKENION_EGRESS_ALLOWLIST ?? ''
 
+/**
+ * 主机名是否命中白名单。抽出来是为了让**服务端出网**与 **shell 子进程代理**
+ * 共用同一套规则语义 —— 两套判断迟早会对不上。
+ * @param {string} host
+ * @returns {boolean}
+ */
+export function hostAllowed(host) {
+  if (!allowRaw) return true
+  const h = String(host ?? '').trim().toLowerCase()
+  if (!h) return false
+  const rules = allowRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  return rules.some(r => (r.startsWith('*.') ? h.endsWith(r.slice(1)) : r === h))
+}
+
 /** @param {string|URL} url */
 export function egressAllowed(url) {
   if (!allowRaw) return true
@@ -18,8 +32,7 @@ export function egressAllowed(url) {
   } catch {
     return false
   }
-  const rules = allowRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-  return rules.some(r => (r.startsWith('*.') ? host.endsWith(r.slice(1)) : r === host))
+  return hostAllowed(host)
 }
 
 /** fetch 的白名单包裹：mcp / oauth / 模型 API 的出站请求一律走这里。 */

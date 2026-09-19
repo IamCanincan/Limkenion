@@ -43,6 +43,7 @@ import {
 } from './sessions.mjs'
 import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 import { createHttpServer } from './static.mjs'
+import { startShellProxy } from './netproxy.mjs'
 
 // 会话被删除时清理它的定时器（sessions 不反向依赖 engine，用钩子通知）。
 // 文件检查点的清理由 checkpoints.mjs 自己注册（资源归谁谁负责清，见该文件）。
@@ -62,6 +63,17 @@ const restored = await loadPersisted()
 if (restored === 0) createSession()
 // 设置文件在启动时读一次（config.mjs 的默认权限模式依赖它，必须在建会话之前）
 loadSettings()
+
+// shell 出网白名单代理：只在 LIMKENION_WEB_SHELL_NET=allowlist 时起。
+// 必须在第一条 shell 命令之前就绪 —— 否则 shellNetEnv() 会按 fail-closed 退回断网。
+if (process.env.LIMKENION_WEB_SHELL_NET === 'allowlist') {
+  try {
+    const proxyPort = await startShellProxy()
+    console.log(`shell 出网白名单代理：127.0.0.1:${proxyPort}（按 LIMKENION_EGRESS_ALLOWLIST 放行）`)
+  } catch (err) {
+    console.warn('shell 出网白名单代理启动失败，将按断网处理：', String(err))
+  }
+}
 
 const httpServer = createHttpServer()
 attachWebSocket(httpServer, commandRegistry)
