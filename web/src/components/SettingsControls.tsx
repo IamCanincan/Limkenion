@@ -23,6 +23,10 @@ const PERMISSION_DESC: Record<PermissionMode, string> = {
 const THEME_LABEL: Record<ThemeMode, string> = {
   dark: '暗色',
   light: '亮色',
+  paper: '纸墨',
+  warm: '经典暖色',
+  celadon: '青瓷',
+  midnight: '墨夜蓝',
   system: '跟随系统',
 }
 

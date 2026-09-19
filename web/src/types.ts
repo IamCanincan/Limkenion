@@ -191,7 +191,7 @@ export interface TokenUsage {
 }
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
-export type ThemeMode = 'dark' | 'light' | 'system'
+export type ThemeMode = 'dark' | 'light' | 'paper' | 'warm' | 'celadon' | 'midnight' | 'system'
 
 /** 全局设置（镜像 CLI settings）。 */
 export interface Settings {

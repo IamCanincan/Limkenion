@@ -61,7 +61,13 @@ export const PERMISSION_MODES_UNSUPPORTED = ALL_PERMISSION_MODES.filter(m => m =
     )
   }
 }
-export const THEMES = ['dark', 'light', 'system']
+/**
+ * 可选主题。`system` 不是配色，是"跟随系统深浅色"的开关（前端解析成 dark/light）。
+ *
+ * 每加一个配色，**styles.css 里必须有对应的 `[data-theme='<名字>']` 块** ——
+ * 有测试盯着这个一致性（test/theme-consistency.test.mjs），漏了会红。
+ */
+export const THEMES = ['dark', 'light', 'paper', 'warm', 'celadon', 'midnight', 'system']
 
 /**
  * 推理强度档位。**与 CLI 的 `EFFORT_LEVELS`（utils/effort.ts）保持一致** ——

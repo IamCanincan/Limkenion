@@ -1056,6 +1056,86 @@ code {
   --on-accent: #fff;
 }
 
+/* 纸墨：宣纸底 + 朱砂点，长时间读字最不累眼 */
+[data-theme='paper'] {
+  --bg: #f5f1e8;
+  --bg-panel: #ece7db;
+  --bg-elevated: #fffdf7;
+  --border: #d8d0bf;
+  --text: #33302b;
+  --text-dim: #6f6a60;
+  --accent: #9c4a2f;
+  --accent-dim: #7d3a24;
+  --green: #4a7a3c;
+  --red: #a83f3f;
+  --warn: #7a5410;
+  --warn-border: #b8892f;
+  --warn-bg: rgba(184, 137, 47, 0.14);
+  --warn-bg-strong: rgba(184, 137, 47, 0.24);
+  --shadow: 0 8px 24px rgba(70, 55, 30, 0.13);
+  --on-accent: #fff;
+}
+
+/* 经典暖色：深棕底 + 琥珀强调，夜里最放松 */
+[data-theme='warm'] {
+  --bg: #20180f;
+  --bg-panel: #2a2016;
+  --bg-elevated: #352819;
+  --border: #4a3826;
+  --text: #f2e6d8;
+  --text-dim: #a8917a;
+  --accent: #e08b3c;
+  --accent-dim: #b86f2c;
+  --green: #8fb069;
+  --red: #d97a5a;
+  --warn: #e0b060;
+  --warn-border: #b8892f;
+  --warn-bg: rgba(224, 176, 96, 0.14);
+  --warn-bg-strong: rgba(224, 176, 96, 0.24);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --on-accent: #2a1a08;
+}
+
+/* 青瓷：青绿瓷色，冷而不刺 */
+[data-theme='celadon'] {
+  --bg: #141b1a;
+  --bg-panel: #1b2422;
+  --bg-elevated: #23302d;
+  --border: #33443f;
+  --text: #e0ece8;
+  --text-dim: #8aa39c;
+  --accent: #6fb0a0;
+  --accent-dim: #4f8c7d;
+  --green: #7fb069;
+  --red: #d17070;
+  --warn: #d8c078;
+  --warn-border: #a89248;
+  --warn-bg: rgba(168, 146, 72, 0.15);
+  --warn-bg-strong: rgba(168, 146, 72, 0.25);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  --on-accent: #0d1a17;
+}
+
+/* 墨夜蓝：蓝黑底，对比度最高，代码看得最清 */
+[data-theme='midnight'] {
+  --bg: #12161d;
+  --bg-panel: #1a212b;
+  --bg-elevated: #222b38;
+  --border: #2f3b4c;
+  --text: #e3e9f2;
+  --text-dim: #8b97a8;
+  --accent: #6a9fd8;
+  --accent-dim: #4d7fae;
+  --green: #6fb08a;
+  --red: #d17171;
+  --warn: #d8b478;
+  --warn-border: #a8873f;
+  --warn-bg: rgba(168, 135, 63, 0.15);
+  --warn-bg-strong: rgba(168, 135, 63, 0.25);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+  --on-accent: #0d1420;
+}
+
 /* ===========================================================================
    顶栏：设置控件（权限模式 / 主题）
    =========================================================================== */
