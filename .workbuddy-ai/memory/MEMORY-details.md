@@ -107,7 +107,7 @@
 ## 四、与参照实现（`D:\下载\agent`）的功能对比
 
 **参照物**：
-- `upstream-ref-impl` —— 上游 CLI 原型 **桌面端工作台**（底座同源，最有参考价值）
+- `某上游 CLI 工作台` —— 上游 CLI 原型 **桌面端工作台**（底座同源，最有参考价值）
 - `deepseek-harness`（`dsh`）—— DeepSeek **官方** agent harness，插件化 + Web UI
 - `deepseek-reasonix` —— DeepSeek agent CLI，配置驱动 + 单二进制分发
 
@@ -119,7 +119,7 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 1. **思考模式暴露不全** —— `/effort` 是空操作、没有"关闭思考"入口（见 MEMORY.md）
 2. **视觉/图片输入** —— `deepseek-flash` 官方支持，但适配器 `blockToText()` 丢图
 3. **本地定时任务** —— 原调度依赖云端（已停用），无本地替代
-4. 桌面端 App、IM 接入（upstream-ref-impl 有 8 个平台）、模型请求追踪面板、单二进制分发、VS Code 扩展
+4. 桌面端 App、IM 接入（某上游 CLI 工作台 有 8 个平台）、模型请求追踪面板、单二进制分发、VS Code 扩展
 5. 图片生成（属云端，不建议做）、多供应商（用户已明确只做 DeepSeek）
 
 ---
@@ -214,11 +214,11 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 `UNSUPPORTED_UPSTREAM_FEATURES` 里 → 返回 true。真正没的只是 `/schedule` 命令入口。
 
 ## 八、与参照实现的差距：API 接入层几乎无差别（实测）
-`D:\下载\agent\upstream-ref-impl` 接 DeepSeek 用 **上游兼容端点**
+`D:\下载\agent\某上游 CLI 工作台` 接 DeepSeek 用 **上游兼容端点**
 （`src/server/config/providerPresets.json`：`baseUrl: https://api.deepseek.com/上游兼容路径`、
 `apiFormat: 上游兼容`、`main: deepseek-v4-pro[1m]`）；我们走 OpenAI 端点。
 
-| 能力 | OpenAI 端点（我们） | 上游兼容端点（upstream-ref-impl） |
+| 能力 | OpenAI 端点（我们） | 上游兼容端点（某上游 CLI 工作台） |
 |---|---|---|
 | 思考模式 | 默认开启，`reasoning_content` | 默认开启，`thinking` 块 |
 | 思考签名 | ❌ 无 | ✅ 有 `signature` |
@@ -236,7 +236,7 @@ plugins、memdir、MCP、skills、hooks、沙箱、5 档权限模式、子代理
 我们这条路径拿不到签名，所以 `toOpenAIMessages` 直接丢弃 thinking
 （OpenAI 协议本来也不该回传 `reasoning_content`）。
 
-**结论：真正的差距不在 API 层，而在功能层**（upstream-ref-impl 是完整桌面工作台）。
+**结论：真正的差距不在 API 层，而在功能层**（某上游 CLI 工作台 是完整桌面工作台）。
 按用户"只支持 DeepSeek"的决定，多供应商那条不算缺口。
 
 ## 九、Web 端「请求追踪」面板（2026-09-18）
