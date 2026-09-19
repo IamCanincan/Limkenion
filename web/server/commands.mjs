@@ -11,7 +11,7 @@
 
 import { readFile, readdir } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve } from 'node:path'
-import { existsSync, statSync } from 'node:fs'
+import { accessSync, constants, existsSync, statSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
 import { compactSession } from './compact.mjs'
 import { clearCheckpoints, restoreCheckpoints } from './checkpoints.mjs'
@@ -46,6 +46,7 @@ import {
   rewindSession,
   schedulePersist,
   sessionCount,
+  STATE_DIR,
 } from './sessions.mjs'
 import { executeTool, TOOL_SCHEMAS } from './tools.mjs'
 import { enableTools, toolsOverview } from './toolindex.mjs'
@@ -280,7 +281,7 @@ const TERMINAL_ONLY = {
   'ant-trace': '内部诊断命令',
   ant: '内部诊断命令',
   'backfill-sessions': '会话回填属于 CLI 存储维护',
-  doctor: 'CLI 环境体检；web 端可用 /status 查看服务状态',
+  // 注意：/doctor 已于 2026-09-19 在 web 实现，不再是终端专属（见 WEB_IMPLEMENTED）。
   feedback: '反馈通道由 CLI 上报',
   'perf-issue': '性能问题上报由 CLI 上报',
   issue: '问题上报由 CLI 上报',
@@ -342,6 +343,8 @@ export const WEB_IMPLEMENTED = [
   'commit-push-pr', // prompt 型：提交 + 推送 + 创建 PR
   'review',      // prompt 型：审查 PR
   'init-verifiers', // prompt 型：整理变更验证清单
+  'copy',        // 把会话渲染成可复制文本（/export 是下载文件，这个是当场给文本）
+  'doctor',      // 自检：API key / 工作区 / 状态目录可写性 / 权限模式
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
@@ -354,7 +357,9 @@ const COMMAND_ALIASES = {
   todo: 'todos',
   ctx_viz: 'context',
   color: 'theme',
-  doctor: 'status',
+  // 注意：doctor **不在这里** —— 它原来被映射到 /status，
+  // 但 /doctor 已于 2026-09-19 在 web 实现（自检：API key / 工作区 / 状态目录可写性）。
+  // 留着映射的话新实现永远走不到（命令会先被改名成 status）。
   // CLI 的 /fork 就是 /branch（commands/branch/index.ts 在 FORK_SUBAGENT 关闭时
   // 自己带 'fork' 别名）。web 端没有独立的 /fork，直接映射过去。
   fork: 'branch',
@@ -941,6 +946,70 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     )
   }
 
+  if (name === 'copy') {
+    // 与 /export 的区别：/export 是让浏览器**下载** md 文件，/copy 是**当场给出文本**
+    // 供选中复制（连不上客户端时 /export 会明确说"下载没发出"，那种场景就用这个）。
+    const asMd = /\b(md|markdown)\b/i.test(arg ?? '')
+    const text = asMd ? exportSessionMarkdown(session) : sessionToPlainText(session)
+    const CAP = 20000
+    const head = `以下是当前会话的${asMd ? ' Markdown' : '纯文本'}（${session.messages.length} 条消息 / ${text.length} 字符），可直接选中复制：\n\n`
+    if (text.length > CAP) {
+      return (
+        head +
+        text.slice(0, CAP) +
+        `\n\n……已截断（只显示前 ${CAP} 字符）。要完整内容用 /export 下载 Markdown 文件。`
+      )
+    }
+    return head + text
+  }
+
+  if (name === 'doctor') {
+    const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
+    const st = settingsFor(session)
+    const out = ['Limkenion 自检', '']
+
+    // ① API key：这条最重要 —— 没配 key 会**静默退化成 mock 引擎**，
+    //    界面看着一切正常、模型却不是真的，是本项目最难自查的坑。
+    const key = getApiKey()
+    out.push(
+      key
+        ? '✅ DeepSeek API key 已配置'
+        : '⚠️ 未配置 DEEPSEEK_API_KEY —— 当前用的是 **mock 引擎**：界面一切正常，但回答不是真模型给的。',
+    )
+    out.push(`- 引擎：${engineName()} · 模型：${st.model}`)
+
+    // ② 工作区与额外目录（目录被删掉后会让文件操作在奇怪的地方失败）
+    out.push(existsSync(base) ? `✅ 工作区根存在：${base}` : `⚠️ 工作区根不存在：${base}`)
+    const additions = session.workspaceAdditions ?? []
+    if (additions.length === 0) {
+      out.push('- 额外可访问目录：无（用 /add-dir 追加）')
+    } else {
+      for (const p of additions) {
+        out.push(existsSync(p) ? `✅ 额外目录仍存在：${p}` : `⚠️ 额外目录已不存在：${p}`)
+      }
+    }
+
+    // ③ 状态目录可写（不可写会静默停止持久化）
+    let writable = false
+    try {
+      accessSync(STATE_DIR, constants.W_OK)
+      writable = true
+    } catch {
+      writable = false
+    }
+    out.push(writable ? `✅ 状态目录可写：${STATE_DIR}` : `⚠️ 状态目录不可写：${STATE_DIR}（会话将无法保存）`)
+
+    // ④ 权限模式 / 定时任务 / 版本
+    out.push(`- 权限模式：${st.permissionMode}`)
+    if (st.permissionMode === 'bypassPermissions') {
+      out.push('  ⚠️ bypassPermissions 下工具不再逐个确认，危险操作会直接执行')
+    }
+    out.push(`- 定时任务：${cronCount()} 个 · 会话：${sessionCount()} 个`)
+    out.push(`- 版本：${SERVER_VERSION} · 端口 ${PORT}`)
+
+    return out.join('\n')
+  }
+
   // ---- git / PR 类：CLI 里是 prompt 型命令，web 端沿用同样做法 ----
   if (name === 'commit' || name === 'commit-push-pr' || name === 'review') {
     const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
@@ -1053,6 +1122,31 @@ export async function runCommand(session, rawName, argString, ws, registry) {
 }
 
 /** 把会话导出为 Markdown。 */
+/**
+ * 把会话渲染成**纯文本**（/copy 用）。
+ *
+ * 与 Markdown 版的区别只是排版更简单：没有转义、没有 details 折叠，
+ * 直接贴到聊天框/工单里也不会出现一堆标记。
+ */
+function sessionToPlainText(session) {
+  const lines = [
+    `会话：${session.title || '未命名会话'}`,
+    `ID：${session.id}`,
+    `消息数：${session.messages.length}`,
+    '',
+  ]
+  for (const m of session.messages) {
+    const who = m.role === 'user' ? '用户' : m.role === 'assistant' ? 'Limkenion' : '系统'
+    const parts = []
+    if (m.toolCalls?.length) {
+      parts.push(`（调用工具：${m.toolCalls.map(t => t.name).join('、')}）`)
+    }
+    if (m.text) parts.push(m.text)
+    lines.push(`[${who}] ${parts.join(' ').trim() || '（空）'}`, '')
+  }
+  return lines.join('\n')
+}
+
 export function exportSessionMarkdown(session) {
   const esc = s => String(s ?? '').replace(/^#/gm, '\\#')
   const lines = [

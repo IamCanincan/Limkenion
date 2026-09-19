@@ -475,6 +475,45 @@ describe('/commit /commit-push-pr /review（prompt 型 git 命令）', () => {
   })
 })
 
+describe('/copy 与 /doctor', () => {
+  test('/copy 给出可复制的纯文本（带说话人标记）', async () => {
+    const r = makeRunner([
+      { role: 'user', text: '你好' },
+      { role: 'assistant', text: '在的' },
+    ])
+    const out = await r.run('/copy')
+    assert.match(out, /\[用户\] 你好/, '应含用户那句，实际：' + out.slice(0, 200))
+    assert.match(out, /\[Limkenion\] 在的/)
+  })
+
+  test('/copy md 走 Markdown 版', async () => {
+    const r = makeRunner([{ role: 'user', text: '你好' }])
+    const out = await r.run('/copy md')
+    assert.match(out, /## 用户/, 'md 版应带 Markdown 标题，实际：' + out.slice(0, 200))
+  })
+
+  test('/doctor 报出关键检查项', async () => {
+    const r = makeRunner()
+    const out = await r.run('/doctor')
+    assert.match(out, /DeepSeek API key 已配置/)
+    assert.match(out, /工作区根存在/)
+    assert.match(out, /状态目录可写/)
+  })
+
+  test('/doctor 在没配 key 时明确警告「用的是 mock 引擎」', async () => {
+    // 这是本项目最难自查的坑：没 key 会静默退化成 mock，界面看着一切正常。
+    const saved = process.env.DEEPSEEK_API_KEY
+    delete process.env.DEEPSEEK_API_KEY
+    try {
+      const r = makeRunner()
+      const out = await r.run('/doctor')
+      assert.match(out, /mock 引擎/, '没配 key 时必须点明是 mock，实际：' + out)
+    } finally {
+      process.env.DEEPSEEK_API_KEY = saved
+    }
+  })
+})
+
 describe('命令注册表扫描', () => {
   test('insights 被正确注册（而不是它的分节名 project_areas）', async () => {
     const reg = await mod.loadCommandRegistry()
