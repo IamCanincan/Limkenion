@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LimkenionConnection, resolveWsToken } from './api'
+import { LimkenionConnection } from './api'
 import { Sidebar } from './components/Sidebar'
 import { ChatView } from './components/ChatView'
 import { Composer } from './components/Composer'
@@ -62,7 +62,6 @@ export function App() {
   const [requestSummary, setRequestSummary] = useState<RequestSummary | null>(null)
   const [showRequests, setShowRequests] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [updateMsg, setUpdateMsg] = useState('')
   const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
   const [questionRequest, setQuestionRequest] = useState<QuestionRequest | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -117,27 +116,6 @@ export function App() {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }, [])
-
-  /** 检查更新：先询问服务端是否有新版，有则触发应用（服务端会下载覆盖并重启）。 */
-  const onCheckUpdate = useCallback(async () => {
-    try {
-      setUpdateMsg('检查中…')
-      // 两个更新接口都要求带一次性 token 头（防跨站页面触发，见 static.mjs 的说明）。
-      const headers = { 'x-limkenion-token': await resolveWsToken() }
-      const r = await (await fetch('/api/check-update', { headers })).json()
-      if (!r.available) {
-        setUpdateMsg(`已是最新 (${r.current})`)
-        setTimeout(() => setUpdateMsg(''), 3000)
-        return
-      }
-      setUpdateMsg(`更新到 ${r.latest} 中…`)
-      await fetch('/api/update', { method: 'POST', headers })
-      setUpdateMsg('正在重启以完成更新…')
-    } catch {
-      setUpdateMsg('更新检查失败')
-      setTimeout(() => setUpdateMsg(''), 3000)
-    }
   }, [])
 
   const handleServerMessage = useCallback(
@@ -647,9 +625,6 @@ export function App() {
             title="定时任务：按周期在独立回合执行"
           >
             定时任务{crons.length > 0 ? ` (${crons.length})` : ''}
-          </button>
-          <button className="update-btn" onClick={onCheckUpdate} title="检查并安装更新">
-            {updateMsg || '检查更新'}
           </button>
           <span className="chat-header-hint">键入 / 浏览 {commands.length} 个命令</span>
         </header>

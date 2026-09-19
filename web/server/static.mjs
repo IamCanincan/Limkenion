@@ -15,7 +15,6 @@ import { DIST_DIR } from './config.mjs'
 import { injectToken, isLocalOrigin, SECURITY_HEADERS, WS_TOKEN, httpGate, gatePage } from './security.mjs'
 import { latestReport, readReport } from './insights.mjs'
 import { handleMcpOAuthCallback } from './mcpOAuth.mjs'
-import { checkUpdate, applyUpdate } from '../launcher/updater.mjs'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -69,19 +68,9 @@ export function createHttpServer() {
       return
     }
 
-    // 只处理 GET/HEAD，外加一个例外：/api/update 是**有副作用**的操作
-    // （下载 + 覆盖安装目录 + 重启），必须用 POST —— 不允许 GET 触发状态变更。
-    // 注意这里比较的是**未归一化**的 urlPath（反斜杠归一在下面），所以
-    // `/api\update` 走不到这个例外，会落到 405，是失败关闭的方向。
-    const isUpdatePost = req.method === 'POST' && urlPath === '/api/update'
-    if (!isUpdatePost && req.method !== 'GET' && req.method !== 'HEAD') {
-      respond(res, 405, { 'content-type': 'text/plain; charset=utf-8', allow: 'GET, HEAD, POST' }, 'Method Not Allowed')
-      return
-    }
-    // 上面那句只是"放行 POST"，这里才是真正**要求** POST：
-    // 没有这条，GET /api/update 会一路走到处理器里，照样下载覆盖重启。
-    if (urlPath === '/api/update' && req.method !== 'POST') {
-      respond(res, 405, { 'content-type': 'text/plain; charset=utf-8', allow: 'POST' }, 'Method Not Allowed')
+    // 只处理 GET/HEAD（静态服务没有需要变更状态的接口）
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      respond(res, 405, { 'content-type': 'text/plain; charset=utf-8', allow: 'GET, HEAD' }, 'Method Not Allowed')
       return
     }
     // 反斜杠在 Windows 上也是分隔符，统一成正斜杠再判断
@@ -120,51 +109,6 @@ export function createHttpServer() {
         { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
         JSON.stringify({ token: WS_TOKEN }),
       )
-      return
-    }
-
-    // 更新接口：检查 / 应用。两者都要求带一次性 token 头 —— 跨站页面**无法**
-    // 设置自定义请求头（会触发 CORS 预检，而本服务不下发任何 CORS 头），
-    // 因此这条天然免疫 CSRF。否则任意网页只要 `<img src="http://127.0.0.1:8788/api/update">`
-    // 就能逼用户下载更新并重启服务（回环绑定下 httpGate 不设防）。
-    if (urlPath === '/api/check-update' || urlPath === '/api/update') {
-      if (req.headers['x-limkenion-token'] !== WS_TOKEN) {
-        respond(res, 403, { 'content-type': 'text/plain; charset=utf-8' }, 'Forbidden')
-        return
-      }
-    }
-    if (urlPath === '/api/check-update') {
-      const r = await checkUpdate()
-      respond(
-        res,
-        200,
-        { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-        JSON.stringify(r),
-      )
-      return
-    }
-    if (urlPath === '/api/update') {
-      const r = await checkUpdate()
-      if (!r.available) {
-        respond(
-          res,
-          200,
-          { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-          JSON.stringify({ ok: false, reason: '无可用更新' }),
-        )
-        return
-      }
-      // 先回 ack 再延时覆盖重启（覆盖会把本进程的文件换掉，所以响应要抢先落盘）。
-      respond(
-        res,
-        200,
-        { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-        JSON.stringify({ ok: true, restarting: true }),
-      )
-      // 给响应一点时间落盘后再覆盖重启
-      setTimeout(() => {
-        applyUpdate(r.assetUrl).catch(e => console.error('[update] 应用失败：', String(e)))
-      }, 600)
       return
     }
 

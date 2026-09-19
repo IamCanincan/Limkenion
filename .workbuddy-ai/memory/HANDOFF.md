@@ -35,20 +35,26 @@ LIMKENION.md/AGENTS.md instructions 加载；回合中排队消息；localhost �
 （Computer Use 已于 2026-09-19 按用户要求**整体删除**）；
 Agent Teams 工作台（TeamPanel + 成员事件流 + teammate-idle 钩子）。
 
-## 三、桌面分发（已提交 `c86abed`）
-- **Tier C 内置 Node**：`cd web && npm run release` → `web/release/limkenion-web-0.5.0.zip`（448MB）。
-  zip 内含预构建 `dist/` + `server/` + `node_modules/ws` + 三平台无终端入口 +
-  **官方 Node v24.21.0 四份二进制**（win-x64 放根 `node/`；mac 两架构放
-  `Limkenion.app/Contents/Resources/node/` 随 .app 移动；linux-x64 放根 `node/`）+
-  `version.json` + `NEEDS_NODE.txt` + node 的 LICENSE。
-- 入口链路：双击入口（原生，无需 Node）→ 优先用**包内 node** → 缺失回退系统 `node` →
-  仍缺失弹 GUI 提示框（含下载地址）。
-- 更新器 `web/launcher/updater.mjs`：先解到临时目录再拷贝，**跳过 `node/` 与 `.app` 内
-  Resources/node**，内置 Node 不被更新覆盖。它有 13 项回归测试（`web/test/updater.test.mjs`），
-  锁住两条"错了看不出来"的保证：版本比较必须数值比较（否则 0.10.0 < 0.9.0）、
-  跳过 node/ 但不能误伤 `node_modules/`。
-- 已知点：① 448MB 偏大；② macOS 包内未签名 node 会被 Gatekeeper 拦；
-  ③ Linux 依赖官方 node 的 glibc 基线，Alpine/musl 不适用。
+## 三、桌面分发 —— **已于 2026-09-19 整体删除（用户拍板"回归纯 web"）**
+
+原先那套（Tier C 内置 Node 的 448MB zip + 三平台无终端入口 + 更新器）**已全部移除**：
+
+| 已删除 | 说明 |
+|---|---|
+| `web/launcher/` | `launcher.mjs`、三平台入口（`.vbs` / `.app` / `.sh`+`.desktop`）、`updater.mjs`、`version.json` |
+| `scripts/package-release.mjs` | 出包脚本（会拉 4 份官方 Node 二进制） |
+| `web/test/updater.test.mjs` | 13 项更新器回归测试 |
+| `web/package.json` 的 `release` 脚本 | — |
+| 服务端两个更新接口 | `GET /api/check-update`、`POST /api/update`（`static.mjs`）|
+| 前端"检查更新"按钮 | `App.tsx` 的 `onCheckUpdate` / `updateMsg` 状态 |
+| `.gitattributes` 的 launcher 规则 | 随目录一起失效 |
+
+**保留**：`npm install -g .` / `npm pack` 这种全局安装方式 —— 它走的是 npm，
+不含内置 Node，本质是"用 Node 起 web 服务"，不属于桌面分发。
+
+连带影响：`server/static.mjs` 现在只处理 GET/HEAD（原先为 `/api/update` 开了 POST 例外）。
+**注意**：`static.mjs` 曾 import `../launcher/updater.mjs` —— 这类跨目录 import 会把
+launcher/ 拉进 `tsconfig.server.json` 的类型检查面（见第八节第 1 条）。删掉后这层耦合也消失了。
 
 ## 四、验证命令（改完代码必须全跑）
 ```bash
