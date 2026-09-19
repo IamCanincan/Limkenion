@@ -13,6 +13,20 @@
   远程 origin 指向 Gitee（URL 内含私人 token，勿外泄、勿改动）。
 
 ## 二、功能现状（对标已全部补齐）
+
+**2026-09-19 下午新增 9 项**（都是 web 端界面/能力，CLI 无对应）：全局搜索（Cmd+K，跨会话
+消息+标题+文件名，结果带 `complete`）；MCP 图形化管理（增删改 + user/project/local 三作用域）；
+定时任务界面（周期解析与模型的 CronCreate 共用 `tools.parseIntervalMs()`）；分支/worktree
+启动（新会话选分支进隔离 worktree，分支名过 `validateBranchName()` 防注入，**刻意不支持
+"选分支但用当前工作树"**）；具名子代理（只覆盖模型与**只读工具集的子集**，Write/Bash 一律拒）；
+6 套配色（纸墨/经典暖色/青瓷/墨夜蓝 等，只覆盖 CSS 变量）；shell 出网 allowlist
+（本进程内 HTTP 代理，`LIMKENION_WEB_SHELL_NET=allowlist`）；权限规则显式 `key:pattern`
+（裸 specifier 仍不猜 → unsupported）；钩子输出上下文预算（超 8000 字落盘 `hook_outputs/`）。
+
+**2026-09-19 下午新增 8 项韧性**：进程崩溃兜底（未捕获拒绝不再打死服务）· WS 单条消息异常隔离 ·
+广播对坏客户端隔离 · HTTP 顶层兜底 · shell 超时**连根杀进程树**（含后台任务上限）·
+资源上限（输出截断 / 并行上限）· 会话删除清检查点、截图不留残 · 关停完整性（closeAll + clearTimers）。
+
 27 个钩子事件 × 4 种执行类型（command/prompt/agent/http）；MCP（stdio/http/sse +
 elicitation/OAuth/sampling/roots/prompts/registry 搜索）；自动 compact + microcompact；
 文件检查点（Write/Edit 落盘 + Bash 工作区快照）；后台 Bash（TaskOutput/TaskStop）；
@@ -40,18 +54,23 @@ Agent Teams 工作台（TeamPanel + 成员事件流 + teammate-idle 钩子）。
 ```bash
 cd web
 npm run typecheck    # tsc 前端 + server，必须 0 错误（注意：别用管道 tail 掩盖退出码）
-npm test             # node --test test/*.test.mjs（354 项）
+npm test             # node --test test/*.test.mjs（452 项 / 45 个文件）
 npm run test:ui      # vitest（web/src/__tests__）
 npm run build        # vite build
 npm run test:e2e     # 真实 API（改了 worktree / hooks / MCP / Workflow / 沙箱作用域 / 桌面入口才跑）
 npm run release      # 出包验证（需联网拉 Node，可跳过）
 ```
 
-## 五、git 状态（2026-09-19 13:50）
-- 工作树干净；`master` 上有 **9 个未推送的提交**（按项目规矩不 push，要推需用户明确指示）：
-  `c86abed` 桌面分发 · `a814077` launcher 类型错误 + 注释中文化收尾 + 后台测试加固 ·
-  `bbef49f`/`531c66c`/`a365df7` 记忆 · `2012409` B28 全仓库复查 ·
-  `a4bcf6d` 更新器回归防线 · `b6656d8` 非代码文本中文化 · `09a32b7` README 同步。
+## 五、git 状态（2026-09-19 18:10 更新）
+- 工作树干净；`master` 上有 **62 个未推送的提交**（按项目规矩不 push，要推需用户明确指示）。
+- 2026-09-19 当天新增：上午桌面分发 + 注释中文化收尾那批（见上），
+  **下午又合了 8 项韧性 + 9 项功能 + 文档对齐**，测试数 381 → **452**。
+  功能：`4d4e89f` 钩子输出预算 · `e5be038` 全局搜索 · `e11be82` 权限 key:pattern ·
+  `01a4bdf` MCP 图形化管理 · `24d5abb` 定时任务界面 · `d770121` 分支/worktree 启动 ·
+  `4e39e96` 6 套配色 · `b6614c1` 具名子代理 · `cffdc3b` shell 出网 allowlist ·
+  `5e39ced` README 对齐。韧性：`1c3a945` 进程崩溃兜底 · `a6aa359` WS 消息隔离 ·
+  `249d073` 广播隔离 · `58dbb85` HTTP 顶层兜底 · `8dc3bc6` 进程树 kill ·
+  `3eba7ae` 资源上限 · `55326e7` 残留清理 · `6b88c41` 关停完整性。
 - `.workbuddy/`（另一运行时的目录）**已加入 `.gitignore`** —— 项目记忆统一在 `.workbuddy-ai/memory/`，
   不要再往那边写。
 - `web/release/` 已在 `.gitignore` 中，勿提交。
@@ -86,6 +105,20 @@ npm run release      # 出包验证（需联网拉 Node，可跳过）
 - **别从 bash 里调 PowerShell**（会被安全策略拦），用 PowerShell 工具；
   `Remove-Item` 接管道对象会报参数绑定失败，用 `-LiteralPath $f.FullName` 逐个删。
 - `npm run typecheck` 的退出码别被 `| tail` 之类管道掩盖，要单独检查。
+
+## 八点五、还剩什么（2026-09-19 18:10 盘点，均未做，需用户拍板）
+
+| 项 | 状态 | 说明 |
+| --- | --- | --- |
+| **62 个提交未推送** | 唯一阻塞项 | 项目规矩：不 push，要推必须用户明确说。CI（Gitee Go）在 push 时才触发，所以**今天这批从未过 CI**（本地四件套 + E2E 24/24 已全绿） |
+| 内置终端 | **建议不做** | 需 PTY（`node-pty` 之类原生模块），与"只依赖 Node"硬约束冲突；会让分发包从"内置 Node zip"变成要编译原生扩展 |
+| OS 级平台沙箱 | 大工程 | 现在的 shell 守卫是模式匹配、出网代理只管得住遵守代理环境变量的客户端，两者**都不是真隔离**（已写进 README 的"已知未覆盖"）。真隔离要 Job Object / seccomp 之类，Windows 下无轻量方案 |
+| sessions 内存上限 | 建议维持现状 | 加淘汰会真丢数据；且会话由用户主动创建，量级有限。要做必须先补"按需从磁盘重载"能力 |
+| E2E 覆盖今天的新功能 | 部分欠账 | 今天新增的搜索 / MCP / 定时 / 子代理 / 分支 / 出网都有**模块级 + 协议级**测试，但不在那 24 项 E2E 里（E2E 依赖真实模型，UI 类功能放这里不合适） |
+| `npm run release` 实包验证 | 可跳过 | 需联网拉官方 Node（448MB）。updater 有 13 项回归测试兜着 |
+
+**已收官、不要再做**：注释中文化（工作树 100%，只剩 44 行"不该译"的类型定义/枚举值）；
+CLI 树（已彻底删除，bundle 与 47% 译文补丁都在仓库外，见第六节）。
 
 ## 八、复核时修正的三处（原文有误，供参考）
 1. **原文说 typecheck 通过，实际是红的**：`web/launcher/updater.mjs` 有 5 个 TS 错误。
