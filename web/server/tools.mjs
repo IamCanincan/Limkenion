@@ -66,7 +66,11 @@ export const DANGEROUS_TOOLS = new Set([
 ])
 
 /** 子代理只读工具白名单（Agent 工具内部使用）。 */
-const SUBAGENT_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'WebFetch', 'WebSearch', 'Sleep'])
+/**
+ * 子代理可用的只读工具。导出是为了让"具名子代理"配置在校验时能确认：
+ * 配出来的工具集只能是这个集合的**子集** —— 不给子代理任何越权的可能。
+ */
+export const SUBAGENT_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'WebFetch', 'WebSearch', 'Sleep'])
 
 /**
  * 常驻工具：每轮都会把 schema 发给模型。其余工具进入「延迟加载」，
@@ -1013,12 +1017,14 @@ async function toolMcpRegistrySearch(input, ctx) {
   return ctx.mcpRegistrySearch(query)
 }
 
-async function toolAgent({ description, prompt }, ctx) {
+async function toolAgent({ description, prompt, subagent }, ctx) {
   if (typeof ctx?.runSubAgent !== 'function') {
     throw new Error('当前服务端未挂载子代理执行器（ctx.runSubAgent 缺失）')
   }
   requireText(prompt, 'prompt', '要交给子代理的任务描述（它是只读的，只能查不能改）')
-  const text = await ctx.runSubAgent({ description, prompt })
+  // subagent = 具名子代理（在界面上配好的那种）。校验放在 engine 侧做 ——
+  // tools.mjs 不能 import subagents.mjs（那边要用这里的 SUBAGENT_TOOLS，会成环）。
+  const text = await ctx.runSubAgent({ description, prompt, agent: subagent })
   return truncate(`子代理「${description ?? 'task'}」结论：\n\n${text}`, 12_000)
 }
 
@@ -1859,7 +1865,10 @@ export const TOOL_SCHEMAS = [
         properties: {
           description: { type: 'string', description: '子任务简述（3-5 词）' },
           prompt: { type: 'string', description: '交给子代理的完整任务说明' },
-          subagent_type: { type: 'string', description: '子代理类型（可选，web 端统一为只读探查代理）' },
+          subagent: {
+            type: 'string',
+            description: '具名子代理（可选；在界面"子代理"面板里配好的名字，可指定另一种模型 / 更小的只读工具集）',
+          },
         },
         required: ['description', 'prompt'],
       },

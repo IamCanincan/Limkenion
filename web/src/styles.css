@@ -2011,3 +2011,18 @@ code {
 }
 .nsd-note { font-size: 11px; color: var(--text-dim, #9a938a); line-height: 1.6; margin-bottom: 10px; }
 .nsd-actions { display: flex; gap: 6px; }
+
+/* ---- 具名子代理面板：复用了 .mcp-* 的布局，这里只补工具勾选区 ---- */
+.sa-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sa-tools-title { width: 100%; font-size: 11px; color: var(--text-dim, #9a938a); }
+.sa-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text, #ece7e0);
+  border: 1px solid var(--border, #3a352f);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.sa-tool input { margin: 0; }

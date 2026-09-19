@@ -39,6 +39,7 @@ import { scopeForSession, withWorkspace } from './paths.mjs'
 import { listIndexedFiles } from './workspace.mjs'
 import { searchAll } from './search.mjs'
 import { enterWorktree, listBranches } from './worktree.mjs'
+import { deleteSubagent, saveSubagent, subagents } from './subagents.mjs'
 import { deleteMcpServer, mcpServersInfo, reloadMcp, saveMcpServer } from './mcp.mjs'
 
 /** 单条客户端消息的最大长度（防超大帧打爆内存）。 */
@@ -133,6 +134,35 @@ async function handleClientMessage(ws, msg, registry) {
 
 async function handleClientMessageInner(ws, msg, registry) {
   switch (msg.type) {
+    // ---- 具名子代理（可视化管理）----
+    // 边界由 subagents.mjs 把住：工具只能是只读集的子集、模型只能是我们支持的型号。
+    case 'subagent_list':
+      send(ws, { type: 'subagents', subagents: subagents() })
+      break
+    case 'subagent_save': {
+      try {
+        saveSubagent(String(msg.name ?? ''), msg.config ?? {}, msg.scope === 'project' || msg.scope === 'local' ? msg.scope : 'user')
+        send(ws, { type: 'subagents', subagents: subagents() })
+      } catch (err) {
+        send(ws, { type: 'error', message: `保存子代理失败：${String(err?.message ?? err)}` })
+      }
+      break
+    }
+    case 'subagent_delete': {
+      try {
+        const scope = msg.scope === 'project' || msg.scope === 'local' ? msg.scope : 'user'
+        const ok = deleteSubagent(String(msg.name ?? ''), scope)
+        if (!ok) {
+          send(ws, { type: 'error', message: `${scope} 作用域里没有子代理「${msg.name}」，未做改动` })
+          break
+        }
+        send(ws, { type: 'subagents', subagents: subagents() })
+      } catch (err) {
+        send(ws, { type: 'error', message: `删除子代理失败：${String(err?.message ?? err)}` })
+      }
+      break
+    }
+
     // 分支列表（供"新会话选分支启动"用）；不是 git 仓库时给空数组，不报错。
     case 'git_branches':
       send(ws, { type: 'git_branches', branches: await listBranches() })

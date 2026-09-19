@@ -15,6 +15,7 @@ import { SearchPanel } from './components/SearchPanel'
 import { McpPanel } from './components/McpPanel'
 import { CronPanel } from './components/CronPanel'
 import { NewSessionDialog } from './components/NewSessionDialog'
+import { SubAgentPanel } from './components/SubAgentPanel'
 import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
@@ -32,6 +33,7 @@ import type {
   SessionInfo,
   Settings,
   SettingsScope,
+  SubagentInfo,
   TokenUsage,
   UsageStats,
 } from './types'
@@ -83,6 +85,9 @@ export function App() {
   // 新会话选分支启动（隔离 worktree）
   const [showNewWorktree, setShowNewWorktree] = useState(false)
   const [branches, setBranches] = useState<string[]>([])
+  // 具名子代理（可视化管理）
+  const [showSubagents, setShowSubagents] = useState(false)
+  const [subagentList, setSubagentList] = useState<SubagentInfo[]>([])
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -161,6 +166,9 @@ export function App() {
           break
         case 'git_branches':
           setBranches(msg.branches)
+          break
+        case 'subagents':
+          setSubagentList(msg.subagents)
           break
         case 'session_messages':
           setActiveSessionId(msg.sessionId)
@@ -394,6 +402,16 @@ export function App() {
     setShowNewWorktree(true)
   }, [])
 
+  // ---- 具名子代理 ----
+
+  const onSubagentSave = useCallback((name: string, config: Record<string, unknown>, scope: SettingsScope) => {
+    connectionRef.current.send({ type: 'subagent_save', name, config, scope })
+  }, [])
+
+  const onSubagentDelete = useCallback((name: string, scope: SettingsScope) => {
+    connectionRef.current.send({ type: 'subagent_delete', name, scope })
+  }, [])
+
   /** 在指定分支的隔离 worktree 里起一个新会话。 */
   const onCreateWorktreeSession = useCallback((branch: string, worktreeName: string) => {
     setShowNewWorktree(false)
@@ -611,6 +629,17 @@ export function App() {
           <button
             className="request-log-btn"
             onClick={() => {
+              const next = !showSubagents
+              setShowSubagents(next)
+              if (next) connectionRef.current.send({ type: 'subagent_list' })
+            }}
+            title="具名子代理：预配模型与只读工具集"
+          >
+            子代理{subagentList.length > 0 ? ` (${subagentList.length})` : ''}
+          </button>
+          <button
+            className="request-log-btn"
+            onClick={() => {
               const next = !showCron
               setShowCron(next)
               if (next) connectionRef.current.send({ type: 'cron_list' })
@@ -671,6 +700,15 @@ export function App() {
             branches={branches}
             onCreate={onCreateWorktreeSession}
             onCancel={() => setShowNewWorktree(false)}
+          />
+        )}
+        {showSubagents && (
+          <SubAgentPanel
+            subagents={subagentList}
+            models={models.map(m => ({ value: m.value, label: m.label ?? m.value }))}
+            onSave={onSubagentSave}
+            onDelete={onSubagentDelete}
+            onClose={() => setShowSubagents(false)}
           />
         )}
         <ChatView

@@ -52,6 +52,7 @@ import { callMcpTool, listMcpResources, readMcpResource, getMcpPrompt, mcpRegist
 import { runWorkflow } from './workflow.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
+import { getSubagent } from './subagents.mjs'
 
 function newMessageId() {
   return `m_${Math.random().toString(36).slice(2, 10)}`
@@ -266,8 +267,8 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       return ok
     },
     enableTools: names => enableTools(session, names),
-    runSubAgent: ({ description, prompt, tag, emit: customEmit }) =>
-      runSubAgent(session, prompt, description, tag ? ev => emit({ type: 'team_event', member: tag, payload: ev }) : customEmit ?? emit, expired, tag),
+    runSubAgent: ({ description, prompt, tag, agent, emit: customEmit }) =>
+      runSubAgent(session, prompt, description, tag ? ev => emit({ type: 'team_event', member: tag, payload: ev }) : customEmit ?? emit, expired, tag, agent),
     // MCP：发现的工具经这里执行（tools.mjs 不反向 import mcp.mjs）。
     callMcpTool: (name, args) => callMcpTool(name, args, session),
     listMcpResources: server => listMcpResources(server),
@@ -604,7 +605,23 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
  * 只读子代理（Agent 工具）：独立上下文跑一个小循环，只允许只读工具。
  * 内部工具调用以 `Agent·<工具>` 的形式冒泡到界面，保持过程可见。
  */
-async function runSubAgent(session, prompt, description, emit, expired, tag) {
+/**
+ * @param {object} session
+ * @param {string} prompt
+ * @param {string} description
+ * @param {(ev: object) => void} emit
+ * @param {() => boolean} expired
+ * @param {string} [tag] 工作台成员名
+ * @param {string} [agentName] 具名子代理（覆盖模型与工具子集）
+ */
+async function runSubAgent(session, prompt, description, emit, expired, tag, agentName) {
+  // 具名子代理：只覆盖**模型**与**工具子集**，其余能力边界（不能写盘 / 不能联网写 /
+  // 不能再派子代理 / 不给 MCP 通道）一律不变 —— 配置面不能成为提权的口子。
+  const agent = agentName ? getSubagent(agentName) : null
+  if (agentName && !agent) {
+    return `（子代理「${agentName}」不存在，已按默认只读子代理执行）`
+  }
+
   // 工作台模式：tag = 成员名。子代理的全部事件包装成 team_event，
   // 前端团队面板按成员分列展示 —— 否则子代理就是黑盒。
   if (tag) {
@@ -624,7 +641,11 @@ async function runSubAgent(session, prompt, description, emit, expired, tag) {
   if (!getApiKey()) {
     return `（mock 引擎）子代理「${description ?? 'task'}」无法执行：未设置 DEEPSEEK_API_KEY。`
   }
-  const subTools = TOOL_SCHEMAS.filter(s => isSubAgentTool(s.function.name))
+  // 具名子代理配了 tools 就再收一层（配置已校验过，只会是只读集的子集）
+  const subTools = TOOL_SCHEMAS.filter(
+    s => isSubAgentTool(s.function.name) && (!agent?.tools || agent.tools.includes(s.function.name)),
+  )
+  const subModel = agent?.model ?? settingsFor(session).model
   /** @type {import('./deepseek.mjs').WireMessage[]} */
   const messages = [
     {
@@ -667,10 +688,10 @@ async function runSubAgent(session, prompt, description, emit, expired, tag) {
   for (let round = 0; round < MAX_SUBAGENT_ROUNDS; round++) {
     if (expired()) break
     const { toolCalls } = await chatCompletion({
-      model: settingsFor(session).model,
+      model: subModel,
       messages,
       tools: subTools,
-      reasoningEffort: resolveEffort(settingsFor(session).model, settingsFor(session).effortLevel),
+      reasoningEffort: resolveEffort(subModel, settingsFor(session).effortLevel),
       onDelta: ev => {
         if (ev.type === 'text') { answer += ev.delta; if (tag) emit({ type: 'assistant_delta', delta: ev.delta }) }
       },

@@ -15,6 +15,15 @@ export type ClientMessage =
     }
   /** 拉分支列表（新会话选分支用）。 */
   | { type: 'git_branches' }
+  /** 具名子代理（可视化管理）：列 / 存 / 删。 */
+  | { type: 'subagent_list' }
+  | {
+      type: 'subagent_save'
+      name: string
+      config: Record<string, unknown>
+      scope?: SettingsScope
+    }
+  | { type: 'subagent_delete'; name: string; scope?: SettingsScope }
   | { type: 'select_session'; sessionId: string }
   | { type: 'rename_session'; sessionId: string; title: string }
   | { type: 'delete_session'; sessionId: string }
@@ -152,6 +161,10 @@ export type ServerMessage =
   | { type: 'crons'; crons: CronInfo[] }
   /** 分支列表（不是 git 仓库时为空数组）。 */
   | { type: 'git_branches'; branches: string[] }
+  /** 具名子代理清单（保存/删除后也会重新推一份）。 */
+  | { type: 'subagents'; subagents: SubagentInfo[] }
+
+/** 一个具名子代理（工具只能是只读集的子集，模型只能是我们支持的型号）。 */
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_export'; sessionId: string; filename: string; markdown: string }
@@ -172,6 +185,16 @@ export type ServerMessage =
   | { type: 'team'; sessionId: string; team: TeamInfo | null }
   | { type: 'team_event'; sessionId: string; member: string; payload: Record<string, unknown> & { type?: string } }
   | { type: 'error'; message: string }
+
+/** 一个具名子代理（工具只能是只读集的子集，模型只能是我们支持的型号）。 */
+export interface SubagentInfo {
+  name: string
+  description: string
+  model?: string
+  tools?: string[]
+  permissionMode?: string
+  source: SettingsScope
+}
 
 /** 一条定时任务。 */
 export interface CronInfo {
