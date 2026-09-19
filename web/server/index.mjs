@@ -44,7 +44,8 @@ import {
 import { HOOK_EVENT, hooksEnabled, runEventHooks, sessionHookInput } from './hooks.mjs'
 import { createHttpServer } from './static.mjs'
 
-// 会话被删除时清理它的定时器（sessions 不反向依赖 engine，用钩子通知）
+// 会话被删除时清理它的定时器（sessions 不反向依赖 engine，用钩子通知）。
+// 文件检查点的清理由 checkpoints.mjs 自己注册（资源归谁谁负责清，见该文件）。
 onSessionDeleted(id => clearCronsForSession(id))
 
 // MCP 工具变化时刷新工具注册表（连接完成 / 重连之后都会触发）

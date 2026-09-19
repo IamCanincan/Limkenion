@@ -23,6 +23,23 @@ import { broadcast } from './bus.mjs'
 const TOKEN_FILE = join(STATE_DIR, 'mcp-oauth.json')
 /** 授权链接在内存里等回调；状态 → {cfg, verifier, redirectUri} */
 const pendingAuth = new Map()
+
+/**
+ * 待授权请求的存活时间。
+ *
+ * 用户打开浏览器授权页后**关掉或走开**，回调永远不会来，而原先只在回调里
+ * `pendingAuth.delete(state)` —— 那条 state 就永久占在 map 里（还带着 cfg /
+ * verifier）。设个 TTL，在相关入口顺手清掉过期的。
+ */
+const AUTH_PENDING_TTL_MS = 10 * 60 * 1000
+
+/** 清掉超时的待授权请求（用户放弃浏览器授权时的残留）。 */
+function purgeExpiredAuth() {
+  const now = Date.now()
+  for (const [state, p] of pendingAuth) {
+    if (now - (p.createdAt ?? 0) > AUTH_PENDING_TTL_MS) pendingAuth.delete(state)
+  }
+}
 const authorizedListeners = new Set()
 
 let tokensCache = null
@@ -70,6 +87,7 @@ export async function forceRefresh(name) {
 
 /** 服务器是否正在等用户完成浏览器授权。 */
 export function isAuthorizationPending(name) {
+  purgeExpiredAuth()
   for (const p of pendingAuth.values()) if (p.cfg.name === name) return true
   return false
 }
@@ -211,7 +229,8 @@ export async function startAuthorization(cfg) {
   const challenge = b64url(createHash('sha256').update(verifier).digest())
   const state = b64url(randomBytes(16))
   const redirectUri = redirectUriFor(cfg)
-  pendingAuth.set(state, { cfg, verifier, redirectUri, clientId, tokenUrl: ep.token_endpoint })
+  purgeExpiredAuth()
+  pendingAuth.set(state, { cfg, verifier, redirectUri, clientId, tokenUrl: ep.token_endpoint, createdAt: Date.now() })
 
   const scope = userAuth.scopes ?? (Array.isArray(ep.scopes_supported) ? ep.scopes_supported.join(' ') : undefined)
   const u = new URL(/** @type {string} */ (ep.authorization_endpoint))
@@ -274,6 +293,7 @@ async function exchangeToken(tokenUrl, params) {
  * @returns {Promise<string>} 给浏览器的 HTML
  */
 export async function handleMcpOAuthCallback(searchParams) {
+  purgeExpiredAuth()
   const state = searchParams.get('state')
   const code = searchParams.get('code')
   const error = searchParams.get('error')

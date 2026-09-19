@@ -15,7 +15,7 @@ import { writeFile, readFile, mkdir, rm, readdir, stat } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { createHash } from 'node:crypto'
 
-import { STATE_DIR } from './sessions.mjs'
+import { STATE_DIR, onSessionDeleted } from './sessions.mjs'
 
 /** 会话内自增序号：防抖落盘的定时器句柄。 */
 const saveTimers = new Map()
@@ -181,6 +181,11 @@ export function clearCheckpoints(sessionId) {
   if (t) { clearTimeout(t); saveTimers.delete(sessionId) }
   rm(ckptFile(sessionId), { force: true }).catch(() => {})
 }
+
+// 会话被**删除**时也要清：原先只有 `/clear` 命令会调 clearCheckpoints，
+// 真正删除会话时它的快照桶、blob 桶、落盘定时器和盘上 ckpt 文件全都残留（泄漏）。
+// 资源归谁谁负责清 —— 在这里自己注册，免得入口忘了接线。
+onSessionDeleted(id => clearCheckpoints(id))
 
 
 // ---------------------------------------------------------------------------
