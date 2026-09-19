@@ -80,6 +80,30 @@ export function getSubagent(name) {
 }
 
 /**
+ * 解析具名子代理（供 runSubAgent 用）。
+ *
+ * 抽出来一是好读，二是**可测** —— 这里最要紧的不是"能解析"，而是
+ * **找不到时必须如实说没执行**：曾经写成「已按默认只读子代理执行」，可代码是直接
+ * return 的，任务根本没跑，等于对模型撒谎。
+ *
+ * @param {string} [name] 空值/不传表示不指定（走默认只读子代理）
+ * @returns {{ok: true, agent: ReturnType<typeof getSubagent>} | {ok: false, error: string}}
+ */
+export function resolveSubagent(name) {
+  const key = String(name ?? '').trim()
+  if (!key) return { ok: true, agent: null }
+  const agent = getSubagent(key)
+  if (agent) return { ok: true, agent }
+  const known = subagents().map(s => s.name).join('、')
+  return {
+    ok: false,
+    error:
+      `子代理「${key}」不存在，**未执行**（不会擅自当成默认子代理跑）` +
+      `。可用：${known || '（当前没有配置具名子代理）'}`,
+  }
+}
+
+/**
  * 新增 / 更新一条定义。
  * @param {string} name
  * @param {Record<string, any>} cfg

@@ -52,7 +52,7 @@ import { callMcpTool, listMcpResources, readMcpResource, getMcpPrompt, mcpRegist
 import { runWorkflow } from './workflow.mjs'
 import { executeTool, isSubAgentTool, summarizeToolInput, TOOL_SCHEMAS } from './tools.mjs'
 import { recordRequest } from './requestLog.mjs'
-import { getSubagent } from './subagents.mjs'
+import { resolveSubagent } from './subagents.mjs'
 
 function newMessageId() {
   return `m_${Math.random().toString(36).slice(2, 10)}`
@@ -617,10 +617,11 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
 async function runSubAgent(session, prompt, description, emit, expired, tag, agentName) {
   // 具名子代理：只覆盖**模型**与**工具子集**，其余能力边界（不能写盘 / 不能联网写 /
   // 不能再派子代理 / 不给 MCP 通道）一律不变 —— 配置面不能成为提权的口子。
-  const agent = agentName ? getSubagent(agentName) : null
-  if (agentName && !agent) {
-    return `（子代理「${agentName}」不存在，已按默认只读子代理执行）`
-  }
+  const resolved = resolveSubagent(agentName)
+  // 找不到具名子代理时**如实回「未执行」**（resolveSubagent 负责措辞）：
+  // 直接 return 而文案却说"已执行"，等于对模型撒谎 —— 它会以为子代理跑过了。
+  if (!resolved.ok) return resolved.error
+  const agent = resolved.agent
 
   // 工作台模式：tag = 成员名。子代理的全部事件包装成 team_event，
   // 前端团队面板按成员分列展示 —— 否则子代理就是黑盒。

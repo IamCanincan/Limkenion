@@ -78,3 +78,26 @@ test('删除：不在该作用域时返回 false 且不动文件', async () => {
   assert.strictEqual(subagents.deleteSubagent('temp', 'user'), true)
   assert.ok(!subagents.subagents().some(s => s.name === 'temp'))
 })
+
+test('resolveSubagent：找不到时必须如实说「未执行」（不能谎称已跑）', () => {
+  subagents.saveSubagent('researcher', { description: '调研' }, 'user')
+  const r = subagents.resolveSubagent('nope')
+  assert.strictEqual(r.ok, false)
+  // 这两点是关键：① 明说未执行，② 列出可用名字让调用方能改对
+  assert.match(r.error, /未执行/, '必须如实说没执行')
+  assert.match(r.error, /researcher/, '应列出可用的子代理名')
+  assert.doesNotMatch(r.error, /已按默认|已执行/, '不能谎称已经执行过')
+})
+
+test('resolveSubagent：不指定 → 走默认（ok，agent 为 null）', () => {
+  assert.deepStrictEqual(subagents.resolveSubagent(''), { ok: true, agent: null })
+  assert.deepStrictEqual(subagents.resolveSubagent(undefined), { ok: true, agent: null })
+})
+
+test('resolveSubagent：存在时返回 agent', () => {
+  subagents.saveSubagent('checker', { description: '检查', tools: ['Read'] }, 'user')
+  const r = subagents.resolveSubagent('checker')
+  assert.strictEqual(r.ok, true)
+  assert.equal(r.agent?.name, 'checker')
+  assert.deepStrictEqual(r.agent?.tools, ['Read'])
+})
