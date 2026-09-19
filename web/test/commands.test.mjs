@@ -425,6 +425,56 @@ describe('/init 生成 LIMKENION.md', () => {
   })
 })
 
+describe('/commit /commit-push-pr /review（prompt 型 git 命令）', () => {
+  test('工作区不是 git 仓库 → 明确报错，且不启动回合', async () => {
+    // stateDir 里没有 .git，三条都应该直接拒绝
+    for (const cmd of ['commit', 'commit-push-pr', 'review']) {
+      const r = makeRunner()
+      const out = await r.run('/' + cmd)
+      assert.match(out, /不是 git 仓库/, `/${cmd} 应说明不是 git 仓库，实际：${out}`)
+      assert.equal(
+        r.session.messages.filter(m => m.role === 'user').length,
+        0,
+        `/${cmd} 不应往会话里塞消息（没有启动回合）`,
+      )
+    }
+  })
+
+  test('是 git 仓库 → 把提示词注入会话并触发一轮', async () => {
+    const fs = await import('node:fs/promises')
+    await fs.mkdir(join(stateDir, '.git'), { recursive: true })
+
+    stub.setScript([{ text: '好的，先看改动。' }])
+    const r = makeRunner()
+    const out = await r.run('/commit')
+    assert.match(out, /已开始创建提交/)
+    assert.ok(
+      r.session.messages.some(m => m.role === 'user' && /创建一次 git 提交/.test(m.text)),
+      '应把提交提示作为用户消息放进会话',
+    )
+    await new Promise(res => setTimeout(res, 400))
+    assert.ok(r.session.messages.some(m => m.role === 'assistant'), '应产生一条 assistant 回复')
+    stub.setScript([{ text: '（桩回复）' }])
+
+    await rm(join(stateDir, '.git'), { recursive: true, force: true })
+  })
+
+  test('review 的提示里要求先确认 gh 可用（不能闷头失败）', async () => {
+    const fs = await import('node:fs/promises')
+    await fs.mkdir(join(stateDir, '.git'), { recursive: true })
+    stub.setScript([{ text: '收到。' }])
+
+    const r = makeRunner()
+    await r.run('/review')
+    const injected = r.session.messages.find(m => m.role === 'user' && /审查当前分支/.test(m.text))
+    assert.ok(injected, '应注入审查提示')
+    assert.match(injected.text, /gh --version/, '提示里必须要求先确认 gh 可用')
+    await new Promise(res => setTimeout(res, 400))
+    stub.setScript([{ text: '（桩回复）' }])
+    await rm(join(stateDir, '.git'), { recursive: true, force: true })
+  })
+})
+
 describe('命令注册表扫描', () => {
   test('insights 被正确注册（而不是它的分节名 project_areas）', async () => {
     const reg = await mod.loadCommandRegistry()

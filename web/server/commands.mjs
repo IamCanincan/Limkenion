@@ -286,7 +286,7 @@ const TERMINAL_ONLY = {
   issue: '问题上报由 CLI 上报',
   'release-notes': '发布说明随 CLI 版本',
   advisor: '需要 CLI 侧的顾问模型配置',
-  'init-verifiers': '需要写入项目校验器配置',
+  // 注意：/init-verifiers 已于 2026-09-19 在 web 实现（prompt 型），不再是终端专属。
   bughunter: '需要多代理编排基础设施',
 }
 
@@ -338,6 +338,10 @@ export const WEB_IMPLEMENTED = [
   'workflows',   // 动态工作流运行（web 端未挂载该工具，如实说明）
   'cwd',         // 切换工作区根（收窄到子目录；触发 cwd-changed 钩子）
   'add-dir',     // 追加额外可访问目录（写入 session.workspaceAdditions）
+  'commit',       // prompt 型：创建 git 提交
+  'commit-push-pr', // prompt 型：提交 + 推送 + 创建 PR
+  'review',      // prompt 型：审查 PR
+  'init-verifiers', // prompt 型：整理变更验证清单
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
@@ -369,6 +373,30 @@ const COMMAND_ALIASES = {
  * @param {object} registry 命令注册表
  * @returns {Promise<string>} 命令输出（Markdown 文本）
  */
+/**
+ * 启动一个「提示词型」回合。
+ *
+ * CLI 里有一类命令本身没有逻辑，只是往对话里塞一段提示词让模型去做
+ * （/init、/commit、/review 都是这种）。web 端做法：把提示词当作一条 user 消息
+ * 推入会话，然后后台跑一个回合 —— 命令本身**立刻返回**一句说明，
+ * 回合在后台跑完，事件照常广播给前端。
+ *
+ * @param {object} session
+ * @param {string} prompt 给模型的提示词
+ * @param {string} note 立刻返回给用户看的话
+ */
+function startPromptTurn(session, prompt, note) {
+  const userMessage = { id: newMessageId(), role: 'user', text: prompt, timestamp: Date.now() }
+  session.messages.push(userMessage)
+  session.updatedAt = Date.now()
+  broadcast({ type: 'user_message', sessionId: session.id, message: userMessage })
+
+  const messageId = newMessageId()
+  broadcast({ type: 'assistant_start', sessionId: session.id, messageId })
+  void runTurn(session, prompt, messageId)
+  return note
+}
+
 export async function runCommand(session, rawName, argString, ws, registry) {
   const name = COMMAND_ALIASES[rawName] ?? rawName
   const cmd = registry.find(c => c.name === name || c.aliases.includes(name))
@@ -906,17 +934,82 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       '本文件为 Limkenion 在此仓库中处理代码时提供指引。\n\n' +
       '先探查仓库（读 README、package.json 等），再写文件。'
 
-    const userMessage = { id: newMessageId(), role: 'user', text: prompt, timestamp: Date.now() }
-    session.messages.push(userMessage)
-    session.updatedAt = Date.now()
-    broadcast({ type: 'user_message', sessionId: session.id, message: userMessage })
+    return startPromptTurn(
+      session,
+      prompt,
+      '已开始生成 LIMKENION.md —— 模型会先探查仓库结构，再写文件（写文件前会请求你确认）。',
+    )
+  }
 
-    const messageId = newMessageId()
-    broadcast({ type: 'assistant_start', sessionId: session.id, messageId })
-    // 不 await：命令要立刻返回，回合在后台跑完（事件照常 broadcast 给前端）。
-    void runTurn(session, prompt, messageId)
+  // ---- git / PR 类：CLI 里是 prompt 型命令，web 端沿用同样做法 ----
+  if (name === 'commit' || name === 'commit-push-pr' || name === 'review') {
+    const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
+    if (!existsSync(join(base, '.git'))) {
+      return (
+        `当前工作区不是 git 仓库（找不到 ${join(base, '.git')}），/${name} 用不了。\n` +
+        '先在仓库里 git init，或用 /cwd 切到仓库目录。'
+      )
+    }
 
-    return '已开始生成 LIMKENION.md —— 模型会先探查仓库结构，再写文件（写文件前会请求你确认）。'
+    if (name === 'commit') {
+      const prompt =
+        '为当前仓库创建一次 git 提交。\n\n' +
+        '要求：\n' +
+        '1. 先 `git status` 与 `git diff --stat`（含未跟踪文件）看清改动全貌。\n' +
+        '2. `git log --oneline -10` 看最近提交的写法，沿用同样的语言与格式。\n' +
+        '3. 只提交与本次改动相关的文件 —— 不要 `git add .`，避免把无关文件、密钥、构建产物带进去。\n' +
+        '4. 提交信息：一行主题（不超过 72 字符），必要时空一行再写正文说明「为什么」。\n' +
+        '5. 执行 commit 之前，先把将要提交的文件清单告诉我。\n' +
+        '6. 不要用 `--amend`、`--force`、`--no-verify`，不要跳过钩子。\n' +
+        '7. 不要编造改动内容。'
+      return startPromptTurn(session, prompt, '已开始创建提交 —— 模型会先看改动清单，提交前会请求你确认。')
+    }
+
+    if (name === 'commit-push-pr') {
+      const prompt =
+        '提交当前改动、推送到远程，并为当前分支创建拉取请求（PR）。\n\n' +
+        '前提检查（不满足就停下来说明原因，不要继续）：\n' +
+        '1. 当前分支不能是 main / master 这类保护分支 —— 若是，先说明并停止。\n' +
+        '2. 确认 `gh --version` 可用；不可用就明确告诉用户「需要安装并登录 gh」后停止。\n\n' +
+        '步骤：\n' +
+        '1. `git status` / `git diff --stat` 看清改动，`git log --oneline -10` 沿用提交风格。\n' +
+        '2. 提交（同一条要求：不要 `git add .`，不要用 `--amend` / `--force` / `--no-verify`）。\n' +
+        '3. `git push -u origin <当前分支>`。\n' +
+        '4. `gh pr create`，标题与正文要说清「改了什么、为什么」。`--fill` 可用但内容太干时自己写。\n' +
+        '5. 最后把 PR 链接告诉我。\n' +
+        '6. 推送与建 PR 都是有副作用的操作，执行前说明你要做什么。'
+      return startPromptTurn(
+        session,
+        prompt,
+        '已开始：提交 → 推送 → 创建 PR。推送和建 PR 前都会说明并请求确认。',
+      )
+    }
+
+    if (name === 'init-verifiers') {
+      const prompt =
+        '为当前仓库建立一份「变更验证」清单：改完代码之后，跑哪些命令才能确认没改坏。\n\n' +
+        '要求：\n' +
+        '1. 先探查仓库（package.json / Makefile / CI 配置 / 现有脚本），找出真实存在的验证手段。\n' +
+        '2. 按「快 → 慢」排序：类型检查、lint、单元测试、构建。每条给出**确切命令**。\n' +
+        '3. 标注哪些能只跑一部分（例如单个测试文件 / 单个用例），日常开发最常用。\n' +
+        '4. 只写命令真实存在的项 —— 仓库里没有的验证手段不要臆造。\n' +
+        '5. 写成一份简洁的清单放到 LIMKENION.md 里（已存在就追加 / 改进，不要重写全文）。'
+      return startPromptTurn(session, prompt, '已开始整理变更验证清单 —— 会先探查仓库里真实存在的验证命令。')
+    }
+
+    const prompt =
+      '审查当前分支对应的拉取请求（PR）。\n\n' +
+      '前提检查（不满足就停下来说明原因）：\n' +
+      '1. 确认 `gh --version` 可用；不可用就明确告诉用户后停止。\n' +
+      '2. 用 `gh pr view --json number,title,baseRefName,headRefName` 确认当前分支有对应 PR。\n\n' +
+      '步骤：\n' +
+      '1. `gh pr diff` 拿到改动，逐个文件读懂意图（必要时 Read 上下文）。\n' +
+      '2. 按严重程度分级：必须改（会出错 / 有安全问题）→ 建议改 → 可选（风格）。\n' +
+      '3. 每条意见给出：文件与行号、问题是什么、为什么是问题、建议怎么改。\n' +
+      '4. 只评论本次改动引入的问题；既有代码的老问题只在被这次改动放大时才提。\n' +
+      '5. 用 `gh pr review` 提交；意见较多时用逐条内联评论更好读。\n' +
+      '6. 不要编造问题，也不要为了凑数给"看起来不错"式的空泛评价。'
+    return startPromptTurn(session, prompt, '已开始审查 PR —— 会先确认 gh 可用且当前分支有对应 PR。')
   }
 
   if (name === 'workflows') {
