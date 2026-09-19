@@ -145,6 +145,25 @@ function lastToolResultText() {
 }
 
 describe('配置解析与 /hooks 摘要', () => {
+  test('执行方式不支持时，提示要列出**全部**支持的类型（不能写死"只支持 command"）', async () => {
+    // 原文案是"执行方式 X 未实现（只支持 command）"，但实际支持 4 种 ——
+    // 用户看到"只支持 command"会以为 prompt / agent / http 用不了。
+    await setHooks({
+      PreToolUse: [{ hooks: [{ type: 'definitely-not-a-hook-type', command: 'true' }] }],
+    })
+    const all = hooks.configuredHooks()
+    const bad = all.find(h => !h.usable)
+    assert.ok(bad, '这个钩子应被判为不生效')
+    assert.match(bad.reason, /执行方式/, '实际原因：' + bad.reason)
+    assert.ok(
+      !/只支持 command/.test(bad.reason),
+      '不能再写"只支持 command"——实际支持 4 种：' + bad.reason,
+    )
+    for (const t of ['command', 'prompt', 'agent', 'http']) {
+      assert.ok(bad.reason.includes(t), `提示里应列出支持的类型 ${t}，实际：${bad.reason}`)
+    }
+  })
+
   test('生效与不生效的钩子会被分开列出（不静默忽略）', async () => {
     await setHooks({
       PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: hookCommand('allow') }] }],

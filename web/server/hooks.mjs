@@ -285,7 +285,9 @@ export function configuredHooks() {
       reason = '该事件 web 端未接线'
     } else if (!HOOK_TYPES_SUPPORTED.includes(h.type)) {
       usable = false
-      reason = `执行方式 ${h.type} 未实现（只支持 command）`
+      // 别写死"只支持 command" —— 实际支持 4 种，写成只支持一种会误导
+      // （用户可能因此不敢用 prompt / agent / http 钩子）。把清单列出来。
+      reason = `执行方式 ${h.type} 未实现（支持：${HOOK_TYPES_SUPPORTED.join('、')}）`
     } else if (h.type === 'prompt' || h.type === 'agent') {
       if (!String(h.prompt ?? "").trim()) { usable = false; reason = "prompt 类型钩子缺 prompt 字段" }
     } else if (h.type === "http") {
