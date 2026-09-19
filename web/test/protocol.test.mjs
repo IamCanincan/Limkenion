@@ -5,11 +5,11 @@
 
 import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import WebSocket from 'ws'
-import { fetchToken, startServer } from './helpers.mjs'
+import { fetchToken, startServer, rmDir } from './helpers.mjs'
 
 const PORT = 18899
 let srv
@@ -24,7 +24,7 @@ before(async () => {
 
 after(async () => {
   srv?.child.kill()
-  await rm(stateDir, { recursive: true, force: true })
+  await rmDir(stateDir)
 })
 
 /** 打开一条 WS，返回 { ws, next(type), close() }。 */

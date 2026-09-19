@@ -139,8 +139,20 @@ export async function makeWorkspace(files = {}) {
   }
   return {
     dir,
-    cleanup: () => rm(dir, { recursive: true, force: true }),
+    cleanup: () => rmDir(dir),
   }
+}
+
+/**
+ * 递归删除目录（测试清理用）。
+ *
+ * Windows 下裸 `rm -rf` 遇到「还有句柄/子进程短暂占用」的目录会报 ENOTEMPTY 且默认
+ * 不重试，导致测试 after 钩子偶发挂（engine.test 的 rmdir ENOTEMPTY flake 即此）。
+ * 加 maxRetries/retryDelay 让瞬态占用自动重试——比裸 rm 稳。
+ * @param {string} dir
+ */
+export async function rmDir(dir) {
+  await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 }
 
 /** 以子进程启动真实服务，等它就绪。 */

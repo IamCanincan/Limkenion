@@ -16,10 +16,10 @@
  */
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { startServer } from './helpers.mjs'
+import { startServer, rmDir } from './helpers.mjs'
 
 const PORT = 18907
 let srv
@@ -31,7 +31,7 @@ before(async () => {
 })
 after(async () => {
   srv?.child.kill()
-  await rm(stateDir, { recursive: true, force: true })
+  await rmDir(stateDir)
 })
 
 test('happy path：GET / 返回 200（handler 始终有响应、不挂死）', async () => {
