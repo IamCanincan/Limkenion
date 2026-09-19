@@ -26,6 +26,6 @@ npm run serve      # 单独启动后端（node server/index.mjs）
 ## 关于 CLI
 
 CLI（上游 CLI 原型 fork）已于 2026-09-18 停止维护并从工作树移除，
-完整源码保存在 git 分支 **`archive/cli`**（含全部历史）。
-`web/server/data/cli-contract.json`、`commands-manifest.json` 是当时的
+其源码分支 **`archive/cli`** 已于 2026-09-19 一并删除（本地与远程均已移除）。
+`web/server/data/cli-contract.json`、`commands-manifest.json` 是当时留下的
 契约快照数据，web 端仅作为数据消费，仍然有效。
