@@ -19,7 +19,7 @@ npm run serve      # 单独启动后端（node server/index.mjs）
 | `npm run dev` | Vite 开发服务器 |
 | `npm run build` | 前端构建 |
 | `npm run serve` | 启动后端 |
-| `npm test` | 单元测试（452 条） |
+| `npm test` | 单元测试（487 条） |
 | `npm run test:e2e` | 端到端测试（需 DEEPSEEK_API_KEY） |
 | `npm run typecheck` | 前端 + 服务端 tsc 检查（应保持 0 错误） |
 
