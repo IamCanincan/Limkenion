@@ -50,6 +50,14 @@
 ## 环境要点
 - 有 HTTP 代理：访问 localhost 必须 `curl --noproxy '*'`；**DuckDuckGo 超时，Bing 可用**。
 - Node：**测试/tsc/vite/E2E 用系统 v24**（`D:\nodejs\node.exe`）；
+  **但 CI（Gitee Go `.workflow/ci.yml`）用的是 Node 20** —— 版本差异导致的 bug 本地
+  **完全测不出来**（已踩：`import.meta.dirname` 要 20.11+，老 20.x 上是 undefined，
+  而 `paths.mjs` 的 `CLI_ROOT` 是加载时求值的常量 → 直接 TypeError、服务起不来、测试全红）。
+  防线：`test/node-compat.test.mjs`（禁 import.meta.dirname / 禁服务端依赖全局 WebSocket）。
+  **写任何依赖较新 Node API 的代码前，先想 Node 20 有没有。**
+- **Gitee Go 的流水线结果查不到**：标准 v5 API 没有（`/statuses/{sha}` 返回
+  `Not Found Project`，即使 token 有效、仓库路径正确）。只能**上网页看**。 remote URL
+  内含私人 token，可用来调 API 查仓库/用户，但**任何打印都要脱敏**。
   **web 预览服务用托管 22.22.2**（`C:\Users\20653\.workbuddy\binaries\node\versions\22.22.2-3\node.exe web/server/index.mjs`）。
 - **API key 从 `~/.limkenion.json` 的 `primaryApiKey` 取，别问用户**；
   web 服务只认环境变量，**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
