@@ -191,6 +191,33 @@ describe('不可信内容隔离', () => {
     assert.match(v.escalate, /读不到文件内容/)
   })
 
+  test('命令里引用"区内软链"也要升级确认（光看路径字符串看不出它指向外面）', async () => {
+    const fs = await import('node:fs')
+    const fsp = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+
+    const out = await fsp.mkdtemp(join(tmpdir(), 'lk-shell-out-'))
+    const secret = join(out, 'secret.txt')
+    await fsp.writeFile(secret, 'OUTSIDE')
+    const link = join(ws.dir, 'link.txt')
+    try {
+      fs.symlinkSync(secret, link)
+    } catch {
+      await fsp.rm(out, { recursive: true, force: true })
+      return // 建不了软链，跳过
+    }
+    // 前置条件：软链确实通到区外
+    assert.ok(fs.existsSync(link), '软链应建立成功')
+
+    const v = analyzeShellCommand('Bash', `type ${link}`)
+    assert.ok(
+      v.escalate,
+      '引用指向区外的软链时必须升级确认（否则会静默读到区外），实际：' + JSON.stringify(v),
+    )
+    await fsp.rm(out, { recursive: true, force: true })
+  })
+
   test('markUntrusted / hasUntrusted 按会话隔离', () => {
     const a = {}
     const b = {}

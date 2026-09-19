@@ -208,32 +208,45 @@ function realOrParent(abs) {
  *   - **悬空软链要单独认**：目标还不存在时 realpathSync 会失败，
  *     但它是软链这件事 `lstatSync` 能看出来，指向哪儿 `readlinkSync` 能拿到。
  */
-function assertNoSymlinkEscape(abs, inputPath) {
-  const roots = workspaceRoots().map(r => {
+/** 沙箱各根的真实路径（两边都取 realpath 才不会误判，理由见下面）。 */
+function realRoots() {
+  return workspaceRoots().map(r => {
     try {
       return realpathSync(r)
     } catch {
       return resolve(r)
     }
   })
+}
+
+/**
+ * 软链逃逸检查：路径看着在沙箱内、实际指向外面时，**返回那个外面的真实路径**；
+ * 没有逃逸则返回 null。
+ *
+ * 导出是为了让 shell 守卫复用同一套判断 —— 两边各写一份迟早会漂移。
+ */
+export function symlinkEscape(abs) {
+  const roots = realRoots()
   const insideReal = p => roots.some(r => inside(r, p))
 
   try {
     if (lstatSync(abs).isSymbolicLink()) {
       const target = resolve(dirname(abs), readlinkSync(abs))
-      if (!insideReal(target)) {
-        throw new Error(`路径越界（软链指向沙箱外：${target}）：${inputPath}`)
-      }
+      if (!insideReal(target)) return target
     }
-  } catch (err) {
-    // 注意：上面自己抛的越界错误要继续往外传，不能被下面的 catch 吞掉
-    if (/路径越界/.test(String(err?.message ?? ''))) throw err
-    // lstat/readlink 失败（比如路径不存在）→ 交给下面的 realpath 兜底
+  } catch {
+    // 路径不存在 / 不是软链 → 交给下面的 realpath 兜底
   }
 
   const real = realOrParent(abs)
-  if (!insideReal(real)) {
-    throw new Error(`路径越界（链接指向沙箱外：${real}）：${inputPath}`)
+  if (!insideReal(real)) return real
+  return null
+}
+
+function assertNoSymlinkEscape(abs, inputPath) {
+  const escaped = symlinkEscape(abs)
+  if (escaped) {
+    throw new Error(`路径越界（链接指向沙箱外：${escaped}）：${inputPath}`)
   }
 }
 

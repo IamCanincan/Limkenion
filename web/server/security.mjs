@@ -15,7 +15,7 @@ import { randomBytes } from 'node:crypto'
 import { basename, resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { EXPOSED, PORT } from './config.mjs'
-import { isInsideWorkspace } from './paths.mjs'
+import { isInsideWorkspace, symlinkEscape } from './paths.mjs'
 
 // ---------------------------------------------------------------------------
 // 1. 连接鉴权
@@ -185,7 +185,11 @@ function outsideWorkspacePaths(command) {
       // 用 isInsideWorkspace 而不是自己算相对路径：沙箱根是按会话的
       // （worktree 会改根），而且要去重额外可访问目录。
       const inside = isInsideWorkspace(abs)
-      if (!inside && !found.includes(raw)) found.push(raw)
+      // 软链也要查：路径看着在区内、实际指向外面时，光看路径字符串看不出来
+      // （`cat 区内软链` 会静默读到区外）。复用 paths.mjs 的同一套判断。
+      const escaped = inside ? symlinkEscape(abs) : null
+      const hit = !inside ? raw : escaped
+      if (hit && !found.includes(hit)) found.push(hit)
     }
   }
   return found.slice(0, 5)
