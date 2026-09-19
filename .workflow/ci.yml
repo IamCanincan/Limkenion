@@ -22,24 +22,32 @@ stages:
       - step: build@nodejs
         name: ci-web
         displayName: web — typecheck / test / build
-        # ⚠️ 这个值**可能不生效** —— 别盲信它：
+        # ⚠️ 这个字段**不可信**，别指望它：
         #   · Gitee 官方文档里 build@nodejs 的 nodeVersion 只列到 15.12；
+        #   · 实测写 '22' 时环境里**根本没有 node/npm**（node: command not found）；
         #   · 容器镜像名 `ubuntu:plugin-24` 里的 24 是**插件**版本，不是 Node 版本。
-        # 所以实际 Node 是几，一律以下面 `node -v` 的输出为准。
-        #
-        # 为什么想用 22：vitest 5 的 engines 是 ^22.12.0 || ^24.0.0 || >=26.0.0，
-        # 依赖 Node 22.12+ 才有的 require(ESM)。实测 Node 20 上 `npm run test:ui`
-        # 必炸：[vitest-pool]: Failed to start forks worker … ERR_REQUIRE_ESM
-        # （typecheck / npm test / build 在 Node 20 上都正常，只有 UI 测试不行。）
-        # 服务本体在 Node 20 上能跑，这里只是为了让**测试工具链**能跑。
-        # 万一实际 Node 不够，下面会自动跳过 UI 测试并打印警告，而不是让流水线变红。
-        nodeVersion: '22'
+        # 所以真正的 Node 由下面**自己下载安装**，这个字段只是让插件别报错。
+        nodeVersion: '14.16.0'
         commands:
           - |
             set -e
             # 失败时把「到底哪一条命令挂的」说清楚：光有 step 级的 "exited with code 1"
             # 定位不了问题（Gitee Go 不会告诉你是哪行）。
             fail() { echo ""; echo "########## ❌ 失败于：$1 ##########"; exit 1; }
+
+            # ---- 自己装 Node（不依赖上面那个不靠谱的 nodeVersion）----
+            # vitest 5 要 ^22.12 || ^24 || >=26（依赖 require(ESM)），本地就是用
+            # 22.22.2 验证的，这里保持一致，避免又来一次"本地绿、CI 红"。
+            NODE_VER=22.22.2
+            NODE_DIR=/opt/node-v$NODE_VER-linux-x64
+            if [ ! -x "$NODE_DIR/bin/node" ]; then
+              echo "== 下载 Node $NODE_VER =="
+              # 用 .tar.gz 而不是 .tar.xz：后者要 xz 工具，精简镜像里可能没有。
+              curl -fsSL "https://registry.npmmirror.com/-/binary/node/v$NODE_VER/node-v$NODE_VER-linux-x64.tar.gz" -o /tmp/node.tar.gz || fail '下载 Node'
+              tar -xzf /tmp/node.tar.gz -C /opt || fail '解压 Node'
+            fi
+            export PATH="$NODE_DIR/bin:$PATH"
+
             echo '== 环境 =='
             node -v || fail 'node -v'
             npm -v || fail 'npm -v'
