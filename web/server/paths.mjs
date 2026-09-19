@@ -17,8 +17,8 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { isAbsolute, join, relative, resolve, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { existsSync, lstatSync, readlinkSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -179,6 +179,64 @@ export function isInsideWorkspace(abs) {
  *   - 盘符相对路径（`C:foo`）—— `isAbsolute` 为 false，但 `resolve` 会跳到该盘根；
  *   - 设备名（CON/NUL/COM1…）与备用数据流（`file.txt:stream`）。
  */
+/**
+ * 真实路径（解析软链 / junction）。
+ *
+ * 目标还不存在时（Write 新建文件）退而解析**父目录** —— 父目录若指向外面，
+ * 新建的文件同样会落到外面，这一步不能省。
+ */
+function realOrParent(abs) {
+  try {
+    return realpathSync(abs)
+  } catch {
+    try {
+      return join(realpathSync(dirname(abs)), basename(abs))
+    } catch {
+      return abs
+    }
+  }
+}
+
+/**
+ * 拦软链逃逸：路径**看着**在沙箱内、但它指向外面。
+ *
+ * 只做 `resolve()` 的话，工作区里放一个软链就能读到区外的文件 —— 实测可逃逸。
+ * 判断要点：
+ *   - **两边都取 realpath** 再比。只 realpath 文件会误判：工作区根自己就在
+ *     链接下面时（macOS 的 `/tmp` → `/private/tmp`，Windows junction），
+ *     区内文件会被当成越界。
+ *   - **悬空软链要单独认**：目标还不存在时 realpathSync 会失败，
+ *     但它是软链这件事 `lstatSync` 能看出来，指向哪儿 `readlinkSync` 能拿到。
+ */
+function assertNoSymlinkEscape(abs, inputPath) {
+  const roots = workspaceRoots().map(r => {
+    try {
+      return realpathSync(r)
+    } catch {
+      return resolve(r)
+    }
+  })
+  const insideReal = p => roots.some(r => inside(r, p))
+
+  try {
+    if (lstatSync(abs).isSymbolicLink()) {
+      const target = resolve(dirname(abs), readlinkSync(abs))
+      if (!insideReal(target)) {
+        throw new Error(`路径越界（软链指向沙箱外：${target}）：${inputPath}`)
+      }
+    }
+  } catch (err) {
+    // 注意：上面自己抛的越界错误要继续往外传，不能被下面的 catch 吞掉
+    if (/路径越界/.test(String(err?.message ?? ''))) throw err
+    // lstat/readlink 失败（比如路径不存在）→ 交给下面的 realpath 兜底
+  }
+
+  const real = realOrParent(abs)
+  if (!insideReal(real)) {
+    throw new Error(`路径越界（链接指向沙箱外：${real}）：${inputPath}`)
+  }
+}
+
 export function safePath(inputPath) {
   if (typeof inputPath !== 'string' || inputPath.trim().length === 0) {
     throw new Error('路径不能为空')
@@ -196,6 +254,7 @@ export function safePath(inputPath) {
   if (!isInsideWorkspace(abs)) {
     throw new Error(`路径越界（沙箱：${workspaceRoots().join('、')}）：${inputPath}`)
   }
+  assertNoSymlinkEscape(abs, inputPath)
 
   // Windows 保留设备名
   const base = abs.split(/[\\/]/).pop() ?? ''

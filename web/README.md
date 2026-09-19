@@ -39,7 +39,7 @@ web/
 │   └── netproxy.mjs      # shell 出网白名单代理（纯 Node，无原生依赖）
 ├── bin/
 │   └── limkenion-web.mjs # npm bin 入口
-├── test/                 # 自动化测试（node:test，46 个文件 / 476 个用例）
+├── test/                 # 自动化测试（node:test，46 个文件 / 481 个用例）
 └── src/
     ├── main.tsx / App.tsx / api.ts / types.ts / styles.css
     └── components/       # 21 个组件（见下）
@@ -74,6 +74,7 @@ web/
 已在纯 Node 范围内做的加固（**提高绕过成本，不改变"不是真隔离"这个事实**）：
 
 - **文件工具是硬边界**：Read/Write/Edit/Grep/Glob 每次调用都算路径，越出「工作区根 + 额外目录」直接拒绝。
+- **软链逃逸已堵**：路径看着在沙箱内、但软链指向外面时拒绝（实测原来能读到区外文件）。悬空软链同样拦——它目标不存在，`realpath` 会失败，只能靠 `lstat` + `readlink` 认出来。判定时**两边都取真实路径**，否则工作区根自己位于链接下（macOS 的 `/tmp` → `/private/tmp`、Windows junction）时区内文件会被全误判成越界。
 - **脚本落地即执行会升级确认**：模型可以先写个脚本（工作区内 → 放行）再执行 `bash run.sh`——守卫看到的命令文本完全无害。现在这种情况会强制重新确认，并**把脚本开头展示出来**，避免用户对着一句 `bash run.sh` 盲签。
 - 追加额外目录时，若那是工作区根的**上级目录**，会明确警告「可达范围被放大」（`/add-dir`）。
 

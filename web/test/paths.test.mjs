@@ -166,3 +166,90 @@ describe('沙箱作用域（按会话的根）', () => {
     assert.equal(workspaceRoot(), WORKSPACE_ROOT)
   })
 })
+
+// ---------------------------------------------------------------------------
+// 软链逃逸（实测可绕过：路径看着在沙箱内，实际指向外面）
+// ---------------------------------------------------------------------------
+
+describe('软链逃逸', () => {
+  /** 建一个工作区外的目录，里面放个文件。 */
+  async function outsideDir(content = 'TOP-SECRET') {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const dir = await mkdtemp(join(tmpdir(), 'lk-outside-'))
+    const file = join(dir, 'secret.txt')
+    await writeFile(file, content)
+    return { dir, file, cleanup: () => rm(dir, { recursive: true, force: true }) }
+  }
+
+  test('指向区外的软链必须被拒绝（否则沙箱被绕过）', async () => {
+    const out = await outsideDir()
+    const { symlinkSync } = await import('node:fs')
+    const link = join(ws.dir, 'innocent.txt')
+    try {
+      symlinkSync(out.file, link)
+    } catch (err) {
+      // 这台机器建不了软链（Windows 需要管理员/开发者模式）—— 无法验证，如实跳过
+      await out.cleanup()
+      return
+    }
+    assert.throws(() => safePath(link), /越界/, '软链指向区外时必须拒绝')
+    await out.cleanup()
+  })
+
+  test('指向区内的软链要放行（不能误伤合法软链）', async () => {
+    const { symlinkSync, writeFileSync } = await import('node:fs')
+    const target = join(ws.dir, 'real.txt')
+    writeFileSync(target, 'inside')
+    const link = join(ws.dir, 'alias.txt')
+    try {
+      symlinkSync(target, link)
+    } catch {
+      return // 建不了软链，跳过
+    }
+    assert.equal(safePath(link), link, '区内软链不该被拦')
+  })
+
+  test('悬空软链（目标还不存在）指向区外也要拒绝', async () => {
+    const { symlinkSync } = await import('node:fs')
+    const link = join(ws.dir, 'dangling.txt')
+    const outsideTarget = join(await import('node:os').then(m => m.tmpdir()), 'lk-not-exist-xyz.txt')
+    try {
+      symlinkSync(outsideTarget, link)
+    } catch {
+      return
+    }
+    // realpath 会因为目标不存在而失败 —— 只能靠 lstat + readlink 认出来
+    assert.throws(() => safePath(link), /越界/, '悬空软链指向区外时必须拒绝')
+  })
+
+  test('普通文件照常放行（防过度收紧）', () => {
+    assert.equal(safePath('a/b.txt'), join(ws.dir, 'a/b.txt'))
+  })
+
+  test('工作区根自己在链接下时，区内文件不能误判成越界', async () => {
+    // 关键回归点：只 realpath 文件、不 realpath 根的话，
+    // 根在 /tmp → /private/tmp 这类链接下时区内文件会被全判越界。
+    const { realpathSync, symlinkSync } = await import('node:fs')
+    const realRoot = realpathSync(ws.dir)
+    assert.ok(safePath(join(realRoot, 'a', 'b.txt')).length > 0, '真实路径形式也应放行')
+    // 再把根换成"链接形式"走一遍
+    const { mkdtemp } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const holder = await mkdtemp(join(tmpdir(), 'lk-holder-'))
+    const alias = join(holder, 'ws-alias')
+    try {
+      symlinkSync(ws.dir, alias, 'dir')
+      withWorkspace({ root: alias }, () => {
+        assert.ok(
+          isInsideWorkspace(join(alias, 'a', 'b.txt')),
+          '根是软链时，区内文件仍应判为在沙箱内',
+        )
+      })
+    } catch {
+      // 建不了目录软链就跳过（Windows 常见）
+    } finally {
+      await (await import('node:fs/promises')).rm(holder, { recursive: true, force: true })
+    }
+  })
+})
