@@ -6,10 +6,24 @@
 import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import WebSocket from 'ws'
 import { fetchToken, startServer, rmDir } from './helpers.mjs'
+
+const DIST_INDEX = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'index.html')
+
+/**
+ * 静态服务相关的用例需要对着**构建产物**断言（SPA 回退返回 index.html、目录穿越被拒、
+ * no-store 响应头）。没构建时**明说跳过**，而不是抛出一堆看不懂的失败 ——
+ * 这样才能把"忘了 build"和"服务真出问题"区分开。
+ * @returns {string|false} 跳过原因，或 false 表示不用跳
+ */
+function distMissingReason() {
+  return existsSync(DIST_INDEX) ? false : 'dist/ 未构建（先 cd web && npm run build）'
+}
 
 let PORT = 0  // 0 = 让系统分配端口：硬编码端口在 CI 上可能被别的进程占用（EADDRINUSE）
 let srv
@@ -125,13 +139,16 @@ describe('握手鉴权', () => {
     assert.equal(res.status, 403)
   })
 
-  test('token 不会出现在 HTML 之外的地方（no-store）', async () => {
+  test('token 不会出现在 HTML 之外的地方（no-store）', { skip: distMissingReason() }, async () => {
     const res = await fetch(`${srv.base}/`)
     assert.match(res.headers.get('cache-control') ?? '', /no-store/)
   })
 })
 
-describe('静态服务加固', () => {
+// 静态服务相关的用例需要 dist/ 存在（SPA 回退、目录穿越、no-store 都是对着
+// 构建产物断言的）。没构建时**明说跳过**，而不是报一堆看不懂的失败 ——
+// CI 上就是靠这一点区分"没构建"和"服务真的有问题"。
+describe('静态服务加固', { skip: distMissingReason() }, () => {
   test('目录穿越被拒', async () => {
     for (const p of ['/../server/index.mjs', '/..%2fserver/index.mjs', '/..\\server\\index.mjs', '/../package.json']) {
       const res = await fetch(`${srv.base}${p}`)

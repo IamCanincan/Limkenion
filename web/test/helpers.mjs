@@ -206,7 +206,11 @@ export async function startServer({ port, env = {} }) {
   while (Date.now() < deadline) {
     try {
       const res = await fetch(`${base}/`, { signal: AbortSignal.timeout(1000) })
-      if (res.ok) return { child, base, port: actualPort, log: () => out }
+      // 只要**有 HTTP 响应**就算就绪 —— 不能要求 200：
+      // CI 是全新检出、没有 dist/，`/` 会返回 404，但服务本身是好的（WS 也一样能用）。
+      // 本地因为一直构建过 dist，`/` 恒为 200，于是这个坑在本地完全看不见：
+      // 表现为"服务日志明明说起来了，却报 15s 未就绪"，极难排查。
+      if (res) return { child, base, port: actualPort, log: () => out }
     } catch {
       /* 还没起来 */
     }
@@ -216,8 +220,19 @@ export async function startServer({ port, env = {} }) {
   throw new Error(`服务未在 15s 内就绪：\n${out}`)
 }
 
-/** 从 index.html 里取注入的 token。 */
+/**
+ * 取 WS 握手用的 token。
+ *
+ * 走 `/ws-token` 接口，**不要**从 index.html 里解析：
+ * 后者要求 `dist/` 已经构建过，而测试通常在 build **之前**跑（CI 就是全新检出、
+ * 没有 dist），于是静默拿不到 token → WS 握手 403，报错还是"Unexpected server
+ * response: 403"，完全指不到根因。本地因为 dist 常在，这个坑一直没暴露。
+ */
 export async function fetchToken(base) {
-  const html = await (await fetch(`${base}/`)).text()
-  return html.match(/name="limkenion-token" content="([^"]+)"/)?.[1] ?? ''
+  const res = await fetch(`${base}/ws-token`)
+  if (!res.ok) throw new Error(`取 token 失败：HTTP ${res.status}`)
+  const body = await res.json()
+  const token = String(body?.token ?? '')
+  if (!token) throw new Error(`取 token 失败：响应里没有 token：${JSON.stringify(body)}`)
+  return token
 }

@@ -258,16 +258,27 @@ function redirectUriFor(cfg) {
 }
 
 function openBrowser(url) {
+  // 关键：`spawn` **不会因为命令不存在而抛错**，ENOENT 是**异步**以 'error' 事件抛出的。
+  // 只写 try/catch 接不住 —— 没有监听者就变成未捕获异常。实测 Linux 容器里没有
+  // xdg-open，授权流程一走到这里进程就被干掉了（CI 上就是这个现象）。
+  // 所以必须显式挂 'error'：打不开无所谓，播报里的链接本来就是给人手动点的。
+  const opts = /** @type {import('node:child_process').SpawnOptions} */ ({ detached: true, stdio: 'ignore' })
+  let child
   try {
-    const opts = /** @type {import('node:child_process').SpawnOptions} */ ({ detached: true, stdio: 'ignore' })
     if (process.platform === 'win32') {
-      spawn('cmd.exe', ['/c', 'start', '', url], opts).unref()
+      child = spawn('cmd.exe', ['/c', 'start', '', url], opts)
     } else if (process.platform === 'darwin') {
-      spawn('open', [url], opts).unref()
+      child = spawn('open', [url], opts)
     } else {
-      spawn('xdg-open', [url], opts).unref()
+      child = spawn('xdg-open', [url], opts)
     }
-  } catch { /* 打不开就靠播报里的链接 */ }
+  } catch {
+    return // 同步就失败（极少见），静默退回播报链接
+  }
+  child?.on('error', () => {
+    /* 打不开就靠播报里的链接，不能让异常冒出去打断授权流程 */
+  })
+  child?.unref()
 }
 
 /**

@@ -58,6 +58,11 @@ stages:
             npm install --no-audit --no-fund || fail 'npm install（依赖装不上？看上面的网络/registry 报错）'
             echo '== typecheck =='
             npm run typecheck || fail 'typecheck'
+            # build 必须在 tests **之前**：`npm test` 里有静态服务相关的用例
+            # （SPA 回退返回 index.html、目录穿越被拒、no-store 响应头），它们需要
+            # dist/ 存在。CI 是全新检出，没有 dist —— 放在测试后面就等于必红。
+            echo '== build =='
+            npm run build || fail 'build'
             echo '== server tests =='
             npm test || fail 'server tests'
             echo '== ui tests =='
@@ -71,6 +76,4 @@ stages:
             else
               echo "⚠️ 跳过 UI 测试：vitest 5 需要 Node 22.12+，当前 $(node -v)"
             fi
-            echo '== build =='
-            npm run build
             echo '== CI GREEN =='
