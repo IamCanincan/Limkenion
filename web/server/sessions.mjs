@@ -13,7 +13,7 @@
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { broadcast } from './bus.mjs'
@@ -23,8 +23,100 @@ export const STATE_DIR = process.env.LIMKENION_WEB_STATE_DIR ?? join(homedir(), 
 const STATE_FILE = join(STATE_DIR, 'sessions.json')
 const MAX_PERSISTED_SESSIONS = 50
 
+/**
+ * 内存里最多保留多少个会话的**消息**。
+ *
+ * 为什么要有上限：消息是内存大头（工具结果、正文都堆在里面），会话多了会一直涨。
+ * 但**不能真的删会话** —— 那等于静默丢用户数据。所以这里做的是：
+ *   超出上限时，把最久未用的会话的 messages 卸载掉（数据仍在磁盘），
+ *   下次访问再按需重载。会话条目本身留在内存里，侧边栏不受影响。
+ *
+ * 上限必须**明显小于** MAX_PERSISTED_SESSIONS（50）：persistNow 只写最近 50 条，
+ * 若内存上限接近 50，被卸载的那个可能压根没落盘 —— 那就真丢数据了。
+ */
+const MAX_MEMORY_SESSIONS = Number(process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS) || 30
+
 const sessions = new Map()
 const deleteHooks = []
+/** 卸载守卫：返回 true 表示"这条别动"（由 engine 注册，正在跑回合的会话）。 */
+const evictGuards = []
+
+/** 注册卸载守卫（与 onSessionDeleted 同样的思路，避免 sessions → engine 的循环依赖）。 */
+export function onSessionEvict(fn) {
+  if (typeof fn === 'function') evictGuards.push(fn)
+}
+
+/** 记一次访问（LRU 用）。 */
+function touch(s) {
+  if (s) s.accessedAt = Date.now()
+}
+
+/**
+ * 把某个会话的消息卸载到磁盘（**先落盘再清**）。
+ * @param {object} s
+ */
+function unloadMessages(s) {
+  if (!s || s.unloaded) return
+  s.messages = []
+  s.unloaded = true
+}
+
+/**
+ * 从磁盘把消息读回来。
+ *
+ * 用**同步**读：getSession 是同步函数、到处在用；未命中时的同步读只发生在
+ * 被卸载的会话上，属于低频路径。
+ * @param {object} s
+ */
+function reloadMessages(s) {
+  if (!s || !s.unloaded) return
+  let raw
+  try {
+    raw = readFileSync(STATE_FILE, 'utf8')
+  } catch {
+    return // 磁盘上没有 → 保持空，不假装成功
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    const list = Array.isArray(parsed?.sessions) ? parsed.sessions : []
+    const item = list.find(it => it?.id === s.id)
+    if (!item) return
+    s.messages = Array.isArray(item.messages) ? item.messages : []
+    s.unloaded = false
+  } catch {
+    /* 解析失败就保持原样 */
+  }
+}
+
+/** 最近一次排队中的卸载（等待它完成，测试与关停时用）。 */
+let evicting = Promise.resolve()
+
+/** 等待已排队的卸载落盘完成。 */
+export function awaitEvictions() {
+  return evicting
+}
+
+/**
+ * 超出上限时卸载最久未用的会话（只卸消息，不动会话条目）。
+ */
+function evictIfNeeded() {
+  const over = [...sessions.values()].filter(s => !s.unloaded).length - MAX_MEMORY_SESSIONS
+  if (over <= 0) return
+
+  const victims = [...sessions.values()]
+    .filter(s => !s.unloaded && !evictGuards.some(fn => fn(s)))
+    .sort((a, b) => (a.accessedAt ?? 0) - (b.accessedAt ?? 0))
+    .slice(0, over)
+  if (victims.length === 0) return
+
+  // **顺序很关键**：先落盘、再清内存。反过来的话，"还没保存"和"已被清掉"
+  // 之间会有一个窗口，进程这时崩了就是真丢数据。
+  evicting = persistNow()
+    .catch(() => {})
+    .finally(() => {
+      for (const v of victims) unloadMessages(v)
+    })
+}
 
 /** 注册会话删除回调（引擎用它清理定时器）。 */
 export function onSessionDeleted(fn) {
@@ -51,7 +143,8 @@ function newSessionId() {
  *   settings: Record<string, any>, planMode: boolean, filesChanged: any[],
  *   tags: string[], allowedTools: Set<any>, enabledTools: Set<any>,
  *   turnSeq: number, workspaceRoot: string|null, workspaceAdditions: string[],
- *   worktree: any|null
+ *   worktree: any|null,
+ *   accessedAt: number, unloaded: boolean
  * }}
  */
 function blankSession(id) {
@@ -79,6 +172,11 @@ function blankSession(id) {
     workspaceRoot: null,
     workspaceAdditions: [],
     worktree: null,
+    // ---- 内存上限（LRU）用，都是运行时状态，不落盘 ----
+    accessedAt: Date.now(),
+    // true = 消息已卸载到磁盘（见 MAX_MEMORY_SESSIONS）。会话条目本身**始终留在
+    // sessions 里**，否则它会从侧边栏消失，用户以为会话没了。
+    unloaded: false,
   }
 }
 
@@ -117,12 +215,19 @@ export function turnExpired(session, seq) {
 export function createSession() {
   const session = blankSession()
   sessions.set(session.id, session)
+  touch(session)
+  evictIfNeeded()
   schedulePersist()
   return session
 }
 
 export function getSession(id) {
-  return sessions.get(id)
+  const s = sessions.get(id)
+  if (!s) return undefined
+  touch(s)
+  // 被 LRU 卸载过的会话，访问时把消息读回来（磁盘上还在，不会丢）
+  if (s.unloaded) reloadMessages(s)
+  return s
 }
 
 /**
@@ -178,6 +283,8 @@ export function forkSession(source, title, atIndex) {
   forked.worktree = source.worktree ? { ...source.worktree } : null
 
   sessions.set(forked.id, forked)
+  touch(forked)
+  evictIfNeeded()
   schedulePersist()
   return forked
 }
@@ -306,15 +413,43 @@ function serialize(s) {
   }
 }
 
+/**
+ * 读一次状态文件，得到 `会话 id → messages` 的映射。
+ *
+ * 用于**已卸载**的会话：它们的 messages 在内存里是空的，但磁盘上有。
+ * 落盘时必须把磁盘那份读回来再写 —— 否则一次落盘就把磁盘上的数据冲成空数组，
+ * 那就不是"卸载"而是**真删数据**了。
+ * @returns {Map<string, unknown[]>}
+ */
+function readMessagesMap() {
+  const out = new Map()
+  try {
+    const parsed = JSON.parse(readFileSync(STATE_FILE, 'utf8'))
+    const list = Array.isArray(parsed?.sessions) ? parsed.sessions : []
+    for (const it of list) {
+      if (it?.id) out.set(it.id, Array.isArray(it.messages) ? it.messages : [])
+    }
+  } catch {
+    /* 读不到就返回空表（首次落盘 / 文件损坏） */
+  }
+  return out
+}
+
 /** 立即落盘（进程退出前也会调用）。 */
 export async function persistNow() {
   if (persistDisabled) return
   try {
     await mkdir(STATE_DIR, { recursive: true })
+    const hasUnloaded = [...sessions.values()].some(s => s.unloaded)
+    const diskMessages = hasUnloaded ? readMessagesMap() : null
     const list = [...sessions.values()]
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, MAX_PERSISTED_SESSIONS)
-      .map(serialize)
+      .map(s => {
+        const item = serialize(s)
+        if (s.unloaded && diskMessages?.has(s.id)) item.messages = diskMessages.get(s.id)
+        return item
+      })
     await writeFile(STATE_FILE, JSON.stringify({ version: 1, sessions: list }, null, 1), 'utf8')
   } catch (err) {
     // 落盘失败不应影响服务运行，只提示一次

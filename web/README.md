@@ -186,6 +186,7 @@ npm install -g ./limkenion-web-0.6.0.tgz
 | `LIMKENION_WEB_SHELL_NET` | 不限制 | shell 子进程的出网开关：`off`=指向死端口全断；`allowlist`=走本进程内白名单代理（按 `LIMKENION_EGRESS_ALLOWLIST` 放行） |
 | `LIMKENION_EGRESS_ALLOWLIST` | 不限制 | 逗号分隔的主机名，`*.` 前缀按后缀匹配；**服务端出网与 shell 代理共用同一套规则** |
 | `LIMKENION_WEB_HOOK_CONTEXT_CHARS` | `8000` | 钩子输出进上下文的字符预算，超出落盘到 `hook_outputs/` 并只留截断版 + 指针 |
+| `LIMKENION_WEB_MAX_MEMORY_SESSIONS` | `30` | 内存里最多保留多少个会话的**消息**；超出后最久未用的会话消息被卸载（**数据仍在磁盘**，访问时自动读回）。会话条目本身始终保留，不会从侧边栏消失。上限刻意小于持久化的 50 条，避免卸载到没落盘的会话 |
 | `LIMKENION_CONFIG_DIR` | `~/.limkenion` | 用户级设置目录（权限规则 / hooks / mcpServers / subagents 都从这里读） |
 | `LIMKENION_WEB_SEARCH_ENDPOINT` | Bing | WebSearch 数据源 |
 | `DEEPSEEK_API_KEY` | 无 | 设置后启用真实引擎，否则降级 mock |

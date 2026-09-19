@@ -32,6 +32,7 @@ import {
   allSessions,
   beginTurn,
   broadcastSessions,
+  onSessionEvict,
   schedulePersist,
   turnExpired,
 } from './sessions.mjs'
@@ -73,6 +74,11 @@ const activeTurns = new Set()
 export function isTurnActive(sessionId) {
   return activeTurns.has(sessionId)
 }
+
+// 会话内存上限（LRU）的守卫：**正在跑回合的会话不能卸载消息** ——
+// 卸载会把引擎还在用的 messages 清掉，回合直接断在这里。
+// 用注册的方式而不是让 sessions 反向 import engine，避免循环依赖。
+onSessionEvict(s => activeTurns.has(s.id))
 
 /** 项目指令块：无指令时返回空串。 */
 function instructionsBlock() {
