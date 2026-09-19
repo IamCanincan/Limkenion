@@ -227,6 +227,37 @@ describe('软链逃逸', () => {
     assert.equal(safePath('a/b.txt'), join(ws.dir, 'a/b.txt'))
   })
 
+  test('目录遍历不跟随软链（否则扫到区外、Grep 会读到区外内容）', async () => {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { symlinkSync } = await import('node:fs')
+    const out = await mkdtemp(join(tmpdir(), 'lk-walk-out-'))
+    await writeFile(join(out, 'outside.txt'), 'nope')
+
+    const link = join(ws.dir, 'linked-dir')
+    try {
+      symlinkSync(out, link, 'dir')
+    } catch {
+      await rm(out, { recursive: true, force: true })
+      return // 建不了目录软链，跳过
+    }
+
+    // 前置条件：软链确实能通到区外（否则这条就是白测 —— 谁都能"扫不到"）
+    const { existsSync } = await import('node:fs')
+    assert.ok(
+      existsSync(join(link, 'outside.txt')),
+      '前置条件不成立：软链没能通到区外文件，这条用例没测到东西',
+    )
+
+    const { collectFiles } = await import('../server/workspace.mjs')
+    const files = await collectFiles(ws.dir)
+    assert.ok(
+      !files.some(f => f.includes('lk-walk-out-')),
+      '遍历不该穿过软链扫到区外的文件：' + files.filter(f => f.includes('lk-walk-out-')).join('、'),
+    )
+    await rm(out, { recursive: true, force: true })
+  })
+
   test('工作区根自己在链接下时，区内文件不能误判成越界', async () => {
     // 关键回归点：只 realpath 文件、不 realpath 根的话，
     // 根在 /tmp → /private/tmp 这类链接下时区内文件会被全判越界。
