@@ -776,3 +776,49 @@ JSDoc 类型定义（`sessions.mjs` / `hooks.mjs` / `mcp.mjs` / `workflow.mjs` /
 `archive/cli` 分支现状：2113 个文件、1987 个 ts/tsx，**无 package.json / tsconfig，
 只能做语法级校验（esbuild transform），不能 typecheck 或构建**。
 要动这个分支必须先让用户明确点头，并另开 git worktree。
+
+---
+
+## 附八：CLI 归档树的并行翻译与最终删除（2026-09-19）
+
+### 规模实测
+`archive/cli` 分支：2113 个文件 / 1987 个 ts/tsx，其中
+**英文注释 49,049 行、已中文注释 17,898 行、有注释的文件 1,638 个（1,265 个仍含英文）**。
+分布：`utils` 26,868 行（占 55%，主战场）、`services` 5,836、`ink` 4,019、`components` 3,587、
+`hooks` 2,090、`cli` 1,277、`screens` 1,216。最大的单文件：`screens/REPL.tsx` 1,207 行、
+`utils/sessionStorage.ts` 939、`utils/bash/ast.ts` 922。
+
+### 流水线（可复用）
+1. `git worktree add "D:/Github Repositories/Limkenion-cli-i18n" archive/cli`（不动 master）。
+2. 工具链加环境变量覆盖：`LK_REPO`（目标树）/ `LK_TOOLROOT`（找 typescript、esbuild 的树，
+   其下 `web/node_modules`）/ `LK_BASELINE`（**基线文件必须换名隔离** —— 旧 `baseline.json`
+   里已有 CLI 时代的同路径键，不隔离会拿过期哈希比对）/ `LK_BACKUP`。
+   顺带修 `cmt.mjs`：被 import 时仍落 `else` 分支打印用法并设 `exitCode=1` → 改 `else if (isMain)`。
+3. `prep.mjs` 按目录切块（每批约 1,400 行）→ **44 个批次**；同时建指纹基线（1,132 个文件）。
+4. 任务说明固化在 `.workbuddy-ai/i18n/_AGENT_PROMPT.md`（含 `{{TAG}}` 占位符），
+   子代理 prompt 只写三行指向它 —— 比每个 prompt 重抄规则可靠得多。
+5. **8 路并行子代理**：每个只读 `_dump/CLx_y.txt`、只写 `_dump/tr_CLx_y.json`，禁止碰源码。
+   实测 8 路稳定、无 429，每批 400–950 块。
+6. `applyall.mjs` 按偏移从后往前替换 → `_normalize_eol.mjs` 统一换行 → `fingerprint.mjs verify`。
+
+### 成果
+**完成 22/44 批**，应用 **11,135 个注释块到 550 个文件**，
+**指纹校验 1132/1132 通过**（硬证据：只改注释、代码零改动）。
+英文注释 49,049 → 25,894 行（47%）。第 4 波（CL5_5–CL5_12）因会话中断未产出。
+
+### 最终处置（用户："归档分支直接删了"）
+- 半成品译文存为 **`D:/Github Repositories/limkenion-cli-i18n-wip-47pct.patch`**
+  （5.26 MB / 550 文件 / 11,135 块）。恢复：`git fetch origin archive/cli` → `git apply` 该补丁。
+- `git worktree remove --force`（目录已删，里面无未跟踪文件）+ `git branch -D archive/cli`。
+- 删前核对：本地 `archive/cli` 与 `origin/archive/cli` **完全一致**（同为 `aa1ffaf`，
+  本地无独有提交）→ **远程还在，`git fetch` 即可拿回**。
+- **未做任何 push**；历史 bundle（`Limkenion_history_backup_20260919.bundle`）也含该分支
+  （但是 filter-repo 重写前的 `7223fec`，带旧品牌词）。
+- 残留：`.workbuddy-ai/i18n/` 占 57 MB（dumps / batches / `_backup-cli` / `baseline-cli.json`），
+  已 gitignore，可随时清。
+
+### 教训
+- **换行符**：译文 JSON 用 `\n`，目标树工作副本是 CRLF → 替换后文件混排。
+  git 提交时会归一化、不影响 diff，但要加统一脚本；**指纹对换行不敏感，归一化后必须复验**。
+- `applyall.mjs` 的"已写入 N 个文件"是**按批次累加**的，不是文件数（158 vs git status 105）。
+- **删 worktree 会连未提交改动一起删** —— 放弃前务必先 `git diff > xxx.patch`。

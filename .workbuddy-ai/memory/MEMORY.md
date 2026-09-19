@@ -84,8 +84,12 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
 - **测试 341 项 0 失败**（`web/test/*.test.mjs`）+ vitest 6/6；**真实 E2E 24/24**。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
 - **注释中文化：工作树已 100% 完成**（只剩 JSDoc 类型定义/路径示例/shebang 等不该译的行）。
-  `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 那份 B1–B28 计划**已过期**（B2–B27 针对已归档的
-  CLI 树）；`archive/cli` 分支仍有 ~1987 个 ts/tsx 未译 —— **要动必须先问用户**。见 details 附七。
+  `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 那份 B1–B28 计划**已过期**（B2–B27 针对 CLI 树）。
+- **CLI 归档分支已删**（2026-09-19，用户拍板）：本地 `archive/cli` 与 worktree
+  `Limkenion-cli-i18n` 均已删除，**远程 `origin/archive/cli` 仍在**（本地与它删前完全一致，
+  `git fetch` 即可拿回）。删前把半成品译文存成
+  `D:/Github Repositories/limkenion-cli-i18n-wip-47pct.patch`（550 文件 / 11,135 块 / 47%）。
+  **CLI 不再是待译项，也不要再从 `archive/cli` 取源码。** 详见 details 附八。
 - **仍未做**：只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
 
 ## 关键陷阱（都踩过，别再踩）
