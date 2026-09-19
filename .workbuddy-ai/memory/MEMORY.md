@@ -94,7 +94,10 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   （`git_branches` + `new_session{worktree,branch,worktreeName}`，走隔离 worktree；
   分支名过 `validateBranchName()` 防 git 参数注入；**刻意不支持"选分支但用当前工作树"**）；
   **具名子代理**（`subagent_list/save/delete` + `SubAgentPanel`，读设置文件的 subagents 段；
-  只覆盖模型与**只读工具集的子集**，Write/Bash 一律拒 → 配置面不能变提权口子）。
+  只覆盖模型与**只读工具集的子集**，Write/Bash 一律拒 → 配置面不能变提权口子）；
+  **shell 出网 allowlist 档**（`LIMKENION_WEB_SHELL_NET=allowlist` → 本进程内 HTTP
+  代理，按 `LIMKENION_EGRESS_ALLOWLIST` 放行；`off`=死端口全断；代理没就绪→fail closed。
+  局限：只管得住遵守代理环境变量的客户端，原始 socket 仍需 OS 沙箱）。
 - **验证基线**：typecheck 0 / **354 项测试 350 过 0 失败 4 跳过** / vitest 6/6 / build 通过 /
   **真实 E2E 24/24**（2026-09-19 实测）。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
