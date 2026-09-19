@@ -83,7 +83,22 @@ export function attachWebSocket(httpServer, registry) {
       } catch {
         return
       }
-      void handleClientMessage(ws, msg, registry)
+      // **必须 .catch()**：handleClientMessage 是 async，抛出的异常若没人接就是
+      // 「未处理的 promise rejection」—— Node 15+ 默认直接终止进程。
+      // 实测：一条 `{"type":"run_command","command":{"toString":null}}` 就能让
+      // 整个服务退出（String() 对这种对象会抛 TypeError）。这里让**单条消息**失败即可，
+      // 并把原因回给客户端。
+      //
+      // 注意别在 catch 里对 msg 做强制转换 —— msg 是不可信输入，
+      // 刚才抛错的原因可能正是 `String(msg.xxx)`，那样会二次抛出。
+      void handleClientMessage(ws, msg, registry).catch(err => {
+        console.error('[ws] 处理消息失败：', err)
+        try {
+          send(ws, { type: 'error', message: `服务端处理消息失败：${err?.message ?? '未知错误'}` })
+        } catch {
+          /* 连接可能已断 */
+        }
+      })
     })
 
     send(ws, { type: 'hello', sessions: allSessionInfo(), serverVersion: SERVER_VERSION })

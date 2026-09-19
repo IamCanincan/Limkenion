@@ -339,3 +339,75 @@ describe('会话分叉协议（对应 CLI 的 /branch）', () => {
     client.close()
   })
 })
+
+// ---------------------------------------------------------------------------
+
+describe('畸形消息不能打挂服务', () => {
+  /**
+   * 回归：`void handleClientMessage(...)` 原先没有 `.catch()`，而它是 async ——
+   * 抛出的异常就是未处理的 promise rejection，Node 15+ 默认**直接终止进程**。
+   * 实测一条 `{"type":"run_command","command":{"toString":null}}` 就能让整个服务退出
+   * （`String()` 对这种对象抛 TypeError）。现在单条消息失败即可，服务继续可用。
+   */
+  test('单条畸形消息只让该条失败，并回错误给客户端', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'new_session' }))
+    const sid = (await client.next('session_messages')).sessionId
+
+    client.ws.send(
+      JSON.stringify({ type: 'run_command', sessionId: sid, command: { toString: null } }),
+    )
+    const err = await client.next('error')
+    assert.match(err.message, /处理消息失败/)
+
+    // 服务必须还活着 —— 还能正常应答
+    client.ws.send(JSON.stringify({ type: 'get_models' }))
+    const models = await client.next('models')
+    assert.ok(Array.isArray(models.models) && models.models.length > 0, '服务应仍能应答 get_models')
+    client.close()
+  })
+
+  test('连灌一批畸形消息后服务仍可用', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send(JSON.stringify({ type: 'new_session' }))
+    const sid = (await client.next('session_messages')).sessionId
+
+    const poison = { toString: null }
+    const junk = [
+      { type: 'run_command', sessionId: sid, command: poison },
+      { type: 'run_command', sessionId: sid, command: 12345 },
+      { type: 'run_command', sessionId: sid, command: ['/status'] },
+      { type: 'rename_session', sessionId: sid, title: poison },
+      { type: 'user_message', sessionId: sid, text: poison },
+      { type: 'set_setting', sessionId: sid, key: poison, value: 1 },
+      { type: 'team_message', sessionId: sid, member: poison, message: 1 },
+      { type: 'list_files', sessionId: sid, path: poison },
+      { type: 'fork_session', sessionId: sid, atIndex: poison },
+      { type: 'permission_response', requestId: poison, decision: 1 },
+      { type: 'question_response', requestId: poison, answers: 1 },
+      { type: 'select_session', sessionId: poison },
+      { type: '不存在的类型', sessionId: sid },
+    ]
+    for (const m of junk) client.ws.send(JSON.stringify(m))
+    await new Promise(r => setTimeout(r, 800))
+
+    client.ws.send(JSON.stringify({ type: 'get_models' }))
+    const models = await client.next('models')
+    assert.ok(Array.isArray(models.models), '连灌畸形消息后服务应仍能应答')
+    client.close()
+  })
+
+  test('非 JSON 帧被静默丢弃，不影响后续请求', async () => {
+    const client = await connect(`?token=${token}`)
+    await client.next('hello')
+    client.ws.send('这不是 JSON {{{')
+    client.ws.send(Buffer.from([0x00, 0x01, 0x02]))
+    await new Promise(r => setTimeout(r, 300))
+    client.ws.send(JSON.stringify({ type: 'get_models' }))
+    const models = await client.next('models')
+    assert.ok(Array.isArray(models.models))
+    client.close()
+  })
+})
