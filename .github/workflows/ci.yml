@@ -43,8 +43,28 @@ jobs:
       - name: build
         run: npm run build
 
+      # 失败时把「哪几条用例挂了」打出来：node --test 的完整输出有几千行
+      #（本地全绿时根本看不到 CI 的失败点），没有这个摘要就只能干瞪眼。
       - name: server tests
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee server-tests.log
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "===== 失败的用例（前 40 条）====="
+            grep -E "^✖|^not ok" server-tests.log | head -40
+            echo "===== 汇总 ====="
+            grep -E "^ℹ (tests|pass|fail|skipped)" server-tests.log | tail -8
+          fi
+          exit $code
 
       - name: ui tests
-        run: npm run test:ui
+        run: |
+          set -o pipefail
+          npm run test:ui 2>&1 | tee ui-tests.log
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "===== UI 失败摘要 ====="
+            grep -iE "FAIL|✖|AssertionError" ui-tests.log | head -30
+          fi
+          exit $code
