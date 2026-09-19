@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import WebSocket from 'ws'
 import { fetchToken, startServer, rmDir } from './helpers.mjs'
 
-const PORT = 18899
+let PORT = 0  // 0 = 让系统分配端口：硬编码端口在 CI 上可能被别的进程占用（EADDRINUSE）
 let srv
 let token
 let stateDir
@@ -19,6 +19,7 @@ let stateDir
 before(async () => {
   stateDir = await mkdtemp(join(tmpdir(), 'limkenion-state-'))
   srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+  PORT = srv.port
   token = await fetchToken(srv.base)
 })
 
@@ -255,6 +256,7 @@ describe('会话持久化', () => {
     srv.child.kill()
     await new Promise(r => setTimeout(r, 400))
     srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+  PORT = srv.port
     token = await fetchToken(srv.base)
 
     const c2 = await connect(`?token=${token}`)

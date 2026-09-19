@@ -190,7 +190,8 @@ describe('报告路由的白名单（安全）', () => {
   })
 
   test('HTTP 路由：只读、按名取、穿越被拦', async () => {
-    const port = 8871
+    // 0 = 让系统分配端口：硬编码端口在 CI 上可能被别的进程占用（EADDRINUSE）
+    const port = 0
     const srv = await startServer({
       port,
       env: { LIMKENION_WEB_STATE_DIR: stateDir, LIMKENION_WEB_WORKSPACE: stateDir },

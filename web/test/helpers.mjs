@@ -155,14 +155,23 @@ export async function rmDir(dir) {
   await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 }
 
-/** 以子进程启动真实服务，等它就绪。 */
+/**
+ * 以子进程启动真实服务，等它就绪。
+ *
+ * **`port: 0` 表示让操作系统分配端口** —— 推荐用它：硬编码端口在 CI 容器里可能
+ * 已经被别的进程占着（EADDRINUSE），而这种失败跟被测代码毫无关系，最难查。
+ * 端口 0 时真实端口从服务的启动日志里读（服务会打印实际绑定的端口）。
+ *
+ * @returns {Promise<{child: import('node:child_process').ChildProcess, base: string, port: number, log: () => string}>}
+ */
 export async function startServer({ port, env = {} }) {
+  const tag = port === 0 ? `${process.pid}-${Math.random().toString(36).slice(2, 8)}` : String(port)
   const child = spawn(process.execPath, [SERVER_ENTRY], {
     env: {
       ...process.env,
       LIMKENION_WEB_PORT: String(port),
       LIMKENION_WEB_HOST: '127.0.0.1',
-      LIMKENION_WEB_STATE_DIR: join(tmpdir(), `limkenion-state-${port}`),
+      LIMKENION_WEB_STATE_DIR: join(tmpdir(), `limkenion-state-${tag}`),
       DEEPSEEK_API_KEY: '',
       ...env,
     },
@@ -176,12 +185,28 @@ export async function startServer({ port, env = {} }) {
     out += d.toString()
   })
 
-  const base = `http://127.0.0.1:${port}`
   const deadline = Date.now() + 15_000
+  let actualPort = port
+
+  // 端口 0：先等启动日志给出真实端口，再去探活
+  if (port === 0) {
+    actualPort = 0
+    while (Date.now() < deadline && actualPort === 0) {
+      const m = out.match(/服务已启动[^\n]*?:(\d+)/)
+      if (m) actualPort = Number(m[1])
+      else await new Promise(r => setTimeout(r, 100))
+    }
+    if (actualPort === 0) {
+      child.kill()
+      throw new Error(`未能从启动日志解析出实际端口：\n${out}`)
+    }
+  }
+
+  const base = `http://127.0.0.1:${actualPort}`
   while (Date.now() < deadline) {
     try {
       const res = await fetch(`${base}/`, { signal: AbortSignal.timeout(1000) })
-      if (res.ok) return { child, base, log: () => out }
+      if (res.ok) return { child, base, port: actualPort, log: () => out }
     } catch {
       /* 还没起来 */
     }

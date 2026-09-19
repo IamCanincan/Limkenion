@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import WebSocket from 'ws'
 import { startServer, fetchToken, rmDir } from './helpers.mjs'
 
-const PORT = 18941
+let PORT = 0  // 0 = 让系统分配端口：硬编码端口在 CI 上可能被别的进程占用（EADDRINUSE）
 let srv
 let stateDir
 let ws
@@ -41,6 +41,7 @@ function waitFor(type, timeoutMs = 8000) {
 before(async () => {
   stateDir = await mkdtemp(join(tmpdir(), 'limkenion-mcpws-'))
   srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+  PORT = srv.port
   const token = await fetchToken(srv.base)
   ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws?token=${encodeURIComponent(token)}`)
   await new Promise((resolve, reject) => {

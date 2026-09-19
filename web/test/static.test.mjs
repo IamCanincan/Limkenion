@@ -21,13 +21,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { startServer, rmDir } from './helpers.mjs'
 
-const PORT = 18907
+let PORT = 0  // 0 = 让系统分配端口：硬编码端口在 CI 上可能被别的进程占用（EADDRINUSE）
 let srv
 let stateDir
 
 before(async () => {
   stateDir = await mkdtemp(join(tmpdir(), 'limkenion-static-'))
   srv = await startServer({ port: PORT, env: { LIMKENION_WEB_STATE_DIR: stateDir } })
+  PORT = srv.port
 })
 after(async () => {
   srv?.child.kill()

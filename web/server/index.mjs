@@ -80,8 +80,12 @@ attachWebSocket(httpServer, commandRegistry)
 
 httpServer.listen(PORT, HOST, () => {
   const shown = HOST === '0.0.0.0' ? 'localhost' : HOST
-  console.log(`Limkenion web 服务已启动：http://${shown}:${PORT}`)
-  console.log(`WebSocket 端点：ws://${shown}:${PORT}/ws`)
+  // 打印**实际绑定**的端口而不是配置值：端口 0（让系统分配）时两者不同，
+  // 打出 0 会让人（和测试）连不上。
+  const addr = httpServer.address()
+  const actualPort = typeof addr === 'object' && addr ? addr.port : PORT
+  console.log(`Limkenion web 服务已启动：http://${shown}:${actualPort}`)
+  console.log(`WebSocket 端点：ws://${shown}:${actualPort}/ws`)
   console.log(`命令注册表：${commandRegistry.length} 个斜杠命令`)
   console.log(
     `工具集：${TOOL_SCHEMAS.length} 个（常驻 ${CORE_TOOL_NAMES.size}，延迟 ${deferredToolNames().length}）`,
