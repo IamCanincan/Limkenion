@@ -247,7 +247,10 @@ console.log('【A】普通工具回合（Write 改文件）')
   const done = fresh.some(e => e.type === 'turn_complete')
   record('A2 回合正常结束', done, done ? '' : `末尾事件：${fresh.at(-1)?.type}`)
   const content = existsSync(join(REPO, 'seed.txt')) ? readFileSync(join(REPO, 'seed.txt'), 'utf8') : '（文件没了）'
-  record('A3 文件真的被改了', content.trim() === 'hi', `内容 = ${JSON.stringify(content)}`)
+  // 依赖型断言：A1 已经判过「模型调没调 Write」，这里只在**真的调了**的前提下才判
+  // 文件内容 —— 否则模型没调工具会连带把 A3 也记成失败，混淆回归判定。
+  if (!write) skip('A3 文件真的被改了', '模型本轮没有调用 Write，这条路径未走到')
+  else record('A3 文件真的被改了', content.trim() === 'hi', `内容 = ${JSON.stringify(content)}`)
 }
 
 // =============== 场景 B：中断后立刻再发 ===============
@@ -304,8 +307,16 @@ console.log('\n【C】PreToolUse 钩子拦截（写 denied.txt 被 deny）')
   )
   const results_ = fresh.filter(e => e.type === 'tool_result')
   const denied = results_.find(e => /E2E-HOOK-DENY/.test(JSON.stringify(e)))
-  record('C1 钩子的拒绝理由回灌给了模型', !!denied, denied ? '' : `工具结果：${JSON.stringify(results_).slice(0, 300)}`)
-  record('C2 被拒的文件没有被创建', !existsSync(join(REPO, 'denied.txt')), existsSync(join(REPO, 'denied.txt')) ? '文件竟然被写出来了！' : '')
+  // 依赖型断言：前提是模型**真的尝试写**了。没尝试的话 C1 必然拿不到拒绝理由、
+  // C2 又平凡成立（文件当然不存在）—— 两者都不该算失败，标未触发更诚实。
+  const writeTried = fresh.filter(e => e.type === 'tool_call').some(e => e.toolCall.name === 'Write')
+  if (!writeTried) {
+    skip('C1 钩子的拒绝理由回灌给了模型', '模型本轮没有调用 Write，钩子拦截路径未走到')
+    skip('C2 被拒的文件没有被创建', '模型没有尝试写，本条平凡成立')
+  } else {
+    record('C1 钩子的拒绝理由回灌给了模型', !!denied, denied ? '' : `工具结果：${JSON.stringify(results_).slice(0, 300)}`)
+    record('C2 被拒的文件没有被创建', !existsSync(join(REPO, 'denied.txt')), existsSync(join(REPO, 'denied.txt')) ? '文件竟然被写出来了！' : '')
+  }
 }
 
 // =============== 场景 D：worktree ===============
@@ -321,8 +332,16 @@ console.log('\n【D】worktree：切沙箱根')
   const wtDir = join(REPO, '.limkenion', 'worktrees', 'e2e-wt')
   record('D2 worktree 目录已创建', existsSync(wtDir), wtDir)
   const inWt = existsSync(join(wtDir, 'only-in-wt.txt'))
-  record('D3 文件写进了 worktree 而不是原树', inWt, inWt ? '' : `worktree 里没有；原树里有吗 = ${existsSync(join(REPO, 'only-in-wt.txt'))}`)
-  record('D4 原工作区没有被污染', !existsSync(join(REPO, 'only-in-wt.txt')), '')
+  // 依赖型断言：前提是模型真的进了 worktree（D1 已单独判过）。没进的话文件必然落在
+  // 原树，D3 落空、D4 反而被判"污染" —— 那是模型没照做的连带结果，不是产品 bug。
+  const entered = calls.includes('EnterWorktree')
+  if (!entered) {
+    skip('D3 文件写进了 worktree 而不是原树', '模型没有调用 EnterWorktree，本条未走到')
+    skip('D4 原工作区没有被污染', '模型没有调用 EnterWorktree，本条未走到')
+  } else {
+    record('D3 文件写进了 worktree 而不是原树', inWt, inWt ? '' : `worktree 里没有；原树里有吗 = ${existsSync(join(REPO, 'only-in-wt.txt'))}`)
+    record('D4 原工作区没有被污染', !existsSync(join(REPO, 'only-in-wt.txt')), '')
+  }
 
   // 退出
   // 提示词里**不能**给"如果没有未提交改动"这种退路：本例刚写了 only-in-wt.txt，
@@ -404,7 +423,9 @@ console.log('\n【E】MCP：连桩服务器并从模型侧调用')
   const mcpCall = fresh.filter(e => e.type === 'tool_call').find(e => e.toolCall.name.startsWith('mcp__'))
   record('E2 模型调用了 MCP 工具', !!mcpCall, mcpCall ? mcpCall.toolCall.name : `调用序列：${fresh.filter(e => e.type === 'tool_call').map(e => e.toolCall.name).join('、')}`)
   const echoRes = fresh.filter(e => e.type === 'tool_result').find(e => /E2E-MCP-OK/.test(JSON.stringify(e)))
-  record('E3 MCP 工具真的返回了内容', !!echoRes, echoRes ? '' : '没看到 E2E-MCP-OK')
+  // 依赖型断言：模型没调 MCP 工具（E2 已判），自然拿不到回显，不该连带记失败。
+  if (!mcpCall) skip('E3 MCP 工具真的返回了内容', '模型没有调用 MCP 工具，本条未走到')
+  else record('E3 MCP 工具真的返回了内容', !!echoRes, echoRes ? '' : '没看到 E2E-MCP-OK')
 }
 
 // =============== 场景 F：Workflow ===============
@@ -419,11 +440,14 @@ console.log('\n【F】Workflow：动态工作流编排')
   record('F1 模型调用了 Workflow', !!wfCall, wfCall ? '' : `调用序列：${fresh.filter(e => e.type === 'tool_call').map(e => e.toolCall.name).join('、')}`)
   const wfRes = fresh.filter(e => e.type === 'tool_result').find(e => e.toolCallId === wfCall?.toolCall.id)
   const okWf = wfRes && /子代理 2 个|子代理 1 个/.test(JSON.stringify(wfRes))
-  record('F2 工作流真的跑完并报了子代理数', !!okWf, wfRes ? JSON.stringify(wfRes.result ?? wfRes).slice(0, 300) : '')
+  // 依赖型断言：模型没调 Workflow（F1 已判），后面两条都不成立，标未触发而非失败。
+  if (!wfCall) skip('F2 工作流真的跑完并报了子代理数', '模型没有调用 Workflow，本条未走到')
+  else record('F2 工作流真的跑完并报了子代理数', !!okWf, wfRes ? JSON.stringify(wfRes.result ?? wfRes).slice(0, 300) : '')
 
   // /workflows 能列出运行记录
   const out = await runCommandAndWait(c, sid, '/workflows', { timeoutMs: 30000 })
-  record('F3 /workflows 列出运行记录', /wf_|运行/.test(out), out.split('\n').slice(0, 4).join(' | '))
+  if (!wfCall) skip('F3 /workflows 列出运行记录', '本轮没有跑过 Workflow，列表为空属正常')
+  else record('F3 /workflows 列出运行记录', /wf_|运行/.test(out), out.split('\n').slice(0, 4).join(' | '))
 }
 
 // =============== 场景 G：/insights ===============
