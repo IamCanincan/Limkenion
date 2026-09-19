@@ -12,6 +12,7 @@ import { QuestionDialog } from './components/QuestionDialog'
 import { PreviewPanel } from './components/PreviewPanel'
 import { TeamPanel } from './components/TeamPanel'
 import { SearchPanel } from './components/SearchPanel'
+import { McpPanel } from './components/McpPanel'
 import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
@@ -20,12 +21,14 @@ import type {
   ChatMessage,
   CommandInfo,
   ImageAttachment,
+  McpServerInfo,
   ModelInfo,
   QuestionAnswer,
   SearchHit,
   ServerMessage,
   SessionInfo,
   Settings,
+  SettingsScope,
   TokenUsage,
   UsageStats,
 } from './types'
@@ -68,6 +71,9 @@ export function App() {
   const [searchComplete, setSearchComplete] = useState(true)
   const [searchTruncated, setSearchTruncated] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  // MCP 图形化管理：面板开关 + 服务器清单
+  const [showMcp, setShowMcp] = useState(false)
+  const [mcpServers, setMcpServers] = useState<McpServerInfo[]>([])
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -137,6 +143,9 @@ export function App() {
           setSearchHits(msg.hits)
           setSearchComplete(msg.complete)
           setSearchTruncated(msg.truncated)
+          break
+        case 'mcp_servers':
+          setMcpServers(msg.servers)
           break
         case 'session_messages':
           setActiveSessionId(msg.sessionId)
@@ -450,6 +459,16 @@ export function App() {
     connectionRef.current.send({ type: 'search', query })
   }, [])
 
+  // ---- MCP 图形化管理 ----
+
+  const onMcpSave = useCallback((name: string, config: Record<string, unknown>, scope: SettingsScope) => {
+    connectionRef.current.send({ type: 'mcp_save', name, config, scope })
+  }, [])
+
+  const onMcpDelete = useCallback((name: string, scope: SettingsScope) => {
+    connectionRef.current.send({ type: 'mcp_delete', name, scope })
+  }, [])
+
   /** 选中一条命中：切到对应会话（必要时），并定位到那条消息。 */
   const onSearchPick = useCallback((hit: SearchHit) => {
     setShowSearch(false)
@@ -532,6 +551,17 @@ export function App() {
           >
             请求追踪{requestSummary && requestSummary.failed > 0 ? ` (${requestSummary.failed} 失败)` : ''}
           </button>
+          <button
+            className="request-log-btn"
+            onClick={() => {
+              const next = !showMcp
+              setShowMcp(next)
+              if (next) connectionRef.current.send({ type: 'mcp_list' })
+            }}
+            title="管理 MCP 服务器（stdio / http / sse，按作用域存）"
+          >
+            MCP{mcpServers.length > 0 ? ` (${mcpServers.length})` : ''}
+          </button>
           <button className="update-btn" onClick={onCheckUpdate} title="检查并安装更新">
             {updateMsg || '检查更新'}
           </button>
@@ -559,6 +589,14 @@ export function App() {
             onQuery={onSearchQuery}
             onPick={onSearchPick}
             onClose={() => setShowSearch(false)}
+          />
+        )}
+        {showMcp && (
+          <McpPanel
+            servers={mcpServers}
+            onSave={onMcpSave}
+            onDelete={onMcpDelete}
+            onClose={() => setShowMcp(false)}
           />
         )}
         <ChatView

@@ -37,6 +37,7 @@ import {
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { listIndexedFiles } from './workspace.mjs'
 import { searchAll } from './search.mjs'
+import { deleteMcpServer, mcpServersInfo, reloadMcp, saveMcpServer } from './mcp.mjs'
 
 /** 单条客户端消息的最大长度（防超大帧打爆内存）。 */
 const MAX_FRAME_BYTES = 8 * 1024 * 1024
@@ -310,6 +311,38 @@ async function handleClientMessageInner(ws, msg, registry) {
         filename: `${s.title || 'session'}.md`,
         markdown: exportSessionMarkdown(s),
       })
+      break
+    }
+
+    // ---- MCP 图形化管理：列 / 存 / 删 ----
+    // 写的是设置文件（按作用域分文件），改完由这里触发重连。
+    case 'mcp_list':
+      send(ws, { type: 'mcp_servers', servers: mcpServersInfo() })
+      break
+    case 'mcp_save': {
+      try {
+        const scope = msg.scope === 'project' || msg.scope === 'local' ? msg.scope : 'user'
+        const saved = saveMcpServer(String(msg.name ?? ''), msg.config ?? {}, scope)
+        send(ws, { type: 'mcp_servers', servers: mcpServersInfo() })
+        if (saved) void reloadMcp().then(() => send(ws, { type: 'mcp_servers', servers: mcpServersInfo() }))
+      } catch (err) {
+        send(ws, { type: 'error', message: `保存 MCP 服务器失败：${String(err)}` })
+      }
+      break
+    }
+    case 'mcp_delete': {
+      try {
+        const scope = msg.scope === 'project' || msg.scope === 'local' ? msg.scope : 'user'
+        const removed = deleteMcpServer(String(msg.name ?? ''), scope)
+        if (!removed) {
+          send(ws, { type: 'error', message: `${scope} 作用域里没有服务器「${msg.name}」，未做改动` })
+          break
+        }
+        send(ws, { type: 'mcp_servers', servers: mcpServersInfo() })
+        void reloadMcp().then(() => send(ws, { type: 'mcp_servers', servers: mcpServersInfo() }))
+      } catch (err) {
+        send(ws, { type: 'error', message: `删除 MCP 服务器失败：${String(err)}` })
+      }
       break
     }
 

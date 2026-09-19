@@ -35,9 +35,9 @@
  *   hooks 的 prompt / agent / http 三种执行方式，以及 web 未接线的钩子事件
  */
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, isAbsolute, resolve } from 'node:path'
+import { join, isAbsolute, resolve, dirname } from 'node:path'
 import { globToRegExp, toPosix, DEFAULT_WORKSPACE_ROOT, workspaceRoot } from './paths.mjs'
 
 /** 文件类工具：specifier 按 glob 匹配 file_path（与 CLI 的 filePatternTools 对齐）。 */
@@ -301,6 +301,28 @@ export function loadSettings() {
 /** 取缓存（未加载过则先加载）。 */
 export function getSettings() {
   return cache ?? loadSettings()
+}
+
+/**
+ * 改写某个作用域的设置文件（MCP 图形化管理要用）。
+ *
+ * `mutate` 收到该文件的当前内容（不存在时是空对象），返回新内容。
+ * 写完**立即重读缓存** —— 权限等键也可能在同一个文件里，留着旧缓存
+ * 会出现"界面上改了、实际还在用旧值"这种最难查的不一致。
+ *
+ * @param {'user'|'project'|'local'} source
+ * @param {(data: Record<string, any>) => Record<string, any>} mutate
+ * @returns {Record<string, any>}
+ */
+export function writeSettingsScope(source, mutate) {
+  const entry = settingsFilePaths().find(f => f.source === source)
+  if (!entry) throw new Error(`未知设置作用域：${source}`)
+  const current = readJson(entry.path) ?? {}
+  const next = mutate(current) ?? current
+  mkdirSync(dirname(entry.path), { recursive: true })
+  writeFileSync(entry.path, `${JSON.stringify(next, null, 1)}\n`, 'utf8')
+  loadSettings()
+  return next
 }
 
 /** 设置文件状态摘要，供 `/permissions` 与 `/status` 展示。 */

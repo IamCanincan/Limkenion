@@ -29,6 +29,35 @@ export type ClientMessage =
   | { type: 'question_response'; requestId: string; answers: QuestionAnswer[] }
   /** 全局搜索：跨会话消息 + 文件名 + 会话标题。 */
   | { type: 'search'; query: string; limit?: number }
+  /** MCP 图形化管理：列出 / 保存 / 删除（scope 决定写哪个设置文件）。 */
+  | { type: 'mcp_list' }
+  | {
+      type: 'mcp_save'
+      name: string
+      config: Record<string, unknown>
+      scope?: SettingsScope
+    }
+  | { type: 'mcp_delete'; name: string; scope?: SettingsScope }
+
+/** 设置文件的作用域：user=全局、project=项目共享、local=项目私有。 */
+export type SettingsScope = 'user' | 'project' | 'local'
+
+/** MCP 服务器（合并后的生效配置 + 来源作用域 + 连接状态）。 */
+export interface McpServerInfo {
+  name: string
+  transport: string
+  command: string
+  args: string[]
+  env: Record<string, string>
+  url: string
+  headers: Record<string, string>
+  source: SettingsScope
+  state: string
+  error: string | null
+  problem: string | null
+  tools: string[]
+  serverInfo: string | null
+}
 
 /** 全局搜索里的一条命中。 */
 export type SearchHit =
@@ -99,6 +128,8 @@ export type ServerMessage =
    * 增量快照语义），前端可以先渲染这批，不必假装它是全部。
    */
   | { type: 'search_results'; query: string; hits: SearchHit[]; complete: boolean; truncated: boolean }
+  /** MCP 服务器清单（保存/删除后也会重新推一份）。 */
+  | { type: 'mcp_servers'; servers: McpServerInfo[] }
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_export'; sessionId: string; filename: string; markdown: string }

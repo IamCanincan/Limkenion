@@ -1813,3 +1813,62 @@ code {
     background: transparent;
   }
 }
+
+/* ---- MCP 图形化管理面板 ---- */
+.mcp-panel {
+  max-width: 780px;
+  margin: 0 auto 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-elevated, #2a2622);
+  border: 1px solid var(--border, #3a352f);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.mcp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.mcp-scope-hint { flex: 1; font-size: 11px; color: var(--text-dim, #9a938a); }
+.mcp-empty { color: var(--text-dim, #9a938a); font-size: 12px; padding: 10px 0; }
+.mcp-list { display: flex; flex-direction: column; gap: 6px; }
+.mcp-row { border: 1px solid var(--border, #3a352f); border-radius: 8px; padding: 8px 10px; }
+.mcp-row-main { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mcp-name { font-size: 13px; color: var(--text, #ece7e0); font-weight: 600; }
+.mcp-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #3a352f);
+  color: var(--text-dim, #9a938a);
+}
+.mcp-state { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--bg-panel, #211e1b); }
+.mcp-state-connected { color: var(--green, #7fb069); }
+.mcp-state-error { color: var(--red, #d16a6a); }
+.mcp-row-sub { font-size: 11px; color: var(--text-dim, #9a938a); margin-top: 3px; word-break: break-all; }
+.mcp-warn { color: var(--warn, #d8a860); }
+.mcp-row-actions { display: flex; gap: 6px; margin-top: 6px; }
+.mcp-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: var(--bg-panel, #211e1b);
+  border: 1px solid var(--border, #3a352f);
+  border-radius: 6px;
+  color: var(--text, #ece7e0);
+  cursor: pointer;
+}
+.mcp-btn.primary { background: var(--accent-dim, #a85c42); border-color: var(--accent, #d97757); }
+.mcp-btn.danger { color: var(--red, #d16a6a); }
+.mcp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mcp-form { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; border-top: 1px solid var(--border, #3a352f); padding-top: 10px; }
+.mcp-form label { font-size: 11px; color: var(--text-dim, #9a938a); display: flex; flex-direction: column; gap: 3px; }
+.mcp-form input,
+.mcp-form select,
+.mcp-form textarea {
+  padding: 6px 8px;
+  background: var(--bg, #1a1816);
+  border: 1px solid var(--border, #3a352f);
+  border-radius: 6px;
+  color: var(--text, #ece7e0);
+  font-size: 12px;
+  font-family: inherit;
+}
+.mcp-form-actions { display: flex; gap: 6px; }

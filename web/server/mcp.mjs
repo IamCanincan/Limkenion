@@ -27,7 +27,7 @@
 
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { settingsSources } from './settings.mjs'
+import { settingsSources, writeSettingsScope } from './settings.mjs'
 import { settingsFor } from './config.mjs'
 import { chatCompletion } from './deepseek.mjs'
 import { fetch as guardedFetch } from './egress.mjs'
@@ -1066,6 +1066,76 @@ export function mcpSummary() {
   lines.push('')
   lines.push('用 /tools 可以看到这些工具（延迟加载，ToolSearch 检索后启用）。')
   return lines.join('\n')
+}
+
+/**
+ * 结构化的服务器清单（给图形化管理界面用，不要去解析 mcpSummary() 的文本）。
+ *
+ * 每个作用域（user / project / local）里定义的同名服务器会按后者覆盖前者合并，
+ * 这里返回**合并后的生效配置** + 它来自哪个作用域 + 当前连接状态。
+ *
+ * @returns {Array<{name:string, transport:string, command:string, args:string[], env:Record<string,string>,
+ *   url:string, headers:Record<string,string>, source:string, state:string, error:string|null,
+ *   problem:string|null, tools:string[], serverInfo:string|null}>}
+ */
+export function mcpServersInfo() {
+  return mcpServerConfigs().map(cfg => {
+    const conn = connections.get(cfg.name)
+    return {
+      ...cfg,
+      state: conn?.state ?? 'idle',
+      error: conn?.error ?? null,
+      problem: configProblem(cfg),
+      tools: conn?.state === 'connected' ? (conn.tools ?? []).map(t => mcpToolName(cfg.name, t.name)) : [],
+      serverInfo: conn?.serverInfo ? `${conn.serverInfo.name ?? '?'}${conn.serverInfo.version ? ` ${conn.serverInfo.version}` : ''}` : null,
+    }
+  })
+}
+
+/** 该作用域里定义了这个服务器吗（用于删除时定位）。 */
+function definedIn(source, name) {
+  const { data } = settingsSources().find(s => s.source === source) ?? {}
+  return Boolean(data?.mcpServers?.[name])
+}
+
+/**
+ * 新增 / 更新一台服务器。
+ *
+ * 只写**用户指定的那个作用域**的文件 —— 不跨文件改，避免"以为改了其实
+ * 被另一个作用域覆盖"。写完由调用方决定是否 reloadMcp() 重连。
+ *
+ * @param {string} name
+ * @param {Record<string, any>} cfg
+ * @param {'user'|'project'|'local'} scope
+ */
+export function saveMcpServer(name, cfg, scope = 'user') {
+  if (!String(name ?? '').trim()) throw new Error('服务器名不能为空')
+  writeSettingsScope(scope, data => {
+    const servers = { ...(data.mcpServers ?? {}) }
+    servers[name] = { ...(servers[name] ?? {}), ...cfg }
+    return { ...data, mcpServers: servers }
+  })
+  return mcpServersInfo().find(s => s.name === name) ?? null
+}
+
+/**
+ * 从某个作用域删除一台服务器。
+ *
+ * 只在**该作用域确实定义了它**时才删：否则用户点"删除"却什么都没发生，
+ * 而界面还显示着（可能是另一个作用域提供的）—— 那是很难查的错觉。
+ *
+ * @param {string} name
+ * @param {'user'|'project'|'local'} scope
+ * @returns {boolean} 是否真的删掉了
+ */
+export function deleteMcpServer(name, scope) {
+  if (!definedIn(scope, name)) return false
+  writeSettingsScope(scope, data => {
+    const servers = { ...(data.mcpServers ?? {}) }
+    delete servers[name]
+    return { ...data, mcpServers: servers }
+  })
+  return true
 }
 
 /** 重连（`/mcp reload`）。 */
