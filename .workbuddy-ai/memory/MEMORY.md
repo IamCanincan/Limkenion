@@ -27,7 +27,14 @@
   `package-release.mjs`、`release` 脚本、更新器测试都删了。
   现在只有 `npm run dev` / `npm run serve`（以及 `npm install -g .` 这种 npm 全局安装）。
   `web/release/` 仍是历史产物（448MB，已 ignore，**不要提交**）。
-- CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
+- **CI：GitHub Actions**（`.github/workflows/ci.yml`，push/PR master 触发
+  typecheck → build → server tests → ui tests）。
+  旧的那份 `.workflow/ci.yml` 是 **Gitee Go 私有格式**（`version '1.0'` /
+  `stages` / `build@nodejs`），GitHub 不认 —— 转战 GitHub 后它已经没用。
+  用 `actions/setup-node`（Node 22.22.2）：Gitee 那边的 nodeVersion 字段不可信
+  （官方只列到 15.12，写 22 时环境里没 node，只能自己 curl 下载）。
+  **build 必须在 test 之前**（静态服务用例需要 dist/）。
+  **GitHub Actions 的结果网页查得到**（actions 页），不像 Gitee Go 只能干瞪眼。
 
 ## 仓库红线
 - **品牌词已全历史抹除**（上游的三个品牌词及**缩写变体**，filter-repo 重写 + 强推；
