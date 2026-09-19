@@ -238,6 +238,20 @@ npm run test:ui     # vitest（前端组件）
 npm run build       # vite build
 ```
 
+### 推送前：在本地跑一遍 CI
+
+```bash
+node scripts/ci-sim.mjs        # 在**仓库根目录**执行
+```
+
+它会用 `git archive` 导出一份**纯净工作树**（不含 `dist/` 与 `node_modules/`），
+然后按 CI 的顺序跑 `install → typecheck → build → test → test:ui`。
+
+CI 是全新检出、本地不是 —— 这个差异正是"本地全绿、CI 红"最主要的来源
+（踩过：就绪判定要求 `/` 返回 200，而没构建时是 404；token 又是从
+`dist/index.html` 里取的）。与其推一次等一次，不如本地先跑一遍。
+加 `--skip-install` 可跳过装依赖（临时目录已有 node_modules 时）。
+
 **Node 版本**：服务本体在 Node 20 上也能跑（`npm test` 已用 Node 20.18 验证通过），
 但 **`npm run test:ui` 需要 Node 22.12+** —— vitest 5 的 engines 是
 `^22.12.0 || ^24.0.0 || >=26.0.0`，它依赖 Node 22.12+ 才有的 `require(ESM)`；
