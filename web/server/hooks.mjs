@@ -652,11 +652,15 @@ export async function runEventHooks(event, { toolName = '', hookInput, cwd = wor
   }
   // 上下文预算：统一在这里后处理，覆盖**所有事件**、也覆盖 messages 与
   // additionalContext 两个来源（放在调用点容易漏）。正常输出不会触发任何 I/O。
+  // 一份预算贯穿本次事件的全部输出（messages + additionalContext 共用）
+  const budget = { remaining: HOOK_CONTEXT_CHAR_LIMIT }
   if (acc.messages.length > 0) {
-    acc.messages = await Promise.all(acc.messages.map(m => spillIfOversized(m, '钩子消息')))
+    const out = []
+    for (const m of acc.messages) out.push(await spillIfOversized(m, '钩子消息', budget))
+    acc.messages = out
   }
   if (acc.additionalContext) {
-    acc.additionalContext = await spillIfOversized(acc.additionalContext, '附加上下文')
+    acc.additionalContext = await spillIfOversized(acc.additionalContext, '附加上下文', budget)
   }
   return acc
 }
@@ -670,13 +674,27 @@ export async function runEventHooks(event, { toolName = '', hookInput, cwd = wor
  * @param {string} label 用于提示文案（"钩子消息" / "附加上下文"）
  * @returns {Promise<string>}
  */
-async function spillIfOversized(text, label) {
+async function spillIfOversized(text, label, budget) {
   const s = String(text ?? '')
-  if (s.length <= HOOK_CONTEXT_CHAR_LIMIT) return s
+  // 预算是**这一次事件共用的一份**，不是每条各一份：否则 10 条钩子各吐接近上限的
+  // 内容，合计仍能撑爆上下文 —— 而"撑爆上下文"正是这个预算要防的事。
+  const remaining = budget ? budget.remaining : HOOK_CONTEXT_CHAR_LIMIT
+
+  if (s.length <= remaining) {
+    if (budget) budget.remaining -= s.length
+    return s
+  }
+
+  // 预算已用尽：不再注入任何正文，只留一行指针（避免 N 条各塞一点又堆起来）
+  if (remaining <= 0) {
+    return `…（${label}因上下文预算 ${HOOK_CONTEXT_CHAR_LIMIT} 字已用尽被省略）`
+  }
+
   // 保留长度**跟着预算走**，不能写死一个值：否则预算调小时"截断"会名不副实
   // （比如预算 120、却仍留 2000 字）。给 note 预留 200 字，保证 head+note ≈ 预算。
-  const keep = Math.max(100, HOOK_CONTEXT_CHAR_LIMIT - 200)
+  const keep = Math.max(100, remaining - 200)
   const head = s.slice(0, keep)
+  if (budget) budget.remaining = 0
   try {
     await mkdir(HOOK_OUTPUTS_DIR, { recursive: true })
     const file = join(HOOK_OUTPUTS_DIR, `${Date.now()}-${randomUUID().slice(0, 8)}.txt`)

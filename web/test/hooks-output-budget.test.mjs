@@ -42,6 +42,20 @@ async function setHook(mode) {
   hooks.refreshHooks()
 }
 
+/** 写一份含 count 条钩子的配置（同一个事件，用来验证「预算共用」）。 */
+async function setHooks(count, mode) {
+  const entries = []
+  for (let i = 0; i < count; i++) {
+    entries.push({ hooks: [{ type: 'command', command: `"${process.execPath}" "${hookScriptPath}" ${mode}` }] })
+  }
+  await writeFile(
+    join(configDir, 'settings.json'),
+    JSON.stringify({ hooks: { 'session-open': entries } }, null, 1),
+    'utf8',
+  )
+  hooks.refreshHooks()
+}
+
 before(async () => {
   configDir = await mkdtemp(join(tmpdir(), 'lk-hookbudget-cfg-'))
   ws = await makeWorkspace({ 'seed.txt': 'seed\n' })
@@ -116,4 +130,24 @@ test('超预算的 additionalContext 同样落盘', async () => {
   assert.ok(file && existsSync(file), '落盘文件应存在')
   const full = await readFile(file, 'utf8')
   assert.ok(full.includes('CTX-') && full.includes('-END'), '落盘应为完整内容')
+})
+
+test('预算是本次事件**共用**的一份：多条钩子各吐超量时总量仍受限', async () => {
+  // 这个测试存在的理由：预算若是「每条各一份」，10 条钩子各吐接近上限的内容，
+  // 合计照样把上下文撑爆 —— 而"撑爆上下文"正是这个预算要防的事。
+  await setHooks(5, 'big')
+  const acc = await hooks.runEventHooks('session-open', { hookInput: { session_id: 's1' } })
+
+  const total = acc.messages.reduce((n, m) => n + String(m).length, 0)
+  // 阈值要能**区分两种实现**（否则这条测试是摆设）：
+  //   共用预算 → 约 325 字（首条截断版 + 4 条"已用尽"短句）
+  //   每条各一份 → 约 925 字（5 条各自留 100 字正文 + 说明）
+  // 所以取 600：共用预算过得去，每条各一份过不去。
+  assert.ok(total < 600, `5 条超量钩子的合计应受限，实际 ${total} 字（预期 <600）`)
+
+  // 证明共用预算真的生效：后面的消息被"预算已用尽"挡下，而不是各吐一份
+  assert.ok(
+    acc.messages.some(m => /已用尽/.test(String(m))),
+    '应有消息因预算用尽被省略（说明不是每条各享一份预算）',
+  )
 })
