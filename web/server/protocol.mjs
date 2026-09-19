@@ -19,7 +19,8 @@ import {
 } from './config.mjs'
 import { HOOK_EVENT, runEventHooks } from './hooks.mjs'
 import { runCommand, exportSessionMarkdown } from './commands.mjs'
-import { isTurnActive, newMessageId, runTeamMemberTurn, runTurn } from './engine.mjs'
+import { cronList, isTurnActive, newMessageId, removeCron, runTeamMemberTurn, runTurn, scheduleCron } from './engine.mjs'
+import { parseIntervalMs } from './tools.mjs'
 import { resolvePermission, resolveQuestions } from './interactions.mjs'
 import { clearRequests, listRequests, requestSummary } from './requestLog.mjs'
 import { checkHandshake } from './security.mjs'
@@ -311,6 +312,42 @@ async function handleClientMessageInner(ws, msg, registry) {
         filename: `${s.title || 'session'}.md`,
         markdown: exportSessionMarkdown(s),
       })
+      break
+    }
+
+    // ---- 定时任务（界面）：列 / 建 / 删 ----
+    // 建任务走的是模型那套 CronCreate 用的**同一个**周期解析（tools.parseIntervalMs），
+    // 保证界面与模型行为一致，不会出现两套标准。
+    case 'cron_list':
+      send(ws, { type: 'crons', crons: cronList() })
+      break
+    case 'cron_create': {
+      const s = getSession(msg.sessionId)
+      if (!s) {
+        send(ws, { type: 'error', message: `会话不存在：${msg.sessionId}` })
+        break
+      }
+      const everyMs = parseIntervalMs(msg.schedule, msg.interval_ms)
+      const text = String(msg.prompt ?? '').trim()
+      if (!Number.isFinite(everyMs) || everyMs < 5_000) {
+        send(ws, { type: 'error', message: '周期无法解析或小于 5 秒；请用 30s / 5m / 2h 或毫秒数' })
+        break
+      }
+      if (!text) {
+        send(ws, { type: 'error', message: '定时任务的内容不能为空' })
+        break
+      }
+      scheduleCron(s, { everyMs, prompt: text })
+      send(ws, { type: 'crons', crons: cronList() })
+      break
+    }
+    case 'cron_delete': {
+      const ok = removeCron(String(msg.id ?? ''))
+      if (!ok) {
+        send(ws, { type: 'error', message: `没有找到定时任务 ${msg.id}` })
+        break
+      }
+      send(ws, { type: 'crons', crons: cronList() })
       break
     }
 

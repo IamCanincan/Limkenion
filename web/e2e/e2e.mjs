@@ -391,7 +391,14 @@ console.log('\n【D】worktree：切沙箱根')
     wroteBack = backEvents.some(e => e.type === 'tool_call' && e.toolCall?.name === 'Write')
   }
   const backInMain = existsSync(join(REPO, 'back-in-main.txt'))
-  if (!wroteBack && !backInMain) {
+  // D7 的前置有**两层**：模型得先真的退出 worktree（D5），再调 Write。
+  // 若 D5 没发生（模型跑去探索了），沙箱根还在 worktree 上，此时 Write 落在 worktree
+  // 是必然结果 —— 那是 D5 的下游，不是"沙箱根没还原"的产品回归。曾出现过 D5 没走到、
+  // D7 却报"这是真回归"的误导，所以这里补上 D5 这一层前置。
+  const exited = calls2.includes('ExitWorktree')
+  if (!exited) {
+    skip('D7 退出后写入回到原根', '模型没有调用 ExitWorktree，沙箱根仍在 worktree 上，本条未走到')
+  } else if (!wroteBack && !backInMain) {
     skip('D7 退出后写入回到原根', '模型本轮没有调用 Write，这条路径未走到')
   } else {
     // 写错到 worktree 是最有价值的线索，单独指出来

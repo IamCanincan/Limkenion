@@ -13,6 +13,7 @@ import { PreviewPanel } from './components/PreviewPanel'
 import { TeamPanel } from './components/TeamPanel'
 import { SearchPanel } from './components/SearchPanel'
 import { McpPanel } from './components/McpPanel'
+import { CronPanel } from './components/CronPanel'
 import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
@@ -20,6 +21,7 @@ import type {
   AskQuestion,
   ChatMessage,
   CommandInfo,
+  CronInfo,
   ImageAttachment,
   McpServerInfo,
   ModelInfo,
@@ -74,6 +76,9 @@ export function App() {
   // MCP 图形化管理：面板开关 + 服务器清单
   const [showMcp, setShowMcp] = useState(false)
   const [mcpServers, setMcpServers] = useState<McpServerInfo[]>([])
+  // 定时任务界面：面板开关 + 任务清单
+  const [showCron, setShowCron] = useState(false)
+  const [crons, setCrons] = useState<CronInfo[]>([])
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -146,6 +151,9 @@ export function App() {
           break
         case 'mcp_servers':
           setMcpServers(msg.servers)
+          break
+        case 'crons':
+          setCrons(msg.crons)
           break
         case 'session_messages':
           setActiveSessionId(msg.sessionId)
@@ -469,6 +477,24 @@ export function App() {
     connectionRef.current.send({ type: 'mcp_delete', name, scope })
   }, [])
 
+  // ---- 定时任务界面 ----
+
+  const onCronCreate = useCallback(
+    (prompt: string, schedule: string) => {
+      const sessionId = activeSessionIdRef.current
+      if (!sessionId) {
+        setError('请先选择一个会话再创建定时任务')
+        return
+      }
+      connectionRef.current.send({ type: 'cron_create', sessionId, prompt, schedule })
+    },
+    [],
+  )
+
+  const onCronDelete = useCallback((id: string) => {
+    connectionRef.current.send({ type: 'cron_delete', id })
+  }, [])
+
   /** 选中一条命中：切到对应会话（必要时），并定位到那条消息。 */
   const onSearchPick = useCallback((hit: SearchHit) => {
     setShowSearch(false)
@@ -562,6 +588,17 @@ export function App() {
           >
             MCP{mcpServers.length > 0 ? ` (${mcpServers.length})` : ''}
           </button>
+          <button
+            className="request-log-btn"
+            onClick={() => {
+              const next = !showCron
+              setShowCron(next)
+              if (next) connectionRef.current.send({ type: 'cron_list' })
+            }}
+            title="定时任务：按周期在独立回合执行"
+          >
+            定时任务{crons.length > 0 ? ` (${crons.length})` : ''}
+          </button>
           <button className="update-btn" onClick={onCheckUpdate} title="检查并安装更新">
             {updateMsg || '检查更新'}
           </button>
@@ -597,6 +634,16 @@ export function App() {
             onSave={onMcpSave}
             onDelete={onMcpDelete}
             onClose={() => setShowMcp(false)}
+          />
+        )}
+        {showCron && (
+          <CronPanel
+            crons={crons}
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onCreate={onCronCreate}
+            onDelete={onCronDelete}
+            onClose={() => setShowCron(false)}
           />
         )}
         <ChatView

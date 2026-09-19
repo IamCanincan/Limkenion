@@ -38,6 +38,16 @@ export type ClientMessage =
       scope?: SettingsScope
     }
   | { type: 'mcp_delete'; name: string; scope?: SettingsScope }
+  /** 定时任务（界面）：列 / 建 / 删。周期写法与模型的 CronCreate 同一套。 */
+  | { type: 'cron_list' }
+  | {
+      type: 'cron_create'
+      sessionId: string
+      prompt: string
+      schedule?: string
+      interval_ms?: number
+    }
+  | { type: 'cron_delete'; id: string }
 
 /** 设置文件的作用域：user=全局、project=项目共享、local=项目私有。 */
 export type SettingsScope = 'user' | 'project' | 'local'
@@ -130,6 +140,8 @@ export type ServerMessage =
   | { type: 'search_results'; query: string; hits: SearchHit[]; complete: boolean; truncated: boolean }
   /** MCP 服务器清单（保存/删除后也会重新推一份）。 */
   | { type: 'mcp_servers'; servers: McpServerInfo[] }
+  /** 定时任务清单（创建/删除后也会重新推一份）。 */
+  | { type: 'crons'; crons: CronInfo[] }
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_export'; sessionId: string; filename: string; markdown: string }
@@ -150,6 +162,14 @@ export type ServerMessage =
   | { type: 'team'; sessionId: string; team: TeamInfo | null }
   | { type: 'team_event'; sessionId: string; member: string; payload: Record<string, unknown> & { type?: string } }
   | { type: 'error'; message: string }
+
+/** 一条定时任务。 */
+export interface CronInfo {
+  id: string
+  sessionId: string
+  everyMs: number
+  prompt: string
+}
 
 // ---------------------------------------------------------------------------
 // 视图模型

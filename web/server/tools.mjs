@@ -1278,6 +1278,30 @@ async function toolSleep({ duration_ms, durationMs, seconds, duration }) {
 }
 
 /** CronCreate：登记会话级定时回合，由服务端 setTimeout 触发。 */
+/**
+ * 把定时周期解析成毫秒：支持 "30s" / "5m" / "2h" / 纯毫秒数 / rrule 的 INTERVAL=n。
+ *
+ * 抽出来是为了**只有一套解析标准** —— 界面（cron_create）和模型（CronCreate）
+ * 走同一个函数，免得出现"界面能建、模型建不了"这类不一致。
+ *
+ * @param {string} spec 形如 "5m" / "60000" / rrule 串
+ * @param {number|string} [intervalMs] 直接给毫秒时优先用
+ * @returns {number} 解析不出时为 NaN
+ */
+export function parseIntervalMs(spec, intervalMs) {
+  let everyMs = Number(intervalMs)
+  if (Number.isFinite(everyMs)) return everyMs
+  const s = String(spec ?? '').trim()
+  const m = s.match(/^(\d+)\s*([smh])$/i)
+  if (m) {
+    const unit = /** @type {Record<string, number>} */ ({ s: 1000, m: 60_000, h: 3_600_000 })[m[2].toLowerCase()]
+    return Number(m[1]) * unit
+  }
+  if (/^\d+$/.test(s)) return Number(s)
+  const iv = s.match(/INTERVAL=(\d+)/i)
+  return iv ? Number(iv[1]) * 60_000 : NaN
+}
+
 async function toolCronCreate({ cron, schedule, rrule, prompt, durable, recurring, interval_ms }, ctx) {
   const spec = String(cron ?? schedule ?? rrule ?? '').trim()
   const text = String(prompt ?? '').trim()
@@ -1285,16 +1309,7 @@ async function toolCronCreate({ cron, schedule, rrule, prompt, durable, recurrin
   if (typeof ctx?.scheduleCron !== 'function') throw new Error('当前服务端未挂载定时器（ctx.scheduleCron 缺失）')
 
   // 支持 "30s" / "5m" / "2h" / 纯毫秒数；rrule 形式的分钟级 INTERVAL=n 也接受
-  let everyMs = Number(interval_ms)
-  if (!Number.isFinite(everyMs)) {
-    const m = spec.match(/^(\d+)\s*([smh])$/i)
-    if (m) everyMs = Number(m[1]) * ({ s: 1000, m: 60_000, h: 3_600_000 })[m[2].toLowerCase()]
-    else if (/^\d+$/.test(spec)) everyMs = Number(spec)
-    else {
-      const iv = spec.match(/INTERVAL=(\d+)/i)
-      everyMs = iv ? Number(iv[1]) * 60_000 : NaN
-    }
-  }
+  const everyMs = parseIntervalMs(spec, interval_ms)
   if (!Number.isFinite(everyMs) || everyMs < 5_000) {
     throw new Error(`无法解析定时周期「${spec}」；请用 30s / 5m / 2h 或毫秒数（最小 5000）`)
   }
