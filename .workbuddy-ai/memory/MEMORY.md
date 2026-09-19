@@ -20,16 +20,18 @@
 `D:\Github Repositories\Limkenion` = **纯 web 项目**，分支 `master`，远程 origin = Gitee。
 - **web/**：Vite + React 18 + 自研本地 Node 服务（同端口伺服静态页 + WebSocket），
   完全自包含（引擎/会话/工具/钩子/定时任务/MCP/Workflow/Teams），**零外部进程依赖**。
-- **桌面分发 = Tier C 内置 Node**：`cd web && npm run release` 出一份三平台通用 zip
-  （实测 448MB）。入口链路：包内 node 优先 → 系统 node 回退 → 都缺弹 GUI 提示。
-  更新器 `web/launcher/updater.mjs` 跳过 `node/`，不覆盖内置 Node。`web/release/` 已 ignore。
+- ~~桌面分发 = Tier C 内置 Node（448MB zip + 三平台入口 + 更新器）~~
+  **已于 2026-09-19 整体删除**（用户拍板"回归纯 web"）：`web/launcher/`、`scripts/`
+  `package-release.mjs`、`release` 脚本、更新器测试都删了。
+  现在只有 `npm run dev` / `npm run serve`（以及 `npm install -g .` 这种 npm 全局安装）。
+  `web/release/` 仍是历史产物（448MB，已 ignore，**不要提交**）。
 - CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
 
 ## 仓库红线
 - **品牌词已全历史抹除**（`upstream-brand`/`upstream-brand`/`upstream-brand` 及变体，filter-repo 重写 + 强推；
   备份 bundle 在仓库外）。**任何新代码/注释/文档不得带回这些词**，
   解释设计来源用中性说法（如"参考通用 CLI agent 的设计"）。源码当前 **0 命中**。
-- `.gitattributes`：`web/launcher/**` 锁 **LF**（仅 `.vbs` 锁 CRLF）、`scripts/**` 锁 LF。
+- `.gitattributes`：`scripts/**` 锁 LF（launcher 那两条随桌面分发一起删了）。
 - 记忆统一放 `.workbuddy-ai/memory/`（`.gitignore` 对该目录开了白名单）；
   `.workbuddy/` 是另一运行时的目录，已 ignore，**不要往那边写**。
 
@@ -146,8 +148,10 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
 9. **`node:vm` 不是安全边界**（工作流脚本）：挡得住 `require`/`process`（靠不注入），
    挡不住同步死循环 —— 只有顶层同步段能用 `runInContext({timeout})` 兜住。**把限制写进文案。**
 10. **往"被 import 的目录"下新增文件 = 悄悄扩大类型检查面** —— `tsconfig.server.json` 的 include 是
-    `server/**/*.mjs`，但 `server/static.mjs` import 了 `../launcher/updater.mjs`，TS 顺 import 一起检查，
-    于是新加的 `launcher/` 直接让 typecheck 红了 5 个错。**加了新目录/新文件，一定要重跑 typecheck。**
+    `server/**/*.mjs`，但 server 若 import 了 `server/` 之外的文件，TS 会顺 import 一起检查。
+    （历史案例：已删的 `web/launcher/updater.mjs` 被 `server/static.mjs` import，
+    于是新加的 launcher/ 直接让 typecheck 红了 5 个错。）
+    **加了新目录/新文件，一定要重跑 typecheck。**
 11. **E2E 的 D7（worktree 退出后写回原根）已做确定化**（2026-09-19，提交 219018c）：
     原本约两成概率失败，根因全是「模型那轮没调 Write」（文件根本没被创建），不是写错根。
     现改为：先查该回合是否真有 Write 调用 → 没有则再给一次明确机会，仍不写就按 D6
