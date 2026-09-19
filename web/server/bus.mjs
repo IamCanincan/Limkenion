@@ -32,12 +32,27 @@ const OPEN = 1
 export function send(ws, msg) {
   if (!ws) return false
   if (ws.readyState !== (ws.OPEN ?? OPEN)) return false
-  ws.send(JSON.stringify(msg))
-  return true
+  try {
+    ws.send(JSON.stringify(msg))
+    return true
+  } catch {
+    // 发送失败（socket 已关 / 检查与发送之间的竞态 / 缓冲区问题）：这个客户端
+    // 已不可用，从注册表移除，避免它每次广播都抛一次、还打断其他客户端的投递。
+    clients.delete(ws)
+    return false
+  }
 }
 
 /** 发给所有连接。 */
 export function broadcast(msgOrFn) {
   const build = typeof msgOrFn === 'function' ? msgOrFn : () => msgOrFn
-  for (const client of clients) send(client, build())
+  for (const client of clients) {
+    // 单个客户端发送失败（或 build() 抛错）不应影响其他客户端收到这条消息。
+    // send 内部已自行兜错并移出死客户端，这里再兜一层以防极端竞态。
+    try {
+      send(client, build())
+    } catch {
+      /* 见 send 内的注释 */
+    }
+  }
 }
