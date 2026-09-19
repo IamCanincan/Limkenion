@@ -92,7 +92,9 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   （`cron_list/cron_create/cron_delete` + `CronPanel`，周期解析与模型共用一个
   `tools.parseIntervalMs()`：30s/5m/2h/毫秒/rrule，最小 5s）；**新会话选分支启动**
   （`git_branches` + `new_session{worktree,branch,worktreeName}`，走隔离 worktree；
-  分支名过 `validateBranchName()` 防 git 参数注入；**刻意不支持"选分支但用当前工作树"**）。
+  分支名过 `validateBranchName()` 防 git 参数注入；**刻意不支持"选分支但用当前工作树"**）；
+  **具名子代理**（`subagent_list/save/delete` + `SubAgentPanel`，读设置文件的 subagents 段；
+  只覆盖模型与**只读工具集的子集**，Write/Bash 一律拒 → 配置面不能变提权口子）。
 - **验证基线**：typecheck 0 / **354 项测试 350 过 0 失败 4 跳过** / vitest 6/6 / build 通过 /
   **真实 E2E 24/24**（2026-09-19 实测）。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
