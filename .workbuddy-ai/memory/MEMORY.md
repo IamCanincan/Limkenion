@@ -92,7 +92,10 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   - 半成品译文补丁：`D:/Github Repositories/limkenion-cli-i18n-wip-47pct.patch`（5.26 MB）
   恢复：`git fetch <bundle> archive/cli:archive/cli` → `git apply <patch>`。
   **CLI 不再是待译项，不要再从 `archive/cli` 取源码。** 详见 details 附八。
-- **仍未做**：只剩三处"契约值改名"（`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）—— **建议不动**。
+- **品牌洁净度：源码 0 命中**（2026-09-19 复核）。三个旧品牌词（`upstream-brand`/`upstream-brand`/`upstream-brand`）
+  在 `web/`+`scripts/`+`README.md` 里 **0 命中**；原先记的"仍未做"三处契约值
+  （`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）也 **0 命中** ——
+  它们随 CLI 树一起删掉了。**"仍未做"清单已清空，当前没有待办技术债。**
 
 ## 关键陷阱（都踩过，别再踩）
 1. **删模块后必须跑冒烟** —— esbuild 只报"缺失导出"，不报类型错误；被删符号的**调用点**会静默变
