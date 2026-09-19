@@ -32,7 +32,7 @@ elicitation/OAuth/sampling/roots/prompts/registry 搜索）；自动 compact + m
 文件检查点（Write/Edit 落盘 + Bash 工作区快照）；后台 Bash（TaskOutput/TaskStop）；
 出站白名单（`LIMKENION_EGRESS_ALLOWLIST`）；非回环绑定 LAN 鉴权；outputStyle 注入；
 LIMKENION.md/AGENTS.md instructions 加载；回合中排队消息；localhost 预览面板（PreviewUrl + iframe）；
-Computer Use（Windows PowerShell 零依赖，`LIMKENION_WEB_COMPUTER_USE=1`，非 Windows 自动禁用）；
+（Computer Use 已于 2026-09-19 按用户要求**整体删除**）；
 Agent Teams 工作台（TeamPanel + 成员事件流 + teammate-idle 钩子）。
 
 ## 三、桌面分发（已提交 `c86abed`）
@@ -173,9 +173,7 @@ npm 是 `npm.cmd`，`shell:true` 会触发 DEP0190 → 改用 `cmd.exe /d /s /c`
 ### 多端统一性（2026-09-19 盘点结论）
 
 核心能力**完全统一**；真正的平台差异只有 2 项，且都会明确报错而非静默失败：
-① Windows shell 工具（仅 win，平台固有）；② Computer Use（仅 win，默认关闭）。
-- Computer Use **暂不移植** mac/linux：实现虽零依赖，但 mac 要用户手动授"辅助功能"权限、
-  linux 要装 scrot/xdotool 且 **Wayland 下失效**，可靠性远低于 Windows 版。
+① Windows shell 工具（仅 win，平台固有）。（Computer Use 已于 2026-09-19 整体删除，不再讨论移植。）
 - **macOS 从未实机验证过**（linux 有 CI 覆盖一部分）—— 这是当前最大的验证缺口。
 
 ## 八点五、还剩什么（2026-09-19 18:10 盘点，均未做，需用户拍板）

@@ -562,19 +562,6 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
         }
       }
 
-      // ---- ComputerScreenshot：把图片作为 user 消息注入模型上下文
-      // ----（tool 角色不支持图片；user 消息的多模态链路已验证可用）。
-      if (ok && typeof result === "string" && result.startsWith("@@SCREENSHOT@@")) {
-        const dataUrl = result.slice("@@SCREENSHOT@@".length)
-        emit({ type: 'tool_result', toolCallId: tcId, ok: true, result: '已截屏（图片已注入模型上下文）', durationMs: Date.now() - startedAt })
-        messages.push({ role: 'tool', tool_call_id: tc.id, content: '已截屏，图片见下一条消息。' })
-        messages.push({ role: "user", content: [
-          { type: 'text', text: '[系统自动附加：你请求的屏幕截图]' },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ] })
-        if (answer.length > 0) { answer = ""; emit({ type: "assistant_delta", delta: "\n\n" }) }
-        continue
-      }
       const durationMs = Date.now() - startedAt
       emit({ type: 'tool_result', toolCallId: tcId, ok, result, durationMs, diff })
       messages.push({ role: 'tool', tool_call_id: tc.id, content: capResult(result) })

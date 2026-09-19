@@ -1,6 +1,6 @@
 /**
- * 第 27 轮：PreviewUrl + Computer Use（门控/参数校验）。
- * 真实截屏需要交互桌面——本测试只断言形状或优雅报错。
+ * 第 27 轮：PreviewUrl。
+ * （Computer Use 已于 2026-09-19 按用户要求整体删除，相关用例一并移除。）
  */
 
 import { test, describe, it, before, after } from 'node:test'
@@ -66,61 +66,3 @@ describe('PreviewUrl', () => {
   })
 })
 
-describe('Computer Use 门控与校验', () => {
-  it('总开关关闭 → 明确报未启用', async () => {
-    delete process.env.LIMKENION_WEB_COMPUTER_USE
-    await assert.rejects(
-      () => tools.executeTool('ComputerScreenshot', {}, ctx()),
-      /未启用/,
-    )
-    await assert.rejects(
-      () => tools.executeTool('ComputerControl', { action: 'click', x: 1, y: 1 }, ctx()),
-      /未启用/,
-    )
-  })
-
-  it('开关打开 + 非 Windows → 明确报平台不可用（Windows 上跳过）', async () => {
-    if (process.platform === 'win32') return
-    process.env.LIMKENION_WEB_COMPUTER_USE = '1'
-    await assert.rejects(() => tools.executeTool('ComputerScreenshot', {}, ctx()), /仅在 Windows 上可用/)
-    delete process.env.LIMKENION_WEB_COMPUTER_USE
-  })
-
-  it('dangerous：ComputerControl 在危险工具清单里（默认每次确认）', async () => {
-    const { isDangerousTool } = await import('../server/tools.mjs')
-    assert.equal(isDangerousTool('ComputerScreenshot'), true)
-    assert.equal(isDangerousTool('ComputerControl'), true)
-  })
-
-  it('Windows + 开关打开：control 非法 action 给出可选值列表', async () => {
-    if (process.platform !== 'win32') return
-    process.env.LIMKENION_WEB_COMPUTER_USE = '1'
-    try {
-      await assert.rejects(
-        () => tools.executeTool('ComputerControl', { action: 'bogus' }, ctx()),
-        /不支持的 action/,
-      )
-    } finally {
-      delete process.env.LIMKENION_WEB_COMPUTER_USE
-    }
-  })
-})
-
-describe('ComputerScreenshot 真实截屏（Windows + 开关）', () => {
-  it('返回标记前缀与 data URL（无交互桌面时优雅报错）', async () => {
-    if (process.platform !== 'win32') return
-    process.env.LIMKENION_WEB_COMPUTER_USE = '1'
-    try {
-      const out = await tools.executeTool('ComputerScreenshot', { maxWidth: 800 }, ctx())
-      if (out.startsWith('@@SCREENSHOT@@')) {
-        assert.match(out, /^@@SCREENSHOT@@data:image\/png;base64,/)
-        assert.ok(out.length > 1000, 'base64 不应过短')
-      } else {
-        // 服务跑在非交互桌面（如系统服务/无头会话）——允许优雅报错
-        assert.match(String(out), /显示会话|失败/)
-      }
-    } finally {
-      delete process.env.LIMKENION_WEB_COMPUTER_USE
-    }
-  })
-})

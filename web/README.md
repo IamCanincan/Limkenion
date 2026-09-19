@@ -31,7 +31,6 @@ web/
 │   ├── insights.mjs      # 用量洞察与报告
 │   ├── worktree.mjs      # git worktree（可按分支进入）
 │   ├── checkpoints.mjs   # 文件检查点（/rewind 回滚）
-│   ├── computer.mjs      # Computer Use（仅 Windows）
 │   ├── egress.mjs        # 服务端出网白名单
 │   ├── requestLog.mjs    # 模型请求追踪
 │   ├── crashGuard.mjs    # 进程级崩溃兜底（未捕获异常/拒绝不再打死服务）
@@ -124,16 +123,16 @@ web/
 | 流程 | PlanEnter / PlanExit / AskUserQuestion / Sleep / CronCreate / CronList / CronDelete / Workflow |
 | 配置 / 元 | Config / Skill / ToolSearch / StructuredOutput |
 | MCP | mcp / McpPrompt / McpRegistrySearch / ListMcpResourcesTool / ReadMcpResource / McpAuth |
-| 桌面 / 预览 | ComputerScreenshot / ComputerControl / PreviewUrl |
+| 预览 | PreviewUrl |
 | 工作区 | EnterWorktree / ExitWorktree |
 
 （`PlanEnter` / `PlanExit` 即 EnterPlanMode / ExitPlanMode：工具名归一化到新名，模型输出旧名或权限规则写旧名都能识别。）
 
-**工具延迟加载**：20 个常驻工具每轮随请求发出，其余 25 个默认不发，模型通过 `ToolSearch` 检索后按会话启用。47 份 schema 全量约 11K 字符，常驻集约 6K —— 省掉约 45% 的固定开销。用 `/tools` 查看分组。
+**工具延迟加载**：20 个常驻工具每轮随请求发出，其余 25 个默认不发，模型通过 `ToolSearch` 检索后按会话启用。45 份 schema 全量约 11K 字符，常驻集约 6K —— 省掉约 45% 的固定开销。用 `/tools` 查看分组。
 
-MCP / Computer Use / worktree 这类工具依赖本机能力：未配置、或平台不支持（Computer Use 仅 Windows）时返回**明确的不可用说明**，而不是静默失败。
+MCP / worktree 这类工具依赖本机能力：未配置、或平台不支持时返回**明确的不可用说明**，而不是静默失败。
 
-**危险工具**（执行前弹窗确认）：Bash、PowerShell、REPL、Write、Edit、NotebookEdit、CronCreate、CronDelete、ComputerScreenshot、ComputerControl、EnterWorktree、ExitWorktree、Workflow。
+**危险工具**（执行前弹窗确认）：Bash、PowerShell、REPL、Write、Edit、NotebookEdit、CronCreate、CronDelete、EnterWorktree、ExitWorktree、Workflow。
 
 ## 运行
 

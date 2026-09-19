@@ -92,7 +92,7 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   **文件检查点**（/rewind 连文件回滚）；**后台 Bash**（TaskOutput/TaskStop）；
   **出站白名单** `LIMKENION_EGRESS_ALLOWLIST`；非回环绑定 LAN 鉴权；outputStyle 注入；
   LIMKENION.md/AGENTS.md instructions 加载；回合中排队消息；**localhost 预览面板**（PreviewUrl + iframe）；
-  **Computer Use**（Windows PowerShell 零依赖，`LIMKENION_WEB_COMPUTER_USE=1`，非 Windows 自动禁用）；
+  （Computer Use 已于 2026-09-19 按用户要求**整体删除**：桌面/预览类工具只剩 PreviewUrl）；
   **Agent Teams 工作台**（TeamPanel + 成员事件流 + teammate-idle 钩子）；
   worktree + additionalDirectories（沙箱根**按会话可变**，AsyncLocalStorage）；
   WorkflowTool（vm 沙箱）；`/insights`。
