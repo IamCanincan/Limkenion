@@ -1,23 +1,23 @@
 # Limkenion 项目长期记忆
 
 > 本文件自动注入，**必须精简**（超上限会被截断 = 接力断掉）。
-> 分阶段全账 / 细节清单 → 同目录 **`MEMORY-details.md`**；逐轮流水 → `YYYY-MM-DD.md`。
-> **加内容前先想清楚放哪一份**；本文件只放"不知道就会写错"的东西。
+> 分阶段全账 / 细节清单 → 同目录 **`MEMORY-details.md`**；逐轮流水 → `YYYY-MM-DD.md`；
+> 最新交接 → 同目录 **`HANDOFF.md`**。**加内容前先想清楚放哪一份。**
 
 ---
 
 ## 用户明确要求（最高优先级，别自作主张改）
-1. **只做 web 界面**：CLI 已停止维护并从工作树删除，源码在 git 分支 `archive/cli`。
+1. **只做 web 界面**：CLI 已停止维护，工作树与 git 分支（本地 + 远程）均已删除。
 2. **只依赖 Node**，不引入新运行时（不要 Bun/Deno/Python/Electron）。
 3. **以"高效编码"为目的** —— 取舍标准是写代码好不好用。
 4. **只支持 DeepSeek**（预留多供应商扩展点，但不做其他供应商）。
 5. **尽量不要删功能；发现问题先提出来，不要擅自删。**
 6. 本地 agent：无云、无账号、**无网站、无邮箱**。
-7. **不写死单价/换算金额**（2026-09-18 计费层已整体删除，只展示 token/时长/行数）。
+7. **不写死单价/换算金额**（计费层已整体删除，只展示 token/时长/行数）。
 8. **API key 由用户自己输入**（`/login` 录入并持久化）。**不要桌宠。**
 
 ## 项目性质与交付形态
-`D:\Github Repositories\Limkenion` = **纯 web 项目**，git 分支 `master`，远程 origin = Gitee。
+`D:\Github Repositories\Limkenion` = **纯 web 项目**，分支 `master`，远程 origin = Gitee。
 - **web/**：Vite + React 18 + 自研本地 Node 服务（同端口伺服静态页 + WebSocket），
   完全自包含（引擎/会话/工具/钩子/定时任务/MCP/Workflow/Teams），**零外部进程依赖**。
 - **桌面分发 = Tier C 内置 Node**：`cd web && npm run release` 出一份三平台通用 zip
@@ -26,11 +26,12 @@
 - CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
 
 ## 仓库红线
-- **品牌词已全历史抹除**（`upstream-brand`/`upstream-brand`/`upstream-brand` 及变体，含 `archive/cli` 分支，
-  filter-repo 重写 + 强推；备份 bundle 在仓库外）。**任何新代码/注释/文档不得带回这些词**，
-  解释设计来源用中性说法（如"参考通用 CLI agent 的设计"）。
+- **品牌词已全历史抹除**（`upstream-brand`/`upstream-brand`/`upstream-brand` 及变体，filter-repo 重写 + 强推；
+  备份 bundle 在仓库外）。**任何新代码/注释/文档不得带回这些词**，
+  解释设计来源用中性说法（如"参考通用 CLI agent 的设计"）。源码当前 **0 命中**。
 - `.gitattributes`：`web/launcher/**` 锁 **LF**（仅 `.vbs` 锁 CRLF）、`scripts/**` 锁 LF。
-- 原上游品牌词在 `web/` 源码 0 命中，别破功。
+- 记忆统一放 `.workbuddy-ai/memory/`（`.gitignore` 对该目录开了白名单）；
+  `.workbuddy/` 是另一运行时的目录，已 ignore，**不要往那边写**。
 
 ## 硬约束与每轮惯例
 - **无任何在线账号 / OAuth / 订阅 / 云供应商**。登录 = 设 `DEEPSEEK_API_KEY`
@@ -42,20 +43,21 @@
   `npm run typecheck`（前端 + server 两套 tsc，**别用管道掩盖退出码**）→ `npm test`
   → `npm run test:ui`（vitest）→ `npm run build`（vite）。
   改了 **worktree / hooks / MCP / Workflow / 沙箱作用域 / 桌面入口** → 还要跑
-  `npm run test:e2e`（真实 API，会花真 token）。改完 commit（**不 push、不动 git config**）。
+  `npm run test:e2e`（真实 API，会花真 token，24 项 / 约 1 分钟）。
+  改完 commit（**不 push、不动 git config** —— 要 push 必须用户明确说）。
 - 注释与用户可见文案用中文，代码标识符用英文；缩进 2 空格，无分号结尾。
 
 ## 环境要点
 - 有 HTTP 代理：访问 localhost 必须 `curl --noproxy '*'`；**DuckDuckGo 超时，Bing 可用**。
-- Node：**测试/tsc/vite 用系统 v24**（`D:\nodejs\node.exe`）；
+- Node：**测试/tsc/vite/E2E 用系统 v24**（`D:\nodejs\node.exe`）；
   **web 预览服务用托管 22.22.2**（`C:\Users\20653\.workbuddy\binaries\node\versions\22.22.2-3\node.exe web/server/index.mjs`）。
-- **web 服务的 API key 只从环境变量来**（无配置文件）。重启服务时从 `~/.limkenion.json`
-  的 **`primaryApiKey`** 取，**别问用户**。**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
-  查活服务：取 `limkenion-token` → 连 WS 发 `{type:'run_command', command:'/status'}`
-  （**类型是 `run_command`，不是 `command`**）。
-- Windows：`rm` 被安全策略拦 → 用 `mv` 移出仓库；`taskkill //F` 报错 → 用 `Stop-Process -Id`；
-  **找端口占用用 `netstat -ano | grep LISTENING`**。tar 一律**相对路径 + 指定 cwd**
-  （bsdtar 把 `D:/...` 误判成远程主机）；Windows GNU tar **不解 .zip** → 用 PowerShell `Expand-Archive`。
+- **API key 从 `~/.limkenion.json` 的 `primaryApiKey` 取，别问用户**；
+  web 服务只认环境变量，**没带 key 会静默退化成 mock**（看着"能用"，模型是假的）。
+  查活服务：取 `limkenion-token` → 连 WS 发 `{type:'run_command', command:'/status'}`。
+- Windows：`rm` 被安全策略拦 → 用 `mv` 移出仓库；**别从 bash 调 PowerShell**（用 PowerShell 工具）；
+  `Remove-Item` 接管道对象会报参数绑定失败，用 `-LiteralPath $f.FullName` 逐个删；
+  tar 一律**相对路径 + 指定 cwd**（bsdtar 把 `D:/...` 误判成远程主机）；
+  Windows GNU tar **不解 .zip** → 用 PowerShell `Expand-Archive`。
 - **服务端 JS 也在类型检查里**（`web/tsconfig.server.json`：allowJs + checkJs + noEmit，
   关 noImplicitAny / useUnknownInCatchVariables，**开 strictNullChecks**）。
   三个反复踩的推断坑：**空数组 → `never[]`**、**`.filter(Boolean)` 不收窄**、
@@ -70,8 +72,8 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   对外只暴露 low|medium|high|max（刻意不加 none）。
 - **推理模式 + 强制 `tool_choice` 不可共存**（400）。适配器在"强制工具"时自动加 `reasoning_effort:'none'`。
 
-## 当前状态（第 28 轮，2026-09-19 02:47）
-**纯 web 项目**。对标能力已全部补齐：
+## 当前状态（第 29 轮，2026-09-19 13:55）
+**纯 web 项目，工作区干净、无待办技术债。** 对标能力已全部补齐：
 - **钩子 27 事件 × 4 执行类型**（command/prompt/agent/http）；**MCP** stdio/http/sse +
   elicitation/OAuth 2.1/sampling/roots/prompts/registry 搜索；**自动 compact + microcompact**；
   **文件检查点**（/rewind 连文件回滚）；**后台 Bash**（TaskOutput/TaskStop）；
@@ -81,21 +83,15 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   **Agent Teams 工作台**（TeamPanel + 成员事件流 + teammate-idle 钩子）；
   worktree + additionalDirectories（沙箱根**按会话可变**，AsyncLocalStorage）；
   WorkflowTool（vm 沙箱）；`/insights`。
-- **测试 341 项 0 失败**（`web/test/*.test.mjs`）+ vitest 6/6；**真实 E2E 24/24**。
+- **验证基线**：typecheck 0 / **354 项测试 350 过 0 失败 4 跳过** / vitest 6/6 / build 通过 /
+  **真实 E2E 24/24**（2026-09-19 实测）。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
-- **注释中文化：工作树已 100% 完成**（只剩 JSDoc 类型定义/路径示例/shebang 等不该译的行）。
-  `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 那份 B1–B28 计划**已过期**（B2–B27 针对 CLI 树）。
-- **CLI 归档分支已彻底删除**（2026-09-19，用户拍板"删远程"）：本地分支、worktree、
-  **远程 `origin/archive/cli` 全部移除**，远程现只剩 `master`。删前已做两层保全：
-  - 整棵树 bundle：`D:/Github Repositories/limkenion-archive-cli-aa1ffaf.bundle`（16.4 MB，
-    含 `refs/heads/archive/cli` = `aa1ffaf`，`git bundle verify` 通过）
-  - 半成品译文补丁：`D:/Github Repositories/limkenion-cli-i18n-wip-47pct.patch`（5.26 MB）
-  恢复：`git fetch <bundle> archive/cli:archive/cli` → `git apply <patch>`。
-  **CLI 不再是待译项，不要再从 `archive/cli` 取源码。** 详见 details 附八。
-- **品牌洁净度：源码 0 命中**（2026-09-19 复核）。三个旧品牌词（`upstream-brand`/`upstream-brand`/`upstream-brand`）
-  在 `web/`+`scripts/`+`README.md` 里 **0 命中**；原先记的"仍未做"三处契约值
-  （`@limkenion-ai/*`、`'limkenionai-proxy'`、`'limkenionai'`）也 **0 命中** ——
-  它们随 CLI 树一起删掉了。**"仍未做"清单已清空，当前没有待办技术债。**
+- **注释中文化：工作树已 100% 完成**（只剩 44 行 JSDoc 类型定义/枚举值/路径示例等不该译的行）。
+  `.workbuddy-ai/i18n/COMMENT_I18N_PLAN.md` 的 B1–B28 计划**已过期**（B2–B27 针对已删的 CLI 树）。
+- **CLI 树已彻底删除**（2026-09-19，用户拍板）：本地分支 + worktree + 远程分支全删，
+  远程现只剩 `master`。两层保全在仓库外：bundle `limkenion-archive-cli-aa1ffaf.bundle`（~16 MB）
+  + 47% 译文补丁 `limkenion-cli-i18n-wip-47pct.patch`（5 MB）。
+  恢复：`git fetch <bundle> archive/cli:archive/cli` → `git apply <patch>`。详见 details 附八。
 
 ## 关键陷阱（都踩过，别再踩）
 1. **删模块后必须跑冒烟** —— esbuild 只报"缺失导出"，不报类型错误；被删符号的**调用点**会静默变
@@ -136,13 +132,8 @@ engine → commands → protocol → index。**新增模块别引入反向依赖
   + `GET /api/check-update` / `POST /api/update`。
 
 ## 接力提示
-**新 agent 上手**：① 读本文件 → ② 读 **`HANDOFF.md`**（同目录，最新交接）→
-③ 按需读 `MEMORY-details.md` → ④ 改 `web/` 前加载 **`limkenion-web-verify`** 技能。
-CLI 技能已随归档失效；CLI 源码已从本机与远程彻底删除（bundle 在仓库外，见 details 附八），
-仅在用户明确要求回溯时才去恢复。
+**新 agent 上手**：① 读本文件 → ② 读同目录 **`HANDOFF.md`** → ③ 按需读 `MEMORY-details.md`
+→ ④ 改 `web/` 前加载 **`limkenion-web-verify`** 技能。CLI 技能已随归档失效。
 **用户偏好**：不要反复问"选哪个"；说"继续"就是接着干。愿意为真功能付代价（安全边界/子系统重做
 都已明确授权做过）；但**没被要求时不要擅自扩大权限边界**。
-**未提交**：桌面分发（launcher + 出包脚本 + .gitattributes 等）已暂存未 commit ——
-**动手前先问用户要不要先提交这批**，避免和后续改动混在一起。
-**下一任务（用户已安排）**：源码全量翻译 —— **动手前必须先确认目标语言与范围**
-（只注释？含 UI 文案/文档？标识符建议不动）。细节见 `HANDOFF.md` 第六节。
+**当前没有待办技术债**；`master` 有若干**未推送**提交（用户不让 push，要推需明确指示）。
