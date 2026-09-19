@@ -246,7 +246,9 @@ describe('接进工具集', () => {
     assert.match(summary, /## stub/)
     assert.match(summary, /状态：connected/)
     assert.match(summary, /mcp__stub__echo/)
-    assert.match(summary, /未实现：OAuth/)
+    // 原来这里断言 /未实现：OAuth/ —— 但那句话是**错的**（McpAuth 早就实现了），
+    // 输出已改正，断言跟着改成它真正该说的：只有服务端反向请求没实现。
+    assert.match(summary, /未实现：服务端反向请求/)
   })
 
   test('没配 mcpServers 时摘要给出配置示例', async () => {
@@ -254,6 +256,26 @@ describe('接进工具集', () => {
     const summary = mcp.mcpSummary()
     assert.match(summary, /未配置任何 MCP 服务器/)
     assert.match(summary, /mcpServers/)
+  })
+
+  test('摘要不能声称"未实现"已经实现了的东西', () => {
+    // 这一行原文写着"未实现：OAuth 授权（McpAuth）、prompt 模板、registry"，
+    // 但这三样**早就实现了**（mcpAuthFlow / getMcpPrompt / mcpRegistrySearch
+    // 都在 engine 里接上了）。用户看到的说明必须是真的。
+    const summary = mcp.mcpSummary()
+    assert.ok(
+      !/未实现[^。\n]*McpAuth/.test(summary),
+      'McpAuth 已实现，不该再说未实现：' + summary,
+    )
+    assert.ok(
+      !/未实现[^。\n]*(prompt 模板|registry)/i.test(summary),
+      'prompt 模板与 registry 已实现，不该再说未实现：' + summary,
+    )
+  })
+
+  test('不支持列表为空时不输出空的"未实现：）"', () => {
+    const summary = mcp.mcpSummary()
+    assert.ok(!/未实现：\s*）/.test(summary), '输出里有空的未实现列表：' + summary)
   })
 })
 

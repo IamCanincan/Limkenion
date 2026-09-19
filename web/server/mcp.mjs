@@ -1045,9 +1045,21 @@ export function mcpSummary() {
   const cfgs = mcpServerConfigs()
   const lines = [
     mcpStatusLine(),
-    `支持的传输：${MCP_SUPPORTED_TRANSPORTS.join('、')}（未实现：${MCP_UNSUPPORTED_TRANSPORTS.join('、')}）`,
-    '未实现：OAuth 授权（McpAuth）、服务端反向请求（elicitation / sampling / roots）、prompt 模板、registry',
+    // 只在不支持列表**非空**时才说"未实现" —— 否则会输出一行"未实现：）"
+    MCP_UNSUPPORTED_TRANSPORTS.length > 0
+      ? `支持的传输：${MCP_SUPPORTED_TRANSPORTS.join('、')}（未实现：${MCP_UNSUPPORTED_TRANSPORTS.join('、')}）`
+      : `支持的传输：${MCP_SUPPORTED_TRANSPORTS.join('、')}（全部支持）`,
+    // 这一行原来写着"未实现：OAuth 授权（McpAuth）、prompt 模板、registry"，
+    // 但这三样**早就实现了**（mcpAuthFlow / getMcpPrompt / mcpRegistrySearch
+    // 都在 engine 里接上了），只有"服务端反向请求"是真没有。
+    // 别对用户说自己做不到已经做到的事。
+    '未实现：服务端反向请求（elicitation / sampling / roots）—— 服务端发起时会拒绝并计数',
   ]
+  // 配了 OAuth 的服务器提醒去授权（needsAuthHint 就是为这个写的，之前没接上）
+  const needAuth = needsAuthHint()
+  if (needAuth.length > 0) {
+    lines.push('', `以下服务器配置了 OAuth，需要授权后可用：${needAuth.join('、')}`, '用 McpAuth 工具或让模型发起授权。')
+  }
   if (cfgs.length === 0) {
     lines.push(
       '',
@@ -1075,6 +1087,12 @@ export function mcpSummary() {
       lines.push(`工具 ${conn.tools.length} 个：${conn.tools.map(t => mcpToolName(cfg.name, t.name)).join('、') || '（无）'}`)
       lines.push(`资源 ${conn.resources.length} 个`)
     }
+  }
+  // 告诉用户去哪儿改配置 —— 只列**确实存在**的文件，
+  // 列出不存在的路径只会让人白找（hasConfigFileHint 就是为这个写的）。
+  if (hasConfigFileHint()) {
+    const files = settingsSources().filter(s => existsSync(s.path)).map(s => `${s.source} ${s.path}`)
+    lines.push('', `配置文件：${files.join('；')}`)
   }
   lines.push('')
   lines.push('用 /tools 可以看到这些工具（延迟加载，ToolSearch 检索后启用）。')
