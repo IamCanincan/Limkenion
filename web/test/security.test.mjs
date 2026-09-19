@@ -67,7 +67,9 @@ describe('shell 守卫：灾难性命令硬拒绝', () => {
 
 describe('shell 守卫：升级确认', () => {
   test('工作区外绝对路径 → escalate', () => {
-    const v = analyzeShellCommand('Bash', 'type C:\\Windows\\win.ini')
+    // 同 engine.test.mjs 的理由：用 Unix 风格绝对路径，两个平台都判定为工作区外
+    // （Windows 盘符路径在 Linux 上会被当成相对文件名，守卫不会 escalate）
+    const v = analyzeShellCommand('Bash', 'type /etc/passwd')
     assert.ok(v.escalate, JSON.stringify(v))
     assert.ok(v.outsidePaths?.length > 0)
   })

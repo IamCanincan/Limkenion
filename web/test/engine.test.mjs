@@ -255,7 +255,10 @@ describe('shell 守卫在权限之前生效', () => {
     s.allowedTools = new Set(['Bash'])
     setupClient({ onPermission: msg => interactions.resolvePermission(msg.requestId, 'allow') })
     setScript([
-      { toolCalls: [{ id: 'e', name: 'Bash', args: { command: 'type C:\\Windows\\win.ini' } }] },
+      // 用 `/etc/passwd` 而不是 Windows 盘符路径：后者在 Linux 上会被 resolve 成
+      // 「工作区内的相对文件名」，守卫就不会 escalate，这条测试在 Linux CI 上会红。
+      // Unix 风格绝对路径在两个平台上都解析到工作区之外。
+      { toolCalls: [{ id: 'e', name: 'Bash', args: { command: 'type /etc/passwd' } }] },
       { text: '好。' },
     ])
 
