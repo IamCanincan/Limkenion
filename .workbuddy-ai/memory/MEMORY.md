@@ -28,7 +28,10 @@
 - CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
 
 ## 仓库红线
-- **品牌词已全历史抹除**（`upstream-brand`/`upstream-brand`/`upstream-brand` 及变体，filter-repo 重写 + 强推；
+- **品牌词已全历史抹除**（上游的三个品牌词及变体，filter-repo 重写 + 强推；
+  **具体是哪三个词不写在这里** —— 写进来就会被 grep 命中。清单见
+  `~/.workbuddy-ai/MEMORY.md`（用户级，不进仓库）。检查时也要查**历史文件名**：
+  `git log --all --pretty=format: --name-only | sort -u | grep -iE "<那三个词>"`
   备份 bundle 在仓库外）。**任何新代码/注释/文档不得带回这些词**，
   解释设计来源用中性说法（如"参考通用 CLI agent 的设计"）。源码当前 **0 命中**。
 - `.gitattributes`：`scripts/**` 锁 LF（launcher 那两条随桌面分发一起删了）。
