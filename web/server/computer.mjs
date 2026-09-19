@@ -73,10 +73,16 @@ export async function screenshot({ maxWidth = 1280 } = {}) {
     `$small.Save('${outPs}', [System.Drawing.Imaging.ImageFormat]::Png)`,
     'Write-Output "$w x $h"',
   ].join('\n')
-  const sizeOut = (await runPs(ps)).trim()
-  const b64 = (await readFile(out)).toString('base64')
-  await rm(out, { force: true }).catch(() => {})
-  return { dataUrl: `data:image/png;base64,${b64}`, size: sizeOut }
+  // 临时 PNG 必须**无论如何**都删掉：原先 rm 写在 readFile 之后，一旦 runPs 或
+  // readFile 抛错（无显示会话、脚本失败、文件被锁…），那行就永远执行不到，
+  // 截图的临时文件会在 tmpdir 里越堆越多（Computer Use 会反复截图）。
+  try {
+    const sizeOut = (await runPs(ps)).trim()
+    const b64 = (await readFile(out)).toString('base64')
+    return { dataUrl: `data:image/png;base64,${b64}`, size: sizeOut }
+  } finally {
+    await rm(out, { force: true }).catch(() => {})
+  }
 }
 
 /** 内联 C#：鼠标（user32）+ 键盘（SendInput UNICODE，支持中文）。 */
