@@ -73,6 +73,25 @@ test('白名单外的主机：直接 403（不做任何转发）', async () => {
   assert.match(status, /403/, `应返回 403，实际：${status}`)
 })
 
+test(
+  '出网开关对 PowerShell 也生效（不能只管 Bash）',
+  { skip: process.platform !== 'win32' ? '仅 Windows 有 PowerShell 工具' : false },
+  async () => {
+    // 曾经漏过：PowerShell 走 execFile 起进程时没传 shellNetEnv，
+    // 于是用户设了 LIMKENION_WEB_SHELL_NET=off，网络却仍能从这个口子出去。
+    const tools = await import('../server/tools.mjs')
+    const saved = process.env.LIMKENION_WEB_SHELL_NET
+    process.env.LIMKENION_WEB_SHELL_NET = 'off'
+    try {
+      const out = await tools.executeTool('PowerShell', { command: '$env:HTTPS_PROXY' }, {})
+      assert.match(out, /127\.0\.0\.1:9/, `PowerShell 应拿到死端口代理，实际：${out}`)
+    } finally {
+      if (saved === undefined) delete process.env.LIMKENION_WEB_SHELL_NET
+      else process.env.LIMKENION_WEB_SHELL_NET = saved
+    }
+  },
+)
+
 test('shellNetEnvFor：三档取值正确', () => {
   // off → 死端口
   const off = netproxy.shellNetEnvFor('off')

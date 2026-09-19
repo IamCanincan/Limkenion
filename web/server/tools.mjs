@@ -795,7 +795,15 @@ async function toolPowerShell({ command }) {
     execFile(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', command],
-      { cwd: workspaceRoot(), timeout: BASH_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
+      {
+        cwd: workspaceRoot(),
+        timeout: BASH_TIMEOUT_MS,
+        maxBuffer: 4 * 1024 * 1024,
+        windowsHide: true,
+        // 出网开关（off / allowlist）对 PowerShell 同样生效 —— 它和 Bash 一样是
+        // shell 类工具，漏了这里就等于用户设了 `off` 却仍能从这个口子出去。
+        env: { ...process.env, ...shellNetEnv() },
+      },
       (error, stdout, stderr) => {
         resolveResult(
           [
