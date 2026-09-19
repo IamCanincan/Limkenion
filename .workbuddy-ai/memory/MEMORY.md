@@ -88,7 +88,9 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   按 user/project/local 三作用域写设置，写走 `settings.writeSettingsScope()`）；
   **钩子输出上下文预算**（超 8000 字落盘 `hook_outputs/`，env
   `LIMKENION_WEB_HOOK_CONTEXT_CHARS` 可调）；权限规则支持显式 `key:pattern`
-  （裸 specifier 仍不猜 → unsupported，见 settings.mjs）。
+  （裸 specifier 仍不猜 → unsupported，见 settings.mjs）；**定时任务界面**
+  （`cron_list/cron_create/cron_delete` + `CronPanel`，周期解析与模型共用一个
+  `tools.parseIntervalMs()`：30s/5m/2h/毫秒/rrule，最小 5s）。
 - **验证基线**：typecheck 0 / **354 项测试 350 过 0 失败 4 跳过** / vitest 6/6 / build 通过 /
   **真实 E2E 24/24**（2026-09-19 实测）。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
