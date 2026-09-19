@@ -34,7 +34,11 @@ const MAX_PERSISTED_SESSIONS = 50
  * 上限必须**明显小于** MAX_PERSISTED_SESSIONS（50）：persistNow 只写最近 50 条，
  * 若内存上限接近 50，被卸载的那个可能压根没落盘 —— 那就真丢数据了。
  */
-const MAX_MEMORY_SESSIONS = Number(process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS) || 30
+const MAX_MEMORY_SESSIONS = Math.max(1, Number(process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS) || 30)
+// 下限必须夹住：上限 ≤ 0（含负数）会退化成"把所有会话都卸掉"——
+// 数据虽然还在磁盘上，但等于这个 LRU 变成了全量卸载，行为完全不对。
+//
+// 上限**不夹**：真正的安全保证在下面的 `persistedIds()` —— 只卸载确实会落盘的会话。
 
 const sessions = new Map()
 const deleteHooks = []
@@ -103,8 +107,18 @@ function evictIfNeeded() {
   const over = [...sessions.values()].filter(s => !s.unloaded).length - MAX_MEMORY_SESSIONS
   if (over <= 0) return
 
+  // **只卸载"确实会落盘"的会话**：persistNow 只写最近 MAX_PERSISTED_SESSIONS 条
+  // （按 updatedAt）。若把更旧的会话也选进来，它压根不在状态文件里，
+  // 卸载它就不是"卸载"而是**删除** —— 这是这个功能最容易写错的地方。
+  const persisted = new Set(
+    [...sessions.values()]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, MAX_PERSISTED_SESSIONS)
+      .map(s => s.id),
+  )
+
   const victims = [...sessions.values()]
-    .filter(s => !s.unloaded && !evictGuards.some(fn => fn(s)))
+    .filter(s => !s.unloaded && persisted.has(s.id) && !evictGuards.some(fn => fn(s)))
     .sort((a, b) => (a.accessedAt ?? 0) - (b.accessedAt ?? 0))
     .slice(0, over)
   if (victims.length === 0) return
@@ -114,7 +128,15 @@ function evictIfNeeded() {
   evicting = persistNow()
     .catch(() => {})
     .finally(() => {
-      for (const v of victims) unloadMessages(v)
+      // 落盘之后**再确认一次**：只有真的出现在状态文件里的会话才能卸载。
+      //
+      // 上面那次筛选（persisted）只是预热 —— updatedAt 可能在"决定卸载"和
+      // "真正落盘"之间被改写，排序随之变化，于是"以为会落盘"的会话可能并没被写进去。
+      // 这种时候卸载就等于删除，所以必须以**刚写好的文件**为准。
+      const written = readMessagesMap()
+      for (const v of victims) {
+        if (written.has(v.id)) unloadMessages(v)
+      }
     })
 }
 

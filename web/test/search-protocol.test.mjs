@@ -20,7 +20,7 @@ let ws
 let token
 
 /** 等指定类型的消息（带超时，避免测试挂死）。 */
-function waitFor(type, timeoutMs = 8000) {
+function waitFor(type, timeoutMs = 30_000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`等待 ${type} 超时`)), timeoutMs)
     const onMsg = raw => {

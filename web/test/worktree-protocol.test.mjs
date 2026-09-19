@@ -23,7 +23,7 @@ let ws
 
 const git = args => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
-function waitFor(type, timeoutMs = 8000) {
+function waitFor(type, timeoutMs = 30_000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`等待 ${type} 超时`)), timeoutMs)
     const onMsg = raw => {

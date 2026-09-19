@@ -56,7 +56,7 @@ function openWs(query = '', opts = {}) {
   })
   return {
     ws,
-    next(type, timeoutMs = 8000) {
+    next(type, timeoutMs = 30_000) {
       return new Promise((resolve, reject) => {
         const take = msg => {
           if (!type || msg.type === type) resolve(msg)

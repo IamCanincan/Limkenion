@@ -185,7 +185,10 @@ export async function startServer({ port, env = {} }) {
     out += d.toString()
   })
 
-  const deadline = Date.now() + 15_000
+  // 这是**上限**不是等待时长：就绪就立刻返回，所以给得宽一点没有代价。
+  // 15s 在慢机器（CI 只有 2 核）上会误判成"服务没起来" —— 那种失败看日志
+  // 明明服务已经打印启动了，极难排查。给 60s。
+  const deadline = Date.now() + 60_000
   let actualPort = port
 
   // 端口 0：先等启动日志给出真实端口，再去探活

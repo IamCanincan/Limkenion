@@ -10,8 +10,10 @@
 import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 let dir
 let sessions
@@ -96,6 +98,105 @@ test('落盘不会把已卸载会话的消息冲成空（否则是真删数据�
   assert.ok(
     again.messages.length > 0,
     '再次落盘后消息仍在 —— 被写成空数组就说明落盘把磁盘数据冲掉了，那是真删数据',
+  )
+})
+
+// ---- 边界：配置值本身可能把功能搞坏 ----
+
+test('上限配成负数：不能退化成"把所有会话都卸掉"', async () => {
+  // 上限在模块加载时读取，改不了已加载模块里的常量 —— 用子进程验证
+  const SESSIONS_URL = new URL('../server/sessions.mjs', import.meta.url).href
+  const STATE = join(dir, 'neg-state')
+  const script = [
+    "process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS = '-5'",
+    `process.env.LIMKENION_WEB_STATE_DIR = ${JSON.stringify(STATE)}`,
+    "process.env.DEEPSEEK_API_KEY = 'test-key'",
+    `const s = await import(${JSON.stringify(SESSIONS_URL)})`,
+    'for (let i = 0; i < 6; i++) s.createSession()',
+    'await s.awaitEvictions()',
+    'console.log(JSON.stringify({ unloaded: [...s.allSessions()].filter(x => x.unloaded).length, total: s.sessionCount() }))',
+    // 必须显式退出：sessions.mjs 里有 schedulePersist 的定时器，
+    // 事件循环不空 → 子进程不退出 → spawnSync 会一直等（曾把整套测试挂死 5 分钟）。
+    'process.exit(0)',
+  ].join('\n')
+
+  const cp = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 30_000 })
+  assert.equal(cp.status, 0, `子进程失败：${cp.stderr}`)
+  const r = JSON.parse(cp.stdout.trim().split('\n').pop())
+  // 上限被夹到 1 → 6 个里最多卸 5 个，绝不能是"全卸"（那才是退化）
+  assert.ok(r.unloaded < r.total, `不能把所有会话都卸掉（卸了 ${r.unloaded}/${r.total}）`)
+})
+
+test('只卸载"确实会落盘"的会话（卸到没落盘的 = 真删数据）', async () => {
+  // 用**子进程**跑：这条断言对"当前总会话数"很敏感（状态文件只保留最近 50 条），
+  // 而前面的用例已经攒了一堆会话；子进程里是干净状态，结果才确定。
+  const SESSIONS_URL = new URL('../server/sessions.mjs', import.meta.url).href
+  const STATE = join(dir, 'persist-guard-state')
+  const script = [
+    "process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS = '3'",
+    `process.env.LIMKENION_WEB_STATE_DIR = ${JSON.stringify(STATE)}`,
+    "process.env.DEEPSEEK_API_KEY = 'test-key'",
+    `const s = await import(${JSON.stringify(SESSIONS_URL)})`,
+    'for (let i = 0; i < 20; i++) {',
+    '  const x = s.createSession()',
+    "  x.messages.push({ role: 'user', content: 'm' + i })",
+    '  x.updatedAt = Date.now()',
+    '}',
+    'await s.persistNow()',
+    'await s.awaitEvictions()',
+    'const cold = [...s.allSessions()].filter(x => x.unloaded)',
+    'const lost = cold.filter(c => s.getSession(c.id).messages.length === 0)',
+    'console.log(JSON.stringify({ total: s.sessionCount(), unloaded: cold.length, lost: lost.length }))',
+    'process.exit(0)',
+  ].join('\n')
+
+  const cp = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 30_000 })
+  assert.equal(cp.status, 0, `子进程失败：${cp.stderr}`)
+  const r = JSON.parse(cp.stdout.trim().split('\n').pop())
+  assert.ok(r.unloaded > 0, '前置条件：应有会话被卸载')
+  assert.equal(
+    r.lost,
+    0,
+    `有 ${r.lost} 个会话卸载后消息读不回来 —— 说明卸到了没落盘的会话，那是真删数据`,
+  )
+})
+
+test('不在持久化窗口内的会话：必须拒绝卸载（卸了就是删）', async () => {
+  // 这条才真正测到"落盘后再确认"那道保险：
+  // 造 60 个会话（> MAX_PERSISTED_SESSIONS=50），最旧的一批**不在状态文件里**
+  // （persistNow 只写最近 50 条）。对它们，功能必须**拒绝卸载** ——
+  // 它们只能留在内存里；谁要是不管不顾地把它们卸了，消息就永远没了。
+  const SESSIONS_URL = new URL('../server/sessions.mjs', import.meta.url).href
+  const STATE = join(dir, 'outside-window-state')
+  const script = [
+    "process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS = '3'",
+    `process.env.LIMKENION_WEB_STATE_DIR = ${JSON.stringify(STATE)}`,
+    "process.env.DEEPSEEK_API_KEY = 'test-key'",
+    `const s = await import(${JSON.stringify(SESSIONS_URL)})`,
+    'for (let i = 0; i < 60; i++) {',
+    '  const x = s.createSession()',
+    "  x.messages.push({ role: 'user', content: 'm' + i })",
+    '  x.updatedAt = Date.now()',
+    '}',
+    'await s.persistNow()',
+    'await s.awaitEvictions()',
+    'const fs = await import("node:fs")',
+    'const inFile = new Set(JSON.parse(fs.readFileSync(s.STATE_FILE, "utf8")).sessions.map(x => x.id))',
+    'const all = [...s.allSessions()]',
+    'const outside = all.filter(x => !inFile.has(x.id))',
+    'const unsafe = outside.filter(x => x.unloaded)',
+    'console.log(JSON.stringify({ total: all.length, inFile: inFile.size, outside: outside.length, unsafe: unsafe.length }))',
+    'process.exit(0)',
+  ].join('\n')
+
+  const cp = spawnSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8', timeout: 30_000 })
+  assert.equal(cp.status, 0, `子进程失败：${cp.stderr}`)
+  const r = JSON.parse(cp.stdout.trim().split('\n').pop())
+  assert.ok(r.outside > 0, '前置条件：应有会话落在持久化窗口之外（否则这条没测到东西）')
+  assert.equal(
+    r.unsafe,
+    0,
+    `有 ${r.unsafe} 个会话既不在状态文件里、又被卸载了 —— 那些消息永远找不回来，等于删除`,
   )
 })
 
