@@ -20,7 +20,9 @@
  *   - 裸工具名（如 `Bash`）→ 匹配该工具的任何调用
  *   - Bash / PowerShell 的 specifier → `npm run:*)` 前缀匹配、`npm run *` 通配、否则精确匹配
  *   - 文件类工具的 specifier → 对 file_path 做 glob（`*` 不跨目录、`**` 跨目录）
- *   - 其他工具的 specifier → **不做猜测匹配**，记进 `unhonored` 供上层提示 ——
+ *   - 其他工具：支持**显式的 `key:pattern`**（如 `WebFetch(url:https://a/**)`）——
+ *     由用户指明匹配哪个输入字段，语义确定；`*` 会跨越 `/`（便于 URL / 正则 / 片段）。
+ *   - 其他工具的**裸** specifier → 依旧**不做猜测匹配**，记进 `unhonored` 供上层提示 ——
  *     宁可明说"这条规则在 web 端不生效"，也不要给用户一个假的保护感。
  *
  * **项目级设置固定从「进程默认根」读，不跟着会话的 worktree 漂移。**
@@ -142,13 +144,62 @@ export function matchRule(rule, toolName, input) {
   if (parsed.tool !== toolName) return 'no-match'
   if (parsed.specifier === null) return 'match'
 
+  // 命令类 / 文件类的裸 specifier 语义是确定的，优先按老行为处理。
+  // 注意顺序：这也避免把 `Edit(C:\foo\*)` 这类 Windows 路径误读成 key 形式。
   if (BASH_PREFIX_TOOLS.has(toolName)) {
     return matchCommandSpecifier(parsed.specifier, input?.command) ? 'match' : 'no-match'
   }
   if (FILE_PATTERN_TOOLS.has(toolName)) {
     return matchFileSpecifier(parsed.specifier, input) ? 'match' : 'no-match'
   }
+  // 其它工具：只认**显式的 key:pattern**；裸 specifier 依旧不猜（见 matchKeySpecifier 注释）。
+  if (isKeySpecifier(parsed.specifier)) {
+    return matchKeySpecifier(parsed.specifier, input) ? 'match' : 'no-match'
+  }
   return 'unsupported'
+}
+
+/** 是否是显式 key 形式（`key:pattern`）。key 必须是合法标识符。 */
+function isKeySpecifier(specifier) {
+  return /^[A-Za-z_][\w]*\s*:/.test(String(specifier ?? '').trim())
+}
+
+/**
+ * 显式 key 形式的匹配：`Tool(key:pattern)`，例如
+ *   `WebFetch(url:https://example.com/**)`、`Grep(pattern:TODO*)`
+ *
+ * 为什么只对它开放、而不去猜裸 specifier 的语义：裸写法该匹配哪个输入字段只能靠猜，
+ * 猜错的代价是 `deny` 规则给人**假的保护感**（以为挡住了其实没挡）—— 那比不生效
+ * 更危险。让用户显式写出 key，语义才是确定的；猜不出来依旧返回 `unsupported` 让上层提示。
+ *
+ * 通配规则（与文件路径那套刻意区分）：`*` 匹配任意字符**含 /**，`?` 匹配单个字符。
+ * 因为这里常见的值是 URL / 正则 / 命令片段，`*` 不跨 `/` 会很反直觉。
+ *
+ * @param {string} specifier
+ * @param {Record<string, any>} input
+ * @returns {boolean}
+ */
+function matchKeySpecifier(specifier, input) {
+  const m = String(specifier ?? '')
+    .trim()
+    .match(/^([A-Za-z_][\w]*)\s*:([\s\S]*)$/)
+  if (!m) return false
+  const key = m[1]
+  const pattern = String(m[2] ?? '').trim()
+  const value = input?.[key]
+  if (typeof value !== 'string' || value.length === 0) return false
+  return wildcardToRegExp(pattern).test(value)
+}
+
+/** `*` → `.*`、`?` → `.`，其余按字面量转义（`*` 会跨越 `/`）。 */
+function wildcardToRegExp(pattern) {
+  let out = ''
+  for (const ch of String(pattern)) {
+    if (ch === '*') out += '.*'
+    else if (ch === '?') out += '.'
+    else out += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+  return new RegExp(`^${out}$`)
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +372,8 @@ export function unhonoredRules() {
       const parsed = parseRule(rule)
       if (!parsed?.specifier) continue
       if (BASH_PREFIX_TOOLS.has(parsed.tool) || FILE_PATTERN_TOOLS.has(parsed.tool)) continue
+      // 显式 key 形式（key:pattern）已经支持，不算"未生效"
+      if (isKeySpecifier(parsed.specifier)) continue
       out.push({ kind, rule, tool: parsed.tool })
     }
   }
