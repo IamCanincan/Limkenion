@@ -17,22 +17,38 @@ web/
 │   ├── sessions.mjs      # 会话存储 + 磁盘持久化
 │   ├── workspace.mjs     # 工作区文件索引（带缓存）
 │   ├── interactions.mjs  # 权限确认 / 问答通道
-│   ├── tools.mjs         # CLI 工具集镜像（41 个）
+│   ├── tools.mjs         # CLI 工具集镜像（47 个）
 │   ├── toolindex.mjs     # 工具延迟加载
 │   ├── engine.mjs        # 回合循环、子代理、定时任务
 │   ├── commands.mjs      # 斜杠命令语义
 │   ├── static.mjs        # HTTP 静态伺服（安全头 + token 注入）
 │   ├── protocol.mjs      # WebSocket 协议
-│   └── deepseek.mjs      # DeepSeek API 客户端（SSE 流式 + 思维链）
+│   ├── deepseek.mjs      # DeepSeek API 客户端（SSE 流式 + 思维链）
+│   ├── settings.mjs      # 设置文件（三作用域）与权限规则匹配
+│   ├── hooks.mjs         # 钩子（27 事件 × 4 执行方式）
+│   ├── mcp.mjs / mcpOAuth.mjs # MCP 客户端 + OAuth 2.1
+│   ├── workflow.mjs      # 动态工作流（vm 沙箱脚本）
+│   ├── insights.mjs      # 用量洞察与报告
+│   ├── worktree.mjs      # git worktree（可按分支进入）
+│   ├── checkpoints.mjs   # 文件检查点（/rewind 回滚）
+│   ├── computer.mjs      # Computer Use（仅 Windows）
+│   ├── egress.mjs        # 服务端出网白名单
+│   ├── requestLog.mjs    # 模型请求追踪
+│   ├── crashGuard.mjs    # 进程级崩溃兜底（未捕获异常/拒绝不再打死服务）
+│   ├── search.mjs        # 全局搜索（跨会话消息 + 文件名 + 标题）
+│   ├── subagents.mjs     # 具名子代理（模型 + 只读工具子集）
+│   └── netproxy.mjs      # shell 出网白名单代理（纯 Node，无原生依赖）
 ├── bin/
 │   └── limkenion-web.mjs # npm bin 入口
-├── test/                 # 自动化测试（node:test，130 个用例）
+├── test/                 # 自动化测试（node:test，45 个文件 / 452 个用例）
 └── src/
     ├── main.tsx / App.tsx / api.ts / types.ts / styles.css
-    └── components/       # 13 个组件（见下）
+    └── components/       # 21 个组件（见下）
 ```
 
-前端组件：`Sidebar`（会话列表 + 导出 + 计划徽标）、`ChatView`、`MessageItem`（markdown + 待办清单 + 思维链 + 图片）、`ToolCallItem`（折叠 + diff）、`DiffView`、`CommandPalette`、`FileMentionPalette`（@ 引用）、`ModelSelector`、`SettingsControls`（权限模式 + 主题）、`Composer`（命令/引用/图片）、`PermissionDialog`、`QuestionDialog`、`StatusBar`。
+> `server/` 共 35 个模块；上面列出的是主要入口与近期新增的部分。
+
+前端组件：`Sidebar`（会话列表 + 导出 + 计划徽标 + 分支启动入口）、`ChatView`、`MessageItem`（markdown + 待办清单 + 思维链 + 图片）、`ToolCallItem`（折叠 + diff）、`DiffView`、`CommandPalette`、`FileMentionPalette`（@ 引用）、`ModelSelector`、`SettingsControls`（权限模式 + 主题 + 推理强度）、`Composer`（命令/引用/图片）、`PermissionDialog`、`QuestionDialog`、`StatusBar`、`TeamPanel`（Agent Teams）、`PreviewPanel`、`RequestLogPanel`，以及近期新增的 `SearchPanel`（Cmd+K 全局搜索）、`McpPanel`（MCP 图形化管理）、`CronPanel`（定时任务界面）、`SubAgentPanel`（具名子代理）、`NewSessionDialog`（选分支启动）。
 
 ## 安全边界
 
@@ -47,8 +63,14 @@ web/
 | 提示注入隔离 | WebFetch/WebSearch 的正文用 `<untrusted-content>` 包裹，系统提示声明其为数据非指令；同一回合内接触过外部内容后，危险工具强制重新确认 |
 | 静态服务 | 路径校验用「dist + 分隔符」精确判断；统一安全头（CSP、nosniff、禁 referrer、禁 iframe 嵌套） |
 | 正则 DoS | Grep 的正则有长度上限 + 嵌套量词预检 + `node:vm` 3 秒超时中断 |
+| shell 出网 | 三档：不限制 / `off`（指向死端口全断）/ `allowlist`（本进程内 HTTP 代理，按 `LIMKENION_EGRESS_ALLOWLIST` 按主机放行）。**纯 Node 实现，不引入原生依赖** |
+| 进程韧性 | `crashGuard` 兜住未捕获异常与 Promise 拒绝（不再整个服务下线）；shell 超时**连根杀进程树**而不是只杀 shell；广播对单个坏客户端隔离 |
 
-**已知未覆盖**：shell 守卫是模式匹配，不是真正的沙箱隔离——足够挡住误操作和常见注入，但挡不住刻意构造的绕过。真要跑不可信代码请用容器。
+**已知未覆盖（别把上面的当成完整隔离）**：
+
+- shell 守卫是**模式匹配**，不是真正的沙箱——足够挡住误操作和常见注入，挡不住刻意构造的绕过。
+- shell 出网代理只能管住**遵守代理环境变量**的客户端（`curl`/`npm`/`pip` 这类）；直连原始 socket、自定义 DNS 的程序照样能出去。真正的网络隔离需要 OS 级沙箱，Windows 下无轻量方案。
+- 真要跑不可信代码，请用容器。
 
 ## 功能对照（CLI ⇄ Web）
 
@@ -57,7 +79,7 @@ web/
 | 聊天/流式回复 | REPL | 聊天视图 |
 | 思维链展示 | 折叠块 | 「思考中…」折叠块（`reasoning_content`） |
 | 工具调用展示 | 转录流 | 回合过程折叠 + 展开 |
-| **工具集** | `tools/` 目录 42 个 | **41 个镜像**（`LS` 为 web 补充） |
+| **工具集** | `tools/` 目录 | **47 个镜像**（`LS` / `CronList` / `CronDelete` / `Workflow` 等为 web 补充） |
 | 权限确认 | 危险工具提示 | 弹窗（允许一次/本会话总是/拒绝，升级确认时隐藏「总是允许」） |
 | 权限模式 | `/permissions` | 顶栏选择器 + `/permissions`（default / acceptEdits / plan / bypassPermissions） |
 | 计划模式 | EnterPlanMode / ExitPlanMode | `/plan` + 顶栏横幅 + 工具门控 |
@@ -65,19 +87,32 @@ web/
 | 文件改动预览 | diff 视图 | Write/Edit/NotebookEdit 的 unified diff（带体积上限） |
 | TodoWrite 任务清单 | 待办面板 | 消息内常驻清单 |
 | 任务跟踪 | Task* 工具 | Task* 工具 + `/tasks` |
-| 子代理 | Agent 工具 | Agent 工具（只读子代理，过程可见为 `Agent·<工具>`） |
+| 子代理 | Agent 工具 | Agent 工具（只读子代理，过程可见为 `Agent·<工具>`）+ **具名子代理**（可预配模型与只读工具子集） |
 | 斜杠命令 | 命令补全 | 命令面板（注册表 77 条，31 条有真实语义） |
 | @ 文件引用 | @ 补全 | @ 补全（服务端索引工作区文件） |
 | 图片输入 | 粘贴图片 | 粘贴/选择图片（base64 → 多模态 content parts） |
 | 模型切换 | `/model` | 顶栏模型选择器 + `/model` |
-| 主题 | `/theme` | 顶栏主题选择器 + `/theme`（暗色/亮色/跟随系统） |
+| 主题 | `/theme` | 顶栏主题选择器 + `/theme`（**6 套配色**：暗色/亮色/纸墨/经典暖色/青瓷/墨夜蓝 + 跟随系统） |
 | 会话管理 | `/resume` `/rename` | 侧栏新建/切换/重命名/删除 + 磁盘持久化 |
 | 会话导出 | 转录复制 | `/export` + 侧栏菜单（下载 Markdown） |
 | 用量统计 | `/cost` | 侧栏统计面板 + `/cost` |
 | 中断回合 | Esc | 输入框停止按钮 + cancel 协议 |
-| 定时任务 | CronCreate | CronCreate + `/cron`（会话删除时自动清理） |
+| 定时任务 | CronCreate | CronCreate + `/cron` + **定时任务界面**（按周期/内容建、分会话查看、删除；会话删除时自动清理） |
 
-### 工具集（41 个）
+### Web 端新增能力（CLI 无对应）
+
+| 能力 | 说明 |
+| --- | --- |
+| **全局搜索**（Cmd+K / Ctrl+K） | 跨**全部会话**的消息全文 + 会话标题 + 工作区文件名；空格分词 AND、大小写不敏感；命中直接切会话并滚动/闪烁定位。结果带 `complete` 标志（触顶截断时如实说明，不假装是全部） |
+| **MCP 图形化管理** | 界面增删改 MCP Server（stdio / http / sse），按 **user / project / local 三作用域**写进对应设置文件；显示状态、不可用原因与工具数 |
+| **定时任务界面** | 按内容 + 周期（`30s` / `5m` / `2h` / 毫秒 / rrule）建任务，按本会话/其它会话分组查看与删除 |
+| **分支 / Worktree 启动** | 新会话可指定分支，在**隔离 worktree** 里起（分支已存在则检出、不存在则以 HEAD 新建）。**刻意不支持"选分支但用当前工作树"** —— 那等于偷偷 checkout 你的工作树 |
+| **具名子代理** | 预配置名子代理的**模型**与**只读工具子集**，供 `Agent` 工具按名选用。工具只能是只读集的子集（`Write`/`Bash` 一律拒），配置面不能变成提权口子 |
+| **6 套配色主题** | 暗色（基准）/ 亮色 / 纸墨 / 经典暖色 / 青瓷 / 墨夜蓝 + 跟随系统；只覆盖 CSS 变量 |
+| **shell 出网 allowlist** | `LIMKENION_WEB_SHELL_NET=allowlist` 时起本进程内 HTTP 代理，按 `LIMKENION_EGRESS_ALLOWLIST` 放行（详见下方安全边界） |
+| **钩子输出上下文预算** | 钩子要进上下文的输出超 8000 字即落盘到 `hook_outputs/`，只留截断版 + 指针，防止话多的钩子撑爆上下文 |
+
+### 工具集（47 个）
 
 | 分类 | 工具 |
 | --- | --- |
@@ -86,15 +121,19 @@ web/
 | 网络 | WebFetch / WebSearch |
 | 协作 | Agent / TeamCreate / TeamDelete / SendMessage / SendUserMessage |
 | 任务 | TodoWrite / TaskCreate / TaskGet / TaskList / TaskUpdate / TaskStop / TaskOutput |
-| 流程 | EnterPlanMode / ExitPlanMode / AskUserQuestion / Sleep / CronCreate |
-| 配置 | Config / Skill / ToolSearch / StructuredOutput |
-| 降级 | LSP / mcp / ListMcpResourcesTool / ReadMcpResource / McpAuth / RemoteTrigger / EnterWorktree / ExitWorktree |
+| 流程 | PlanEnter / PlanExit / AskUserQuestion / Sleep / CronCreate / CronList / CronDelete / Workflow |
+| 配置 / 元 | Config / Skill / ToolSearch / StructuredOutput |
+| MCP | mcp / McpPrompt / McpRegistrySearch / ListMcpResourcesTool / ReadMcpResource / McpAuth |
+| 桌面 / 预览 | ComputerScreenshot / ComputerControl / PreviewUrl |
+| 工作区 | EnterWorktree / ExitWorktree |
 
-**工具延迟加载**：20 个常驻工具每轮随请求发出，其余 21 个默认不发，模型通过 `ToolSearch` 检索后按会话启用。41 份 schema 全量约 11K 字符，常驻集约 6K —— 省掉约 45% 的固定开销。用 `/tools` 查看分组。
+（`PlanEnter` / `PlanExit` 即 EnterPlanMode / ExitPlanMode：工具名归一化到新名，模型输出旧名或权限规则写旧名都能识别。）
 
-**降级工具**在 web 沙箱内没有对应基础设施（语言服务器、MCP 客户端、远端会话、git worktree），调用会返回明确的不可用说明，而不是静默失败。
+**工具延迟加载**：20 个常驻工具每轮随请求发出，其余 25 个默认不发，模型通过 `ToolSearch` 检索后按会话启用。47 份 schema 全量约 11K 字符，常驻集约 6K —— 省掉约 45% 的固定开销。用 `/tools` 查看分组。
 
-**危险工具**（执行前弹窗确认）：Bash、PowerShell、REPL、Write、Edit、NotebookEdit、CronCreate。
+MCP / Computer Use / worktree 这类工具依赖本机能力：未配置、或平台不支持（Computer Use 仅 Windows）时返回**明确的不可用说明**，而不是静默失败。
+
+**危险工具**（执行前弹窗确认）：Bash、PowerShell、REPL、Write、Edit、NotebookEdit、CronCreate、CronDelete、ComputerScreenshot、ComputerControl、EnterWorktree、ExitWorktree、Workflow。
 
 ## 运行
 
@@ -145,6 +184,10 @@ npm install -g ./limkenion-web-0.6.0.tgz
 | `LIMKENION_CLI_ROOT` | 自动探测 | 命令注册表扫描来源 |
 | `LIMKENION_WEB_STATE_DIR` | `~/.limkenion-web` | 会话持久化目录 |
 | `LIMKENION_WEB_SHELL` | 启用 | 设为 `off` 彻底禁用 Bash/PowerShell/REPL |
+| `LIMKENION_WEB_SHELL_NET` | 不限制 | shell 子进程的出网开关：`off`=指向死端口全断；`allowlist`=走本进程内白名单代理（按 `LIMKENION_EGRESS_ALLOWLIST` 放行） |
+| `LIMKENION_EGRESS_ALLOWLIST` | 不限制 | 逗号分隔的主机名，`*.` 前缀按后缀匹配；**服务端出网与 shell 代理共用同一套规则** |
+| `LIMKENION_WEB_HOOK_CONTEXT_CHARS` | `8000` | 钩子输出进上下文的字符预算，超出落盘到 `hook_outputs/` 并只留截断版 + 指针 |
+| `LIMKENION_CONFIG_DIR` | `~/.limkenion` | 用户级设置目录（权限规则 / hooks / mcpServers / subagents 都从这里读） |
 | `LIMKENION_WEB_SEARCH_ENDPOINT` | Bing | WebSearch 数据源 |
 | `DEEPSEEK_API_KEY` | 无 | 设置后启用真实引擎，否则降级 mock |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | API 地址 |
@@ -170,8 +213,17 @@ npm install -g ./limkenion-web-0.6.0.tgz
 | `run_command` | 直接执行斜杠命令 |
 | `permission_response` | 回应危险工具的权限请求 |
 | `question_response` | 回应 AskUserQuestion 的作答 |
+| `get_requests` / `clear_requests` | 拉取 / 清空模型请求追踪 |
+| `search` | 全局搜索（跨会话消息 + 标题 + 文件名） |
+| `mcp_list` / `mcp_save` / `mcp_delete` | MCP 图形化管理（按作用域写设置文件） |
+| `cron_list` / `cron_create` / `cron_delete` | 定时任务界面 |
+| `git_branches` | 拉分支列表（新会话选分支启动用） |
+| `subagent_list` / `subagent_save` / `subagent_delete` | 具名子代理管理 |
+| `new_session`（带 `worktree` / `branch`） | 在指定分支的隔离 worktree 里起新会话 |
 
-服务端 → 客户端：`hello`、`commands`、`models`/`model_changed`、`settings`、`stats`、`session_messages`、`user_message`、`assistant_start` / `assistant_delta` / `assistant_reasoning`、`tool_call` / `tool_result`（含 diff）、`turn_complete` / `turn_cancelled`、`command_result`、`permission_request`（含 `escalate` 原因）、`question_request`、`plan_mode_changed`、`notice`、`session_export`、`files`、`sessions_changed`、`session_deleted`、`error`。
+服务端 → 客户端：`hello`、`commands`、`models`/`model_changed`、`settings`、`stats`、`session_messages`、`user_message`、`assistant_start` / `assistant_delta` / `assistant_reasoning`、`tool_call` / `tool_result`（含 diff）、`turn_complete` / `turn_cancelled`、`command_result`、`permission_request`（含 `escalate` 原因）、`question_request`、`plan_mode_changed`、`notice`、`session_export`、`files`、`sessions_changed`、`session_deleted`、`team`、`preview_open`、`requests`、`search_results`、`mcp_servers`、`crons`、`git_branches`、`subagents`、`error`。
+
+其中 `search_results` / `mcp_servers` / `crons` / `subagents` 在**增删改之后也会重新推一份**，前端直接拿新清单刷新即可，不必自己再拉一次。
 
 引擎为 **agent 模式**：模型 ⇄ 工具多轮迭代（上限 20 轮），危险工具执行前弹窗确认。回合事件广播给所有连接（前端按 `sessionId` 过滤），因此第二个标签页也能看到权限/问答弹窗。
 
@@ -181,7 +233,7 @@ npm install -g ./limkenion-web-0.6.0.tgz
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # node --test（130 个用例）
+npm test            # node --test（45 个文件 / 452 个用例）
 npm run build       # vite build
 ```
 
@@ -191,10 +243,24 @@ npm run build       # vite build
 | --- | --- |
 | `paths.test.mjs` | 沙箱越界、盘符相对路径、保留设备名、备用数据流 |
 | `security.test.mjs` | 15 种灾难性命令硬拒绝、升级确认触发、握手鉴权、不可信内容包裹 |
-| `tools.test.mjs` | 41 个工具实现、ReDoS 防护、输出头尾截断、diff 上限、降级工具 |
+| `tools.test.mjs` | 47 个工具实现、ReDoS 防护、输出头尾截断、diff 上限、平台不支持时的明确报错 |
 | `engine.test.mjs` | **用本地桩模型真实跑通「模型 → tool_call → 权限 → 执行 → 回灌」全链路**，含拒绝、总是允许、计划模式、shell 守卫、不可信升级、取消、定时任务、子代理 |
 | `protocol.test.mjs` | 子进程启动真实服务：鉴权拒绝、`/ws-token`、路径穿越、安全头、命令往返、会话级设置隔离、重启恢复 |
 | `drift.test.mjs` | 解析 CLI 源码的 `inputSchema`，逐参数比对镜像 schema，防止手抄漂移 |
+| `crash-guard.test.mjs` | 未捕获的拒绝/异常不再打死进程；**用"不装兜底"的对照子进程反向证明测试有效** |
+| `bus.test.mjs` | 广播韧性：单个客户端发送失败不影响其它客户端，死客户端被移出 |
+| `bash-timeout.test.mjs` | Bash 成功路径秒回、超时立即结算（不等 close）、超时连根杀**进程树** |
+| `bash-background.test.mjs` | 后台任务并发上限（超限明确拒绝，不静默堆积） |
+| `search.test.mjs` / `search-protocol.test.mjs` | 全局搜索：分词 AND、大小写不敏感、工具结果可搜、截断报告；协议级真连 WS |
+| `hooks-output-budget.test.mjs` | 钩子输出超预算落盘，小输出不误伤；`additionalContext` 同样覆盖 |
+| `mcp-manage*.test.mjs` | MCP 图形化管理：只写指定作用域、结构化清单、不在该作用域时删除返回 false |
+| `cron-*.test.mjs` | 周期解析（界面与模型共用一套）；协议级建/删/查 |
+| `worktree-*.test.mjs` | 分支列举、按已存在/新分支建 worktree、命名空间行为不变、**分支名注入被拒** |
+| `subagents*.test.mjs` | 具名子代理：工具只能是只读集的子集、模型白名单、删除作用域语义 |
+| `netproxy.test.mjs` | shell 出网代理：真 socket 走 CONNECT，白名单内建隧道 / 外 403 / 未就绪 fail closed |
+| `theme-consistency.test.mjs` | 每个配色都有 CSS 块且覆盖同一套调色板变量（防"能选但切过去没变化"） |
+| `permission-specifier.test.mjs` | 权限规则 `key:pattern`；裸 specifier 仍不猜；老行为不回退 |
+| `resource-cleanup.test.mjs` | 会话删除清检查点；截图临时文件不留残 |
 
 `engine.test.mjs` 通过 `DEEPSEEK_BASE_URL` 指向本地桩服务（回放 SSE），因此**不需要真实 API key** 就能验证完整链路。
 
