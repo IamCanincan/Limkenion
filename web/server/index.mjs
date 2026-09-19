@@ -30,6 +30,7 @@ import { stopAllBackgroundShells } from './tools.mjs'
 import { startFileWatcher } from './fileWatcher.mjs'
 import { attachWebSocket } from './protocol.mjs'
 import { securityBanner } from './security.mjs'
+import { installCrashGuard } from './crashGuard.mjs'
 import { loadSettings, settingsSummary, unhonoredRules } from './settings.mjs'
 import {
   allSessionInfo,
@@ -50,6 +51,10 @@ onSessionDeleted(id => clearCronsForSession(id))
 onMcpToolsChanged(() => {
   registerMcpTools(mcpToolSchemas())
 })
+
+// 进程级崩溃兜底：在任何异步工作开始前注册，覆盖全部 fire-and-forget 调用
+// （畸形消息、钩子崩、MCP 断开等都不该让整个本地服务下线）。
+installCrashGuard()
 
 const commandRegistry = await loadCommandRegistry()
 const restored = await loadPersisted()
@@ -85,12 +90,16 @@ httpServer.listen(PORT, HOST, () => {
   // MCP：配了才连（后台连，失败只记状态 —— 一个配错的服务器不该让服务起不来）
   if (hasMcpConfig()) {
     console.log(mcpStatusLine())
-    void connectAll().then(r => {
-      console.log(
-        `MCP 连接结果：成功 ${r.connected}、失败 ${r.failed}、不支持 ${r.skipped}` +
-          `（工具 ${mcpToolNames().length} 个，用 /mcp 看详情）`,
-      )
-    })
+    void connectAll()
+      .then(r => {
+        console.log(
+          `MCP 连接结果：成功 ${r.connected}、失败 ${r.failed}、不支持 ${r.skipped}` +
+            `（工具 ${mcpToolNames().length} 个，用 /mcp 看详情）`,
+        )
+      })
+      .catch(err => {
+        console.error('[crash-guard] MCP 连接结果汇总失败：', String(err))
+      })
   }
 })
 
