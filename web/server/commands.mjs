@@ -262,17 +262,17 @@ const TERMINAL_ONLY = {
   'terminal-setup': '需要写入终端配置文件',
   'reload-plugins': '插件加载在 CLI 进程内',
   plugin: '插件管理写入 CLI 配置，web 端只读展示',
-  commit: '需要 git 仓库（当前工作区未初始化 git）',
-  'commit-push-pr': '需要 git 仓库与 GitHub 凭证',
+  // 注意：/commit 已于 2026-09-19 在 web 实现（prompt 型；非 git 仓库会给明确提示）。
+  // 注意：/commit-push-pr 同上。
   'autofix-pr': '需要 GitHub CLI 凭证',
   pr_comments: '需要 GitHub CLI 凭证',
   'pr-comments': '需要 GitHub CLI 凭证',
-  review: '代码评审需要 git 变更集（当前工作区未初始化 git）',
+  // 注意：/review 已于 2026-09-19 在 web 实现（prompt 型）。
   'security-review': '安全评审需要 git 变更集（当前工作区未初始化 git）',
   createMovedToPluginCommand: '插件命令迁移提示',
   vim: 'web 端使用浏览器原生输入，编辑器模式不适用',
   keybindings: 'web 端键位固定（Enter 发送 / Shift+Enter 换行 / Esc 中断）',
-  copy: '浏览器可直接选中复制',
+  // 注意：/copy 已于 2026-09-19 在 web 实现（/export 是下载文件，/copy 是当场给文本）。
   stickers: '贴纸属于 CLI 交互彩蛋',
   'good-limkenion': '属于 CLI 交互彩蛋',
   heapdump: '堆快照写入 CLI 进程目录',
@@ -367,6 +367,16 @@ const COMMAND_ALIASES = {
 
 // ---------------------------------------------------------------------------
 // 命令执行
+/**
+ * 命令的三张「会让实现失效」的清单。
+ *
+ * 导出只为**测试**用：一个命令只要进了其中任何一张，它写在 runCommand 里的
+ * 实现就**永远执行不到**（被改名、或被"web 端不可用"兜底拦下）。
+ * 这坑踩过两次（/doctor 被别名改名成 status、/init-verifiers 留在 TERMINAL_ONLY），
+ * 必须有断言守着，不能靠人记得去查。
+ */
+export const COMMAND_DEAD_LISTS = { TERMINAL_ONLY, NOT_IN_BUILD, COMMAND_ALIASES }
+
 // ---------------------------------------------------------------------------
 
 /**
@@ -1010,6 +1020,21 @@ export async function runCommand(session, rawName, argString, ws, registry) {
     return out.join('\n')
   }
 
+  // ---- prompt 型：整理变更验证清单 ----
+  // 注意：它**不要求 git**（没有 git 的项目同样有构建/测试命令），
+  // 所以不能放进下面那个要查 .git 的组里 —— 放进去了就会被 .git 检查挡掉。
+  if (name === 'init-verifiers') {
+    const prompt =
+      '为当前仓库建立一份「变更验证」清单：改完代码之后，跑哪些命令才能确认没改坏。\n\n' +
+      '要求：\n' +
+      '1. 先探查仓库（package.json / Makefile / CI 配置 / 现有脚本），找出真实存在的验证手段。\n' +
+      '2. 按「快 → 慢」排序：类型检查、lint、单元测试、构建。每条给出**确切命令**。\n' +
+      '3. 标注哪些能只跑一部分（例如单个测试文件 / 单个用例），日常开发最常用。\n' +
+      '4. 只写命令真实存在的项 —— 仓库里没有的验证手段不要臆造。\n' +
+      '5. 写成一份简洁的清单放到 LIMKENION.md 里（已存在就追加 / 改进，不要重写全文）。'
+    return startPromptTurn(session, prompt, '已开始整理变更验证清单 —— 会先探查仓库里真实存在的验证命令。')
+  }
+
   // ---- git / PR 类：CLI 里是 prompt 型命令，web 端沿用同样做法 ----
   if (name === 'commit' || name === 'commit-push-pr' || name === 'review') {
     const base = session.workspaceRoot ?? DEFAULT_WORKSPACE_ROOT
@@ -1052,18 +1077,6 @@ export async function runCommand(session, rawName, argString, ws, registry) {
         prompt,
         '已开始：提交 → 推送 → 创建 PR。推送和建 PR 前都会说明并请求确认。',
       )
-    }
-
-    if (name === 'init-verifiers') {
-      const prompt =
-        '为当前仓库建立一份「变更验证」清单：改完代码之后，跑哪些命令才能确认没改坏。\n\n' +
-        '要求：\n' +
-        '1. 先探查仓库（package.json / Makefile / CI 配置 / 现有脚本），找出真实存在的验证手段。\n' +
-        '2. 按「快 → 慢」排序：类型检查、lint、单元测试、构建。每条给出**确切命令**。\n' +
-        '3. 标注哪些能只跑一部分（例如单个测试文件 / 单个用例），日常开发最常用。\n' +
-        '4. 只写命令真实存在的项 —— 仓库里没有的验证手段不要臆造。\n' +
-        '5. 写成一份简洁的清单放到 LIMKENION.md 里（已存在就追加 / 改进，不要重写全文）。'
-      return startPromptTurn(session, prompt, '已开始整理变更验证清单 —— 会先探查仓库里真实存在的验证命令。')
     }
 
     const prompt =

@@ -533,6 +533,52 @@ describe('命令注册表扫描', () => {
     }
   })
 
+  test('实现过的命令不在三张「会让实现失效」的清单里', () => {
+    // 踩过两次的坑：/doctor 被 COMMAND_ALIASES 改名成 status、/init-verifiers 留在
+    // TERMINAL_ONLY 里 —— 两种情况都是「代码写了、功能根本不生效」。
+    // 这条是**纯集合断言**，不执行命令（下一条才真跑），所以没有副作用、很快。
+    // 只查 COMMAND_ALIASES —— 它是**构造上必死**：runCommand 开头就
+    // `COMMAND_ALIASES[rawName] ?? rawName` 把命令改名，专门分支再也匹配不到。
+    // TERMINAL_ONLY / NOT_IN_BUILD 是**兜底**（在最后），有专门分支的命令不受影响，
+    // 那种情况由下一条"真跑一遍"来查，这里查会误报。
+    const { COMMAND_ALIASES } = mod.COMMAND_DEAD_LISTS
+    const renamed = mod.WEB_IMPLEMENTED.filter(c => c in COMMAND_ALIASES)
+    assert.deepStrictEqual(
+      renamed,
+      [],
+      '这些命令会被别名改名、实现永远走不到：' +
+        renamed.map(c => `${c} → ${COMMAND_ALIASES[c]}`).join('、'),
+    )
+  })
+
+  test('真跑一遍：实现过的命令不会落到「web 端不可用」兜底', async () => {
+    // 上一条查清单，这条查**分支是否真的可达** —— 例如 /init-verifiers 曾把分支
+    // 写进了 `commit/review` 那个 if 里、而条件不包含它，于是永远走不到。
+    // 清单断言查不出这种，只能真跑。
+    //
+    // 跳过会启动后台回合的 prompt 型命令：它们是 fire-and-forget，
+    // 在这条里跑会把整个测试套件拖慢一倍并挤掉别的用例（实测 23s → 63s）。
+    // 它们由上一条清单断言 + 各自的专项测试覆盖。
+    const HAS_SIDE_EFFECTS = new Set([
+      'init', 'btw', 'commit', 'commit-push-pr', 'review', 'init-verifiers', 'workflows', 'schedule',
+    ])
+    stub.setScript([{ text: '（桩回复）' }])
+    const registry = await mod.loadCommandRegistry()
+    const dead = []
+    for (const cmd of mod.WEB_IMPLEMENTED) {
+      if (HAS_SIDE_EFFECTS.has(cmd)) continue
+      const s = mod.createSession()
+      let out = ''
+      try {
+        out = String((await mod.runCommand(s, cmd, '', {}, registry)) ?? '')
+      } catch {
+        continue // 抛错说明走到了实现里，不算死命令
+      }
+      if (/在 web 端不可用/.test(out)) dead.push(cmd)
+    }
+    assert.deepStrictEqual(dead, [], '这些命令已实现却执行不到（分支不可达？）：' + dead.join('、'))
+  })
+
   test('WEB_IMPLEMENTED 里包含这轮从 CLI 搬过来的命令', () => {
     for (const cmd of ['effort', 'branch', 'rewind', 'btw', 'init', 'schedule', 'workflows']) {
       assert.ok(mod.WEB_IMPLEMENTED.includes(cmd), `/${cmd} 应列入 WEB_IMPLEMENTED`)
