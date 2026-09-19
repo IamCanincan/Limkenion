@@ -22,7 +22,12 @@ stages:
       - step: build@nodejs
         name: ci-web
         displayName: web — typecheck / test / build
-        nodeVersion: '20'
+        # 必须是 22，不能是 20：vitest 5 的 engines 是 ^22.12.0 || ^24.0.0 || >=26.0.0，
+        # 它依赖 Node 22.12+ 才有的 require(ESM)。在 Node 20 上 `npm run test:ui` 必炸：
+        #   [vitest-pool]: Failed to start forks worker … ERR_REQUIRE_ESM
+        # （typecheck / npm test / build 在 Node 20 上都正常，只有 UI 测试这一步不行。）
+        # 服务本体在 Node 20 上能跑；这里升到 22 是为了让**测试工具链**能跑。
+        nodeVersion: '22'
         commands:
           - |
             set -e

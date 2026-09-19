@@ -233,9 +233,16 @@ npm install -g ./limkenion-web-0.6.0.tgz
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # node --test（45 个文件 / 452 个用例）
+npm test            # node --test（45+ 个文件 / 454 个用例）
+npm run test:ui     # vitest（前端组件）
 npm run build       # vite build
 ```
+
+**Node 版本**：服务本体在 Node 20 上也能跑（`npm test` 已用 Node 20.18 验证通过），
+但 **`npm run test:ui` 需要 Node 22.12+** —— vitest 5 的 engines 是
+`^22.12.0 || ^24.0.0 || >=26.0.0`，它依赖 Node 22.12+ 才有的 `require(ESM)`；
+在 Node 20 上会以 `ERR_REQUIRE_ESM` / `Failed to start forks worker` 失败。
+所以 CI（`.workflow/ci.yml`）用的是 **Node 22**。本地开发建议 22 或 24。
 
 测试分五组：
 
