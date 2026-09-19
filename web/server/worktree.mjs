@@ -106,7 +106,51 @@ export function currentWorktree(session) {
  * 进入（创建）一个 worktree，并把会话的沙箱根切过去。
  * @returns {Promise<{worktreePath: string, worktreeBranch: string, message: string}>}
  */
-export async function enterWorktree(session, name) {
+/**
+ * 列出仓库的分支（供"新会话选分支"用）。
+ * @param {string} [root]
+ * @returns {Promise<string[]>}
+ */
+export async function listBranches(root = workspaceRoot()) {
+  const repoRoot = await repoRootOf(root)
+  if (!repoRoot) return []
+  const res = await git(['branch', '--format=%(refname:short)'], repoRoot)
+  if (!res.ok) return []
+  return res.stdout
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .sort()
+}
+
+/**
+ * 校验分支名 —— 这个字符串最终会拼进 git 的参数，必须挡住参数注入
+ * （以 `-` 开头会被当成选项；空格 / `..` 之类也要拒）。
+ * @param {string} branch
+ * @returns {string}
+ */
+function validateBranchName(branch) {
+  const b = String(branch ?? '').trim()
+  if (!/^[A-Za-z0-9._/-]+$/.test(b) || b.startsWith('-') || b.includes('..') || b.includes('//')) {
+    throw new Error(
+      `分支名不合法：${branch}（只允许字母数字与 . _ / -，不能以 - 开头，不接受 ..）`,
+    )
+  }
+  return b
+}
+
+/**
+ * 进入 worktree。
+ *
+ * 不传 `branch` 时保持原行为：建自己的命名空间分支 `limkenion-wt/<slug>`（基于 HEAD），
+ * 绝不碰用户已有的分支。传了 `branch` 时按用户指定的分支建：分支已存在就检出它，
+ * 不存在则以 HEAD 为起点新建 —— 这就是界面上"选分支启动新会话"要用到的分支。
+ *
+ * @param {object} session
+ * @param {string} [name] worktree 目录名（slug）；空则随机
+ * @param {string} [branch] 要检出的分支；空则用自带的命名空间分支
+ */
+export async function enterWorktree(session, name, branch) {
   const root = session?.workspaceRoot ?? workspaceRoot()
   const existing = currentWorktree(session)
   if (existing) {
@@ -126,7 +170,8 @@ export async function enterWorktree(session, name) {
   }
 
   const path = join(worktreesDir(repoRoot), flat)
-  const branch = BRANCH_PREFIX + flat
+  // 指定了分支就用它（先校验，别把任意字符串喂给 git）；否则用自己的命名空间分支。
+  const target = branch ? validateBranchName(branch) : BRANCH_PREFIX + flat
 
   // 取舍 2：只在**本会话的沙箱根**内建，避免"创建 worktree"变成绕过沙箱写文件的通道。
   // 这里必须用 `root`（会话的根）自己判，不能依赖调用方已经进了正确的 ALS 作用域 ——
@@ -142,28 +187,34 @@ export async function enterWorktree(session, name) {
   mkdirSync(dirname(path), { recursive: true })
 
   if (!existsSync(path)) {
-    // -B：worktree 目录被删过之后可能留下孤儿分支，重置它；分支在自己的命名空间里，
-  // 不会碰到用户已有的分支。
-    const add = await git(['worktree', 'add', '-B', branch, path, 'HEAD'], repoRoot)
+    // 两种建法：
+    //  - 指定分支：分支已存在就检出它；不存在则以 HEAD 为起点 -b 新建。
+    //  - 未指定：-B 自己的命名空间分支（目录被删过可能留下孤儿分支，重置它），
+    //    命名空间是 limkenion-wt/ 前缀，不会碰到用户已有的分支。
+    const known = branch ? await listBranches(repoRoot) : []
+    const args = branch && known.includes(target)
+      ? ['worktree', 'add', path, target]
+      : ['worktree', 'add', '-b', target, path, 'HEAD']
+    const add = await git(args, repoRoot)
     if (!add.ok) {
       throw new Error(`git worktree add 失败：${add.stderr || add.error}`)
     }
   }
 
-  session.worktree = { path, branch, base: session.workspaceRoot ?? null }
+  session.worktree = { path, branch: target, base: session.workspaceRoot ?? null }
   session.workspaceRoot = path
 
   const base = session.worktree.base ?? root
   if (hooksEnabled()) {
     void runEventHooks(HOOK_EVENT.WORKTREE_CREATE, {
-      hookInput: sessionHookInput(session, { path: toPosix(path), branch }),
+      hookInput: sessionHookInput(session, { path: toPosix(path), branch: target }),
     })
   }
   return {
     worktreePath: toPosix(path),
-    worktreeBranch: branch,
+    worktreeBranch: target,
     message:
-      `已进入 worktree：${toPosix(path)}（分支 ${branch}，基于 HEAD）\n` +
+      `已进入 worktree：${toPosix(path)}（分支 ${target}）\n` +
       `会话沙箱根现在是这个目录 —— 原目录（${toPosix(base)}）不再可访问，` +
       '这是隔离的本意；要看原目录请先 ExitWorktree。\n' +
       '注意：未受版本控制的目录（如 node_modules）不会被带过来，跑构建/测试前可能要装依赖。',

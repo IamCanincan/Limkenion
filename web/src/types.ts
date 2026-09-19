@@ -6,7 +6,15 @@
 
 /** 客户端 → 服务端消息。 */
 export type ClientMessage =
-  | { type: 'new_session' }
+  /** 新建会话。worktree=true 时在**指定分支的隔离 worktree** 里起（不会动当前工作树）。 */
+  | {
+      type: 'new_session'
+      worktree?: boolean
+      worktreeName?: string
+      branch?: string
+    }
+  /** 拉分支列表（新会话选分支用）。 */
+  | { type: 'git_branches' }
   | { type: 'select_session'; sessionId: string }
   | { type: 'rename_session'; sessionId: string; title: string }
   | { type: 'delete_session'; sessionId: string }
@@ -142,6 +150,8 @@ export type ServerMessage =
   | { type: 'mcp_servers'; servers: McpServerInfo[] }
   /** 定时任务清单（创建/删除后也会重新推一份）。 */
   | { type: 'crons'; crons: CronInfo[] }
+  /** 分支列表（不是 git 仓库时为空数组）。 */
+  | { type: 'git_branches'; branches: string[] }
   | { type: 'command_result'; sessionId: string; output: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_export'; sessionId: string; filename: string; markdown: string }

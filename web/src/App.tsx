@@ -14,6 +14,7 @@ import { TeamPanel } from './components/TeamPanel'
 import { SearchPanel } from './components/SearchPanel'
 import { McpPanel } from './components/McpPanel'
 import { CronPanel } from './components/CronPanel'
+import { NewSessionDialog } from './components/NewSessionDialog'
 import type { TeamInfo } from './types'
 import type {
   RequestLogEntry,
@@ -79,6 +80,9 @@ export function App() {
   // 定时任务界面：面板开关 + 任务清单
   const [showCron, setShowCron] = useState(false)
   const [crons, setCrons] = useState<CronInfo[]>([])
+  // 新会话选分支启动（隔离 worktree）
+  const [showNewWorktree, setShowNewWorktree] = useState(false)
+  const [branches, setBranches] = useState<string[]>([])
   const connectionRef = useRef(connection)
   // 记录当前会话 id，这样稳定的消息处理函数无需重新订阅
   // 也能始终读到最新值。
@@ -154,6 +158,9 @@ export function App() {
           break
         case 'crons':
           setCrons(msg.crons)
+          break
+        case 'git_branches':
+          setBranches(msg.branches)
           break
         case 'session_messages':
           setActiveSessionId(msg.sessionId)
@@ -381,6 +388,18 @@ export function App() {
     connectionRef.current.send({ type: 'new_session' })
   }, [])
 
+  /** 打开"选分支启动"对话框：先拉一次分支列表。 */
+  const onNewWorktreeSession = useCallback(() => {
+    connectionRef.current.send({ type: 'git_branches' })
+    setShowNewWorktree(true)
+  }, [])
+
+  /** 在指定分支的隔离 worktree 里起一个新会话。 */
+  const onCreateWorktreeSession = useCallback((branch: string, worktreeName: string) => {
+    setShowNewWorktree(false)
+    connectionRef.current.send({ type: 'new_session', worktree: true, branch, worktreeName })
+  }, [])
+
   const onRenameSession = useCallback((id: string, title: string) => {
     connectionRef.current.send({ type: 'rename_session', sessionId: id, title })
   }, [])
@@ -557,6 +576,7 @@ export function App() {
         stats={stats}
         onSelect={onSelectSession}
         onNew={onNewSession}
+        onNewWorktree={onNewWorktreeSession}
         onRename={onRenameSession}
         onDelete={onDeleteSession}
         onExport={onExportSession}
@@ -644,6 +664,13 @@ export function App() {
             onCreate={onCronCreate}
             onDelete={onCronDelete}
             onClose={() => setShowCron(false)}
+          />
+        )}
+        {showNewWorktree && (
+          <NewSessionDialog
+            branches={branches}
+            onCreate={onCreateWorktreeSession}
+            onCancel={() => setShowNewWorktree(false)}
           />
         )}
         <ChatView

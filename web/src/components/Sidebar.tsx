@@ -7,6 +7,8 @@ interface Props {
   stats: UsageStats | null
   onSelect: (id: string) => void
   onNew: () => void
+  /** 打开"在 worktree 里新建"对话框（选分支）。 */
+  onNewWorktree: () => void
   onRename: (id: string, title: string) => void
   onDelete: (id: string) => void
   onExport: (id: string) => void
@@ -37,6 +39,7 @@ export function Sidebar({
   stats,
   onSelect,
   onNew,
+  onNewWorktree,
   onOpenTeam,
   onRename,
   onDelete,
@@ -83,8 +86,11 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <span className="brand">Limkenion</span>
-        <button className="new-session" onClick={onNew} title="新建会话">
+        <button className="new-session" onClick={onNew} title="新建会话（当前工作树）">
           ＋
+        </button>
+        <button className="new-session" onClick={onNewWorktree} title="在指定分支的隔离 worktree 里新建会话">
+          ⑂
         </button>
         <button className="new-session" onClick={onOpenTeam} title="Agent Teams 工作台">团队</button>
       </div>

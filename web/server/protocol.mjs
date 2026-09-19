@@ -38,6 +38,7 @@ import {
 import { scopeForSession, withWorkspace } from './paths.mjs'
 import { listIndexedFiles } from './workspace.mjs'
 import { searchAll } from './search.mjs'
+import { enterWorktree, listBranches } from './worktree.mjs'
 import { deleteMcpServer, mcpServersInfo, reloadMcp, saveMcpServer } from './mcp.mjs'
 
 /** 单条客户端消息的最大长度（防超大帧打爆内存）。 */
@@ -132,11 +133,32 @@ async function handleClientMessage(ws, msg, registry) {
 
 async function handleClientMessageInner(ws, msg, registry) {
   switch (msg.type) {
+    // 分支列表（供"新会话选分支启动"用）；不是 git 仓库时给空数组，不报错。
+    case 'git_branches':
+      send(ws, { type: 'git_branches', branches: await listBranches() })
+      break
+
     case 'new_session': {
       const s = createSession()
+      // 可选：直接在指定分支的隔离 worktree 里起这个会话。
+      //
+      // 刻意**不支持**"选分支但在当前工作树里起"：那等于偷偷 checkout 用户的工作树，
+      // 会把他没提交的改动搅在一起。要分支就走隔离 worktree —— 这是唯一安全的形式。
+      let worktreeError = null
+      if (msg.worktree) {
+        try {
+          await enterWorktree(s, String(msg.worktreeName ?? '').trim(), String(msg.branch ?? '').trim())
+        } catch (err) {
+          // 会话已经建了，不能因为 worktree 失败就把它丢掉 —— 照常返回，只是如实报错
+          worktreeError = String(err?.message ?? err)
+        }
+      }
       broadcastSessions()
       send(ws, { type: 'session_messages', sessionId: s.id, messages: s.messages })
       send(ws, { type: 'settings', sessionId: s.id, settings: publicSettings(s) })
+      if (worktreeError) {
+        send(ws, { type: 'error', message: `创建 worktree 失败（会话已建好，仍在原工作树）：${worktreeError}` })
+      }
       break
     }
 
