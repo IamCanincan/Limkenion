@@ -49,12 +49,17 @@
 
 ## 环境要点
 - 有 HTTP 代理：访问 localhost 必须 `curl --noproxy '*'`；**DuckDuckGo 超时，Bing 可用**。
-- Node：**测试/tsc/vite/E2E 用系统 v24**（`D:\nodejs\node.exe`）；
-  **但 CI（Gitee Go `.workflow/ci.yml`）用的是 Node 20** —— 版本差异导致的 bug 本地
-  **完全测不出来**（已踩：`import.meta.dirname` 要 20.11+，老 20.x 上是 undefined，
-  而 `paths.mjs` 的 `CLI_ROOT` 是加载时求值的常量 → 直接 TypeError、服务起不来、测试全红）。
+- Node：**测试/tsc/vite/E2E 用系统 v24**（`D:\nodejs\node.exe`）；托管还有 22.22.2。
+  **CI（`.workflow/ci.yml`）用 Node 22**（2026-09-19 从 20 改上来）。
+  版本差异导致的 bug 本地**完全测不出来**——已踩两次：
+   ① `import.meta.dirname` 要 20.11+，而 `paths.mjs` 的 `CLI_ROOT` 是加载时求值的常量
+      → 老 20.x 上 undefined → TypeError → 服务起不来、测试全红（已改 `dirname(fileURLToPath())`）；
+   ② **vitest 5 的 engines 是 `^22.12.0 || ^24.0.0 || >=26.0.0`，根本不支持 Node 20**
+      （依赖 22.12+ 的 require(ESM)），CI 用 20 时 `test:ui` 必炸 `ERR_REQUIRE_ESM`。
   防线：`test/node-compat.test.mjs`（禁 import.meta.dirname / 禁服务端依赖全局 WebSocket）。
-  **写任何依赖较新 Node API 的代码前，先想 Node 20 有没有。**
+  **写任何依赖较新 Node API 的代码前，先想 CI 那个版本有没有。**
+  **验证 CI 条件的办法**：下载官方单文件 node 到临时目录再跑全套，比静态猜可靠 ——
+  `curl -o node.exe https://registry.npmmirror.com/-/binary/node/v20.18.1/win-x64/node.exe`
 - **Gitee Go 的流水线结果查不到**：标准 v5 API 没有（`/statuses/{sha}` 返回
   `Not Found Project`，即使 token 有效、仓库路径正确）。只能**上网页看**。 remote URL
   内含私人 token，可用来调 API 查仓库/用户，但**任何打印都要脱敏**。
