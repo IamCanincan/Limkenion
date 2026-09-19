@@ -96,3 +96,21 @@ test('空名字要报错，不能写出一个空键', async () => {
   await writeFile(userFile(), JSON.stringify({ mcpServers: {} }), 'utf8')
   assert.throws(() => mcp.saveMcpServer('   ', { type: 'stdio' }, 'user'), /服务器名/)
 })
+
+test('服务器名不能含连续下划线（会按 __ 切错）', async () => {
+  assert.throws(
+    () => mcp.saveMcpServer('bad__name', { command: 'node' }, 'user'),
+    /__|不合法/,
+    '含 __ 的名字必须被拒：反解时会把服务器名与工具名切错',
+  )
+})
+
+test('服务器名过长要被拒（工具名整体上限 64）', async () => {
+  const long = 'a'.repeat(40)
+  assert.throws(() => mcp.saveMcpServer(long, { command: 'node' }, 'user'), /不合法|长度/)
+})
+
+test('正常服务器名不受影响', async () => {
+  mcp.saveMcpServer('ok-name_1', { command: 'node' }, 'user')
+  assert.ok(mcp.mcpServersInfo().some(s => s.name === 'ok-name_1'))
+})

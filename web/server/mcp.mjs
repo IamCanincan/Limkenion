@@ -41,6 +41,9 @@ import { pathToFileURL } from 'node:url'
 /** 与 CLI 一致的工具名前缀。 */
 export const MCP_TOOL_PREFIX = 'mcp__'
 
+/** 上游函数名规范：^[a-zA-Z0-9_-]{1,64}$。 */
+export const MCP_TOOL_NAME_MAX = 64
+
 /** 与 CLI 的 normalizeNameForMCP 一致：非法字符换成下划线。 */
 export function normalizeNameForMCP(name) {
   return String(name).replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -905,10 +908,20 @@ export function mcpToolSchemas() {
     if (conn.state !== 'connected') continue
     for (const tool of conn.tools) {
       if (!tool?.name) continue
+      const fullName = mcpToolName(conn.name, tool.name)
+      // 工具名超过上游规范（^[a-zA-Z0-9_-]{1,64}$）会害得**整个请求**被判 schema 非法，
+      // 而不是只丢掉这一个工具。服务器名 + 工具名拼起来太长时（尤其工具名来自
+      // MCP 服务器自己），宁可跳过这个工具并说清楚，也不能让一次对话全崩。
+      if (fullName.length > MCP_TOOL_NAME_MAX) {
+        console.warn(
+          `[MCP] 跳过工具「${tool.name}」：拼出的名字 ${fullName.length} 字符超过上限 ${MCP_TOOL_NAME_MAX}（${fullName}）`,
+        )
+        continue
+      }
       out.push({
         type: 'function',
         function: {
-          name: mcpToolName(conn.name, tool.name),
+          name: fullName,
           description:
             `[MCP:${conn.name}] ${tool.description ?? tool.name}`.slice(0, 900),
           parameters:
@@ -1109,7 +1122,21 @@ function definedIn(source, name) {
  * @param {'user'|'project'|'local'} scope
  */
 export function saveMcpServer(name, cfg, scope = 'user') {
-  if (!String(name ?? '').trim()) throw new Error('服务器名不能为空')
+  const key = String(name ?? '').trim()
+  if (!key) throw new Error('服务器名不能为空')
+  // 名字会拼进给模型的工具名（mcp__<名字>__<工具>），所以有两条硬要求：
+  //   ① 不能含连续下划线 `__` —— 调工具时按 `__` 切分反解，含了会把服务器名与
+  //      工具名切错（表现为「没有名为 X 的 MCP 服务器」这种莫名其妙的报错）；
+  //   ② 别太长 —— 工具名整体上限 64，太长会连累**整个请求**被判 schema 非法。
+  // 这两条以前只靠使用者自觉，界面上能直接填名字之后必须挡住。
+  if (key.includes('__')) {
+    throw new Error(`服务器名不能包含连续下划线「__」：${key}（工具名按 __ 切分，含了会切错）`)
+  }
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(key)) {
+    throw new Error(
+      `服务器名不合法：${key}（只允许字母数字与 _ -，长度 1~32；它会拼进工具名 mcp__<名字>__<工具>）`,
+    )
+  }
   writeSettingsScope(scope, data => {
     const servers = { ...(data.mcpServers ?? {}) }
     servers[name] = { ...(servers[name] ?? {}), ...cfg }
