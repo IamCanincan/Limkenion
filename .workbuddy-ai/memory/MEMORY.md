@@ -118,6 +118,13 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
 10. **往"被 import 的目录"下新增文件 = 悄悄扩大类型检查面** —— `tsconfig.server.json` 的 include 是
     `server/**/*.mjs`，但 `server/static.mjs` import 了 `../launcher/updater.mjs`，TS 顺 import 一起检查，
     于是新加的 `launcher/` 直接让 typecheck 红了 5 个错。**加了新目录/新文件，一定要重跑 typecheck。**
+11. **E2E 的 D7（worktree 退出后写回原根）是模型依赖型抖动，别当回归追**：
+    实测新代码 5 轮挂 2 次、旧代码 4 轮 0 次，合并抖动率约 22%（旧代码连过 4 次
+    概率 37%，统计不显著）；且失败轮 D5 序列**无 Bash**、D7 本身只是 Write ——
+    只改 Bash 类代码解释不了它。快速判据：D7 失败时 `back-in-main.txt`
+    **根本没被创建**（=模型那轮没写），不是写错根的作用域 bug。别再为它跑 9 轮对照。
+12. **改执行类函数要覆盖「成功 / 超时 / 错误」三条路径**：重写 execShell 时我一开始
+    只测了超时路径，成功路径若挂住（如等 close 到超时）超时测试照样全绿。
 > 陷阱 9–15 的完整版（测试桩游标、断言对象、E2E 抖动、子进程 shell 引号…）
 > 见 `MEMORY-details.md` **附六**。
 
