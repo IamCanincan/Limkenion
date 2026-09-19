@@ -17,7 +17,9 @@
 8. **API key 由用户自己输入**（`/login` 录入并持久化）。**不要桌宠。**
 
 ## 项目性质与交付形态
-`D:\Github Repositories\Limkenion` = **纯 web 项目**，分支 `master`，远程 origin = Gitee。
+`D:\Github Repositories\Limkenion` = **纯 web 项目**，分支 `master`。
+- **2026-09-20 起主战场是 GitHub**：远程 origin = `github.com/IamCanincan/Limkenion`
+  （公开仓库）。Gitee 那份已不再同步 —— 且历史被重写过两次，**两边已不兼容**。
 - **web/**：Vite + React 18 + 自研本地 Node 服务（同端口伺服静态页 + WebSocket），
   完全自包含（引擎/会话/工具/钩子/定时任务/MCP/Workflow/Teams），**零外部进程依赖**。
 - ~~桌面分发 = Tier C 内置 Node（448MB zip + 三平台入口 + 更新器）~~
@@ -28,7 +30,7 @@
 - CI：Gitee Go（`.workflow/ci.yml`，push master 触发 typecheck + test + build）。
 
 ## 仓库红线
-- **品牌词已全历史抹除**（上游的三个品牌词及变体，filter-repo 重写 + 强推；
+- **品牌词已全历史抹除**（上游的三个品牌词及**缩写变体**，filter-repo 重写 + 强推；
   **具体是哪三个词不写在这里** —— 写进来就会被 grep 命中。清单见
   `~/.workbuddy-ai/MEMORY.md`（用户级，不进仓库）。检查时也要查**历史文件名**：
   `git log --all --pretty=format: --name-only | sort -u | grep -iE "<那三个词>"`
