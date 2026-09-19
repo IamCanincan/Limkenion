@@ -472,6 +472,44 @@ console.log('\n【G】/insights：报告生成与 HTTP 路由')
   }
 }
 
+// =============== 场景 H：/add-dir（沙箱作用域真的被放宽了吗）===============
+// 这组是命令级验证 + 一条模型级验证：命令说成功不算数，
+// 得证明**文件工具之后真的能访问那个目录** —— 否则只是改了个没人读的字段。
+console.log('\n【H】/add-dir：追加额外可访问目录（沙箱作用域）')
+{
+  const outside = join(tmpdir(), `limkenion-e2e-outside-${Date.now()}`)
+  mkdirSync(outside, { recursive: true })
+  const outsideFile = join(outside, 'outside.txt')
+  writeFileSync(outsideFile, 'hello-from-outside-dir')
+
+  const out1 = await runCommandAndWait(c, sid, `/add-dir ${outside}`, { timeoutMs: 30000 })
+  record('H1 /add-dir 追加成功', /已追加额外目录/.test(out1), out1.split('\n').slice(0, 3).join(' | '))
+
+  const out2 = await runCommandAndWait(c, sid, '/add-dir', { timeoutMs: 30000 })
+  record('H2 清单里能查到它', out2.includes(outside), out2.split('\n').slice(0, 4).join(' | '))
+
+  // 模型级：追加之后，文件工具应该真的能读工作区外的这个文件。
+  const fresh = await sendAndWait(
+    c,
+    `用 Read 工具读这个文件：${outsideFile}，然后把它里面的内容原样告诉我（不要翻译，不要改写）。`,
+    { timeoutMs: 120000 },
+  )
+  const readCall = fresh.find(e => e.type === 'tool_call' && e.toolCall.name === 'Read')
+  if (!readCall) {
+    skip('H3 追加后模型能读到该目录里的文件', '模型本轮没有调用 Read，这条路径未走到')
+  } else {
+    const results = fresh.filter(e => e.type === 'tool_result')
+    const okResult = results.some(r => r.ok && /hello-from-outside-dir/.test(String(r.result ?? '')))
+    record(
+      'H3 追加后模型能读到该目录里的文件',
+      okResult,
+      okResult ? '' : `工具结果：${results.map(r => String(r.result ?? '').slice(0, 80)).join(' | ') || '（无）'}`,
+    )
+  }
+
+  rmSync(outside, { recursive: true, force: true })
+}
+
 // ---------------- 汇总 ----------------
 console.log('\n' + '='.repeat(60))
 const bad = results.filter(r => !r.ok)
