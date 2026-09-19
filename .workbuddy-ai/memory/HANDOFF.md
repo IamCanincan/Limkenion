@@ -54,15 +54,21 @@ Agent Teams 工作台（TeamPanel + 成员事件流 + teammate-idle 钩子）。
 ```bash
 cd web
 npm run typecheck    # tsc 前端 + server，必须 0 错误（注意：别用管道 tail 掩盖退出码）
-npm test             # node --test test/*.test.mjs（452 项 / 45 个文件）
+npm test             # node --test test/*.test.mjs（469 项）
 npm run test:ui      # vitest（web/src/__tests__）
 npm run build        # vite build
 npm run test:e2e     # 真实 API（改了 worktree / hooks / MCP / Workflow / 沙箱作用域 / 桌面入口才跑）
 npm run release      # 出包验证（需联网拉 Node，可跳过）
 ```
+**推送前建议先跑**（在**仓库根目录**，不是 web/）：
+```bash
+node scripts/ci-sim.mjs    # 用纯净工作树跑一遍 CI 序列（见第七点五节）
+```
 
-## 五、git 状态（2026-09-19 18:15 更新：**已推送，与远程同步**）
-- 工作树干净；**本地与 `origin/master` 完全同步**（领先 0 / 落后 0，两端 HEAD 均为最新）。
+## 五、git 状态（2026-09-19 20:20 更新：**已推送，与远程同步**）
+- 工作树干净；**本地与 `origin/master` 完全同步**（领先 0 / 落后 0）。
+- 18:13 首次推送 63 个提交；此后到 20:20 又陆续推了自查修复与 CI 改动，
+  最新为 `3673e03`（ci-sim 脚本 + 文档）。**推送需用户明确指示**这条规矩不变。
 - 2026-09-19 18:13 经用户明确指示执行了 `git push origin master`：
   一次推了 **63 个提交**（`faa232a..59ad3d9`），此前这批**从未过 CI**（Gitee Go 只在 push
   时触发，`.workflow/ci.yml` 跑 typecheck + test + build）。
@@ -111,11 +117,73 @@ npm run release      # 出包验证（需联网拉 Node，可跳过）
   `Remove-Item` 接管道对象会报参数绑定失败，用 `-LiteralPath $f.FullName` 逐个删。
 - `npm run typecheck` 的退出码别被 `| tail` 之类管道掩盖，要单独检查。
 
+## 七点五、2026-09-19 晚：CI 三轮排查 + 自查 7 处（重要，别重走弯路）
+
+### CI 三次失败，三个完全不同的原因
+
+| 轮次 | 现象 | 根因 |
+|---|---|---|
+| 1、2 | `step ... exited with code 1`，无细节 | **环境里根本没有 node/npm**（`node: command not found`）|
+| 3 | 同上但拿到细节 | **真代码问题**（见下 3 条）|
+
+**Gitee Go 的两个坑（记住）**：
+- `build@nodejs` 的 `nodeVersion` **不可信**：官方文档只列到 15.12；写 `'22'` 时插件装不上
+  Node。现在 `.workflow/ci.yml` 是**自己在脚本里下载 Node 22.22.2** 解到 `/opt` 并前置 PATH
+  （`nodeVersion: '14.16.0'` 只为让插件不报错，实际不用它）。
+- 容器镜像名 `ubuntu:plugin-24` 里的 **24 是插件版本，不是 Node 版本** —— 别对着它猜。
+- **CI 结果查不到**：v5 API 没有流水线端点（4 个端点全 Not Found），网页需登录。
+  只能让用户贴日志。为此 ci.yml 里加了 `|| fail '<名字>'` 诊断，失败会打印
+  「❌ 失败于：X」，并打了 `node -v`。
+
+### 第 3 轮暴露的 3 个真问题（全是"本地有 dist、CI 全新检出没有"）
+
+1. `startServer` 就绪判定写的 `if (res.ok)` → 没 dist 时 `/` 是 404 → 15s 超时
+   "服务未就绪"，**但日志里服务明明起来了**。→ 改为"只要有 HTTP 响应就算就绪"。
+2. `fetchToken` 从 `dist/index.html` 正则取 token → 没 dist 就拿不到 → WS 握手 **403**，
+   报错完全指不到根因。→ 改用 `/ws-token` 接口，彻底去掉对 dist 的依赖。
+3. `mcpOAuth.openBrowser`：`spawn` **不因命令不存在而抛错**，ENOENT 是异步 `'error'` 事件，
+   `try/catch` 接不住 → 未捕获异常打死进程（容器无 `xdg-open`）。→ 挂 `child.on('error')`。
+
+另外：静态服务那几条用例**本来就需要 dist**，所以 ci.yml 里把 `npm run build` 移到
+`npm test` **之前**；并给它们加了"dist 未构建则明说跳过"。
+
+### 自查 7 处（都是白天赶功能漏掉的边界）
+
+| # | 问题 | 性质 |
+|---|---|---|
+| 1 | 出网开关漏了 Windows shell 工具那条路径（`execFile` 没传 `shellNetEnv`）｜**安全**：设了 `off` 仍能出网 |
+| 2 | 定时周期无上限 → 超大值被 `setInterval` 当成 **1ms** | 可用性：每毫秒起回合 |
+| 3 | MCP 服务器名无校验（`__` 会把反解切错 / 长度超 64 害整请求 400）| 可用性 |
+| 4 | 具名子代理找不到却说"已执行"（实际直接 return 没跑）| **诚实性**（+ 只有 typecheck 抓到的 TS2345）|
+| 5 | 钩子预算是"每条各一份" → N 条叠加照样撑爆 | 防护形同虚设（+ 我的测试阈值太松是"假绿"）|
+| 6 | 权限规则工具名没归一化（`EnterPlanMode` ≠ `PlanEnter`）| **安全：deny 静默失效** |
+| 7 | 同名 worktree 换分支 → 静默带进错的分支 | 静默错误行为 |
+
+**规律**：漏的全是边界 —— 输入校验、数值上下限、别名/归一化、横切控制是否覆盖所有路径，
+以及"**操作其实没成功却说成功了**"。
+
+### `scripts/ci-sim.mjs`（新增，仓库根目录执行）
+
+用 `git archive HEAD | tar -x` 导出纯净工作树（不含 dist/ 与 node_modules/），
+再按 CI 顺序跑 install → typecheck → build → test → test:ui。
+**以后验证"会不会在 CI 上红"，先本地跑它**，别推一次等一次。
+已处理的 Windows 坑：tar 的 `-C` 不建目录且 bsdtar 会误判 `D:/...`；
+npm 是 `npm.cmd`，`shell:true` 会触发 DEP0190 → 改用 `cmd.exe /d /s /c` 且参数分开传。
+
+### 多端统一性（2026-09-19 盘点结论）
+
+核心能力**完全统一**；真正的平台差异只有 2 项，且都会明确报错而非静默失败：
+① Windows shell 工具（仅 win，平台固有）；② Computer Use（仅 win，默认关闭）。
+- Computer Use **暂不移植** mac/linux：实现虽零依赖，但 mac 要用户手动授"辅助功能"权限、
+  linux 要装 scrot/xdotool 且 **Wayland 下失效**，可靠性远低于 Windows 版。
+- **macOS 从未实机验证过**（linux 有 CI 覆盖一部分）—— 这是当前最大的验证缺口。
+
 ## 八点五、还剩什么（2026-09-19 18:10 盘点，均未做，需用户拍板）
 
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
-| ~~62 个提交未推送~~ | **已解决** | 18:13 已推送 63 个提交（见第五节）。**待确认：Gitee Go 流水线结果** —— CI 只在 push 时触发，这次是这批代码第一次进 CI |
+| ~~62 个提交未推送~~ | **已解决** | 已推送。CI 三轮排查后，`3673e03` 这轮跑的是最终状态（详见第七点五节）。**结果需用户从 Gitee 页面确认** —— 没有 API 可查 |
+| **macOS 实机验证** | **最大验证缺口** | 三平台入口齐备（.vbs / .app / .sh+.desktop），但 mac **从未实机跑过**；linux 有 CI 覆盖。有机器的话优先补这个 |
 | 内置终端 | **建议不做** | 需 PTY（`node-pty` 之类原生模块），与"只依赖 Node"硬约束冲突；会让分发包从"内置 Node zip"变成要编译原生扩展 |
 | OS 级平台沙箱 | 大工程 | 现在的 shell 守卫是模式匹配、出网代理只管得住遵守代理环境变量的客户端，两者**都不是真隔离**（已写进 README 的"已知未覆盖"）。真隔离要 Job Object / seccomp 之类，Windows 下无轻量方案 |
 | sessions 内存上限 | 建议维持现状 | 加淘汰会真丢数据；且会话由用户主动创建，量级有限。要做必须先补"按需从磁盘重载"能力 |
