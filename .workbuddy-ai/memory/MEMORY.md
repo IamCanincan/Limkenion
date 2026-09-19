@@ -83,6 +83,12 @@ Base `https://api.deepseek.com`；两套协议都原生支持，但**本项目�
   **Agent Teams 工作台**（TeamPanel + 成员事件流 + teammate-idle 钩子）；
   worktree + additionalDirectories（沙箱根**按会话可变**，AsyncLocalStorage）；
   WorkflowTool（vm 沙箱）；`/insights`。
+- **2026-09-19 新增**：Cmd+K **全局搜索**（`server/search.mjs`，跨会话消息+标题+文件名，
+  结果带 `complete`）；**MCP 图形化管理**（`mcp_list/mcp_save/mcp_delete` + `McpPanel`，
+  按 user/project/local 三作用域写设置，写走 `settings.writeSettingsScope()`）；
+  **钩子输出上下文预算**（超 8000 字落盘 `hook_outputs/`，env
+  `LIMKENION_WEB_HOOK_CONTEXT_CHARS` 可调）；权限规则支持显式 `key:pattern`
+  （裸 specifier 仍不猜 → unsupported，见 settings.mjs）。
 - **验证基线**：typecheck 0 / **354 项测试 350 过 0 失败 4 跳过** / vitest 6/6 / build 通过 /
   **真实 E2E 24/24**（2026-09-19 实测）。
 - **明确不做**（CC 生态专属，用户拍板）：插件/技能市场。
