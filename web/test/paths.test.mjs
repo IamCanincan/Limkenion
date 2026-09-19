@@ -53,6 +53,23 @@ describe('safePath', () => {
     assert.throws(() => safePath('C:foo'), /盘符相对路径/)
   })
 
+  test('拒绝 \\\\?\\ 扩展前缀（会绕过 normalize，实测指向区外时能被拦）', () => {
+    if (process.platform !== 'win32') return
+    const outside = 'C:\\Windows\\win.ini'
+    assert.throws(() => safePath('\\\\?\\' + outside), /越界/)
+  })
+
+  test('拒绝 UNC 网络路径', () => {
+    if (process.platform !== 'win32') return
+    assert.throws(() => safePath('\\\\localhost\\c$\\Windows\\win.ini'), /越界/)
+  })
+
+  test('区内路径换大小写仍放行（Windows 大小写不敏感，别误伤）', () => {
+    if (process.platform !== 'win32') return
+    const p = safePath('a/b.txt')
+    assert.ok(safePath(p.toUpperCase()).length > 0, '大写形式也应放行')
+  })
+
   test('拒绝 Windows 保留设备名', () => {
     if (process.platform !== 'win32') return
     assert.throws(() => safePath('NUL'), /保留设备名/)
