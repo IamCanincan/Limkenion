@@ -55,6 +55,7 @@ async function serveIndex(res) {
 
 export function createHttpServer() {
   return createServer(async (req, res) => {
+    try {
     if (req.url === undefined) {
       respond(res, 400, { 'content-type': 'text/plain; charset=utf-8' }, 'Bad Request')
       return
@@ -243,6 +244,16 @@ export function createHttpServer() {
     } catch {
       // 未命中 → SPA 回退（前端路由）
       await serveIndex(res)
+    }
+    } catch (err) {
+      // 任何意料之外的错误（OAuth 换 token 的网路失败、报告/更新读盘异常等）都不能让
+      // 这条请求「永远拿不到响应」——否则客户端挂起，且在装 crashGuard 之前还会成为
+      // 未处理的拒绝把整个服务打死。这里统一回 500（crashGuard 是进程级兜底，这里保证
+      // 单条请求也能拿到响应而不是干等超时）。
+      console.error('[http] 处理请求时未捕获的异常（已回 500）：', err)
+      if (!res.headersSent) {
+        respond(res, 500, { 'content-type': 'text/plain; charset=utf-8' }, 'Internal Server Error')
+      }
     }
   })
 }
