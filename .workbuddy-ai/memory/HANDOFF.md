@@ -14,6 +14,15 @@
 
 ## 二、功能现状（对标已全部补齐）
 
+**2026-09-19 晚（用户拍板的三条取舍）**：
+- **Computer Use 整体删除**（模块 + 两个工具 + 引擎的截图注入 + 用例）。
+- **桌面分发整体删除**（见第三节）—— 回归纯 web，用 `npm run dev` / `npm run serve`。
+- **sessions 内存上限**（`LIMKENION_WEB_MAX_MEMORY_SESSIONS`，默认 30）：
+  LRU 卸载 **messages**，**会话条目保留**、**数据仍在磁盘**、访问时自动读回。
+  三个易错点都已用回归测试锁住：① 先落盘再清内存；② 落盘时遇到已卸载会话要
+  **先把消息从磁盘读回来再写**（否则一次落盘就把磁盘数据冲成空 = 真删）；
+  ③ 正在跑回合的会话不能卸载（由 engine 通过 `onSessionEvict` 注册守卫）。
+
 **2026-09-19 下午新增 9 项**（都是 web 端界面/能力，CLI 无对应）：全局搜索（Cmd+K，跨会话
 消息+标题+文件名，结果带 `complete`）；MCP 图形化管理（增删改 + user/project/local 三作用域）；
 定时任务界面（周期解析与模型的 CronCreate 共用 `tools.parseIntervalMs()`）；分支/worktree
