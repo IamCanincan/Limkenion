@@ -192,6 +192,27 @@ async function sendAndWait(c, text, { timeoutMs = 180000, onTick } = {}) {
   }
 }
 
+/**
+ * 发一条斜杠命令并等它的 command_result 回来。
+ *
+ * **不能死等固定秒数**：`/insights` 要调真实模型生成洞察，耗时不固定 ——
+ * 原先这里写死 `sleep(20000)`，实测约 1/3 的运行会超过 20 秒，于是
+ * 「G1 没输出 / G2 找不到报告文件名」被当成产品缺陷报出来，其实是测试自己等太短。
+ * 改成轮询：结果一到就返回，最长等 timeoutMs（到点仍无结果才判失败）。
+ */
+async function runCommandAndWait(c, sessionId, command, { timeoutMs = 90000 } = {}) {
+  const before = c.events.length
+  c.send({ type: 'run_command', sessionId, command })
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeoutMs) {
+    const fresh = c.events.slice(before)
+    const res = fresh.filter(e => e.type === 'command_result')
+    if (res.length > 0) return res.map(e => e.output).join('\n')
+    await sleep(300)
+  }
+  return ''
+}
+
 // ---------------- 开跑 ----------------
 for (let i = 0; i < 60; i++) {
   try {
@@ -336,10 +357,7 @@ console.log('\n【D】worktree：切沙箱根')
 console.log('\n【E】MCP：连桩服务器并从模型侧调用')
 {
   // 命令侧确认连接状态
-  const before = c.events.length
-  c.send({ type: 'run_command', sessionId: sid, command: '/mcp' })
-  await sleep(2500)
-  const out = c.events.slice(before).filter(e => e.type === 'command_result').map(e => e.output).join('\n')
+  const out = await runCommandAndWait(c, sid, '/mcp', { timeoutMs: 30000 })
   record('E1 /mcp 显示已连接', /已连接|connected|工具/.test(out), out.split('\n').slice(0, 6).join(' | '))
 
   const fresh = await sendAndWait(
@@ -368,20 +386,14 @@ console.log('\n【F】Workflow：动态工作流编排')
   record('F2 工作流真的跑完并报了子代理数', !!okWf, wfRes ? JSON.stringify(wfRes.result ?? wfRes).slice(0, 300) : '')
 
   // /workflows 能列出运行记录
-  const before = c.events.length
-  c.send({ type: 'run_command', sessionId: sid, command: '/workflows' })
-  await sleep(2500)
-  const out = c.events.slice(before).filter(e => e.type === 'command_result').map(e => e.output).join('\n')
+  const out = await runCommandAndWait(c, sid, '/workflows', { timeoutMs: 30000 })
   record('F3 /workflows 列出运行记录', /wf_|运行/.test(out), out.split('\n').slice(0, 4).join(' | '))
 }
 
 // =============== 场景 G：/insights ===============
 console.log('\n【G】/insights：报告生成与 HTTP 路由')
 {
-  const before = c.events.length
-  c.send({ type: 'run_command', sessionId: sid, command: '/insights' })
-  await sleep(20000)
-  const out = c.events.slice(before).filter(e => e.type === 'command_result').map(e => e.output).join('\n')
+  const out = await runCommandAndWait(c, sid, '/insights', { timeoutMs: 120000 })
   record('G1 /insights 有输出', out.trim().length > 0, out.split('\n').slice(0, 5).join(' | '))
   const m = out.match(/insights-[0-9T-]+\.html/)
   if (m) {

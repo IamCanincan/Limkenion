@@ -7,6 +7,28 @@ import type { ClientMessage, ServerMessage } from './types'
  * 握手需要一次性 token：生产模式由服务端注入 <meta name="limkenion-token">，
  * 开发模式（Vite 伺服页面）从 /ws-token 取。两者都拿不到就不连——服务端会拒。
  */
+/**
+ * 解析本次运行的一次性 token：meta 优先，开发模式（Vite 伺服页面）回退到 /ws-token。
+ * 导出供 WS 握手以外的调用方使用（如更新接口要把它放进请求头）。
+ */
+export async function resolveWsToken(): Promise<string> {
+  const meta = document
+    .querySelector('meta[name="limkenion-token"]')
+    ?.getAttribute('content')
+    ?.trim()
+  if (meta && !meta.includes('__LIMKENION_TOKEN__')) return meta
+  try {
+    const res = await fetch('/ws-token', { cache: 'no-store' })
+    if (res.ok) {
+      const body = (await res.json()) as { token?: string }
+      return body.token ?? ''
+    }
+  } catch {
+    /* 取不到就让服务端拒，走重连 */
+  }
+  return ''
+}
+
 export class LimkenionConnection {
   private ws: WebSocket | null = null
   private listeners = new Set<(msg: ServerMessage) => void>()
@@ -17,21 +39,7 @@ export class LimkenionConnection {
 
   /** 解析握手 token：meta 优先，开发模式回退到 /ws-token。 */
   private async resolveToken(): Promise<string> {
-    const meta = document
-      .querySelector('meta[name="limkenion-token"]')
-      ?.getAttribute('content')
-      ?.trim()
-    if (meta && !meta.includes('__LIMKENION_TOKEN__')) return meta
-    try {
-      const res = await fetch('/ws-token', { cache: 'no-store' })
-      if (res.ok) {
-        const body = (await res.json()) as { token?: string }
-        return body.token ?? ''
-      }
-    } catch {
-      /* 取不到就让服务端拒，走重连 */
-    }
-    return ''
+    return resolveWsToken()
   }
 
   async connect(): Promise<void> {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LimkenionConnection } from './api'
+import { LimkenionConnection, resolveWsToken } from './api'
 import { Sidebar } from './components/Sidebar'
 import { ChatView } from './components/ChatView'
 import { Composer } from './components/Composer'
@@ -95,14 +95,16 @@ export function App() {
   const onCheckUpdate = useCallback(async () => {
     try {
       setUpdateMsg('检查中…')
-      const r = await (await fetch('/api/check-update')).json()
+      // 两个更新接口都要求带一次性 token 头（防跨站页面触发，见 static.mjs 的说明）。
+      const headers = { 'x-limkenion-token': await resolveWsToken() }
+      const r = await (await fetch('/api/check-update', { headers })).json()
       if (!r.available) {
         setUpdateMsg(`已是最新 (${r.current})`)
         setTimeout(() => setUpdateMsg(''), 3000)
         return
       }
       setUpdateMsg(`更新到 ${r.latest} 中…`)
-      await fetch('/api/update')
+      await fetch('/api/update', { method: 'POST', headers })
       setUpdateMsg('正在重启以完成更新…')
     } catch {
       setUpdateMsg('更新检查失败')
