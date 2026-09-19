@@ -24,11 +24,15 @@ test('全局崩溃兜底：未捕获的拒绝与异常不再杀死进程', async
     child.stdout.on('data', d => { log += d.toString() })
     child.stderr.on('data', d => { log += d.toString() })
 
-    // 400ms 还没退出 → 说明兜底肯定失效不了（兜底若失效早退出了）；主动回收。
+    // 看门狗是**上限**，不是等待时长：子进程一退出就 resolve，所以给得宽没有代价。
+    // 原来 400ms —— 子进程要 200ms 后才打印 ALIVE，机器一忙（整套测试并行跑）
+    // fork + 模块加载就可能超过 400ms，于是被误杀、测试随机红。给 3s。
+    // 这个宽松**不会削弱测试**：兜底失效时进程几毫秒内就非 0 退出，
+    // 走的是 'exit' 分支而不是看门狗（反向校验那条用例守着这一点）。
     const watchdog = setTimeout(() => {
       child.kill('SIGTERM')
       resolve({ log, code: 'TIMEOUT', signal: 'SIGTERM' })
-    }, 400)
+    }, 3000)
 
     child.on('exit', (exitCode, exitSignal) => {
       clearTimeout(watchdog)
@@ -56,7 +60,8 @@ test('未安装兜底时，子进程会因未捕获异常而死（反向校验�
     let log = ''
     child.stdout.on('data', d => { log += d.toString() })
     child.stderr.on('data', d => { log += d.toString() })
-    const wd = setTimeout(() => { child.kill('SIGTERM'); resolve({ log, code: 'TIMEOUT' }) }, 400)
+    // 同上：上限给宽，避免机器忙时误杀（这条用例本就要等进程死，更不能被抢先）
+    const wd = setTimeout(() => { child.kill('SIGTERM'); resolve({ log, code: 'TIMEOUT' }) }, 3000)
     child.on('exit', (c) => { clearTimeout(wd); resolve({ log, code: c }) })
     child.on('error', reject)
   })
