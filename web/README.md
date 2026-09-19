@@ -39,7 +39,7 @@ web/
 │   └── netproxy.mjs      # shell 出网白名单代理（纯 Node，无原生依赖）
 ├── bin/
 │   └── limkenion-web.mjs # npm bin 入口
-├── test/                 # 自动化测试（node:test，46 个文件 / 471 个用例）
+├── test/                 # 自动化测试（node:test，46 个文件 / 473 个用例）
 └── src/
     ├── main.tsx / App.tsx / api.ts / types.ts / styles.css
     └── components/       # 21 个组件（见下）
@@ -93,7 +93,7 @@ web/
 | TodoWrite 任务清单 | 待办面板 | 消息内常驻清单 |
 | 任务跟踪 | Task* 工具 | Task* 工具 + `/tasks` |
 | 子代理 | Agent 工具 | Agent 工具（只读子代理，过程可见为 `Agent·<工具>`）+ **具名子代理**（可预配模型与只读工具子集） |
-| 斜杠命令 | 命令补全 | 命令面板（注册表 83 条，其中 49 条在 web 有真实语义） |
+| 斜杠命令 | 命令补全 | 命令面板（注册表 83 条，其中 50 条在 web 有真实语义） |
 | @ 文件引用 | @ 补全 | @ 补全（服务端索引工作区文件） |
 | 图片输入 | 粘贴图片 | 粘贴/选择图片（base64 → 多模态 content parts） |
 | 模型切换 | `/model` | 顶栏模型选择器 + `/model` |

@@ -9,7 +9,7 @@
  *   - 其余：明确报「未知命令」。
  */
 
-import { readFile, readdir } from 'node:fs/promises'
+import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { accessSync, constants, existsSync, statSync } from 'node:fs'
 import { send, broadcast } from './bus.mjs'
@@ -298,7 +298,7 @@ const TERMINAL_ONLY = {
   // 注意：/copy 已于 2026-09-19 在 web 实现（/export 是下载文件，/copy 是当场给文本）。
   stickers: '贴纸属于 CLI 交互彩蛋',
   'good-limkenion': '属于 CLI 交互彩蛋',
-  heapdump: '堆快照写入 CLI 进程目录',
+  // 注意：/heapdump 已于 2026-09-19 在 web 实现（node:v8，写到状态目录 heapdump/）。
   'debug-tool-call': '工具调用调试面向 CLI 转录流',
   'break-cache': '提示词缓存调试面向 CLI',
   'ant-trace': '内部诊断命令',
@@ -368,6 +368,7 @@ export const WEB_IMPLEMENTED = [
   'init-verifiers', // prompt 型：整理变更验证清单
   'copy',        // 把会话渲染成可复制文本（/export 是下载文件，这个是当场给文本）
   'doctor',      // 自检：API key / 工作区 / 状态目录可写性 / 权限模式
+  'heapdump',    // 堆快照（node:v8 内置，固定写到状态目录，不接任意路径）
 ]
 const WEB_COMMANDS = new Set(WEB_IMPLEMENTED)
 
@@ -1056,6 +1057,39 @@ export async function runCommand(session, rawName, argString, ws, registry) {
       '4. 只写命令真实存在的项 —— 仓库里没有的验证手段不要臆造。\n' +
       '5. 写成一份简洁的清单放到 LIMKENION.md 里（已存在就追加 / 改进，不要重写全文）。'
     return startPromptTurn(session, prompt, '已开始整理变更验证清单 —— 会先探查仓库里真实存在的验证命令。')
+  }
+
+  if (name === 'heapdump') {
+    // 用 Node 内置的 v8.writeHeapSnapshot（不引入任何原生模块）。
+    // 固定写到状态目录下的 heapdump/ —— **不接任意路径**，免得变成"往任意位置
+    // 写大文件"的口子。
+    const { writeHeapSnapshot } = await import('node:v8')
+    const dir = join(STATE_DIR, 'heapdump')
+    await mkdir(dir, { recursive: true })
+    const target = join(dir, `heap-${Date.now()}.heapsnapshot`)
+
+    const t0 = Date.now()
+    let written
+    try {
+      written = writeHeapSnapshot(target)
+    } catch (err) {
+      return `写堆快照失败：${err?.message ?? String(err)}`
+    }
+    const ms = Date.now() - t0
+    let size = 0
+    try {
+      size = statSync(written).size
+    } catch {
+      // 大小读不到就算了，路径还是要给用户
+    }
+    return (
+      `堆快照已写入：${written}\n` +
+      `大小：${(size / 1024 / 1024).toFixed(1)} MB · 耗时 ${ms} ms\n\n` +
+      '用 Chrome DevTools → Memory → Load 打开这个文件分析。\n\n' +
+      '两点提醒：\n' +
+      '- 快照是**整个堆的原始数据**，可能包含内存里的敏感内容（比如 API key），别随手分享。\n' +
+      '- 文件可能有几百 MB，别反复执行（会占满磁盘，且写的时候会短暂阻塞服务）。'
+    )
   }
 
   // ---- git / PR 类：CLI 里是 prompt 型命令，web 端沿用同样做法 ----

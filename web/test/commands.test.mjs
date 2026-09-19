@@ -475,6 +475,23 @@ describe('/commit /commit-push-pr /review（prompt 型 git 命令）', () => {
   })
 })
 
+describe('/heapdump 堆快照', () => {
+  test('写出快照文件，并提醒"可能含敏感信息"', async () => {
+    const fs = await import('node:fs')
+    const r = makeRunner()
+    const out = await r.run('/heapdump')
+    assert.match(out, /堆快照已写入/, '实际输出：' + out.slice(0, 200))
+    assert.match(out, /敏感/, '必须提醒快照可能含内存里的敏感内容（比如 API key）')
+
+    const m = out.match(/[\w:\\\-.\\]+\.heapsnapshot/)
+    assert.ok(m, '输出里应给出文件路径')
+    assert.ok(fs.existsSync(m[0]), '快照文件应真的存在：' + m[0])
+
+    // 几十 MB 的临时文件，测完删掉
+    await rm(m[0], { force: true })
+  })
+})
+
 describe('/copy 与 /doctor', () => {
   test('/copy 给出可复制的纯文本（带说话人标记）', async () => {
     const r = makeRunner([
