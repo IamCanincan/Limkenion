@@ -61,8 +61,22 @@ function touch(s) {
  */
 function unloadMessages(s) {
   if (!s || s.unloaded) return
+  // 记下条数：卸载后内存里是空的，但侧边栏还要显示"这个会话有多少条消息" ——
+  // 直接读 messages.length 会显示 0，等于对用户界面说谎。
+  s.unloadedMessageCount = s.messages.length
   s.messages = []
   s.unloaded = true
+}
+
+/**
+ * 确保会话的消息在内存里（被卸载过的就地读回）。
+ *
+ * **凡是读 `s.messages` 的地方都要先过这一道** —— 漏一个就会拿到空数组：
+ * 分叉会复制出空会话（内容全丢）、回退会在空数组上截断、列表会显示 0 条消息。
+ */
+function ensureLoaded(s) {
+  if (s?.unloaded) reloadMessages(s)
+  return s
 }
 
 /**
@@ -266,6 +280,10 @@ export function getSession(id) {
  */
 export function forkSession(source, title, atIndex) {
   if (!source) return null
+  // 源会话可能已被 LRU 卸载（messages 在内存里是空的）—— 不先读回来的话，
+  // 分叉出来的新会话会是空的，**原会话的内容就这么没了**。
+  ensureLoaded(source)
+
   const forked = blankSession()
   // `Number.isInteger()` 不做类型窄化，TS 仍认为 atIndex 可能 undefined；
   // 这里用 `at ?? 0` 把两种可能合并成一条表达式 —— 语义与原来完全一致
@@ -318,6 +336,8 @@ export function forkSession(source, title, atIndex) {
  * @returns {{removed: number, kept: number}}
  */
 export function rewindSession(session, keep) {
+  // 同样要先确保消息在内存里：否则是在一个空数组上截断，回退的结果全错。
+  ensureLoaded(session)
   const before = session.messages.length
   const n = Math.max(0, Math.min(Math.floor(keep), before))
   session.messages = session.messages.slice(0, n)
@@ -339,7 +359,8 @@ export function sessionInfo(s) {
     id: s.id,
     title: s.title,
     updatedAt: s.updatedAt,
-    messageCount: s.messages.length,
+    // 卸载过的会话用**记下来的条数**：不能读 messages.length（那是 0，等于对 UI 说谎）
+    messageCount: s.unloaded ? (s.unloadedMessageCount ?? 0) : s.messages.length,
     planMode: Boolean(s.planMode),
     tags: s.tags ?? [],
   }

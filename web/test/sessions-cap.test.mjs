@@ -200,6 +200,54 @@ test('不在持久化窗口内的会话：必须拒绝卸载（卸了就是删�
   )
 })
 
+test('卸载过的会话：列表条数、分叉、回退都不能读到空消息', async () => {
+  // 懒加载最容易漏的就是"别处直接读 messages"——漏一个就拿到空数组：
+  // 列表显示 0 条（对 UI 说谎）、分叉复制出空会话（内容全丢）、回退在空数组上截断。
+  const SESSIONS_URL = new URL('../server/sessions.mjs', import.meta.url).href
+  const STATE = join(dir, 'lazy-read-state')
+  const script = [
+    "process.env.LIMKENION_WEB_MAX_MEMORY_SESSIONS = '2'",
+    `process.env.LIMKENION_WEB_STATE_DIR = ${JSON.stringify(STATE)}`,
+    "process.env.DEEPSEEK_API_KEY = 'test-key'",
+    `const s = await import(${JSON.stringify(SESSIONS_URL)})`,
+    // 造 8 个会话，每个 3 条消息；上限 2 → 大部分会被卸载
+    'const all = []',
+    'for (let i = 0; i < 8; i++) {',
+    '  const x = s.createSession()',
+    "  for (let j = 0; j < 3; j++) x.messages.push({ role: 'user', content: `m${i}-${j}` })",
+    '  x.updatedAt = Date.now()',
+    '  all.push(x)',
+    '}',
+    'await s.persistNow()',
+    'await s.awaitEvictions()',
+    'const victim = all.find(x => x.unloaded)',
+    'if (!victim) { console.log(JSON.stringify({ err: "没有会话被卸载" })); process.exit(0) }',
+    // ① 列表条数不能是 0
+    'const info = s.allSessionInfo().find(i => i.id === victim.id)',
+    // ② 分叉要保住内容
+    'const forked = s.forkSession(victim, "fork")',
+    // ③ 回退要基于真实消息
+    's.rewindSession(victim, 1)',
+    'console.log(JSON.stringify({',
+    '  messageCount: info.messageCount,',
+    '  forkedCount: forked ? forked.messages.length : -1,',
+    '  afterRewind: victim.messages.length,',
+    '}))',
+    'process.exit(0)',
+  ].join('\n')
+
+  const cp = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    encoding: 'utf8',
+    timeout: 30_000,
+  })
+  assert.equal(cp.status, 0, `子进程失败：${cp.stderr}`)
+  const r = JSON.parse(cp.stdout.trim().split('\n').pop())
+  assert.notEqual(r.err, '没有会话被卸载', '前置条件不成立，这条没测到东西')
+  assert.equal(r.messageCount, 3, `列表条数应仍是 3（卸载前记下的），实际 ${r.messageCount}`)
+  assert.equal(r.forkedCount, 3, `分叉出来的会话应保有 3 条消息，实际 ${r.forkedCount}（0 就是内容丢了）`)
+  assert.equal(r.afterRewind, 1, `回退到 1 条后应是 1，实际 ${r.afterRewind}`)
+})
+
 test('守卫：被守卫的会话不会被卸载', async () => {
   sessions.onSessionEvict(s => s.id === 'protected')
   const s = sessions.createSession()
