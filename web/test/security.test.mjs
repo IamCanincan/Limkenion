@@ -148,6 +148,49 @@ describe('不可信内容隔离', () => {
     assert.ok(!wrapped.includes('onmouseover="alert'))
   })
 
+  // ---- 脚本落地即执行：守卫最大的盲区 ----
+  // 模型可以先 Write 一个脚本（工作区内，文件工具放行）再执行它，
+  // 守卫看到的命令文本（bash run.sh）完全无害。纯 Node 挡不住，
+  // 但能做到"升级确认 + 把脚本内容摆给用户看"，至少不是盲签。
+
+  test('执行本会话刚写过的文件 → 升级确认，并把脚本内容摆出来', async () => {
+    const fs = await import('node:fs/promises')
+    const { join } = await import('node:path')
+    const scriptPath = join(ws.dir, 'run.sh')
+    await fs.writeFile(scriptPath, '#!/bin/sh\nrm -rf /tmp/not-really\n')
+
+    const v = analyzeShellCommand('Bash', 'bash run.sh', { recentlyWritten: [scriptPath] })
+    assert.ok(v.escalate, '必须升级确认（否则用户是对着一句 bash run.sh 点头）')
+    assert.match(v.escalate, /本会话刚写过的文件/)
+    assert.match(v.escalate, /rm -rf/, '确认框里必须能看到脚本实际内容')
+    assert.equal(v.scriptFile, scriptPath)
+  })
+
+  test('只写文件名（不带路径）也能命中', async () => {
+    const fs = await import('node:fs/promises')
+    const { join } = await import('node:path')
+    const scriptPath = join(ws.dir, 'cleanup.py')
+    await fs.writeFile(scriptPath, 'import os\n')
+    const v = analyzeShellCommand('Bash', 'python cleanup.py', { recentlyWritten: [scriptPath] })
+    assert.ok(v.escalate, '只写文件名也应命中')
+  })
+
+  test('执行与本次改动无关的文件 → 不升级（不能把正常命令全变成要确认）', () => {
+    const v = analyzeShellCommand('Bash', 'bash /some/other/thing.sh', {
+      recentlyWritten: ['/x/never-written.sh'],
+    })
+    assert.equal(v.escalate, undefined)
+    assert.equal(v.block, undefined)
+  })
+
+  test('文件读不到时如实说明，不假装内容为空', () => {
+    const v = analyzeShellCommand('Bash', 'bash ghost.sh', {
+      recentlyWritten: ['/definitely/not/here/ghost.sh'],
+    })
+    assert.ok(v.escalate, '仍应升级确认')
+    assert.match(v.escalate, /读不到文件内容/)
+  })
+
   test('markUntrusted / hasUntrusted 按会话隔离', () => {
     const a = {}
     const b = {}

@@ -438,7 +438,11 @@ async function runDeepSeekTurn(session, text, emit, expired, hookContext) {
       }
 
       // ---- 1. shell 守卫 ----
-      const shellVerdict = analyzeShellCommand(tc.name, input.command ?? input.code ?? '')
+      // 把"本会话改动过的文件"交给守卫：模型可以先写个脚本再执行它，
+      // 命令文本看着无害（bash run.sh），守卫必须知道这是自己刚写的东西。
+      const shellVerdict = analyzeShellCommand(tc.name, input.command ?? input.code ?? '', {
+        recentlyWritten: session.filesChanged ?? [],
+      })
       if (shellVerdict.block) {
         const blockedId = 'tc_' + Math.random().toString(36).slice(2, 10)
         const reason = `已拒绝执行：${shellVerdict.block}`

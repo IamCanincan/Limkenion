@@ -12,7 +12,8 @@
  */
 
 import { randomBytes } from 'node:crypto'
-import { resolve } from 'node:path'
+import { basename, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { EXPOSED, PORT } from './config.mjs'
 import { isInsideWorkspace } from './paths.mjs'
 
@@ -196,7 +197,48 @@ function outsideWorkspacePaths(command) {
  *   block —— 必须拒绝（不受权限模式与「总是允许」影响）
  *   escalate —— 需要重新弹窗确认（无视「本会话总是允许」）
  */
-export function analyzeShellCommand(toolName, command) {
+/** 正则转义（文件名里常有 . + ( ) 这类元字符）。 */
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * 命令是否在执行「本会话刚写过的文件」。
+ *
+ * 这是 shell 守卫最大的盲区：模型可以先用 Write 在工作区里写一个脚本
+ * （工作区内 → 文件工具放行），再执行 `bash run.sh` —— 守卫看到的命令文本
+ * **完全无害**，但脚本里想干什么都行。模式匹配到此为止，拦不住。
+ *
+ * 能做的（纯 Node 范围内）：把"执行的是自己刚写的文件"这件事**升级确认**，
+ * 并把脚本开头一并摆给用户看 —— 否则确认框里只有一句 `bash run.sh`，等于盲签。
+ *
+ * @returns {string|null} 命中的文件路径
+ */
+export function referencesRecentlyWritten(command, recentlyWritten) {
+  if (!Array.isArray(recentlyWritten) || recentlyWritten.length === 0) return null
+  const cmd = String(command ?? '')
+  for (const p of recentlyWritten) {
+    const name = basename(String(p ?? ''))
+    if (!name) continue
+    // 三种写法都算命中：完整路径、相对路径、光是文件名
+    const byName = new RegExp(`(^|[\\s'"=/\\\\])${escapeRegExp(name)}([\\s'"|;&]|$)`).test(cmd)
+    if (cmd.includes(String(p)) || byName) return String(p)
+  }
+  return null
+}
+
+/** 读一段文件开头（给确认框看），读不到就如实说读不到。 */
+function previewFile(path, maxChars = 600) {
+  try {
+    const raw = readFileSync(path, 'utf8')
+    const head = raw.slice(0, maxChars)
+    return head + (raw.length > maxChars ? `\n……（还有 ${raw.length - maxChars} 字符）` : '')
+  } catch (err) {
+    return `（读不到文件内容：${String(err?.code ?? err)}）`
+  }
+}
+
+export function analyzeShellCommand(toolName, command, opts = {}) {
   if (!SHELL_TOOLS.has(toolName)) return {}
   if (SHELL_DISABLED) {
     return { block: 'shell 类工具已被 LIMKENION_WEB_SHELL=off 禁用' }
@@ -206,6 +248,21 @@ export function analyzeShellCommand(toolName, command) {
 
   for (const [re, why] of HARD_BLOCK) {
     if (re.test(cmd)) return { block: `命中危险命令模式（${why}），已拒绝执行` }
+  }
+
+  // 执行"本会话刚写过的脚本"：命令文本本身看不出问题，但内容是模型自己写的 ——
+  // 升级确认，并把脚本开头展示出来（否则用户是对着一句 bash run.sh 点头）。
+  const script = referencesRecentlyWritten(cmd, opts.recentlyWritten)
+  if (script) {
+    return {
+      escalate:
+        `这条命令要执行**本会话刚写过的文件**：${script}\n` +
+        'shell 守卫只能检查命令文本，看不见脚本里写了什么，所以需要你确认：\n\n' +
+        '----- 脚本开头 -----\n' +
+        previewFile(script) +
+        '\n----- 脚本开头结束 -----',
+      scriptFile: script,
+    }
   }
 
   const outside = outsideWorkspacePaths(cmd)
