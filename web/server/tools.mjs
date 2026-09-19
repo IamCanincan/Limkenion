@@ -512,33 +512,136 @@ async function toolGlob({ pattern, path }) {
 // 执行类工具
 // ---------------------------------------------------------------------------
 
+/**
+ * 连根杀掉一个进程树（不只是直接子进程）。
+ *
+ * 只杀 shell（cmd.exe / sh）不够 —— 真正跑命令的是它的**孙进程**：shell 死了它
+ * 照样活着，继续占着 stdout 管道 / 文件锁 / 端口（Windows 上尤其明显，后续写
+ * 同一个文件会被锁住）。
+ * Windows 用 taskkill /T /F；Unix 用进程组 kill(-pid)（要求 spawn 时 detached）。
+ *
+ * 用 spawn 而非 execSync：taskkill 要几百毫秒，同步等会把整个本地服务的事件
+ * 循环卡住，其他 WS 客户端跟着一起卡。
+ *
+ * @param {number|undefined} pid
+ * @param {boolean} isWin
+ * @returns {void}
+ */
+function killProcessTree(pid, isWin) {
+  if (!pid) return
+  try {
+    if (isWin) {
+      const k = spawn('taskkill', ['/T', '/F', '/PID', String(pid)], {
+        stdio: 'ignore',
+        windowsHide: true,
+      })
+      k.on('error', () => {})
+      k.unref?.()
+    } else {
+      try {
+        process.kill(-pid, 'SIGKILL')
+      } catch {
+        try {
+          process.kill(pid, 'SIGKILL')
+        } catch {
+          /* 已退出 */
+        }
+      }
+    }
+  } catch {
+    /* 进程已自己退出；taskkill 失败属常见竞态，忽略即可 */
+  }
+}
+
+/**
+ * 前台执行一条 shell 命令。
+ *
+ * 两个要点（都踩过坑，见 MEMORY）：
+ *  1. **不等 close 直接结算**：超时后孙进程可能仍抓着 stdout 管道，等 `close`
+ *     就永不触发 → **整个回合挂死**。所以超时即 kill + 立刻结算，之后来的
+ *     close 一律忽略。
+ *  2. **杀进程树**：只杀 shell 会留下孤儿孙进程占文件锁/端口（见 killProcessTree）。
+ *
+ * @param {string} cmd
+ * @param {number} timeoutMs
+ * @returns {Promise<string>}
+ */
 function execShell(cmd, timeoutMs = BASH_TIMEOUT_MS) {
   return new Promise(resolveResult => {
     const isWin = process.platform === 'win32'
     const file = isWin ? 'cmd.exe' : '/bin/sh'
     const args = isWin ? ['/d', '/s', '/c', cmd] : ['-c', cmd]
-    execFile(
-      file,
-      args,
-      {
-        cwd: workspaceRoot(),
-        timeout: timeoutMs,
-        maxBuffer: 4 * 1024 * 1024,
-        windowsHide: true,
-        env: { ...process.env, ...shellNetEnv() },
-      },
-      (error, stdout, stderr) => {
-        const out = [
-          stdout && `stdout:\n${stdout}`,
-          stderr && `stderr:\n${stderr}`,
-          error && error.killed ? `\n[超时 ${timeoutMs}ms，进程被终止]` : null,
-          error && error.code !== 0 && !error.killed ? `\n[退出码 ${error.code}]` : null,
-        ]
-          .filter(Boolean)
-          .join('\n')
-        resolveResult(out || '（无输出）')
-      },
-    )
+    const MAX = 4 * 1024 * 1024
+    let stdout = ''
+    let stderr = ''
+    let truncated = false
+    let exitCode = /** @type {number|null} */ (null)
+    let timedOut = false
+    let settled = false
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let timer
+
+    const child = spawn(file, args, {
+      cwd: workspaceRoot(),
+      windowsHide: true,
+      // Unix 必须有独立进程组，超时才能用 kill(-pid) 连根杀；Windows 靠 taskkill /T
+      detached: !isWin,
+      env: { ...process.env, ...shellNetEnv() },
+    })
+
+    // 幂等：超时结算之后再来 close / error 都不再改结果
+    const finish = () => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      const out = [
+        stdout && `stdout:\n${stdout}`,
+        stderr && `stderr:\n${stderr}`,
+        truncated ? '\n[输出超过 4MB，已截断]' : null,
+        timedOut ? `\n[超时 ${timeoutMs}ms，进程树已被终止]` : null,
+        exitCode !== null && exitCode !== 0 && !timedOut ? `\n[退出码 ${exitCode}]` : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+      resolveResult(out || '（无输出）')
+    }
+
+    const pump = (which, d) => {
+      if (settled) return
+      const s = d.toString()
+      if (which === 'out') {
+        if (stdout.length + s.length > MAX) {
+          truncated = true
+          return
+        }
+        stdout += s
+      } else {
+        if (stderr.length + s.length > MAX) {
+          truncated = true
+          return
+        }
+        stderr += s
+      }
+    }
+
+    child.stdout?.on('data', d => pump('out', d))
+    child.stderr?.on('data', d => pump('err', d))
+    child.on('error', err => {
+      stderr += `\n${String(err?.message ?? err)}`
+      finish()
+    })
+    child.on('close', code => {
+      exitCode = code
+      finish()
+    })
+
+    timer = setTimeout(() => {
+      if (settled) return
+      timedOut = true
+      killProcessTree(child.pid, isWin)
+      // 关键：不等 close —— 孙进程可能还抓着 stdout，等它退出会挂死整个回合。
+      finish()
+    }, timeoutMs)
   })
 }
 
