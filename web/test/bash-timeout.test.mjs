@@ -69,21 +69,27 @@ test(
     const out = await tools.executeTool('Bash', { command: cmd, timeout: 1500 }, {})
     assert.match(out, /超时/, `命令应超时终止，实际输出：${out}`)
 
-    // taskkill 是异步的（避免阻塞事件循环），给它时间落地
-    await new Promise(r => setTimeout(r, 1500))
     const pid = Number((await readFile(pidFile, 'utf8')).trim())
     assert.ok(Number.isFinite(pid) && pid > 0, '孙进程应已写下自己的 pid')
 
+    // taskkill 是异步的（避免阻塞事件循环），机器忙时落地更慢 —— 所以**轮询**等它
+    // 消失，而不是固定 sleep 一次就断言：固定等待在负载高的机器上会假红（CI 更容易）。
+    // 这条断言依然抓得住真回归：若没杀进程树，孙进程会一直活着，轮询到超时仍 alive。
+    const deadline = Date.now() + 10_000
     let alive = true
-    try {
-      process.kill(pid, 0)
-    } catch {
-      alive = false
+    while (Date.now() < deadline) {
+      try {
+        process.kill(pid, 0)
+      } catch {
+        alive = false
+        break
+      }
+      await new Promise(r => setTimeout(r, 200))
     }
     assert.strictEqual(
       alive,
       false,
-      `超时后孙进程（pid ${pid}）仍存活 —— 说明只杀了 shell，没杀进程树`,
+      `超时后孙进程（pid ${pid}）在 10 秒内始终存活 —— 说明只杀了 shell，没杀进程树`,
     )
   },
 )

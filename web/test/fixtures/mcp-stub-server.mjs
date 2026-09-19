@@ -13,7 +13,10 @@
  */
 
 import { writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
 
 const wantReverse = process.argv.includes('reverse')
 const SERVER_INFO = { name: 'stub-mcp', version: '1.2.3' }
@@ -44,7 +47,8 @@ process.stdin.on('data', chunk => {
 function handle(msg) {
   // 客户端对我们反向请求的回应
   if (msg.id === 'reverse-1' && (msg.result || msg.error)) {
-    writeFileSync(join(import.meta.dirname, 'reverse-answer.json'), JSON.stringify(msg, null, 1))
+    // 同 server/paths.mjs 的理由：不用 import.meta.dirname（Node 20.11+ 才有）
+    writeFileSync(join(HERE, 'reverse-answer.json'), JSON.stringify(msg, null, 1))
     return
   }
 

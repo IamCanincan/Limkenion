@@ -17,8 +17,19 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve, dirname } from 'node:path'
 import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+/**
+ * 本文件所在目录。
+ *
+ * **刻意不用 `import.meta.dirname`**：它要 Node 20.11+ 才有，在 20.0~20.10 上是
+ * `undefined` —— 而下面 `CLI_ROOT` 是**模块加载时**就求值的顶层常量，一旦拿到
+ * undefined，`join(undefined, …)` 会抛 TypeError，结果是**整个服务起不来、测试全红**，
+ * 且只有老一点的 Node 20 才复现（本地 Node 22/24 测不出来 —— CI 用的正是 Node 20）。
+ */
+const HERE = dirname(fileURLToPath(import.meta.url))
 
 /**
  * 定位 CLI 源码根，按优先级取第一个含 commands/ 的候选：
@@ -33,7 +44,7 @@ function detectCliRoot() {
   // 所以这里显式断言一次 —— 语义上 filter 已经把 falsy 全去掉了。
   const candidates = /** @type {string[]} */ ([
     process.env.LIMKENION_CLI_ROOT,
-    join(import.meta.dirname, '..', '..'),
+    join(HERE, '..', '..'),
     fallback,
   ].filter(Boolean))
   for (const c of candidates) {
